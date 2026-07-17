@@ -30,6 +30,10 @@ Apple-style editor, with a scriptable CLI companion.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
+- **Tag export/import with auto-backup** — the batch editors export all tags
+  of a selection (covers embedded) into one self-contained JSON file and
+  restore from it; before batch saves the app automatically writes a
+  `tags-backup-<timestamp>.json` next to the files (setting, on by default).
 - **Tech panel** — the full `mediainfo` report for any file, filterable and
   copyable.
 - **Auto-updates** — via [Sparkle](https://sparkle-project.org); the app only
@@ -88,6 +92,8 @@ tagx set song.mp3 -c ALBUMARTIST=ARTIST        # copy one tag into another
 tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
 tagx ebook set book.epub --series "Foundation" --series-index 2
+tagx export Album/ -o tags.json                # back up all tags (covers embedded)
+tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
 ```
 

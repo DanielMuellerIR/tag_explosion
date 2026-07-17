@@ -18,6 +18,7 @@ struct EbookBatchEditorView: View {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 fieldsSection
+                ArchiveButtons(entries: entries)
                 fileListSection
             }
             .padding(20)

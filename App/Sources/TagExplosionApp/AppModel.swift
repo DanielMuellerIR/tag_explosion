@@ -6,34 +6,12 @@ import SwiftUI
 import TagExplosionCore
 import UniformTypeIdentifiers
 
-/// Audio-Endungen, die wir öffnen (deckt die TagLib-Formate ab).
-let audioExtensions: Set<String> = [
-    "mp3", "m4a", "m4b", "m4r", "mp4", "aac",
-    "flac", "ogg", "oga", "opus", "spx",
-    "wav", "aiff", "aif", "wv", "ape", "mpc",
-    "tta", "dsf", "dff", "wma", "asf",
-]
-
-/// Bild-Endungen (Metadaten via exiftool).
-let imageExtensions: Set<String> = [
-    "jpg", "jpeg", "png", "heic", "heif", "tif", "tiff",
-    "webp", "dng", "gif",
-]
-
-/// Video-Endungen. Tags via TagLib (mp4/m4v/mkv/webm); Rest nur anzeigen.
-let videoExtensions: Set<String> = [
-    "m4v", "mkv", "webm", "mov", "avi",
-]
-
-/// E-Book-/Dokument-Endungen: epub/pdf immer; mobi/azw3/fb2 nur, wenn Calibres
-/// `ebook-meta` gefunden wird (einmalige Prüfung beim Start).
-let ebookExtensions: Set<String> = {
-    var extensions = EbookTool.builtinExtensions
-    if EbookTool.calibreAvailable {
-        extensions.formUnion(EbookTool.calibreExtensions)
-    }
-    return extensions
-}()
+// Endungs-Sets kommen zentral aus dem Core (MediaFormats), damit App, CLI
+// und Export/Import dieselbe Dateierkennung nutzen.
+let audioExtensions = MediaFormats.audio
+let imageExtensions = MediaFormats.image
+let videoExtensions = MediaFormats.video
+let ebookExtensions = MediaFormats.ebook
 
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg.
 enum MediaKind: Sendable {
@@ -374,9 +352,20 @@ final class AppModel {
 
     // MARK: - Speichern
 
+    /// Schlüssel der Auto-Backup-Einstellung (Toggle in den Einstellungen).
+    static let autoBackupDefaultsKey = "autoBackupBeforeBatchSave"
+
+    /// Auto-Backup vor Batch-Speichern? (Default: an)
+    static var autoBackupEnabled: Bool {
+        UserDefaults.standard.object(forKey: autoBackupDefaultsKey) == nil
+            || UserDefaults.standard.bool(forKey: autoBackupDefaultsKey)
+    }
+
     /// Speichert alle ausgewählten Dateien mit Änderungen.
     func saveSelected() async {
-        for entry in selectedEntries where entry.isDirty {
+        let dirty = selectedEntries.filter(\.isDirty)
+        guard await backupIfNeeded(before: dirty) else { return }
+        for entry in dirty {
             await save(entry: entry)
         }
     }
@@ -391,8 +380,111 @@ final class AppModel {
     }
 
     func saveAll() async {
-        for entry in entries where entry.isDirty {
+        let dirty = entries.filter(\.isDirty)
+        guard await backupIfNeeded(before: dirty) else { return }
+        for entry in dirty {
             await save(entry: entry)
+        }
+    }
+
+    /// Schreibt vor einem Batch-Speichern (mehr als eine Datei) je betroffenem
+    /// Ordner ein `tags-backup-<Zeitstempel>.json` mit dem aktuellen
+    /// Platten-Zustand (Wiederherstellen = derselbe Import-Weg).
+    /// false = Backup fehlgeschlagen, Speichern wird abgebrochen.
+    private func backupIfNeeded(before dirtyEntries: [FileEntry]) async -> Bool {
+        guard Self.autoBackupEnabled, dirtyEntries.count > 1 else { return true }
+        // Zeitstempel ohne Doppelpunkte (Dateiname), ISO-8601-sortierbar.
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd'T'HHmmss"
+        let stamp = formatter.string(from: Date())
+
+        let byFolder = Dictionary(grouping: dirtyEntries.map(\.url)) {
+            $0.deletingLastPathComponent()
+        }
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                for (folder, urls) in byFolder {
+                    let target = folder.appendingPathComponent("tags-backup-\(stamp).json")
+                    try TagArchiveIO.export(files: urls, to: target, includeCovers: true)
+                }
+            }.value
+            return true
+        } catch {
+            alertMessage = "Auto-Backup fehlgeschlagen — Speichern abgebrochen.\n\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    // MARK: - Export/Import (JSON)
+
+    /// Exportiert die Tags der Einträge als selbständige JSON-Datei.
+    func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
+        let files = exportEntries.map(\.url)
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try TagArchiveIO.export(files: files, to: url, includeCovers: true)
+            }.value
+        } catch {
+            alertMessage = "Export fehlgeschlagen:\n\(error.localizedDescription)"
+        }
+    }
+
+    /// Wendet eine Export-/Backup-JSON auf die Platte an und lädt betroffene,
+    /// bereits geöffnete Dateien neu.
+    func importArchive(from url: URL) async {
+        do {
+            let report = try await Task.detached(priority: .userInitiated) {
+                let archive = try TagArchiveIO.load(url)
+                return TagArchiveIO.apply(
+                    archive, relativeTo: url.deletingLastPathComponent(), dryRun: false)
+            }.value
+
+            // Geänderte, geladene Einträge neu von der Platte lesen.
+            let base = url.deletingLastPathComponent()
+            let changedPaths = Set(report.applied.map {
+                TagArchiveIO.resolve(path: $0, in: base).path
+            })
+            for entry in entries where changedPaths.contains(entry.url.standardizedFileURL.path) {
+                await reload(entry: entry)
+            }
+
+            var summary = "Import: \(report.applied.count) geändert, \(report.unchanged.count) unverändert"
+            if !report.missing.isEmpty { summary += ", \(report.missing.count) fehlend" }
+            if !report.extra.isEmpty { summary += ", \(report.extra.count) nicht im Archiv" }
+            if !report.failed.isEmpty {
+                summary += "\nFehlgeschlagen:\n" + report.failed
+                    .map { "\($0.0): \($0.1)" }.joined(separator: "\n")
+            }
+            alertMessage = summary
+        } catch {
+            alertMessage = "Import fehlgeschlagen:\n\(error.localizedDescription)"
+        }
+    }
+
+    /// Liest eine Datei neu von der Platte und ersetzt den Originalzustand.
+    private func reload(entry: FileEntry) async {
+        let url = entry.url
+        do {
+            switch entry.kind {
+            case .audio:
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try TagFile.read(at: url)
+                }.value
+                entry.acceptNewOriginal(data)
+            case .image:
+                let fields = try await Task.detached(priority: .userInitiated) {
+                    try ExifTool.readCoreFields(url: url)
+                }.value
+                entry.acceptNewImageOriginal(fields)
+            case .ebook:
+                let fields = try await Task.detached(priority: .userInitiated) {
+                    try EbookTool.readCoreFields(url: url)
+                }.value
+                entry.acceptNewEbookOriginal(fields)
+            }
+        } catch {
+            entry.lastError = error.localizedDescription
         }
     }
 

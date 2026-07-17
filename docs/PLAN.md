@@ -144,19 +144,18 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   `tagx ebook show/set` (inkl. `--cover`); READMEs erweitert; Tests mit
   generierten EPUB-2/3-, PDF- und azw3-Fixtures.
 
-### Batch-Export/Import + Tag-Backup (JSON)
-- `tagx export <dateien> -o tags.json` / `tagx import tags.json [--dry-run]`
-  und GUI-Buttons im Batch-Editor. Ausschließlich JSONEncoder/JSONDecoder
-  (korrektes Escaping garantiert, nie Strings zusammenbauen).
-- Schema je Datei: relativer Pfad + vollständige PropertyMap (mehrwertige Keys
-  als Arrays) + Cover **Base64-eingebettet** (data + mimeType + pictureType) —
-  eine selbständige, atomare Datei; Richtwert ~40 MB je 100 Dateien mit Covern,
-  optional `--without-covers`.
-- **Auto-Backup:** Vor jedem Batch-Speichern optional (Einstellung, Default an)
-  `tags-backup-<ISO-Zeitstempel>.json` in den Ordner der Dateien schreiben;
-  Wiederherstellen = derselbe Import-Pfad. Import matcht über relativen Pfad
-  zur JSON-Datei, meldet fehlende/zusätzliche Dateien statt still zu raten.
-- Bilder-Batch analog (ImageCoreFields statt PropertyMap), gleiche Datei-Form.
+### Batch-Export/Import + Tag-Backup (JSON) — ✅ umgesetzt in 0.14.0
+- `tagx export <dateien/ordner> -o tags.json [--without-covers]` /
+  `tagx import tags.json [--dry-run]` und GUI-Buttons in allen drei
+  Batch-Editoren (Audio, Bild, E-Book). Nur JSONEncoder/JSONDecoder.
+- Schema (`TagArchive` im Core): je Datei relativer Pfad + Medienart; Audio/
+  Video mit vollständiger PropertyMap (mehrwertig als Arrays) + Covern
+  (Base64), Bilder mit ImageCoreFields, E-Books mit EbookCoreFields + Cover.
+- Auto-Backup: vor Batch-Speichern (>1 Datei; Einstellung ⌘,, Default an)
+  `tags-backup-<Zeitstempel>.json` je betroffenem Ordner; Wiederherstellen =
+  derselbe Import-Weg. Import matcht ausschließlich über den relativen Pfad
+  zur JSON-Datei und meldet fehlende/zusätzliche Dateien; Exit-Code 1 bei
+  unvollständiger Wiederherstellung.
 
 ### Englische Lokalisierung
 - App: String Catalog (`Localizable.xcstrings`) im SPM-Target,
@@ -213,3 +212,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.11.0  | Tag-Umkopieren auch in den Einzel-Editoren (Audio + Bild), echte Pixelmaße statt NSImage-Punktgröße, Lizenzhinweise im App-Bundle — ✅ (Sparkle-Bootstrap-Version) |
 | 0.12.0  | Distribution als notarisiertes DMG (Hintergrundbild, /Applications-Symlink, Finder-Layout), Appcast-Workflow auf `*.dmg` — ✅ |
 | 0.13.0  | E-Books/Dokumente: EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre; Editor + Batch + `tagx ebook` — ✅ |
+| 0.14.0  | Tag-Export/-Import als JSON (`tagx export/import`, GUI-Buttons) + Auto-Backup vor Batch-Speichern — ✅ |

@@ -15,6 +15,7 @@ struct BatchEditorView: View {
                 header
                 batchFieldsSection
                 actionsSection
+                ArchiveButtons(entries: entries)
                 fileListSection
             }
             .padding(20)

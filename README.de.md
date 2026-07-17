@@ -31,6 +31,10 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
   typkompatible Textfelder.
+- **Tag-Export/-Import mit Auto-Backup** — die Batch-Editoren exportieren alle
+  Tags einer Auswahl (Cover eingebettet) in eine selbständige JSON-Datei und
+  stellen daraus wieder her; vor Batch-Speichern legt die App automatisch ein
+  `tags-backup-<Zeitstempel>.json` neben die Dateien (Einstellung, Default an).
 - **Technik-Panel** — der vollständige `mediainfo`-Bericht zu jeder Datei,
   filterbar und kopierbar.
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
@@ -87,6 +91,8 @@ tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx ebook set buch.epub --series "Foundation" --series-index 2
+tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
+tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
 ```
 

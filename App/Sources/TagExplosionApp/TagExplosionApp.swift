@@ -78,5 +78,30 @@ struct TagExplosionApp: App {
                 .disabled(!model.selectionIsDirty)
             }
         }
+
+        Settings {
+            SettingsView()
+        }
+    }
+}
+
+/// Einstellungen (⌘,): momentan nur das Auto-Backup vor Batch-Speichern.
+struct SettingsView: View {
+    @AppStorage(AppModel.autoBackupDefaultsKey) private var autoBackup = true
+
+    var body: some View {
+        Form {
+            Toggle("Vor Batch-Speichern Tag-Backup anlegen", isOn: $autoBackup)
+            Text("""
+            Schreibt vor dem Speichern mehrerer Dateien je Ordner ein \
+            tags-backup-<Zeitstempel>.json mit dem bisherigen Zustand \
+            (inklusive Cover). Wiederherstellen: „Tags aus JSON importieren …" \
+            im Batch-Editor oder `tagx import`.
+            """)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .frame(width: 460)
     }
 }
