@@ -103,6 +103,19 @@ tag_explosion/
 - Versionierung: `VERSION`-Datei (semver), bei jedem abgeschlossenen Schritt Bump + Commit.
 - Remote: nur internes Backup-Remote. GitHub erst auf Auftrag.
 
+## Abgleich mit kid3 (2026-07-17, kid3 3.9.6)
+
+Kreuzkompatibilität verifiziert: kid3-geschriebene Dateien (inkl. USLT-Lyrics,
+BPM) liest tagx korrekt; tagx-geschriebene Custom-/Standard-Felder liest kid3
+korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
+
+- ID3v1/v2/APE getrennt anzeigen/bearbeiten/strippen (wir: TagLib-vereinheitlicht)
+- Frame-Detailansicht (rohe ID3-Frames) und ID3v2.3-Schreiboption
+- Dateiname ↔ Tag mit Format-Mustern (beide Richtungen, Umbenennen aus Tags)
+- Online-Import (MusicBrainz/Discogs), Playlist-Export, Groß-/Kleinschreibungs-Werkzeuge
+- Dafür haben wir: MediaInfo-Vollansicht, Bilder (EXIF/IPTC/XMP), moderne UI,
+  Matroska-Tags, maschinenlesbare CLI (JSON)
+
 ## Backlog / Notizen
 
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über

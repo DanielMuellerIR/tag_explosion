@@ -1,11 +1,21 @@
 # Tag Explosion
 
 Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten — schick,
-schnell und Apple-like. Anzeigen kann sie (fast) alles, was `mediainfo` kennt;
-bearbeiten kann sie Audio-Tags inkl. Coverbilder wie kid3 (mp3/ID3, m4a/m4b,
-flac, ogg, opus, wav, aiff …). Bilder (EXIF/IPTC/XMP) und Video folgen.
+schnell und Apple-like.
 
-**Status:** frühe Entwicklung.
+- **Audio** (mp3/ID3, m4a/m4b, flac, ogg, opus, wav, aiff, wavpack …):
+  alle Tag-Felder inkl. Custom-Keys, Coverbilder, Batch-Bearbeitung
+  (gemeinsame Felder, Tracks nummerieren, Titel aus Dateinamen, Cover für alle).
+- **Bilder** (jpg, png, heic, tiff, webp …): EXIF/IPTC/XMP harmonisiert
+  (MWG) — Titel, Beschreibung, Schlagwörter, Ersteller, Copyright, Datum,
+  Bewertung, GPS; komplette Metadaten-Ansicht; Batch.
+- **Video** (mp4, m4v, mkv, webm): Tags bearbeiten; alles andere read-only.
+- **Technik-Panel:** vollständige `mediainfo`-Ansicht (filterbar, kopierbar)
+  für jede Datei.
+- **CLI `tagx`:** alles auch headless, mit JSON-Ausgabe (`tagx show --json`,
+  `tagx set`, `tagx cover`, `tagx info`, `tagx exif`).
+
+**Status:** funktionsfähige 0.x-Entwicklung (siehe [docs/PLAN.md](docs/PLAN.md)).
 
 ## Bestandteile
 

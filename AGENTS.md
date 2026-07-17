@@ -64,4 +64,6 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - [Tests/](Tests/) — XCTest + Fixture-Generator
 - [VERSION](VERSION) — semver, Quelle der Wahrheit
 - [build.sh](build.sh) — baut CLI und App-Bundle
+- [knowledge/](knowledge/INDEX.md) — Projekt-Wissensbasis (eine Datei pro Problem)
+- [scripts/](scripts/) — GUI-Selbsttests, Icon-Generator
 <!-- /directory-structure -->
