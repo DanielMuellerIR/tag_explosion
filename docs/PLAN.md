@@ -116,6 +116,17 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 - Dafür haben wir: MediaInfo-Vollansicht, Bilder (EXIF/IPTC/XMP), moderne UI,
   Matroska-Tags, maschinenlesbare CLI (JSON)
 
+## App-Icon
+
+- Motiv: Comic-Explosions-Sprechblase mit Preisschild („M1a"), generiert mit
+  MiniMax image-01 (2026-07-17; Outputs gehören laut MiniMax-Platform-ToS dem
+  Nutzer — MIT-kompatibel). Quelle: `App/Resources/AppIcon-Quelle.png`.
+- **Bewusst Full-Bleed** statt Apple-HIG-Raster (824/1024-Kachel): Icon füllt
+  die komplette Squircle-Fläche → wirkt im Dock so groß wie Chrome/Firefox
+  statt kleiner (Daniels Fastra-Feedback). Neu erzeugen:
+  `swift scripts/icon-from-image.swift App/Resources/AppIcon-Quelle.png App/Resources`
+- `scripts/make-icon.swift` bleibt als programmatischer Fallback erhalten.
+
 ## Backlog / Notizen
 
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
