@@ -2,8 +2,9 @@
 
 Tag Explosion bindet Sparkle 2.9.4 per SwiftPM ein (exakt gepinnt in
 `App/Package.swift`). Die App prüft den Feed unter
-`https://danielmuellerir.github.io/tag_explosion/appcast.xml`, lädt das ZIP aus
-dem zugehörigen GitHub Release und installiert ausschließlich nach Zustimmung.
+`https://danielmuellerir.github.io/tag_explosion/appcast.xml`, lädt das DMG aus
+dem zugehörigen GitHub Release und installiert ausschließlich nach Zustimmung
+(Sparkle mountet das DMG selbst und kopiert die App daraus).
 
 Die erste Version mit Sparkle ist der einmalige Bootstrap: Vorgängerversionen
 enthalten keinen Updater und können das Update deshalb nicht selbst finden —
@@ -41,10 +42,13 @@ Gegenpart (`SUPublicEDKey`) steht im App-Bundle.
    monoton steigen — Sparkle vergleicht darüber.
 2. `NOTARY_PROFILE=<profil> ./build.sh --release` ausführen: bündelt
    TagLib-dylibs und Sparkle.framework, signiert (Developer ID + Hardened
-   Runtime), notarisiert, stapelt und erzeugt `TagExplosion-<version>.zip`.
-3. Ein GitHub Release als Entwurf anlegen, genau ein ZIP anhängen, Release
+   Runtime), notarisiert und stapelt die App, baut daraus das DMG mit
+   /Applications-Symlink und Hintergrundbild (Finder-Layout per AppleScript;
+   auf headless-Maschinen `--no-finder-layout`), signiert, notarisiert und
+   stapelt auch das DMG und erzeugt `TagExplosion-<version>.dmg`.
+3. Ein GitHub Release als Entwurf anlegen, genau ein DMG anhängen, Release
    Notes eintragen und erst danach veröffentlichen.
-4. `.github/workflows/publish-appcast.yml` lädt dieses ZIP, erzeugt mit
+4. `.github/workflows/publish-appcast.yml` lädt dieses DMG, erzeugt mit
    Sparkles `generate_appcast` einen signierten Feed, bettet die Release Notes
    ein und veröffentlicht `appcast.xml` über GitHub Pages.
 5. Den Workflow und anschließend
@@ -60,7 +64,7 @@ Build gesetzt werden (siehe `build.sh`); normale Builds verwenden immer den
 öffentlichen GitHub-Pages-Feed.
 
 Der Workflow kann für ein bereits veröffentlichtes Tag manuell gestartet
-werden. Er erwartet genau ein `*.zip` im Release. Der Feed führt nur das
+werden. Er erwartet genau ein `*.dmg` im Release. Der Feed führt nur das
 aktuelle Vollupdate; Delta-Updates sind bewusst deaktiviert, bis der
 Pages-Workflow mehrere historische Archive mit ihren jeweiligen Download-URLs
 verwaltet.

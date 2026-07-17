@@ -168,16 +168,13 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   en, README.de.md de. Demo-Dateien für EN-Screenshots ggf. mit englischen
   Tags neu taggen (Erzeugung siehe Session-Muster: ffmpeg + tagx + MiniMax-Cover).
 
-### Distribution: DMG statt ZIP (ab nächstem Release)
-- Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild („App in
-  den Programme-Ordner ziehen"). **Vorlage: `~/git/fastra/app/release.sh`**
-  (hdiutil UDRW→Layout per AppleScript→UDZO, `tools/generate-dmg-background.swift`)
-  + Rezept in theplan `knowledge/macos-app-distribution.md` Abschnitt 3
-  (HFS+ statt APFS!, sync-Pause vor detach, DMG selbst signieren → notarisieren
-  → stapeln).
-- Sparkle-Workflow `.github/workflows/publish-appcast.yml` von `*.zip` auf
-  `*.dmg` zurückstellen (stille_post-Originalmuster); docs/sparkle-release.md
-  und READMEs anpassen. GitHub-Releases-Seite: DMG als Asset + gepflegte
+### Distribution: DMG statt ZIP — ✅ umgesetzt in 0.12.0
+- Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild; Bau in
+  `build.sh --release` (hdiutil UDRW/HFS+ → Finder-Layout per AppleScript →
+  UDZO; headless per `--no-finder-layout`), Hintergrund aus
+  `scripts/generate-dmg-background.swift`. DMG selbst signiert → notarisiert →
+  gestapelt. Appcast-Workflow erwartet `*.dmg`; docs/sparkle-release.md und
+  READMEs angepasst. GitHub-Releases-Seite: DMG als Asset + gepflegte
   Release-Notes (werden vom Appcast-Workflow als Sparkle-Release-Notes
   übernommen).
 
@@ -214,3 +211,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.9.0   | Distribution: build.sh --release (TagLib gebündelt, Developer-ID + Hardened Runtime, notariert + gestapelt) — ✅ |
 | 0.10.0  | Sparkle-Auto-Update (Feed via GitHub Pages, siehe docs/sparkle-release.md), Batch-Umkopieren von Tag-Werten (auch EXIF→IPTC/XMP, `tagx set -c` / `tagx exif set --copy`), Drop-Zone mit Format-Übersicht, zweisprachige READMEs + Screenshots — ✅ |
 | 0.11.0  | Tag-Umkopieren auch in den Einzel-Editoren (Audio + Bild), echte Pixelmaße statt NSImage-Punktgröße, Lizenzhinweise im App-Bundle — ✅ (Sparkle-Bootstrap-Version) |
+| 0.12.0  | Distribution als notarisiertes DMG (Hintergrundbild, /Applications-Symlink, Finder-Layout), Appcast-Workflow auf `*.dmg` — ✅ |

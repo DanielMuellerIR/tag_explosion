@@ -54,9 +54,9 @@ Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 
 ## Installation
 
-Das notarisierte ZIP von der [Releases-Seite](../../releases) laden, entpacken
-und `TagExplosion.app` nach `/Programme` bewegen. Benötigt macOS 14 oder neuer
-(Apple Silicon und Intel).
+Das notarisierte DMG von der [Releases-Seite](../../releases) laden, öffnen
+und `TagExplosion.app` auf den Ordner `Programme` ziehen. Benötigt macOS 14
+oder neuer (Apple Silicon und Intel).
 
 TagLib steckt im App-Bundle. Für den vollen Funktionsumfang die beiden
 externen Werkzeuge installieren, die die App aufruft:

@@ -37,22 +37,22 @@ jobs:
       - name: GitHub Pages vorbereiten
         uses: actions/configure-pages@v6
 
-      - name: Release-ZIP und Release Notes laden
+      - name: Release-DMG und Release Notes laden
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p update site
-          gh release download "$RELEASE_TAG" --pattern '*.zip' --dir update
+          gh release download "$RELEASE_TAG" --pattern '*.dmg' --dir update
 
           shopt -s nullglob
-          zips=(update/*.zip)
-          if (( ${#zips[@]} != 1 )); then
-            echo "FEHLER: Release $RELEASE_TAG muss genau ein ZIP enthalten." >&2
+          dmgs=(update/*.dmg)
+          if (( ${#dmgs[@]} != 1 )); then
+            echo "FEHLER: Release $RELEASE_TAG muss genau ein DMG enthalten." >&2
             exit 1
           fi
 
-          # Gleicher Basisname: generate_appcast ordnet die Markdown-Datei dem ZIP zu.
-          gh release view "$RELEASE_TAG" --json body --jq .body > "${zips[0]%.zip}.md"
+          # Gleicher Basisname: generate_appcast ordnet die Markdown-Datei dem DMG zu.
+          gh release view "$RELEASE_TAG" --json body --jq .body > "${dmgs[0]%.dmg}.md"
 
       - name: Signierten Appcast erzeugen
         shell: bash

@@ -56,9 +56,9 @@ each file from one of its own tags.*
 
 ## Installation
 
-Download the notarized ZIP from the
-[Releases](../../releases) page, unpack it, and move `TagExplosion.app` to
-`/Applications`. Requires macOS 14 or later (Apple Silicon and Intel).
+Download the notarized DMG from the
+[Releases](../../releases) page, open it, and drag `TagExplosion.app` onto the
+`Applications` folder. Requires macOS 14 or later (Apple Silicon and Intel).
 
 TagLib ships inside the app bundle. For the full feature set install the two
 external tools the app calls:

@@ -48,7 +48,8 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - TagLib `File::save()` schreibt in-place; vor Batch-Writes Backup-Option beachten.
 - App läuft ohne Sandbox (externe CLI-Tools). Distribution: `NOTARY_PROFILE=<profil>
   ./build.sh --release` bündelt TagLib-dylibs, signiert (Developer ID + Hardened
-  Runtime), notarisiert und stapelt (Profilname siehe private Infra-Doku).
+  Runtime), notarisiert, stapelt und baut das verteilbare DMG mit Finder-Layout
+  (headless: `--no-finder-layout`; Profilname siehe private Infra-Doku).
 - Auto-Update via Sparkle (exakt gepinnt, `App/Package.swift`): build.sh bündelt
   `Sparkle.framework` immer (rpath `@loader_path/../Frameworks` — ohne Framework
   startet die App nicht) und signiert Sparkles Helfer innen→außen, nie `--deep`.
