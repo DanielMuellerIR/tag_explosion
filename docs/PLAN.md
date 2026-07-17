@@ -108,8 +108,11 @@ tag_explosion/
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
   Shim-Erweiterung (`MPEG::File::save`-Overload) später anbieten.
 - Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.
-- ffmpeg auf diesem System hat kein libvorbis/libmp3lame? doch, aber kein libvorbis —
-  Fixtures nutzen den eingebauten Vorbis-Encoder (nur Stereo).
+- Homebrew-ffmpeg hier ohne libvorbis — Fixtures nutzen den eingebauten
+  Vorbis-Encoder (kann nur Stereo, daher `-ac 2`).
+- GUI-Tests: Maus-Klicks via CGEvent funktionieren, synthetische Tastatur-Events
+  erreichen SwiftUI-TextFields nicht zuverlässig → UI-Tests setzen Werte über die
+  Accessibility-API (`scripts/dev-uitest.swift`) und speichern über den Menüpunkt.
 
 ## Verifikation
 
@@ -125,8 +128,8 @@ tag_explosion/
 |---------|--------|
 | 0.1.0   | Repo-Gerüst, Core liest Tags+Cover+AudioProps (mp3, m4a/m4b, flac, ogg, opus), tagx `show` — ✅ zusammen mit 0.2.0 gelandet |
 | 0.2.0   | Schreiben inkl. Cover, Roundtrip-Tests grün, tagx `set`/`cover` — ✅ (kid3-cli/ffprobe-Gegenprobe ok) |
-| 0.3.0   | MediaInfo-Panel-Daten, App-Gerüst mit Einzeldatei-Editor (read-only) |
-| 0.4.0   | App editiert + speichert, Cover-Tausch, Undo |
+| 0.3.0   | MediaInfo-Panel-Daten, App-Gerüst mit Einzeldatei-Editor (read-only) — ✅ zusammen mit 0.4.0 |
+| 0.4.0   | App editiert + speichert, Cover-Tausch, Revert — ✅ (AX-End-to-End-Test grün; echtes Undo noch offen) |
 | 0.5.0   | Dateiliste/Ordner, Batch-Edit |
 | 0.6.0   | Bilder (exiftool) |
 | 0.7.0   | Video-Anzeige/-Tags |

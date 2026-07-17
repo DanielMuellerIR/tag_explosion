@@ -3,6 +3,7 @@
 build/
 DerivedData/
 *.xcresult
+TagExplosion.app/
 
 # macOS
 .DS_Store

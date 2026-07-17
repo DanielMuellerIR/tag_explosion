@@ -159,4 +159,25 @@ struct MediaInfoTests {
         let general = try #require(report.tracks.first { $0.type == "General" })
         #expect(general.fields.contains { $0.key == "Title" && $0.value == "Sichtbarkeit" })
     }
+
+    @Test("Umlaute überleben den Weg bis in den MediaInfo-Report (UTF-8-Schreibweise)")
+    func umlautsSurviveToMediaInfo() throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        try TagFile.write(properties: [
+            TagProperty(key: "ARTIST", value: "Testkünstler Ärger Öse"),
+        ], to: url)
+        let report = try MediaInfoReader.read(url: url)
+        let general = try #require(report.tracks.first { $0.type == "General" })
+        #expect(general.fields.contains { $0.key == "Performer" && $0.value == "Testkünstler Ärger Öse" },
+                "Performer-Feld: \(general.fields.filter { $0.key == "Performer" })")
+    }
+
+    @Test("Surrogate-Escapes aus mediainfo-JSON werden als Latin1 repariert")
+    func surrogateEscapeRepair() throws {
+        // 0xFC = ü, 0xF6 = ö in Latin1; mediainfo schreibt "\udcfc"/"\udcf6"
+        let raw = Data(#"{"a":"Ungek\udcfcrzt","b":"B\udcf6rn"}"#.utf8)
+        let repaired = MediaInfoReader.repairSurrogateEscapes(in: raw)
+        let s = String(data: repaired, encoding: .utf8)
+        #expect(s == #"{"a":"Ungekürzt","b":"Börn"}"#)
+    }
 }

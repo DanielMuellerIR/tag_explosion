@@ -118,10 +118,49 @@ public enum MediaInfoReader {
         return dict.keys.sorted()
     }
 
-    /// Bytes tolerant zu String dekodieren: UTF-8 strikt → lossy UTF-8.
+    /// Bytes tolerant zu String dekodieren: UTF-8 strikt → Latin1 → lossy UTF-8.
+    /// mediainfo gibt rohe Tag-Bytes ungeprüft weiter; ID3v1/v2.3-Tags sind oft
+    /// Latin1 und würden als UTF-8 gelesen zu Ersatzzeichen zerfallen.
     static func decodeLossy(_ data: Data) -> String {
-        if let s = String(data: data, encoding: .utf8) { return s }
-        return String(decoding: data, as: UTF8.self)
+        let repaired = repairSurrogateEscapes(in: data)
+        if let s = String(data: repaired, encoding: .utf8) { return s }
+        if let s = String(data: repaired, encoding: .isoLatin1) { return s }
+        return String(decoding: repaired, as: UTF8.self)
+    }
+
+    /// mediainfo kodiert nicht-UTF-8-Bytes in JSON als Lone-Surrogates
+    /// ("\udcfc" für Byte 0xFC, à la Python surrogateescape). JSON-Parser
+    /// lehnen das ab bzw. verlieren die Information — deshalb ersetzen wir
+    /// die Escape-Sequenzen im Bytestrom durch die Latin1-Deutung des Bytes.
+    static func repairSurrogateEscapes(in data: Data) -> Data {
+        // Schneller Vorab-Check, ob überhaupt "\udc" vorkommt
+        let marker: [UInt8] = Array("\\udc".utf8)
+        guard data.range(of: Data(marker)) != nil else { return data }
+
+        var out = Data(capacity: data.count)
+        var i = data.startIndex
+        while i < data.endIndex {
+            // Muster: \udcXY (6 Bytes ASCII, auch großgeschrieben möglich)
+            if data[i] == UInt8(ascii: "\\"),
+               data.index(i, offsetBy: 5, limitedBy: data.endIndex) != nil,
+               data.distance(from: i, to: data.endIndex) >= 6,
+               data[data.index(i, offsetBy: 1)] == UInt8(ascii: "u"),
+               (data[data.index(i, offsetBy: 2)] | 0x20) == UInt8(ascii: "d"),
+               (data[data.index(i, offsetBy: 3)] | 0x20) == UInt8(ascii: "c") {
+                let hexBytes = [data[data.index(i, offsetBy: 4)], data[data.index(i, offsetBy: 5)]]
+                if let hex = String(bytes: hexBytes, encoding: .ascii),
+                   let byte = UInt8(hex, radix: 16) {
+                    // Byte als Latin1-Zeichen in UTF-8 anhängen
+                    let scalar = Unicode.Scalar(byte)
+                    out.append(contentsOf: Array(String(Character(scalar)).utf8))
+                    i = data.index(i, offsetBy: 6)
+                    continue
+                }
+            }
+            out.append(data[i])
+            i = data.index(after: i)
+        }
+        return out
     }
 
     /// Externes Programm ausführen, stdout zurückgeben.

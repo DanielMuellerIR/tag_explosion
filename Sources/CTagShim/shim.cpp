@@ -3,6 +3,7 @@
 #include "include/ctagshim.h"
 
 #include <fileref.h>
+#include <id3v2framefactory.h>
 #include <tpropertymap.h>
 #include <tvariant.h>
 #include <taglib.h>
@@ -35,6 +36,9 @@ extern "C" {
 
 tx_file* tx_open(const char* path) {
     if (!path) return nullptr;
+    // ID3v2-Frames als UTF-8 schreiben (TagLib-Default ist Latin1, was bei
+    // Umlauten zu Mojibake in anderen Programmen führt). Einmalig, idempotent.
+    TagLib::ID3v2::FrameFactory::instance()->setDefaultTextEncoding(TagLib::String::UTF8);
     auto* f = new (std::nothrow) tx_file();
     if (!f) return nullptr;
     // Erst beschreibbar versuchen, dann read-only als Fallback (z.B. Datei
