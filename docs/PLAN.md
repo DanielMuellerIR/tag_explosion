@@ -127,6 +127,60 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   `swift scripts/icon-from-image.swift App/Resources/AppIcon-Quelle.png App/Resources`
 - `scripts/make-icon.swift` bleibt als programmatischer Fallback erhalten.
 
+## Geplante Features (entschieden 2026-07-17, nächste Sessions)
+
+### E-Books/Dokumente (neuer Medienbereich)
+- **Umfang (entschieden):** Metadaten-Bearbeitung wie Calibres Metadaten-Dialog —
+  Titel, Autor(en), Serie + Serienindex, Klappentext/Beschreibung, Cover, ISBN,
+  Verlag, Sprache, Datum, Schlagwörter. KEIN Volltext-/XHTML-Editor.
+- **Backend (entschieden): Hybrid.** EPUB nativ im Core (ZIP-Container via
+  ZIPFoundation [MIT] + OPF-XML mit FoundationXML; EPUB 2 + 3, Cover-Tausch);
+  PDF über das bereits integrierte exiftool (Info-Dict + XMP, lesen UND
+  schreiben). Zusätzlich, NUR falls Calibre installiert ist: mobi/azw3/fb2 über
+  dessen CLI `ebook-meta` (GPL — ausschließlich als externes Programm aufrufen,
+  gleiche Lizenz-Trennung wie mediainfo/exiftool; graceful degradation ohne
+  Calibre).
+- Startbildschirm: vierte Spalte „E-Books/Dokumente" (epub, pdf; mit Calibre:
+  mobi, azw3, fb2); READMEs (EN+DE) erweitern. `MediaKind` um `.ebook` ergänzen,
+  eigener Editor-Tab, CLI-Parität (`tagx ebook show/set`).
+
+### Batch-Export/Import + Tag-Backup (JSON)
+- `tagx export <dateien> -o tags.json` / `tagx import tags.json [--dry-run]`
+  und GUI-Buttons im Batch-Editor. Ausschließlich JSONEncoder/JSONDecoder
+  (korrektes Escaping garantiert, nie Strings zusammenbauen).
+- Schema je Datei: relativer Pfad + vollständige PropertyMap (mehrwertige Keys
+  als Arrays) + Cover **Base64-eingebettet** (data + mimeType + pictureType) —
+  eine selbständige, atomare Datei; Richtwert ~40 MB je 100 Dateien mit Covern,
+  optional `--without-covers`.
+- **Auto-Backup:** Vor jedem Batch-Speichern optional (Einstellung, Default an)
+  `tags-backup-<ISO-Zeitstempel>.json` in den Ordner der Dateien schreiben;
+  Wiederherstellen = derselbe Import-Pfad. Import matcht über relativen Pfad
+  zur JSON-Datei, meldet fehlende/zusätzliche Dateien statt still zu raten.
+- Bilder-Batch analog (ImageCoreFields statt PropertyMap), gleiche Datei-Form.
+
+### Englische Lokalisierung
+- App: String Catalog (`Localizable.xcstrings`) im SPM-Target,
+  `defaultLocalization: "de"` + vollständige en-Übersetzung; SwiftUI-Literale
+  werden automatisch zu Keys. Info.plist: CFBundleLocalizations de+en.
+- CLI `tagx`: Ausgaben/Hilfetexte auf Englisch umstellen (Open-Source-Konvention).
+- Screenshots zweisprachig: Aufnahme-Läufe mit `-AppleLanguages '(en)'` bzw.
+  de; Ablage `docs/screenshots/de/` + `docs/screenshots/en/`, README.md nutzt
+  en, README.de.md de. Demo-Dateien für EN-Screenshots ggf. mit englischen
+  Tags neu taggen (Erzeugung siehe Session-Muster: ffmpeg + tagx + MiniMax-Cover).
+
+### Distribution: DMG statt ZIP (ab nächstem Release)
+- Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild („App in
+  den Programme-Ordner ziehen"). **Vorlage: `~/git/fastra/app/release.sh`**
+  (hdiutil UDRW→Layout per AppleScript→UDZO, `tools/generate-dmg-background.swift`)
+  + Rezept in theplan `knowledge/macos-app-distribution.md` Abschnitt 3
+  (HFS+ statt APFS!, sync-Pause vor detach, DMG selbst signieren → notarisieren
+  → stapeln).
+- Sparkle-Workflow `.github/workflows/publish-appcast.yml` von `*.zip` auf
+  `*.dmg` zurückstellen (stille_post-Originalmuster); docs/sparkle-release.md
+  und READMEs anpassen. GitHub-Releases-Seite: DMG als Asset + gepflegte
+  Release-Notes (werden vom Appcast-Workflow als Sparkle-Release-Notes
+  übernommen).
+
 ## Backlog / Notizen
 
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
