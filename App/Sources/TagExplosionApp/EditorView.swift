@@ -124,8 +124,12 @@ struct TagEditorTab: View {
                         Text(field.label)
                             .gridColumnAlignment(.trailing)
                             .foregroundStyle(.secondary)
-                        TextField("", text: singleValueBinding(field.key))
-                            .textFieldStyle(.roundedBorder)
+                        HStack(spacing: 6) {
+                            TextField("", text: singleValueBinding(field.key))
+                                .textFieldStyle(.roundedBorder)
+                            // Gleiche Kopier-Mechanik wie im Batch, nur für diese eine Datei.
+                            CopyFromFieldMenu(entries: [entry], targetKey: field.key)
+                        }
                     }
                 }
             }

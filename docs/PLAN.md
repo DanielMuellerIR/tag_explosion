@@ -159,3 +159,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.7.0   | Video-Anzeige/-Tags: mp4/m4v/mkv editierbar, mov/avi read-only via mediainfo — ✅ |
 | 0.9.0   | Distribution: build.sh --release (TagLib gebündelt, Developer-ID + Hardened Runtime, notariert + gestapelt) — ✅ |
 | 0.10.0  | Sparkle-Auto-Update (Feed via GitHub Pages, siehe docs/sparkle-release.md), Batch-Umkopieren von Tag-Werten (auch EXIF→IPTC/XMP, `tagx set -c` / `tagx exif set --copy`), Drop-Zone mit Format-Übersicht, zweisprachige READMEs + Screenshots — ✅ |
+| 0.11.0  | Tag-Umkopieren auch in den Einzel-Editoren (Audio + Bild), echte Pixelmaße statt NSImage-Punktgröße, Lizenzhinweise im App-Bundle — ✅ (Sparkle-Bootstrap-Version) |

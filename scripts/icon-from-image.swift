@@ -2,7 +2,7 @@
 // Icon-Kachel auf weissem Grund enthaelt:
 //   1. Kachel per Bounding-Box-Erkennung ausschneiden (weisser Rand weg),
 //   2. FULL-BLEED auf die komplette 1024er-Flaeche skalieren (kein HIG-Rand —
-//      bewusst "maximal grosses" Dock-Icon, vgl. Daniels Fastra-Feedback),
+//      bewusste Gestaltungsentscheidung fuer ein maximal grosses Dock-Icon),
 //   3. mit macOS-Squircle-Maske runden, alle Groessen + iconutil -> .icns.
 // Aufruf: swift scripts/icon-from-image.swift <quelle.png> <ausgabe-verzeichnis>
 import AppKit

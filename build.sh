@@ -59,6 +59,10 @@ ditto "$sparkle_src" "$fw/Sparkle.framework"
 # aktiviert. Ohne sie wird das Bundle kleiner und die Signierfläche enger.
 rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPCServices"
 
+# Lizenzhinweise der Dritt-Komponenten gehören auch ins ausgelieferte
+# Binärpaket (LGPL-/Apache-Hinweispflicht), nicht nur in den Quelltext.
+cp "$here/THIRD-PARTY.md" "$app/Contents/Resources/Third-Party-Licenses.md"
+
 # Icon nur kopieren, wenn vorhanden
 icon_key=""
 if [ -f "$here/App/Resources/AppIcon.icns" ]; then

@@ -40,6 +40,9 @@ struct ImageEditorView: View {
 struct ImageFieldsTab: View {
     @Bindable var entry: FileEntry
     @State private var preview: NSImage?
+    /// Roh-Tags dieses Bildes als Kopier-Quellen (wie im Batch-Editor):
+    /// Pfad → ("Gruppe:Tag" → Textwert). nil = wird noch geladen.
+    @State private var rawTags: [String: [String: String]]?
 
     var body: some View {
         ScrollView {
@@ -59,6 +62,13 @@ struct ImageFieldsTab: View {
             let url = entry.url
             preview = await Task.detached(priority: .userInitiated) {
                 NSImage(contentsOf: url)
+            }.value
+        }
+        .task(id: entry.url) {
+            rawTags = nil
+            let url = entry.url
+            rawTags = await Task.detached(priority: .userInitiated) {
+                (try? ExifTool.readRawStringTags(urls: [url])) ?? [:]
             }.value
         }
     }
@@ -87,8 +97,11 @@ struct ImageFieldsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                if let preview {
-                    Text("\(Int(preview.size.width)) × \(Int(preview.size.height)) px")
+                // Echte Pixelmaße aus dem Bitmap-Rep — NSImage.size wäre die
+                // DPI-skalierte Punktgröße und zeigt bei krummen DPI-Metadaten
+                // absurde Werte.
+                if let rep = preview?.representations.first, rep.pixelsWide > 0 {
+                    Text("\(rep.pixelsWide) × \(rep.pixelsHigh) px")
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
@@ -103,29 +116,48 @@ struct ImageFieldsTab: View {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
                     label("Titel")
-                    TextField("", text: $entry.imageFields.title)
-                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 6) {
+                        TextField("", text: $entry.imageFields.title)
+                            .textFieldStyle(.roundedBorder)
+                        copyMenu { entry, value in entry.imageFields.title = value }
+                    }
                 }
                 GridRow {
                     label("Beschreibung")
-                    TextField("", text: $entry.imageFields.description, axis: .vertical)
-                        .lineLimit(2...5)
-                        .textFieldStyle(.roundedBorder)
+                    HStack(alignment: .top, spacing: 6) {
+                        TextField("", text: $entry.imageFields.description, axis: .vertical)
+                            .lineLimit(2...5)
+                            .textFieldStyle(.roundedBorder)
+                        copyMenu { entry, value in entry.imageFields.description = value }
+                    }
                 }
                 GridRow {
                     label("Schlagwörter")
-                    TextField("kommagetrennt", text: keywordsBinding)
-                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 6) {
+                        TextField("kommagetrennt", text: keywordsBinding)
+                            .textFieldStyle(.roundedBorder)
+                        copyMenu { entry, value in
+                            entry.imageFields.keywords = value.split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespaces) }
+                                .filter { !$0.isEmpty }
+                        }
+                    }
                 }
                 GridRow {
                     label("Ersteller")
-                    TextField("", text: $entry.imageFields.creator)
-                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 6) {
+                        TextField("", text: $entry.imageFields.creator)
+                            .textFieldStyle(.roundedBorder)
+                        copyMenu { entry, value in entry.imageFields.creator = value }
+                    }
                 }
                 GridRow {
                     label("Copyright")
-                    TextField("", text: $entry.imageFields.copyright)
-                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 6) {
+                        TextField("", text: $entry.imageFields.copyright)
+                            .textFieldStyle(.roundedBorder)
+                        copyMenu { entry, value in entry.imageFields.copyright = value }
+                    }
                 }
                 GridRow {
                     label("Aufnahmedatum")
@@ -165,6 +197,12 @@ struct ImageFieldsTab: View {
         Text(text)
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)
+    }
+
+    /// Kopier-Menü wie im Batch-Editor, nur für dieses eine Bild.
+    /// Datum/Bewertung/GPS bekommen bewusst keins (Typkompatibilität).
+    private func copyMenu(assign: @escaping (FileEntry, String) -> Void) -> some View {
+        ImageCopyFromTagMenu(entries: [entry], rawTags: rawTags, assign: assign)
     }
 
     /// Schlagwörter als kommagetrennter String.
