@@ -28,7 +28,7 @@ struct TagExplosionApp: App {
                     Task { await model.saveSelected() }
                 }
                 .keyboardShortcut("s", modifiers: .command)
-                .disabled(!(model.selectedEntry?.isDirty ?? false))
+                .disabled(!model.selectionIsDirty)
 
                 Button("Alle speichern") {
                     Task { await model.saveAll() }
@@ -37,10 +37,10 @@ struct TagExplosionApp: App {
                 .disabled(!model.hasDirtyEntries)
 
                 Button("Änderungen verwerfen") {
-                    model.selectedEntry?.revert()
+                    model.revertSelected()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(!(model.selectedEntry?.isDirty ?? false))
+                .disabled(!model.selectionIsDirty)
             }
         }
     }

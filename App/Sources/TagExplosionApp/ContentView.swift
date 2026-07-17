@@ -15,11 +15,14 @@ struct ContentView: View {
             if let entry = model.selectedEntry {
                 EditorView(entry: entry)
                     .id(entry.url) // Editor-State pro Datei zurücksetzen
+            } else if model.selectedEntries.count > 1 {
+                BatchEditorView(entries: model.selectedEntries)
+                    .id(model.selection)
             } else {
                 DropPlaceholder()
             }
         }
-        .navigationTitle(model.selectedEntry?.displayTitle ?? "Tag Explosion")
+        .navigationTitle(navigationTitle)
         .navigationSubtitle(subtitle)
         // Drop überall im Fenster: Dateien/Ordner laden
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -39,8 +42,8 @@ struct ContentView: View {
                 } label: {
                     Label("Speichern", systemImage: "checkmark.circle.fill")
                 }
-                .disabled(!(model.selectedEntry?.isDirty ?? false))
-                .help("Änderungen dieser Datei speichern (⌘S)")
+                .disabled(!model.selectionIsDirty)
+                .help("Änderungen der Auswahl speichern (⌘S)")
 
                 if model.entries.filter(\.isDirty).count > 1 {
                     Button {
@@ -62,11 +65,21 @@ struct ContentView: View {
         }
     }
 
+    private var navigationTitle: String {
+        if let entry = model.selectedEntry { return entry.displayTitle }
+        if model.selectedEntries.count > 1 { return "\(model.selectedEntries.count) Dateien" }
+        return "Tag Explosion"
+    }
+
     private var subtitle: String {
-        guard let entry = model.selectedEntry else {
-            return model.entries.isEmpty ? "" : "\(model.entries.count) Dateien"
+        if let entry = model.selectedEntry {
+            return entry.isDirty ? "Bearbeitet" : ""
         }
-        return entry.isDirty ? "Bearbeitet" : ""
+        if model.selectedEntries.count > 1 {
+            let dirty = model.selectedEntries.filter(\.isDirty).count
+            return dirty > 0 ? "\(dirty) bearbeitet" : ""
+        }
+        return model.entries.isEmpty ? "" : "\(model.entries.count) Dateien"
     }
 
     @ViewBuilder

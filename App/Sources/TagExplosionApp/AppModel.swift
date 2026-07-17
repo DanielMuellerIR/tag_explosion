@@ -106,15 +106,21 @@ final class FileEntry: Identifiable {
 @MainActor
 final class AppModel {
     var entries: [FileEntry] = []
-    var selection: URL?
+    var selection: Set<URL> = []
     /// Läuft gerade ein Ladevorgang? (Fortschritt in der Sidebar)
     var isLoading = false
     /// Fehlermeldung für Alert-Anzeige.
     var alertMessage: String?
 
+    /// Die ausgewählten Einträge in Listenreihenfolge.
+    var selectedEntries: [FileEntry] {
+        entries.filter { selection.contains($0.url) }
+    }
+
+    /// Genau ein ausgewählter Eintrag (Einzel-Editor), sonst nil.
     var selectedEntry: FileEntry? {
-        guard let selection else { return nil }
-        return entries.first { $0.url == selection }
+        let selected = selectedEntries
+        return selected.count == 1 ? selected.first : nil
     }
 
     var hasDirtyEntries: Bool {
@@ -192,7 +198,7 @@ final class AppModel {
                 failures.append(url.lastPathComponent)
             }
         }
-        if selection == nil { selection = entries.first?.url }
+        if selection.isEmpty, let first = entries.first { selection = [first.url] }
         if !failures.isEmpty {
             alertMessage = "Nicht lesbar (Format unbekannt?):\n" + failures.joined(separator: "\n")
         }
@@ -225,9 +231,20 @@ final class AppModel {
 
     // MARK: - Speichern
 
+    /// Speichert alle ausgewählten Dateien mit Änderungen.
     func saveSelected() async {
-        guard let entry = selectedEntry else { return }
-        await save(entry: entry)
+        for entry in selectedEntries where entry.isDirty {
+            await save(entry: entry)
+        }
+    }
+
+    /// Verwirft Änderungen aller ausgewählten Dateien.
+    func revertSelected() {
+        for entry in selectedEntries { entry.revert() }
+    }
+
+    var selectionIsDirty: Bool {
+        selectedEntries.contains { $0.isDirty }
     }
 
     func saveAll() async {
@@ -257,8 +274,7 @@ final class AppModel {
 
     func remove(urls: [URL]) {
         entries.removeAll { urls.contains($0.url) }
-        if let selection, urls.contains(selection) {
-            self.selection = entries.first?.url
-        }
+        selection.subtract(urls)
+        if selection.isEmpty, let first = entries.first { selection = [first.url] }
     }
 }
