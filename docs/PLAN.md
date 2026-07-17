@@ -129,20 +129,20 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Geplante Features (entschieden 2026-07-17, nächste Sessions)
 
-### E-Books/Dokumente (neuer Medienbereich)
-- **Umfang (entschieden):** Metadaten-Bearbeitung wie Calibres Metadaten-Dialog —
-  Titel, Autor(en), Serie + Serienindex, Klappentext/Beschreibung, Cover, ISBN,
-  Verlag, Sprache, Datum, Schlagwörter. KEIN Volltext-/XHTML-Editor.
-- **Backend (entschieden): Hybrid.** EPUB nativ im Core (ZIP-Container via
-  ZIPFoundation [MIT] + OPF-XML mit FoundationXML; EPUB 2 + 3, Cover-Tausch);
-  PDF über das bereits integrierte exiftool (Info-Dict + XMP, lesen UND
-  schreiben). Zusätzlich, NUR falls Calibre installiert ist: mobi/azw3/fb2 über
-  dessen CLI `ebook-meta` (GPL — ausschließlich als externes Programm aufrufen,
-  gleiche Lizenz-Trennung wie mediainfo/exiftool; graceful degradation ohne
-  Calibre).
-- Startbildschirm: vierte Spalte „E-Books/Dokumente" (epub, pdf; mit Calibre:
-  mobi, azw3, fb2); READMEs (EN+DE) erweitern. `MediaKind` um `.ebook` ergänzen,
-  eigener Editor-Tab, CLI-Parität (`tagx ebook show/set`).
+### E-Books/Dokumente — ✅ umgesetzt in 0.13.0
+- Umfang wie Calibres Metadaten-Dialog: Titel, Autor(en), Serie + Serienindex,
+  Klappentext, Cover, ISBN, Verlag, Sprache, Datum, Schlagwörter. KEIN
+  Volltext-/XHTML-Editor.
+- Hybrid-Backend: EPUB nativ im Core (`EpubFile`, ZIPFoundation + OPF-XML via
+  FoundationXML; EPUB 2 + 3, Cover-Tausch); PDF über exiftool (Info-Dict + XMP,
+  ohne Serie/Cover); mobi/azw3/fb2 NUR bei installiertem Calibre über dessen
+  CLI `ebook-meta` (GPL — nur externes Programm; graceful degradation).
+  Quirks (azw3 verliert Serien, Datums-Zeitzone):
+  `knowledge/ebook-meta-calibre-quirks.md`.
+- App: `MediaKind.ebook`, Einzel-Editor (`EbookEditorView`, Cover per Dialog/
+  Drag&Drop) + Batch-Editor, vierte Startbildschirm-Spalte; CLI
+  `tagx ebook show/set` (inkl. `--cover`); READMEs erweitert; Tests mit
+  generierten EPUB-2/3-, PDF- und azw3-Fixtures.
 
 ### Batch-Export/Import + Tag-Backup (JSON)
 - `tagx export <dateien> -o tags.json` / `tagx import tags.json [--dry-run]`
@@ -212,3 +212,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.10.0  | Sparkle-Auto-Update (Feed via GitHub Pages, siehe docs/sparkle-release.md), Batch-Umkopieren von Tag-Werten (auch EXIF→IPTC/XMP, `tagx set -c` / `tagx exif set --copy`), Drop-Zone mit Format-Übersicht, zweisprachige READMEs + Screenshots — ✅ |
 | 0.11.0  | Tag-Umkopieren auch in den Einzel-Editoren (Audio + Bild), echte Pixelmaße statt NSImage-Punktgröße, Lizenzhinweise im App-Bundle — ✅ (Sparkle-Bootstrap-Version) |
 | 0.12.0  | Distribution als notarisiertes DMG (Hintergrundbild, /Applications-Symlink, Finder-Layout), Appcast-Workflow auf `*.dmg` — ✅ |
+| 0.13.0  | E-Books/Dokumente: EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre; Editor + Batch + `tagx ebook` — ✅ |

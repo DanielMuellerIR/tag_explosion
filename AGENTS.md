@@ -5,7 +5,8 @@
 - **Typ:** macOS-App (SwiftUI) + portabler Swift-Core + CLI
 - **Zweck:** Medien-Metadaten anzeigen (alles, was mediainfo kann) und editieren
   (alles, was kid3 kann: Tags + Cover für mp3, m4a/m4b, flac, ogg, opus, wav, aiff …),
-  Apple-like und schnell. Später Bilder (EXIF/IPTC/XMP) und Video.
+  Apple-like und schnell. Dazu Bilder (EXIF/IPTC/XMP via exiftool), Video und
+  E-Books (EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre-CLI).
 - **Plattform:** macOS (App); Core/CLI Linux-portabel gehalten. Open Source, MIT.
 
 ## Architektur

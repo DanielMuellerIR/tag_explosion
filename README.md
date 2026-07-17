@@ -1,8 +1,8 @@
 # Tag Explosion
 
 Native macOS app for viewing and editing media metadata — audio tags, image
-metadata (EXIF/IPTC/XMP), and video tags in one fast, Apple-style editor,
-with a scriptable CLI companion.
+metadata (EXIF/IPTC/XMP), video tags, and e-book metadata in one fast,
+Apple-style editor, with a scriptable CLI companion.
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
@@ -23,6 +23,10 @@ with a scriptable CLI companion.
   view of all raw metadata groups.
 - **Video** — MP4 and Matroska tags editable; other containers shown
   read-only.
+- **E-books/documents** — the Calibre-style metadata set (title, authors,
+  series, description, cover, ISBN, publisher, language, date, tags). EPUB is
+  handled natively, PDF via exiftool; with Calibre installed, mobi/azw3/fb2
+  are edited through its `ebook-meta` CLI.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
@@ -31,7 +35,8 @@ with a scriptable CLI companion.
 - **Auto-updates** — via [Sparkle](https://sparkle-project.org); the app only
   installs updates after you confirm.
 - **CLI `tagx`** — everything scriptable with JSON output and exit codes:
-  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`.
+  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
+  `tagx ebook`.
 
 The app's user interface is currently German; the CLI and this documentation
 are bilingual-friendly.
@@ -50,6 +55,7 @@ each file from one of its own tags.*
 | Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO |
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonized) |
 | Video | mp4, m4v, mkv, webm (editable) · mov, avi (view only) | MP4 atoms, Matroska tags |
+| E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 
 ![Start screen with the format overview](docs/screenshots/empty.png)
 *The start screen lists every supported file and tag format.*
@@ -64,8 +70,11 @@ TagLib ships inside the app bundle. For the full feature set install the two
 external tools the app calls:
 
 ```sh
-brew install mediainfo exiftool   # tech panel and image metadata
+brew install mediainfo exiftool   # tech panel, image and PDF metadata
 ```
+
+Optional: with [Calibre](https://calibre-ebook.com) installed the app also
+edits mobi/azw3/fb2 through its `ebook-meta` command line tool.
 
 Later updates arrive through the built-in updater
 (**Tag Explosion → Nach Updates suchen …**).
@@ -78,6 +87,7 @@ tagx set song.mp3 -t ARTIST="Miles Davis"      # set fields
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # copy one tag into another
 tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
+tagx ebook set book.epub --series "Foundation" --series-index 2
 tagx info video.mkv                            # full mediainfo report
 ```
 
@@ -98,8 +108,9 @@ to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
 ## License
 
 MIT (see [LICENSE](LICENSE)). TagLib is linked dynamically as a system library
-(LGPL/MPL); mediainfo (BSD-2) and exiftool (Artistic) are only invoked as
-external programs. Details in [THIRD-PARTY.md](THIRD-PARTY.md).
+(LGPL/MPL); mediainfo (BSD-2), exiftool (Artistic), and Calibre's `ebook-meta`
+(GPL) are only invoked as external programs. Details in
+[THIRD-PARTY.md](THIRD-PARTY.md).
 
 The demo files and cover art in the screenshots are entirely generated for
 this documentation — the titles, authors, and artists do not exist.

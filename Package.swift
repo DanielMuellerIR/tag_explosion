@@ -15,6 +15,8 @@ let package = Package(
     dependencies: [
         // Apache-2.0, MIT-kompatibel
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+        // MIT — ZIP-Container-Zugriff für EPUB (läuft auch unter Linux)
+        .package(url: "https://github.com/weichsel/ZIPFoundation", from: "0.9.19"),
     ],
     targets: [
         // System-TagLib (Homebrew: `brew install taglib`, Debian/Ubuntu: libtag-dev).
@@ -32,7 +34,10 @@ let package = Package(
         // Portabler Kern: Datenmodell, Tag-IO, MediaInfo-Wrapper. Kein AppKit/SwiftUI.
         .target(
             name: "TagExplosionCore",
-            dependencies: ["CTagShim"]
+            dependencies: [
+                "CTagShim",
+                .product(name: "ZIPFoundation", package: "ZIPFoundation"),
+            ]
         ),
         // CLI für Headless-Betrieb, Tests und Batch-Skripting.
         .executableTarget(

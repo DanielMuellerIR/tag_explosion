@@ -25,15 +25,27 @@ let videoExtensions: Set<String> = [
     "m4v", "mkv", "webm", "mov", "avi",
 ]
 
+/// E-Book-/Dokument-Endungen: epub/pdf immer; mobi/azw3/fb2 nur, wenn Calibres
+/// `ebook-meta` gefunden wird (einmalige Prüfung beim Start).
+let ebookExtensions: Set<String> = {
+    var extensions = EbookTool.builtinExtensions
+    if EbookTool.calibreAvailable {
+        extensions.formUnion(EbookTool.calibreExtensions)
+    }
+    return extensions
+}()
+
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg.
 enum MediaKind: Sendable {
     case audio
     case image
+    case ebook
 
     static func forURL(_ url: URL) -> MediaKind? {
         let ext = url.pathExtension.lowercased()
         if audioExtensions.contains(ext) { return .audio }
         if imageExtensions.contains(ext) { return .image }
+        if ebookExtensions.contains(ext) { return .ebook }
         // Video läuft über denselben TagLib-Weg wie Audio (PropertyMap);
         // was TagLib nicht schreiben kann, wird read-only angezeigt.
         if videoExtensions.contains(ext) { return .audio }
@@ -59,6 +71,12 @@ final class FileEntry: Identifiable {
     private(set) var imageOriginal: ImageCoreFields
     var imageFields: ImageCoreFields
 
+    /// Original und Bearbeitungspuffer für E-Books (nur bei kind == .ebook).
+    private(set) var ebookOriginal: EbookCoreFields
+    var ebookFields: EbookCoreFields
+    /// Neues Cover, das beim Speichern geschrieben wird (nil = unverändert).
+    var ebookCoverReplacement: Data?
+
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
     var lastError: String?
 
@@ -70,6 +88,8 @@ final class FileEntry: Identifiable {
         self.artworks = data.artworks
         self.imageOriginal = ImageCoreFields()
         self.imageFields = ImageCoreFields()
+        self.ebookOriginal = EbookCoreFields()
+        self.ebookFields = EbookCoreFields()
     }
 
     init(url: URL, image: ImageCoreFields) {
@@ -80,6 +100,20 @@ final class FileEntry: Identifiable {
         self.artworks = []
         self.imageOriginal = image
         self.imageFields = image
+        self.ebookOriginal = EbookCoreFields()
+        self.ebookFields = EbookCoreFields()
+    }
+
+    init(url: URL, ebook: EbookCoreFields) {
+        self.url = url
+        self.kind = .ebook
+        self.original = TagData(properties: [], artworks: [], audio: nil)
+        self.properties = []
+        self.artworks = []
+        self.imageOriginal = ImageCoreFields()
+        self.imageFields = ImageCoreFields()
+        self.ebookOriginal = ebook
+        self.ebookFields = ebook
     }
 
     var audio: AudioInfo? { original.audio }
@@ -91,6 +125,8 @@ final class FileEntry: Identifiable {
             return properties != original.properties || artworks != original.artworks
         case .image:
             return imageFields != imageOriginal
+        case .ebook:
+            return ebookFields != ebookOriginal || ebookCoverReplacement != nil
         }
     }
 
@@ -99,6 +135,8 @@ final class FileEntry: Identifiable {
         properties = original.properties
         artworks = original.artworks
         imageFields = imageOriginal
+        ebookFields = ebookOriginal
+        ebookCoverReplacement = nil
         lastError = nil
     }
 
@@ -114,6 +152,14 @@ final class FileEntry: Identifiable {
     func acceptNewImageOriginal(_ fields: ImageCoreFields) {
         imageOriginal = fields
         imageFields = fields
+        lastError = nil
+    }
+
+    /// E-Book-Pendant zu `acceptNewOriginal`.
+    func acceptNewEbookOriginal(_ fields: EbookCoreFields) {
+        ebookOriginal = fields
+        ebookFields = fields
+        ebookCoverReplacement = nil
         lastError = nil
     }
 
@@ -148,7 +194,12 @@ final class FileEntry: Identifiable {
     }
 
     var displayTitle: String {
-        let title = kind == .image ? imageFields.title : firstValue("TITLE")
+        let title: String
+        switch kind {
+        case .audio: title = firstValue("TITLE")
+        case .image: title = imageFields.title
+        case .ebook: title = ebookFields.title
+        }
         return title.isEmpty ? url.lastPathComponent : title
     }
 
@@ -160,14 +211,17 @@ final class FileEntry: Identifiable {
                 .joined(separator: " · ")
         case .image:
             return imageFields.keywords.joined(separator: ", ")
+        case .ebook:
+            return ebookFields.authors.joined(separator: ", ")
         }
     }
 }
 
-/// Frisch gelesener Datei-Zustand (Audio oder Bild).
+/// Frisch gelesener Datei-Zustand (Audio, Bild oder E-Book).
 enum LoadedData: Sendable {
     case audio(TagData)
     case image(ImageCoreFields)
+    case ebook(EbookCoreFields)
 }
 
 /// Globaler App-Zustand.
@@ -204,7 +258,7 @@ final class AppModel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = "Audiodateien oder Ordner auswählen"
+        panel.message = "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen"
         if panel.runModal() == .OK {
             Task { await self.open(urls: panel.urls) }
         }
@@ -244,6 +298,8 @@ final class AppModel {
                             switch MediaKind.forURL(url) {
                             case .image:
                                 return (i, url, .success(.image(try ExifTool.readCoreFields(url: url))))
+                            case .ebook:
+                                return (i, url, .success(.ebook(try EbookTool.readCoreFields(url: url))))
                             default:
                                 do {
                                     return (i, url, .success(.audio(try TagFile.read(at: url))))
@@ -279,6 +335,8 @@ final class AppModel {
                 entries.append(FileEntry(url: url, data: data))
             case .success(.image(let fields)):
                 entries.append(FileEntry(url: url, image: fields))
+            case .success(.ebook(let fields)):
+                entries.append(FileEntry(url: url, ebook: fields))
             case .failure:
                 failures.append(url.lastPathComponent)
             }
@@ -359,6 +417,18 @@ final class AppModel {
                     return try ExifTool.readCoreFields(url: url)
                 }.value
                 entry.acceptNewImageOriginal(reloaded)
+            case .ebook:
+                let fields = entry.ebookFields
+                let original = entry.ebookOriginal
+                let newCover = entry.ebookCoverReplacement
+                let reloaded = try await Task.detached(priority: .userInitiated) {
+                    try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+                    if let newCover {
+                        try EbookTool.writeCover(url: url, data: newCover)
+                    }
+                    return try EbookTool.readCoreFields(url: url)
+                }.value
+                entry.acceptNewEbookOriginal(reloaded)
             }
         } catch {
             entry.lastError = error.localizedDescription

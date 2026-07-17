@@ -133,6 +133,16 @@ ${icon_key}
             </array>
         </dict>
         <dict>
+            <key>CFBundleTypeName</key><string>E-Book/Dokument</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.idpf.epub-container</string>
+                <string>com.adobe.pdf</string>
+            </array>
+        </dict>
+        <dict>
             <key>CFBundleTypeName</key><string>Ordner</string>
             <key>CFBundleTypeRole</key><string>Viewer</string>
             <key>LSHandlerRank</key><string>None</string>

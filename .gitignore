@@ -16,7 +16,7 @@ TagExplosion-*.dmg
 *.swp
 
 # Testdateien, die lokal generiert werden (Fixtures werden per Skript erzeugt)
-Tests/Fixtures/generated/
+Tests/TagExplosionCoreTests/Fixtures/generated/
 
 # Keine echten Mediendateien ins Repo (Urheberrecht)
 *.mp3

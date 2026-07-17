@@ -1,8 +1,8 @@
 # Tag Explosion
 
 Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten — Audio-Tags,
-Bild-Metadaten (EXIF/IPTC/XMP) und Video-Tags in einem schnellen Editor im
-Apple-Stil, mit skriptfähiger CLI.
+Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in einem
+schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
@@ -23,6 +23,10 @@ Apple-Stil, mit skriptfähiger CLI.
   vollständige Ansicht aller rohen Metadaten-Gruppen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
+- **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
+  Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
+  Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
+  werden mobi/azw3/fb2 über dessen CLI `ebook-meta` bearbeitet.
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
@@ -32,7 +36,8 @@ Apple-Stil, mit skriptfähiger CLI.
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
-  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`.
+  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
+  `tagx ebook`.
 
 ![Batch-Bearbeitung eines Albums](docs/screenshots/batch.png)
 *Batch-Bearbeitung: eine Änderung wirkt auf alle ausgewählten Dateien; die
@@ -48,6 +53,7 @@ Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 | Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
+| E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
@@ -62,8 +68,12 @@ TagLib steckt im App-Bundle. Für den vollen Funktionsumfang die beiden
 externen Werkzeuge installieren, die die App aufruft:
 
 ```sh
-brew install mediainfo exiftool   # Technik-Panel und Bild-Metadaten
+brew install mediainfo exiftool   # Technik-Panel, Bild- und PDF-Metadaten
 ```
+
+Optional: mit installiertem [Calibre](https://calibre-ebook.com) bearbeitet
+die App zusätzlich mobi/azw3/fb2 über dessen Kommandozeilenwerkzeug
+`ebook-meta`.
 
 Spätere Updates kommen über den eingebauten Updater
 (**Tag Explosion → Nach Updates suchen …**).
@@ -76,6 +86,7 @@ tagx set song.mp3 -t ARTIST="Miles Davis"      # Felder setzen
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
+tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
 ```
 
@@ -97,8 +108,9 @@ Linux-portabel. Architektur und Meilensteine stehen in
 ## Lizenz
 
 MIT (siehe [LICENSE](LICENSE)). TagLib wird als Systembibliothek dynamisch
-gelinkt (LGPL/MPL); mediainfo (BSD-2) und exiftool (Artistic) werden nur als
-externe Programme aufgerufen. Details in [THIRD-PARTY.md](THIRD-PARTY.md).
+gelinkt (LGPL/MPL); mediainfo (BSD-2), exiftool (Artistic) und Calibres
+`ebook-meta` (GPL) werden nur als externe Programme aufgerufen. Details in
+[THIRD-PARTY.md](THIRD-PARTY.md).
 
 Die Demo-Dateien und Cover in den Screenshots sind vollständig für diese
 Dokumentation generiert — die Titel, Autoren und Künstler existieren nicht.

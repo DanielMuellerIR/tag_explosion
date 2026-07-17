@@ -8,3 +8,5 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Umlauten in Reports oder exiftool-Schreibfehlern: Surrogate-Escapes, MWG-Modul.
 - [gui-selbsttests.md](gui-selbsttests.md) — Bei GUI-/AX-Tests der App:
   was funktioniert (Maus, AX-Setzen), was nicht (synthetische Tastatur).
+- [ebook-meta-calibre-quirks.md](ebook-meta-calibre-quirks.md) — Beim
+  E-Book-Backend mobi/azw3/fb2: azw3 verliert Serien, Datums-Zeitzone, LC_ALL=C.

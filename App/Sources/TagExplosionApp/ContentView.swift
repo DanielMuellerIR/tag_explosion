@@ -20,6 +20,9 @@ struct ContentView: View {
                 case .image:
                     ImageEditorView(entry: entry)
                         .id(entry.url)
+                case .ebook:
+                    EbookEditorView(entry: entry)
+                        .id(entry.url)
                 }
             } else if model.selectedEntries.count > 1 {
                 let selected = model.selectedEntries
@@ -29,11 +32,14 @@ struct ContentView: View {
                 } else if selected.allSatisfy({ $0.kind == .image }) {
                     ImageBatchEditorView(entries: selected)
                         .id(model.selection)
+                } else if selected.allSatisfy({ $0.kind == .ebook }) {
+                    EbookBatchEditorView(entries: selected)
+                        .id(model.selection)
                 } else {
                     ContentUnavailableView(
                         "Gemischte Auswahl",
                         systemImage: "rectangle.on.rectangle.slash",
-                        description: Text("Audio und Bilder bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
+                        description: Text("Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
                     )
                 }
             } else {
@@ -205,6 +211,11 @@ struct DropPlaceholder: View {
     private static let audioDisplay = audioExtensions.subtracting(["mp4"]).sorted()
     private static let imageDisplay = imageExtensions.sorted()
     private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
+    private static let ebookDisplay = ebookExtensions.sorted()
+    /// Hinweis auf die nur-mit-Calibre-Formate, falls Calibre fehlt.
+    private static let ebookTagFormats = EbookTool.calibreAvailable
+        ? "EPUB-OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)"
+        : "EPUB-OPF · PDF Info/XMP (mobi/azw3/fb2 mit Calibre)"
 
     var body: some View {
         VStack(spacing: 28) {
@@ -215,12 +226,12 @@ struct DropPlaceholder: View {
             VStack(spacing: 8) {
                 Text("Tag Explosion")
                     .font(.title2.bold())
-                Text("Audio-, Bild- und Videodateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
+                Text("Audio-, Bild-, Video- und E-Book-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
 
-            HStack(alignment: .top, spacing: 36) {
+            HStack(alignment: .top, spacing: 30) {
                 FormatColumn(title: "Audio", systemImage: "music.note",
                              formats: Self.audioDisplay,
                              tagFormats: "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info")
@@ -230,6 +241,9 @@ struct DropPlaceholder: View {
                 FormatColumn(title: "Video", systemImage: "film",
                              formats: Self.videoDisplay,
                              tagFormats: "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)")
+                FormatColumn(title: "E-Books", systemImage: "book",
+                             formats: Self.ebookDisplay,
+                             tagFormats: Self.ebookTagFormats)
             }
         }
         .padding(32)
