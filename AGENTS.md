@@ -46,8 +46,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   Fallback nötig (UTF-8 → MacRoman → Latin1 probieren).
 - Cover können ohne MIME-Type vorliegen → aus Magic Bytes ableiten.
 - TagLib `File::save()` schreibt in-place; vor Batch-Writes Backup-Option beachten.
-- App läuft ohne Sandbox (externe CLI-Tools) — bei Distribution Hardened Runtime
-  + Notarisierung.
+- App läuft ohne Sandbox (externe CLI-Tools). Distribution: `NOTARY_PROFILE=<profil>
+  ./build.sh --release` bündelt TagLib-dylibs, signiert (Developer ID + Hardened
+  Runtime), notarisiert und stapelt (Profilname siehe private Infra-Doku).
 - Projekt-Erkenntnisse (TagLib-Fallen, Format-Quirks) gehören nach `knowledge/`
   (eine Datei pro Problem + Zeile in `knowledge/INDEX.md`).
 

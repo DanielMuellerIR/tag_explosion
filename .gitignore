@@ -4,6 +4,7 @@ build/
 DerivedData/
 *.xcresult
 TagExplosion.app/
+TagExplosion-*.zip
 
 # macOS
 .DS_Store

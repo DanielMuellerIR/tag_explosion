@@ -3,17 +3,22 @@
 # Version kommt aus der VERSION-Datei. Optionen:
 #   --cli-only   nur tagx bauen
 #   --debug      Debug- statt Release-Build
+#   --release    Distribution: TagLib-dylibs bündeln, Developer-ID-Signatur
+#                (Hardened Runtime), Notarisierung + Stapling. Benötigt die
+#                Umgebungsvariable NOTARY_PROFILE (notarytool-Keychain-Profil).
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
 version="$(tr -d '[:space:]' < "$here/VERSION")"
 config="release"
 cli_only=0
+release=0
 
 for arg in "$@"; do
     case "$arg" in
         --cli-only) cli_only=1 ;;
         --debug) config="debug" ;;
+        --release) release=1 ;;
         *) echo "Unbekannte Option: $arg" >&2; exit 2 ;;
     esac
 done
@@ -103,8 +108,69 @@ ${icon_key}
 </plist>
 PLIST
 
-# 4) Ad-hoc-Signatur (lokaler Testbuild; Distribution siehe docs/PLAN.md)
-codesign --force --sign - "$app/Contents/MacOS/TagExplosion"
-codesign --force --sign - "$app"
+if [ "$release" = "0" ]; then
+    # 4) Ad-hoc-Signatur (lokaler Testbuild)
+    codesign --force --sign - "$app/Contents/MacOS/TagExplosion"
+    codesign --force --sign - "$app"
+    echo "App: $app"
+    exit 0
+fi
 
-echo "App: $app"
+# ---- Distribution (--release) -----------------------------------------------
+# TagLib wird im Dev-Build dynamisch aus Homebrew geladen. Für die verteilbare
+# App: dylibs nach Contents/Frameworks bündeln (läuft dann ohne Homebrew) und
+# Install-Namen umbiegen — Pflicht auch wegen Library Validation der Hardened
+# Runtime (fremd signierte Homebrew-dylibs würden beim Laden geblockt).
+: "${NOTARY_PROFILE:?NOTARY_PROFILE muss gesetzt sein (notarytool-Keychain-Profil)}"
+identity="$(security find-identity -v -p codesigning \
+    | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')"
+[ -n "$identity" ] || { echo "Kein Developer-ID-Zertifikat im Schlüsselbund" >&2; exit 1; }
+echo "== Signiere als: $identity =="
+
+bin="$app/Contents/MacOS/TagExplosion"
+fw="$app/Contents/Frameworks"
+mkdir -p "$fw"
+
+# 1) Direkt gelinkte Homebrew-dylibs einsammeln und im Binary umbiegen
+for dep in $(otool -L "$bin" | awk '$1 ~ /^\/opt\/homebrew\/.*\.dylib$/ {print $1}'); do
+    base="$(basename "$dep")"
+    cp -f "$dep" "$fw/$base"
+    chmod u+w "$fw/$base"
+    install_name_tool -id "@executable_path/../Frameworks/$base" "$fw/$base"
+    install_name_tool -change "$dep" "@executable_path/../Frameworks/$base" "$bin"
+done
+# 2) Querverweise der gebündelten dylibs untereinander umbiegen (z.B.
+#    libtag_c -> libtag, referenziert über den Cellar-Pfad)
+for lib in "$fw"/*.dylib; do
+    for sub in $(otool -L "$lib" | awk 'NR>1 && $1 ~ /^\/opt\/homebrew\/.*\.dylib$/ {print $1}'); do
+        subbase="$(basename "$sub")"
+        if [ ! -f "$fw/$subbase" ]; then
+            cp -f "$sub" "$fw/$subbase"
+            chmod u+w "$fw/$subbase"
+            install_name_tool -id "@executable_path/../Frameworks/$subbase" "$fw/$subbase"
+        fi
+        install_name_tool -change "$sub" "@executable_path/../Frameworks/$subbase" "$lib"
+    done
+done
+echo "Gebündelte Bibliotheken:"; ls "$fw"
+
+# 3) Signieren: innere Binaries ZUERST (kein --deep), dann das Bundle
+for lib in "$fw"/*.dylib; do
+    codesign --force --options runtime --timestamp --sign "$identity" "$lib"
+done
+codesign --force --options runtime --timestamp --sign "$identity" "$app"
+codesign --verify --strict --verbose=2 "$app"
+
+# 4) Notarisieren + Ticket anheften
+zip="$here/TagExplosion-$version.zip"
+ditto -c -k --keepParent "$app" "$zip"
+echo "== Notarisierung eingereicht (dauert 1-10 min) =="
+xcrun notarytool submit "$zip" --keychain-profile "$NOTARY_PROFILE" --wait
+xcrun stapler staple "$app"
+xcrun stapler validate "$app"
+spctl --assess --type execute -vv "$app"
+# ZIP der GESTAPELTEN App neu packen (das ist das verteilbare Artefakt)
+ditto -c -k --keepParent "$app" "$zip"
+
+echo "App (notarisiert): $app"
+echo "Verteilbares ZIP:  $zip"
