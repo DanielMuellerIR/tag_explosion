@@ -6,7 +6,12 @@ Apple-Stil, mit skriptfähiger CLI.
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
-![Batch-Bearbeitung mit Kopier-Menüs an jedem Feld](docs/screenshots/batch.png)
+![Lizenz: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Plattform: macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg)
+![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
+
+![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/audio.png)
+*Der Audio-Editor: Cover, alle Tag-Felder und an jedem Feld ein Kopier-Menü.*
 
 ## Funktionen
 
@@ -18,16 +23,23 @@ Apple-Stil, mit skriptfähiger CLI.
   vollständige Ansicht aller rohen Metadaten-Gruppen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
-- **Werte zwischen Tags kopieren** — im Batch-Modus kann jedes Textfeld seinen
-  Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert auch über
-  Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf typkompatible
-  Textfelder.
+- **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
+  kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
+  auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
+  typkompatible Textfelder.
 - **Technik-Panel** — der vollständige `mediainfo`-Bericht zu jeder Datei,
   filterbar und kopierbar.
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`.
+
+![Batch-Bearbeitung eines Albums](docs/screenshots/batch.png)
+*Batch-Bearbeitung: eine Änderung wirkt auf alle ausgewählten Dateien; die
+Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
+
+![Bild-Metadaten-Editor](docs/screenshots/image.png)
+*Der Bild-Editor mit MWG-harmonisierten EXIF/IPTC/XMP-Feldern.*
 
 ## Unterstützte Formate
 
@@ -37,8 +49,8 @@ Apple-Stil, mit skriptfähiger CLI.
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
 
-![Audio-Editor](docs/screenshots/audio.png)
-![Bild-Metadaten-Editor](docs/screenshots/image.png)
+![Startbildschirm mit der Format-Übersicht](docs/screenshots/empty.png)
+*Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
 
 ## Installation
 
@@ -87,3 +99,6 @@ Linux-portabel. Architektur und Meilensteine stehen in
 MIT (siehe [LICENSE](LICENSE)). TagLib wird als Systembibliothek dynamisch
 gelinkt (LGPL/MPL); mediainfo (BSD-2) und exiftool (Artistic) werden nur als
 externe Programme aufgerufen. Details in [THIRD-PARTY.md](THIRD-PARTY.md).
+
+Die Demo-Dateien und Cover in den Screenshots sind vollständig für diese
+Dokumentation generiert — die Titel, Autoren und Künstler existieren nicht.
