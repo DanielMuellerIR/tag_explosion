@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "TagExplosionApp",
+    defaultLocalization: "de",
     platforms: [.macOS(.v14)],
     dependencies: [
         .package(path: ".."),
@@ -20,6 +21,7 @@ let package = Package(
                 .product(name: "TagExplosionCore", package: "tag_explosion"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
+            resources: [.process("Resources")],
             linkerSettings: [
                 // build.sh legt Sparkle.framework in Contents/Frameworks ab.
                 // SwiftPM ergänzt für Binär-Targets nur @loader_path (neben dem

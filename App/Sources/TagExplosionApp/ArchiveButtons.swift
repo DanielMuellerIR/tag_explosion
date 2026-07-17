@@ -39,7 +39,7 @@ struct ArchiveButtons: View {
         if let folder = entries.first?.url.deletingLastPathComponent() {
             panel.directoryURL = folder
         }
-        panel.message = "Tags der \(entries.count) ausgewählten Dateien exportieren"
+        panel.message = String(localized: "Tags der \(entries.count) ausgewählten Dateien exportieren")
         if panel.runModal() == .OK, let url = panel.url {
             let selected = entries
             Task { await model.exportEntries(selected, to: url) }
@@ -55,7 +55,7 @@ struct ArchiveButtons: View {
         if let folder = entries.first?.url.deletingLastPathComponent() {
             panel.directoryURL = folder
         }
-        panel.message = "Export-/Backup-JSON auswählen"
+        panel.message = String(localized: "Export-/Backup-JSON auswählen")
         if panel.runModal() == .OK, let url = panel.url {
             Task { await model.importArchive(from: url) }
         }

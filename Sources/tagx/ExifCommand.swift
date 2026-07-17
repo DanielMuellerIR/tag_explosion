@@ -6,7 +6,7 @@ import TagExplosionCore
 struct Exif: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "exif",
-        abstract: "Bild-Metadaten anzeigen und bearbeiten (EXIF/IPTC/XMP via exiftool).",
+        abstract: "Show and edit image metadata (EXIF/IPTC/XMP via exiftool).",
         subcommands: [ExifShow.self, ExifSet.self],
         defaultSubcommand: ExifShow.self
     )
@@ -14,11 +14,11 @@ struct Exif: ParsableCommand {
 
 struct ExifShow: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "show", abstract: "Kernfelder und alle Metadaten-Gruppen anzeigen.")
+        commandName: "show", abstract: "Show core fields and all metadata groups.")
 
-    @Argument(help: "Bilddatei") var file: String
-    @Flag(name: .long, help: "Ausgabe als JSON") var json = false
-    @Flag(name: .long, help: "Alle Gruppen ausgeben (sonst nur Kernfelder)") var all = false
+    @Argument(help: "Image file") var file: String
+    @Flag(name: .long, help: "Output as JSON") var json = false
+    @Flag(name: .long, help: "Print all groups (default: core fields only)") var all = false
 
     struct Report: Codable {
         var file: String
@@ -58,23 +58,23 @@ struct ExifShow: ParsableCommand {
 
 struct ExifSet: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "set", abstract: "Kernfelder setzen (leerer Wert löscht das Feld).")
+        commandName: "set", abstract: "Set core fields (an empty value deletes the field).")
 
-    @Argument(help: "Bilddatei") var file: String
-    @Option(help: "Titel") var title: String?
-    @Option(help: "Beschreibung") var description: String?
-    @Option(help: "Schlagwörter, kommagetrennt") var keywords: String?
-    @Option(help: "Ersteller/Fotograf") var creator: String?
+    @Argument(help: "Image file") var file: String
+    @Option(help: "Title") var title: String?
+    @Option(help: "Description") var description: String?
+    @Option(help: "Keywords, comma-separated") var keywords: String?
+    @Option(help: "Creator/photographer") var creator: String?
     @Option(help: "Copyright") var copyright: String?
-    @Option(help: "Aufnahmedatum (YYYY:MM:DD HH:MM:SS)") var date: String?
-    @Option(help: "Bewertung 0–5, leer löscht") var rating: String?
-    @Option(help: "GPS als \"lat,lon\" in Dezimalgrad, leer löscht") var gps: String?
+    @Option(help: "Capture date (YYYY:MM:DD HH:MM:SS)") var date: String?
+    @Option(help: "Rating 0–5, empty deletes") var rating: String?
+    @Option(help: "GPS as \"lat,lon\" in decimal degrees, empty deletes") var gps: String?
     @Option(parsing: .upToNextOption,
             help: """
-            Wert eines rohen Tags in ein Kernfeld übernehmen (ZIEL=Gruppe:Tag), \
-            z.B. --copy description=IFD0:ImageDescription. Ziele: title, \
-            description, keywords, creator, copyright (nur Textfelder — in \
-            Bewertung/GPS passt kein freier Text). Gruppen wie in `exif show --all`.
+            Copy the value of a raw tag into a core field (TARGET=Group:Tag), \
+            e.g. --copy description=IFD0:ImageDescription. Targets: title, \
+            description, keywords, creator, copyright (text fields only — \
+            rating/GPS take no free text). Groups as in `exif show --all`.
             """)
     var copy: [String] = []
 
@@ -104,7 +104,7 @@ struct ExifSet: ParsableCommand {
             } else {
                 let parts = gps.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
                 guard parts.count == 2 else {
-                    throw ValidationError("GPS-Format: \"lat,lon\" (Dezimalgrad)")
+                    throw ValidationError("GPS format: \"lat,lon\" (decimal degrees)")
                 }
                 fields.gpsLatitude = parts[0]
                 fields.gpsLongitude = parts[1]
@@ -117,17 +117,17 @@ struct ExifSet: ParsableCommand {
             let raw = try ExifTool.readRawStringTags(urls: [url])[url.path] ?? [:]
             for assignment in copy {
                 guard let eq = assignment.firstIndex(of: "=") else {
-                    throw ValidationError("Ungültige Kopier-Zuweisung (ZIEL=Gruppe:Tag erwartet): \(assignment)")
+                    throw ValidationError("Invalid copy assignment (expected TARGET=Group:Tag): \(assignment)")
                 }
                 let target = String(assignment[..<eq]).lowercased()
                 let source = String(assignment[assignment.index(after: eq)...])
                 guard Self.copyTargets.contains(target) else {
                     throw ValidationError(
-                        "Ziel \(target) ist kein Textfeld — erlaubt: \(Self.copyTargets.joined(separator: ", "))")
+                        "Target \(target) is not a text field — allowed: \(Self.copyTargets.joined(separator: ", "))")
                 }
                 guard let value = raw[source], !value.isEmpty else {
                     FileHandle.standardError.write(
-                        Data("Hinweis: Quelle \(source) ist leer oder kein Text-Tag — \(target) unverändert\n".utf8))
+                        Data("Note: source \(source) is empty or not a text tag — \(target) unchanged\n".utf8))
                     continue
                 }
                 switch target {
@@ -144,7 +144,7 @@ struct ExifSet: ParsableCommand {
             }
         }
         guard fields != original else {
-            print("Keine Änderungen")
+            print("No changes")
             return
         }
         try ExifTool.writeCoreFields(url: url, fields: fields, original: original)

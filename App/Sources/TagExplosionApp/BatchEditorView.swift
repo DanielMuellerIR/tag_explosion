@@ -210,7 +210,7 @@ struct BatchEditorView: View {
     private func pickCover() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
-        panel.message = "Coverbild für alle ausgewählten Dateien"
+        panel.message = String(localized: "Coverbild für alle ausgewählten Dateien")
         if panel.runModal() == .OK, let url = panel.url,
            let data = try? Data(contentsOf: url) {
             setCoverForAll(data)

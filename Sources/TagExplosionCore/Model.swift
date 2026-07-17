@@ -102,20 +102,22 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case toolNotFound(name: String)
     case toolFailed(name: String, exitCode: Int32, stderr: String)
 
+    // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
+    // deutsche Kontextzeilen voran.
     public var errorDescription: String? {
         switch self {
         case .cannotOpen(let path):
-            return "Datei kann nicht als Mediendatei gelesen werden: \(path)"
+            return "Cannot read file as a media file: \(path)"
         case .saveFailed(let path):
-            return "Änderungen konnten nicht gespeichert werden: \(path)"
+            return "Changes could not be saved: \(path)"
         case .readOnly(let path):
-            return "Datei ist schreibgeschützt: \(path)"
+            return "File is read-only: \(path)"
         case .propertiesRejected(let count):
-            return "\(count) Tag-Feld(er) werden von diesem Format nicht unterstützt"
+            return "\(count) tag field(s) are not supported by this format"
         case .toolNotFound(let name):
-            return "Externes Programm nicht gefunden: \(name)"
+            return "External program not found: \(name)"
         case .toolFailed(let name, let code, let stderr):
-            return "\(name) schlug fehl (Exit-Code \(code)): \(stderr)"
+            return "\(name) failed (exit code \(code)): \(stderr)"
         }
     }
 }

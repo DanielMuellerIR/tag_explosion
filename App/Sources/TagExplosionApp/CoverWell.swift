@@ -50,7 +50,7 @@ struct CoverWell: View {
             .onTapGesture { pickImage() }
 
             if let artwork {
-                Text("\(artwork.resolvedMimeType.replacingOccurrences(of: "image/", with: "").uppercased()) · \(ByteCountFormatter.string(fromByteCount: Int64(artwork.data.count), countStyle: .file))\(entry.artworks.count > 1 ? " · +\(entry.artworks.count - 1) weitere" : "")")
+                Text("\(artwork.resolvedMimeType.replacingOccurrences(of: "image/", with: "").uppercased()) · \(ByteCountFormatter.string(fromByteCount: Int64(artwork.data.count), countStyle: .file))\(entry.artworks.count > 1 ? " · " + String(localized: "+\(entry.artworks.count - 1) weitere") : "")")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -89,7 +89,7 @@ struct CoverWell: View {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
-        panel.message = "Coverbild auswählen"
+        panel.message = String(localized: "Coverbild auswählen")
         if panel.runModal() == .OK, let url = panel.url,
            let data = try? Data(contentsOf: url) {
             setCover(data: data)

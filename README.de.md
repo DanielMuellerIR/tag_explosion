@@ -43,6 +43,9 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
   `tagx ebook`.
 
+Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
+die CLI spricht Englisch. Die Screenshots zeigen die deutsche Oberfläche.
+
 ![Batch-Bearbeitung eines Albums](docs/screenshots/batch.png)
 *Batch-Bearbeitung: eine Änderung wirkt auf alle ausgewählten Dateien; die
 Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*

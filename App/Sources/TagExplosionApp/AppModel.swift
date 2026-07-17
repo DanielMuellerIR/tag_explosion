@@ -236,7 +236,7 @@ final class AppModel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen"
+        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen")
         if panel.runModal() == .OK {
             Task { await self.open(urls: panel.urls) }
         }
@@ -321,7 +321,7 @@ final class AppModel {
         }
         if selection.isEmpty, let first = entries.first { selection = [first.url] }
         if !failures.isEmpty {
-            alertMessage = "Nicht lesbar (Format unbekannt?):\n" + failures.joined(separator: "\n")
+            alertMessage = String(localized: "Nicht lesbar (Format unbekannt?):") + "\n" + failures.joined(separator: "\n")
         }
     }
 
@@ -411,7 +411,8 @@ final class AppModel {
             }.value
             return true
         } catch {
-            alertMessage = "Auto-Backup fehlgeschlagen — Speichern abgebrochen.\n\(error.localizedDescription)"
+            alertMessage = String(localized: "Auto-Backup fehlgeschlagen — Speichern abgebrochen.")
+                + "\n" + error.localizedDescription
             return false
         }
     }
@@ -426,7 +427,7 @@ final class AppModel {
                 try TagArchiveIO.export(files: files, to: url, includeCovers: true)
             }.value
         } catch {
-            alertMessage = "Export fehlgeschlagen:\n\(error.localizedDescription)"
+            alertMessage = String(localized: "Export fehlgeschlagen:") + "\n" + error.localizedDescription
         }
     }
 
@@ -449,16 +450,16 @@ final class AppModel {
                 await reload(entry: entry)
             }
 
-            var summary = "Import: \(report.applied.count) geändert, \(report.unchanged.count) unverändert"
-            if !report.missing.isEmpty { summary += ", \(report.missing.count) fehlend" }
-            if !report.extra.isEmpty { summary += ", \(report.extra.count) nicht im Archiv" }
+            var summary = String(localized: "Import: \(report.applied.count) geändert, \(report.unchanged.count) unverändert")
+            if !report.missing.isEmpty { summary += String(localized: ", \(report.missing.count) fehlend") }
+            if !report.extra.isEmpty { summary += String(localized: ", \(report.extra.count) nicht im Archiv") }
             if !report.failed.isEmpty {
-                summary += "\nFehlgeschlagen:\n" + report.failed
+                summary += "\n" + String(localized: "Fehlgeschlagen:") + "\n" + report.failed
                     .map { "\($0.0): \($0.1)" }.joined(separator: "\n")
             }
             alertMessage = summary
         } catch {
-            alertMessage = "Import fehlgeschlagen:\n\(error.localizedDescription)"
+            alertMessage = String(localized: "Import fehlgeschlagen:") + "\n" + error.localizedDescription
         }
     }
 
@@ -524,7 +525,8 @@ final class AppModel {
             }
         } catch {
             entry.lastError = error.localizedDescription
-            alertMessage = "Speichern fehlgeschlagen: \(url.lastPathComponent)\n\(error.localizedDescription)"
+            alertMessage = String(localized: "Speichern fehlgeschlagen: \(url.lastPathComponent)")
+                + "\n" + error.localizedDescription
         }
     }
 

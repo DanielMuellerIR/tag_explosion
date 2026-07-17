@@ -8,7 +8,7 @@ import TagExplosionCore
 struct Tagx: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "tagx",
-        abstract: "Medien-Tags anzeigen und bearbeiten (Tag Explosion CLI).",
+        abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
         subcommands: [Show.self, Set.self, Cover.self, Info.self, Exif.self, Ebook.self,
                       Export.self, Import.self],
@@ -40,7 +40,7 @@ let tagxVersion: String = {
 func resolveFile(_ path: String) throws -> URL {
     let url = URL(fileURLWithPath: path)
     guard FileManager.default.fileExists(atPath: url.path) else {
-        throw ValidationError("Datei nicht gefunden: \(path)")
+        throw ValidationError("File not found: \(path)")
     }
     return url
 }
@@ -57,11 +57,11 @@ func printJSON<T: Encodable>(_ value: T) throws {
 
 struct Show: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Tags, Cover und Audio-Eigenschaften einer Datei anzeigen."
+        abstract: "Show tags, cover art, and audio properties of a file."
     )
 
-    @Argument(help: "Mediendatei(en)") var files: [String]
-    @Flag(name: .long, help: "Ausgabe als JSON") var json = false
+    @Argument(help: "Media file(s)") var files: [String]
+    @Flag(name: .long, help: "Output as JSON") var json = false
 
     /// JSON-Struktur für --json (Cover nur als Metadaten, nicht die Bytes).
     struct FileReport: Codable {
@@ -104,15 +104,15 @@ struct Show: ParsableCommand {
             if reports.count > 1 { print("== \(report.file)") }
             if let a = report.audio {
                 let seconds = Double(a.lengthMilliseconds) / 1000.0
-                print(String(format: "# %.1f s · %d kbps · %d Hz · %d Kanäle%@",
+                print(String(format: "# %.1f s · %d kbps · %d Hz · %d channel(s)%@",
                              seconds, a.bitrateKbps, a.sampleRateHz, a.channels,
-                             report.readOnly ? " · SCHREIBGESCHÜTZT" : ""))
+                             report.readOnly ? " · READ-ONLY" : ""))
             }
             for prop in report.properties {
                 print("\(prop.key)=\(prop.value)")
             }
             for art in report.artworks {
-                print("COVER: \(art.pictureType.isEmpty ? "?" : art.pictureType) · \(art.mimeType) · \(art.bytes) Bytes")
+                print("COVER: \(art.pictureType.isEmpty ? "?" : art.pictureType) · \(art.mimeType) · \(art.bytes) bytes")
             }
         }
     }
@@ -122,20 +122,20 @@ struct Show: ParsableCommand {
 
 struct Set: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Tag-Felder setzen/löschen (KEY=WERT; leerer Wert löscht das Feld)."
+        abstract: "Set/delete tag fields (KEY=VALUE; an empty value deletes the field)."
     )
 
-    @Argument(help: "Mediendatei") var file: String
+    @Argument(help: "Media file") var file: String
     @Option(name: .shortAndLong, parsing: .upToNextOption,
-            help: "Feld-Zuweisungen, z.B. -t ARTIST=Miles TITLE=So What") var tag: [String] = []
+            help: "Field assignments, e.g. -t ARTIST=Miles TITLE='So What'") var tag: [String] = []
     @Option(name: .shortAndLong, parsing: .upToNextOption,
-            help: "Wert eines anderen Feldes übernehmen (ZIEL=QUELLE), z.B. -c ALBUMARTIST=ARTIST")
+            help: "Copy the value of another field (TARGET=SOURCE), e.g. -c ALBUMARTIST=ARTIST")
     var copy: [String] = []
-    @Flag(name: .long, help: "Alle vorhandenen Felder vorher entfernen") var replaceAll = false
+    @Flag(name: .long, help: "Remove all existing fields first") var replaceAll = false
 
     func run() throws {
         guard !tag.isEmpty || !copy.isEmpty else {
-            throw ValidationError("Mindestens ein -t KEY=WERT oder -c ZIEL=QUELLE angeben.")
+            throw ValidationError("Provide at least one -t KEY=VALUE or -c TARGET=SOURCE.")
         }
         let url = try resolveFile(file)
         let tagFile = try TagFile(url: url)
@@ -144,7 +144,7 @@ struct Set: ParsableCommand {
         var properties = replaceAll ? [] : (try tagFile.properties())
         for assignment in tag {
             guard let eq = assignment.firstIndex(of: "=") else {
-                throw ValidationError("Ungültige Zuweisung (KEY=WERT erwartet): \(assignment)")
+                throw ValidationError("Invalid assignment (expected KEY=VALUE): \(assignment)")
             }
             let key = String(assignment[..<eq]).uppercased()
             let value = String(assignment[assignment.index(after: eq)...])
@@ -159,14 +159,14 @@ struct Set: ParsableCommand {
         var changed = tag.count
         for assignment in copy {
             guard let eq = assignment.firstIndex(of: "=") else {
-                throw ValidationError("Ungültige Kopier-Zuweisung (ZIEL=QUELLE erwartet): \(assignment)")
+                throw ValidationError("Invalid copy assignment (expected TARGET=SOURCE): \(assignment)")
             }
             let target = String(assignment[..<eq]).uppercased()
             let source = String(assignment[assignment.index(after: eq)...]).uppercased()
             let values = properties.filter { $0.key == source }.map(\.value)
             guard !values.isEmpty else {
                 FileHandle.standardError.write(
-                    Data("Hinweis: Quelle \(source) ist leer — \(target) unverändert\n".utf8))
+                    Data("Note: source \(source) is empty — \(target) unchanged\n".utf8))
                 continue
             }
             properties.removeAll { $0.key == target }
@@ -175,7 +175,7 @@ struct Set: ParsableCommand {
         }
         try tagFile.setProperties(properties)
         try tagFile.save()
-        print("OK \(url.lastPathComponent): \(changed) Feld(er) geändert")
+        print("OK \(url.lastPathComponent): \(changed) field(s) changed")
     }
 }
 
@@ -183,22 +183,22 @@ struct Set: ParsableCommand {
 
 struct Cover: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Cover exportieren, setzen oder entfernen.",
+        abstract: "Export, set, or remove cover art.",
         subcommands: [Export.self, CoverSet.self, Remove.self]
     )
 
     struct Export: ParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "export", abstract: "Eingebettete Bilder als Dateien exportieren.")
+            commandName: "export", abstract: "Export embedded images to files.")
 
-        @Argument(help: "Mediendatei") var file: String
-        @Option(name: .shortAndLong, help: "Zielverzeichnis (Standard: neben der Datei)") var output: String?
+        @Argument(help: "Media file") var file: String
+        @Option(name: .shortAndLong, help: "Target directory (default: next to the file)") var output: String?
 
         func run() throws {
             let url = try resolveFile(file)
             let data = try TagFile.read(at: url)
             guard !data.artworks.isEmpty else {
-                throw ValidationError("Keine eingebetteten Bilder in \(url.lastPathComponent)")
+                throw ValidationError("No embedded images in \(url.lastPathComponent)")
             }
             let outDir = output.map { URL(fileURLWithPath: $0) }
                 ?? url.deletingLastPathComponent()
@@ -221,10 +221,10 @@ struct Cover: ParsableCommand {
 
     struct CoverSet: ParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "set", abstract: "Cover setzen (ersetzt vorhandene Bilder).")
+            commandName: "set", abstract: "Set cover art (replaces existing images).")
 
-        @Argument(help: "Mediendatei") var file: String
-        @Argument(help: "Bilddatei (jpg/png/…)") var image: String
+        @Argument(help: "Media file") var file: String
+        @Argument(help: "Image file (jpg/png/…)") var image: String
 
         func run() throws {
             let url = try resolveFile(file)
@@ -232,20 +232,20 @@ struct Cover: ParsableCommand {
             let imageData = try Data(contentsOf: imageURL)
             let artwork = Artwork(data: imageData, pictureType: "Front Cover")
             try TagFile.write(artworks: [artwork], to: url)
-            print("OK \(url.lastPathComponent): Cover gesetzt (\(imageData.count) Bytes)")
+            print("OK \(url.lastPathComponent): cover set (\(imageData.count) bytes)")
         }
     }
 
     struct Remove: ParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "remove", abstract: "Alle eingebetteten Bilder entfernen.")
+            commandName: "remove", abstract: "Remove all embedded images.")
 
-        @Argument(help: "Mediendatei") var file: String
+        @Argument(help: "Media file") var file: String
 
         func run() throws {
             let url = try resolveFile(file)
             try TagFile.write(artworks: [], to: url)
-            print("OK \(url.lastPathComponent): Bilder entfernt")
+            print("OK \(url.lastPathComponent): images removed")
         }
     }
 }
@@ -254,11 +254,11 @@ struct Cover: ParsableCommand {
 
 struct Info: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Vollständige technische Details via mediainfo anzeigen."
+        abstract: "Show the full technical report via mediainfo."
     )
 
-    @Argument(help: "Mediendatei") var file: String
-    @Flag(name: .long, help: "Ausgabe als JSON") var json = false
+    @Argument(help: "Media file") var file: String
+    @Flag(name: .long, help: "Output as JSON") var json = false
 
     func run() throws {
         let url = try resolveFile(file)

@@ -126,7 +126,7 @@ struct EbookEditorView: View {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [.jpeg, .png]
-        panel.message = "Neues Cover auswählen (JPEG oder PNG)"
+        panel.message = String(localized: "Neues Cover auswählen (JPEG oder PNG)")
         if panel.runModal() == .OK, let url = panel.url,
            let data = try? Data(contentsOf: url) {
             entry.ebookCoverReplacement = data
@@ -216,7 +216,7 @@ struct EbookEditorView: View {
         }
     }
 
-    private func label(_ text: String) -> some View {
+    private func label(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)

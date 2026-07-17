@@ -42,8 +42,9 @@ Apple-style editor, with a scriptable CLI companion.
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
   `tagx ebook`.
 
-The app's user interface is currently German; the CLI and this documentation
-are bilingual-friendly.
+The app's user interface is available in English and German (it follows the
+system language); the CLI speaks English. The screenshots currently show the
+German interface.
 
 ![Batch editing an album](docs/screenshots/batch.png)
 *Batch editing: one change applies to all selected files; the copy menus fill

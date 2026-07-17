@@ -91,19 +91,19 @@ struct ContentView: View {
 
     private var navigationTitle: String {
         if let entry = model.selectedEntry { return entry.displayTitle }
-        if model.selectedEntries.count > 1 { return "\(model.selectedEntries.count) Dateien" }
+        if model.selectedEntries.count > 1 { return String(localized: "\(model.selectedEntries.count) Dateien") }
         return "Tag Explosion"
     }
 
     private var subtitle: String {
         if let entry = model.selectedEntry {
-            return entry.isDirty ? "Bearbeitet" : ""
+            return entry.isDirty ? String(localized: "Bearbeitet") : ""
         }
         if model.selectedEntries.count > 1 {
             let dirty = model.selectedEntries.filter(\.isDirty).count
-            return dirty > 0 ? "\(dirty) bearbeitet" : ""
+            return dirty > 0 ? String(localized: "\(dirty) bearbeitet") : ""
         }
-        return model.entries.isEmpty ? "" : "\(model.entries.count) Dateien"
+        return model.entries.isEmpty ? "" : String(localized: "\(model.entries.count) Dateien")
     }
 
     @ViewBuilder
@@ -213,7 +213,7 @@ struct DropPlaceholder: View {
     private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
     private static let ebookDisplay = ebookExtensions.sorted()
     /// Hinweis auf die nur-mit-Calibre-Formate, falls Calibre fehlt.
-    private static let ebookTagFormats = EbookTool.calibreAvailable
+    private static let ebookTagFormats: LocalizedStringKey = EbookTool.calibreAvailable
         ? "EPUB-OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)"
         : "EPUB-OPF · PDF Info/XMP (mobi/azw3/fb2 mit Calibre)"
 
@@ -253,10 +253,10 @@ struct DropPlaceholder: View {
 /// Eine Spalte der Formatübersicht: Medientyp-Überschrift, alle Datei-Endungen
 /// und die unterstützten Tag-Formate.
 private struct FormatColumn: View {
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String
     let formats: [String]
-    let tagFormats: String
+    let tagFormats: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: 8) {

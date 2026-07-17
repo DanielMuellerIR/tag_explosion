@@ -157,15 +157,22 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   zur JSON-Datei und meldet fehlende/zusätzliche Dateien; Exit-Code 1 bei
   unvollständiger Wiederherstellung.
 
-### Englische Lokalisierung
-- App: String Catalog (`Localizable.xcstrings`) im SPM-Target,
-  `defaultLocalization: "de"` + vollständige en-Übersetzung; SwiftUI-Literale
-  werden automatisch zu Keys. Info.plist: CFBundleLocalizations de+en.
-- CLI `tagx`: Ausgaben/Hilfetexte auf Englisch umstellen (Open-Source-Konvention).
-- Screenshots zweisprachig: Aufnahme-Läufe mit `-AppleLanguages '(en)'` bzw.
-  de; Ablage `docs/screenshots/de/` + `docs/screenshots/en/`, README.md nutzt
-  en, README.de.md de. Demo-Dateien für EN-Screenshots ggf. mit englischen
-  Tags neu taggen (Erzeugung siehe Session-Muster: ffmpeg + tagx + MiniMax-Cover).
+### Englische Lokalisierung — ✅ App+CLI umgesetzt in 0.15.0, Screenshots offen
+- App: String Catalog `App/Sources/TagExplosionApp/Resources/Localizable.xcstrings`
+  (Quelle Deutsch = Keys, vollständige en-Übersetzung). Abweichung vom Plan:
+  `swift build` kompiliert .xcstrings NICHT (nur Xcodes Build-System) —
+  deshalb kompiliert build.sh den Katalog per `xcrun xcstringstool compile`
+  direkt nach Contents/Resources (Main-Bundle, wo SwiftUI sucht); `swift run`
+  aus dem Checkout zeigt daher immer Deutsch. Info.plist:
+  CFBundleLocalizations de+en. Strings außerhalb von LocalizedStringKey-
+  Kontexten laufen über `String(localized:)`.
+- CLI `tagx` und Core-Fehlertexte (TagError): Englisch (Open-Source-Konvention);
+  die App stellt Fehlern deutsche Kontextzeilen voran.
+- **Offen:** Screenshots zweisprachig — Aufnahme-Läufe mit
+  `-AppleLanguages '(en)'` bzw. de; Ablage `docs/screenshots/de/` +
+  `docs/screenshots/en/`, README.md nutzt en, README.de.md de. Demo-Dateien
+  für EN-Screenshots ggf. mit englischen Tags neu taggen (ffmpeg + tagx +
+  MiniMax-Cover). Braucht GUI-Läufe.
 
 ### Distribution: DMG statt ZIP — ✅ umgesetzt in 0.12.0
 - Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild; Bau in
@@ -213,3 +220,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.12.0  | Distribution als notarisiertes DMG (Hintergrundbild, /Applications-Symlink, Finder-Layout), Appcast-Workflow auf `*.dmg` — ✅ |
 | 0.13.0  | E-Books/Dokumente: EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre; Editor + Batch + `tagx ebook` — ✅ |
 | 0.14.0  | Tag-Export/-Import als JSON (`tagx export/import`, GUI-Buttons) + Auto-Backup vor Batch-Speichern — ✅ |
+| 0.15.0  | Englische Lokalisierung: App (String Catalog de→en), CLI + Core-Fehler englisch — ✅ (EN-Screenshots offen) |

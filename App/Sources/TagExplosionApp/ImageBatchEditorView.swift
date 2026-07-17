@@ -157,7 +157,7 @@ struct ImageBatchEditorView: View {
         }
     }
 
-    private func label(_ text: String) -> some View {
+    private func label(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)

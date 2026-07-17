@@ -68,6 +68,14 @@ rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPC
 # Binärpaket (LGPL-/Apache-Hinweispflicht), nicht nur in den Quelltext.
 cp "$here/THIRD-PARTY.md" "$app/Contents/Resources/Third-Party-Licenses.md"
 
+# Lokalisierung: Der String Catalog (Quelle Deutsch, Übersetzung Englisch)
+# wird zu .lproj/Localizable.strings kompiliert. swift build kann .xcstrings
+# nicht selbst kompilieren (nur Xcodes Build-System), deshalb hier explizit.
+# Die Strings landen im Main-Bundle — genau dort sucht SwiftUI sie.
+xcrun xcstringstool compile \
+    "$here/App/Sources/TagExplosionApp/Resources/Localizable.xcstrings" \
+    --output-directory "$app/Contents/Resources"
+
 # Icon nur kopieren, wenn vorhanden
 icon_key=""
 if [ -f "$here/App/Resources/AppIcon.icns" ]; then
@@ -91,6 +99,11 @@ cat > "$app/Contents/Info.plist" <<PLIST
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>CFBundleDevelopmentRegion</key><string>de</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>de</string>
+        <string>en</string>
+    </array>
     <!-- Sparkle prüft automatisch auf Updates, installiert aber erst nach
          Zustimmung. Archiv und Feed werden mit dem projektspezifischen
          Ed25519-Schlüssel geprüft; CFBundleVersion muss dafür monoton steigen. -->

@@ -1,0 +1,1336 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "%lld Bilder ausgewählt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld images selected"
+          }
+        }
+      }
+    },
+    "%lld Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld files"
+          }
+        }
+      }
+    },
+    "%lld Dateien ausgewählt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld files selected"
+          }
+        }
+      }
+    },
+    "%lld E-Books ausgewählt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld e-books selected"
+          }
+        }
+      }
+    },
+    "%lld Kanäle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld channels"
+          }
+        }
+      }
+    },
+    "%lld bearbeitet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld edited"
+          }
+        }
+      }
+    },
+    "%lld mit ungespeicherten Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld with unsaved changes"
+          }
+        }
+      }
+    },
+    "+%lld weitere": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld more"
+          }
+        }
+      }
+    },
+    ", %lld fehlend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", %lld missing"
+          }
+        }
+      }
+    },
+    ", %lld nicht im Archiv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", %lld not in the archive"
+          }
+        }
+      }
+    },
+    "Aktionen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actions"
+          }
+        }
+      }
+    },
+    "Albumkünstler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album Artist"
+          }
+        }
+      }
+    },
+    "Alle Metadaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All Metadata"
+          }
+        }
+      }
+    },
+    "Alle Tags (inkl. Cover) der Auswahl in eine JSON-Datei schreiben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write all tags (including covers) of the selection to a JSON file"
+          }
+        }
+      }
+    },
+    "Alle geänderten Dateien speichern (⌥⌘S)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save all changed files (⌥⌘S)"
+          }
+        }
+      }
+    },
+    "Alle speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save All"
+          }
+        }
+      }
+    },
+    "Analysiere …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzing …"
+          }
+        }
+      }
+    },
+    "Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please select audio, images, and e-books separately\nto edit them together."
+          }
+        }
+      }
+    },
+    "Audio-, Bild-, Video- und E-Book-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop audio, image, video, and e-book files or folders here\nto view and edit metadata."
+          }
+        }
+      }
+    },
+    "Aufnahmedatum": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture Date"
+          }
+        }
+      }
+    },
+    "Aus Liste entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from List"
+          }
+        }
+      }
+    },
+    "Ausgewählte Bilder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected Images"
+          }
+        }
+      }
+    },
+    "Ausgewählte Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected Files"
+          }
+        }
+      }
+    },
+    "Ausgewählte E-Books": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected E-books"
+          }
+        }
+      }
+    },
+    "Auto-Backup fehlgeschlagen — Speichern abgebrochen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-backup failed — saving cancelled."
+          }
+        }
+      }
+    },
+    "Autor(en)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Author(s)"
+          }
+        }
+      }
+    },
+    "Bearbeitet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edited"
+          }
+        }
+      }
+    },
+    "Beschreibung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Description"
+          }
+        }
+      }
+    },
+    "Bewertung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rating"
+          }
+        }
+      }
+    },
+    "Bild": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image"
+          }
+        }
+      }
+    },
+    "Bild auswählen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Image …"
+          }
+        }
+      }
+    },
+    "Bilddatei hierher ziehen, um das Cover zu ersetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop an image file here to replace the cover"
+          }
+        }
+      }
+    },
+    "Bilder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images"
+          }
+        }
+      }
+    },
+    "Buch-Metadaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Book Metadata"
+          }
+        }
+      }
+    },
+    "CD": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disc"
+          }
+        }
+      }
+    },
+    "Cover auswählen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Cover …"
+          }
+        }
+      }
+    },
+    "Cover entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove Cover"
+          }
+        }
+      }
+    },
+    "Cover für alle\nhierher ziehen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop a cover\nfor all files here"
+          }
+        }
+      }
+    },
+    "Cover hierher\nziehen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop cover\nhere"
+          }
+        }
+      }
+    },
+    "Cover überall entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove Cover Everywhere"
+          }
+        }
+      }
+    },
+    "Coverbild auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a cover image"
+          }
+        }
+      }
+    },
+    "Coverbild für alle ausgewählten Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover image for all selected files"
+          }
+        }
+      }
+    },
+    "Dateien oder Ordner öffnen (⌘O)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open files or folders (⌘O)"
+          }
+        }
+      }
+    },
+    "Datum": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date"
+          }
+        }
+      }
+    },
+    "Diese Datei ist schreibgeschützt — Änderungen können nicht gespeichert werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file is read-only — changes cannot be saved."
+          }
+        }
+      }
+    },
+    "E-Books": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-books"
+          }
+        }
+      }
+    },
+    "EPUB-OPF · PDF Info/XMP (mobi/azw3/fb2 mit Calibre)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EPUB OPF · PDF Info/XMP (mobi/azw3/fb2 with Calibre)"
+          }
+        }
+      }
+    },
+    "EPUB-OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EPUB OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)"
+          }
+        }
+      }
+    },
+    "EXIF · IPTC · XMP (MWG-harmonisiert)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EXIF · IPTC · XMP (MWG-harmonized)"
+          }
+        }
+      }
+    },
+    "Eigenes Feld …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom Field …"
+          }
+        }
+      }
+    },
+    "Ersteller": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creator"
+          }
+        }
+      }
+    },
+    "Export fehlgeschlagen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export failed:"
+          }
+        }
+      }
+    },
+    "Export-/Backup-JSON auf die Dateien anwenden (Match über relative Pfade)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply an export/backup JSON to the files (matched via relative paths)"
+          }
+        }
+      }
+    },
+    "Export-/Backup-JSON auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an export/backup JSON"
+          }
+        }
+      }
+    },
+    "Exportieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export …"
+          }
+        }
+      }
+    },
+    "FELD": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FIELD"
+          }
+        }
+      }
+    },
+    "Fehlgeschlagen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed:"
+          }
+        }
+      }
+    },
+    "Feld entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove field"
+          }
+        }
+      }
+    },
+    "Feld hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Field"
+          }
+        }
+      }
+    },
+    "Filtern …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter …"
+          }
+        }
+      }
+    },
+    "GPS Breite": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS Latitude"
+          }
+        }
+      }
+    },
+    "GPS Länge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS Longitude"
+          }
+        }
+      }
+    },
+    "Gemischte Auswahl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixed selection"
+          }
+        }
+      }
+    },
+    "Hinweis": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notice"
+          }
+        }
+      }
+    },
+    "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID3v1/v2 · MP4 atoms · Vorbis Comments · APEv2 · ASF · RIFF INFO"
+          }
+        }
+      }
+    },
+    "Im Finder zeigen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        }
+      }
+    },
+    "Import fehlgeschlagen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import failed:"
+          }
+        }
+      }
+    },
+    "Import: %lld geändert, %lld unverändert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import: %lld changed, %lld unchanged"
+          }
+        }
+      }
+    },
+    "JJJJ-MM-TT": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YYYY-MM-DD"
+          }
+        }
+      }
+    },
+    "JJJJ:MM:TT HH:MM:SS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YYYY:MM:DD HH:MM:SS"
+          }
+        }
+      }
+    },
+    "Jahr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Year"
+          }
+        }
+      }
+    },
+    "Kein Cover": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cover"
+          }
+        }
+      }
+    },
+    "Keine Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Files"
+          }
+        }
+      }
+    },
+    "Keine weiteren Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No additional fields"
+          }
+        }
+      }
+    },
+    "Kommentar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment"
+          }
+        }
+      }
+    },
+    "Komponist": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Composer"
+          }
+        }
+      }
+    },
+    "Künstler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artist"
+          }
+        }
+      }
+    },
+    "Lade Metadaten …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading metadata …"
+          }
+        }
+      }
+    },
+    "Lade …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading …"
+          }
+        }
+      }
+    },
+    "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MP4 atoms · Matroska tags (mov/avi view only)"
+          }
+        }
+      }
+    },
+    "MediaInfo nicht verfügbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MediaInfo not available"
+          }
+        }
+      }
+    },
+    "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select media files (audio, image, video, e-book) or folders"
+          }
+        }
+      }
+    },
+    "Mediendateien hierher ziehen\noder mit ⌘O öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop media files here\nor open them with ⌘O"
+          }
+        }
+      }
+    },
+    "Metadaten (EXIF/IPTC/XMP harmonisiert)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata (EXIF/IPTC/XMP harmonized)"
+          }
+        }
+      }
+    },
+    "Metadaten (für alle setzen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata (set for all)"
+          }
+        }
+      }
+    },
+    "Nach Updates suchen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates …"
+          }
+        }
+      }
+    },
+    "Neues Cover auswählen (JPEG oder PNG)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a new cover (JPEG or PNG)"
+          }
+        }
+      }
+    },
+    "Neues Cover wird beim Speichern übernommen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The new cover will be applied when saving"
+          }
+        }
+      }
+    },
+    "Nicht lesbar (Format unbekannt?):": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not readable (unknown format?):"
+          }
+        }
+      }
+    },
+    "Nicht verfügbar — PDF in der Auswahl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available — PDF in the selection"
+          }
+        }
+      }
+    },
+    "PDF: Serie und Cover werden von diesem Format nicht unterstützt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF: this format does not support series or cover."
+          }
+        }
+      }
+    },
+    "Report kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Report"
+          }
+        }
+      }
+    },
+    "Schlagwörter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keywords"
+          }
+        }
+      }
+    },
+    "Schreibt vor dem Speichern mehrerer Dateien je Ordner ein tags-backup-<Zeitstempel>.json mit dem bisherigen Zustand (inklusive Cover). Wiederherstellen: „Tags aus JSON importieren …\" im Batch-Editor oder `tagx import`.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before saving multiple files, writes a tags-backup-<timestamp>.json with the previous state (including covers) into each affected folder. Restore: “Import Tags from JSON …” in the batch editor or `tagx import`."
+          }
+        }
+      }
+    },
+    "Serie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Series"
+          }
+        }
+      }
+    },
+    "Serienindex": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Series Index"
+          }
+        }
+      }
+    },
+    "Setzt TITLE aus dem Dateinamen (ohne Nummer-Präfix und Endung)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets TITLE from the file name (without number prefix and extension)"
+          }
+        }
+      }
+    },
+    "Setzt TRACKNUMBER in Listenreihenfolge auf n/%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets TRACKNUMBER to n/%lld in list order"
+          }
+        }
+      }
+    },
+    "Speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        }
+      }
+    },
+    "Speichern fehlgeschlagen: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving failed: %@"
+          }
+        }
+      }
+    },
+    "Sprache": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "Tags (für alle setzen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags (set for all)"
+          }
+        }
+      }
+    },
+    "Tags als JSON exportieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Tags as JSON …"
+          }
+        }
+      }
+    },
+    "Tags aus JSON importieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Tags from JSON …"
+          }
+        }
+      }
+    },
+    "Tags der %lld ausgewählten Dateien exportieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export tags of the %lld selected files"
+          }
+        }
+      }
+    },
+    "Technik": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tech"
+          }
+        }
+      }
+    },
+    "Titel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        }
+      }
+    },
+    "Titel aus Dateinamen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titles from File Names"
+          }
+        }
+      }
+    },
+    "Tracks nummerieren (1–%lld)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number Tracks (1–%lld)"
+          }
+        }
+      }
+    },
+    "Ungespeicherte Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved changes"
+          }
+        }
+      }
+    },
+    "Verlag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publisher"
+          }
+        }
+      }
+    },
+    "Vollständigen mediainfo-Report in die Zwischenablage kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the full mediainfo report to the clipboard"
+          }
+        }
+      }
+    },
+    "Vor Batch-Speichern Tag-Backup anlegen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create a tag backup before batch saves"
+          }
+        }
+      }
+    },
+    "Weitere Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More Fields"
+          }
+        }
+      }
+    },
+    "Wert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Value"
+          }
+        }
+      }
+    },
+    "Wert aus anderem Feld übernehmen (pro Datei)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take the value from another field (per file)"
+          }
+        }
+      }
+    },
+    "Wert aus anderem Tag übernehmen (pro Bild, EXIF/IPTC/XMP)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take the value from another tag (per image, EXIF/IPTC/XMP)"
+          }
+        }
+      }
+    },
+    "exiftool nicht verfügbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exiftool not available"
+          }
+        }
+      }
+    },
+    "keine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "none"
+          }
+        }
+      }
+    },
+    "kommagetrennt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comma-separated"
+          }
+        }
+      }
+    },
+    "verschiedene Cover\n(Drop ersetzt alle)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "different covers\n(drop replaces all)"
+          }
+        }
+      }
+    },
+    "z.B. 2 oder 2.5": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. 2 or 2.5"
+          }
+        }
+      }
+    },
+    "z.B. 50.9375": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. 50.9375"
+          }
+        }
+      }
+    },
+    "z.B. 6.9603": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. 6.9603"
+          }
+        }
+      }
+    },
+    "z.B. de": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. en"
+          }
+        }
+      }
+    },
+    "Änderungen der Auswahl speichern (⌘S)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save the selection's changes (⌘S)"
+          }
+        }
+      }
+    },
+    "Änderungen verwerfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard Changes"
+          }
+        }
+      }
+    },
+    "Änderungen wirken auf alle ausgewählten Bilder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to all selected images."
+          }
+        }
+      }
+    },
+    "Änderungen wirken auf alle ausgewählten Bücher.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to all selected books."
+          }
+        }
+      }
+    },
+    "Änderungen wirken auf alle ausgewählten Dateien.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to all selected files."
+          }
+        }
+      }
+    },
+    "Öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        }
+      }
+    },
+    "Öffnen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open …"
+          }
+        }
+      }
+    },
+    "— verschieden —": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— mixed —"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

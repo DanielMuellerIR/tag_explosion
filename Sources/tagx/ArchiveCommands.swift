@@ -7,35 +7,35 @@ import TagExplosionCore
 struct Export: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "export",
-        abstract: "Tags der angegebenen Dateien/Ordner als JSON exportieren (Cover eingebettet).")
+        abstract: "Export tags of the given files/folders as JSON (covers embedded).")
 
-    @Argument(help: "Mediendateien oder Ordner (rekursiv)") var paths: [String]
-    @Option(name: [.short, .customLong("output")], help: "Ziel-JSON-Datei") var output: String
+    @Argument(help: "Media files or folders (recursive)") var paths: [String]
+    @Option(name: [.short, .customLong("output")], help: "Target JSON file") var output: String
     @Flag(name: .customLong("without-covers"),
-          help: "Cover weglassen (deutlich kleinere Datei)") var withoutCovers = false
+          help: "Omit covers (much smaller file)") var withoutCovers = false
 
     func run() throws {
         let urls = paths.map { URL(fileURLWithPath: $0) }
         for url in urls where !FileManager.default.fileExists(atPath: url.path) {
-            throw ValidationError("Datei nicht gefunden: \(url.path)")
+            throw ValidationError("File not found: \(url.path)")
         }
         let files = MediaFormats.expandMediaFiles(urls)
         guard !files.isEmpty else {
-            throw ValidationError("Keine unterstützten Mediendateien gefunden.")
+            throw ValidationError("No supported media files found.")
         }
         let jsonURL = URL(fileURLWithPath: output)
         try TagArchiveIO.export(files: files, to: jsonURL, includeCovers: !withoutCovers)
-        print("OK \(files.count) Datei(en) → \(jsonURL.path)")
+        print("OK \(files.count) file(s) → \(jsonURL.path)")
     }
 }
 
 struct Import: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "import",
-        abstract: "Tags aus einer Export-/Backup-JSON-Datei zurückschreiben (Match über relative Pfade).")
+        abstract: "Write tags back from an export/backup JSON file (matched via relative paths).")
 
-    @Argument(help: "Export-/Backup-JSON") var file: String
-    @Flag(name: .long, help: "Nur anzeigen, was sich ändern würde") var dryRun = false
+    @Argument(help: "Export/backup JSON") var file: String
+    @Flag(name: .long, help: "Only show what would change") var dryRun = false
 
     func run() throws {
         let jsonURL = try resolveFile(file)
@@ -43,17 +43,17 @@ struct Import: ParsableCommand {
         let report = TagArchiveIO.apply(
             archive, relativeTo: jsonURL.deletingLastPathComponent(), dryRun: dryRun)
 
-        let verb = dryRun ? "WÜRDE ÄNDERN" : "GEÄNDERT"
+        let verb = dryRun ? "WOULD CHANGE" : "CHANGED"
         for path in report.applied { print("\(verb) \(path)") }
-        for path in report.unchanged { print("UNVERÄNDERT \(path)") }
-        for path in report.missing { print("FEHLT \(path)") }
-        for path in report.extra { print("NICHT IM ARCHIV \(path)") }
+        for path in report.unchanged { print("UNCHANGED \(path)") }
+        for path in report.missing { print("MISSING \(path)") }
+        for path in report.extra { print("NOT IN ARCHIVE \(path)") }
         for (path, error) in report.failed {
-            FileHandle.standardError.write(Data("FEHLER \(path): \(error)\n".utf8))
+            FileHandle.standardError.write(Data("ERROR \(path): \(error)\n".utf8))
         }
-        print("\(report.applied.count) geändert\(dryRun ? " (dry-run)" : ""), "
-            + "\(report.unchanged.count) unverändert, \(report.missing.count) fehlend, "
-            + "\(report.extra.count) nicht im Archiv, \(report.failed.count) fehlgeschlagen")
+        print("\(report.applied.count) changed\(dryRun ? " (dry-run)" : ""), "
+            + "\(report.unchanged.count) unchanged, \(report.missing.count) missing, "
+            + "\(report.extra.count) not in archive, \(report.failed.count) failed")
 
         // Skript-tauglich: unvollständige Wiederherstellung => Exit-Code 1.
         if !report.missing.isEmpty || !report.failed.isEmpty {

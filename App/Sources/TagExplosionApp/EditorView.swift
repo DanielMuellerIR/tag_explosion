@@ -5,16 +5,16 @@ import TagExplosionCore
 /// Bekannte Schlüssel mit deutschem Label und Anzeige-Reihenfolge.
 /// Alles, was hier nicht steht, landet automatisch unter „Weitere Felder".
 let primaryFields: [(key: String, label: String)] = [
-    ("TITLE", "Titel"),
-    ("ARTIST", "Künstler"),
-    ("ALBUM", "Album"),
-    ("ALBUMARTIST", "Albumkünstler"),
-    ("GENRE", "Genre"),
-    ("DATE", "Jahr"),
-    ("TRACKNUMBER", "Track"),
-    ("DISCNUMBER", "CD"),
-    ("COMPOSER", "Komponist"),
-    ("COMMENT", "Kommentar"),
+    ("TITLE", String(localized: "Titel")),
+    ("ARTIST", String(localized: "Künstler")),
+    ("ALBUM", String(localized: "Album")),
+    ("ALBUMARTIST", String(localized: "Albumkünstler")),
+    ("GENRE", String(localized: "Genre")),
+    ("DATE", String(localized: "Jahr")),
+    ("TRACKNUMBER", String(localized: "Track")),
+    ("DISCNUMBER", String(localized: "CD")),
+    ("COMPOSER", String(localized: "Komponist")),
+    ("COMMENT", String(localized: "Kommentar")),
 ]
 
 /// Vorschläge fürs Hinzufügen weiterer Felder.
@@ -112,7 +112,8 @@ struct TagEditorTab: View {
     private func audioSummary(_ audio: AudioInfo) -> String {
         let seconds = audio.lengthMilliseconds / 1000
         let duration = String(format: "%d:%02d", seconds / 60, seconds % 60)
-        return "\(duration) · \(audio.bitrateKbps) kbps · \(audio.sampleRateHz) Hz · \(audio.channels == 1 ? "Mono" : "\(audio.channels) Kanäle")"
+        return "\(duration) · \(audio.bitrateKbps) kbps · \(audio.sampleRateHz) Hz · "
+            + (audio.channels == 1 ? "Mono" : String(localized: "\(audio.channels) Kanäle"))
     }
 
     // Kernfelder als zweispaltiges Formular

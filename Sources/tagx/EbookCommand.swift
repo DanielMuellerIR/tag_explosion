@@ -7,7 +7,7 @@ import TagExplosionCore
 struct Ebook: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "ebook",
-        abstract: "E-Book-Metadaten anzeigen und bearbeiten (epub, pdf; mit Calibre: mobi, azw3, fb2).",
+        abstract: "Show and edit e-book metadata (epub, pdf; with Calibre: mobi, azw3, fb2).",
         subcommands: [EbookShow.self, EbookSet.self],
         defaultSubcommand: EbookShow.self
     )
@@ -15,10 +15,10 @@ struct Ebook: ParsableCommand {
 
 struct EbookShow: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "show", abstract: "Kernfelder anzeigen.")
+        commandName: "show", abstract: "Show core fields.")
 
-    @Argument(help: "E-Book-Datei (epub, pdf, mobi, azw3, fb2)") var file: String
-    @Flag(name: .long, help: "Ausgabe als JSON") var json = false
+    @Argument(help: "E-book file (epub, pdf, mobi, azw3, fb2)") var file: String
+    @Flag(name: .long, help: "Output as JSON") var json = false
 
     struct Report: Codable {
         var file: String
@@ -52,27 +52,27 @@ struct EbookShow: ParsableCommand {
         line("DATE", core.date)
         line("SUBJECTS", core.subjects.joined(separator: ", "))
         if let cover {
-            print("COVER=\(cover.resolvedMimeType) (\(cover.data.count) Bytes)")
+            print("COVER=\(cover.resolvedMimeType) (\(cover.data.count) bytes)")
         }
     }
 }
 
 struct EbookSet: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "set", abstract: "Kernfelder setzen (leerer Wert löscht das Feld).")
+        commandName: "set", abstract: "Set core fields (an empty value deletes the field).")
 
-    @Argument(help: "E-Book-Datei (epub, pdf, mobi, azw3, fb2)") var file: String
-    @Option(help: "Titel") var title: String?
-    @Option(help: "Autor(en), kommagetrennt") var authors: String?
-    @Option(help: "Serie") var series: String?
-    @Option(name: .customLong("series-index"), help: "Serienindex, z.B. 2 oder 2.5") var seriesIndex: String?
-    @Option(help: "Klappentext/Beschreibung") var description: String?
+    @Argument(help: "E-book file (epub, pdf, mobi, azw3, fb2)") var file: String
+    @Option(help: "Title") var title: String?
+    @Option(help: "Author(s), comma-separated") var authors: String?
+    @Option(help: "Series") var series: String?
+    @Option(name: .customLong("series-index"), help: "Series index, e.g. 2 or 2.5") var seriesIndex: String?
+    @Option(help: "Description/blurb") var description: String?
     @Option(help: "ISBN") var isbn: String?
-    @Option(help: "Verlag") var publisher: String?
-    @Option(help: "Sprachcode, z.B. de") var language: String?
-    @Option(help: "Veröffentlichungsdatum (ISO 8601)") var date: String?
-    @Option(help: "Schlagwörter, kommagetrennt") var subjects: String?
-    @Option(help: "Cover aus Bilddatei setzen (jpg/png)") var cover: String?
+    @Option(help: "Publisher") var publisher: String?
+    @Option(help: "Language code, e.g. en") var language: String?
+    @Option(help: "Publication date (ISO 8601)") var date: String?
+    @Option(help: "Tags/subjects, comma-separated") var subjects: String?
+    @Option(help: "Set cover from image file (jpg/png)") var cover: String?
 
     func run() throws {
         let url = try resolveFile(file)
@@ -91,7 +91,7 @@ struct EbookSet: ParsableCommand {
 
         if !EbookTool.supportsSeries(url: url),
            fields.series != original.series || fields.seriesIndex != original.seriesIndex {
-            throw ValidationError("Dieses Format kann keine Serie speichern (PDF).")
+            throw ValidationError("This format cannot store a series (PDF).")
         }
 
         var changed = false
@@ -101,14 +101,14 @@ struct EbookSet: ParsableCommand {
         }
         if let cover {
             guard EbookTool.supportsCover(url: url) else {
-                throw ValidationError("Dieses Format kann kein Cover speichern (PDF).")
+                throw ValidationError("This format cannot store a cover (PDF).")
             }
             let coverURL = try resolveFile(cover)
             let data = try Data(contentsOf: coverURL)
             try EbookTool.writeCover(url: url, data: data)
             changed = true
         }
-        print(changed ? "OK \(url.lastPathComponent)" : "Keine Änderungen")
+        print(changed ? "OK \(url.lastPathComponent)" : "No changes")
     }
 
     private func splitList(_ value: String) -> [String] {
