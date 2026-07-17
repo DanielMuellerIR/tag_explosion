@@ -107,6 +107,32 @@ public enum ExifTool {
         return groupOrder.map { MetadataGroup(name: $0, fields: groups[$0] ?? []) }
     }
 
+    /// Roh-Metadaten mehrerer Bilder in EINEM exiftool-Aufruf, gedacht als
+    /// Kopier-Quellen fürs Batch-Umkopieren: je Datei (Schlüssel = Pfad) ein
+    /// Wörterbuch "Gruppe:Tag" → Textwert. Binärwerte werden ausgelassen —
+    /// als Quelle für Textfelder taugen nur String-Werte (Typkompatibilität).
+    public static func readRawStringTags(urls: [URL]) throws -> [String: [String: String]] {
+        guard !urls.isEmpty else { return [:] }
+        let exe = try locateExecutable()
+        let data = try MediaInfoReader.run(
+            exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map(\.path))
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [:] }
+
+        var result: [String: [String: String]] = [:]
+        for dict in root {
+            guard let source = dict["SourceFile"] as? String else { continue }
+            var tags: [String: String] = [:]
+            for (key, raw) in dict where key.contains(":") {
+                let value = stringify(raw)
+                if value.isEmpty || value.hasPrefix("(Binary data") { continue }
+                tags[key] = value
+            }
+            result[source] = tags
+        }
+        return result
+    }
+
     /// Editierbare Kernfelder lesen (MWG-harmonisiert, GPS numerisch).
     public static func readCoreFields(url: URL) throws -> ImageCoreFields {
         let exe = try locateExecutable()

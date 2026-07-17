@@ -127,10 +127,15 @@ struct Set: ParsableCommand {
     @Argument(help: "Mediendatei") var file: String
     @Option(name: .shortAndLong, parsing: .upToNextOption,
             help: "Feld-Zuweisungen, z.B. -t ARTIST=Miles TITLE=So What") var tag: [String] = []
+    @Option(name: .shortAndLong, parsing: .upToNextOption,
+            help: "Wert eines anderen Feldes übernehmen (ZIEL=QUELLE), z.B. -c ALBUMARTIST=ARTIST")
+    var copy: [String] = []
     @Flag(name: .long, help: "Alle vorhandenen Felder vorher entfernen") var replaceAll = false
 
     func run() throws {
-        guard !tag.isEmpty else { throw ValidationError("Mindestens ein -t KEY=WERT angeben.") }
+        guard !tag.isEmpty || !copy.isEmpty else {
+            throw ValidationError("Mindestens ein -t KEY=WERT oder -c ZIEL=QUELLE angeben.")
+        }
         let url = try resolveFile(file)
         let tagFile = try TagFile(url: url)
         defer { tagFile.close() }
@@ -148,9 +153,28 @@ struct Set: ParsableCommand {
                 properties.append(TagProperty(key: key, value: value))
             }
         }
+        // Kopier-Zuweisungen NACH den direkten Zuweisungen: pro Datei werden
+        // ALLE Werte der Quelle übernommen (mehrwertige Felder bleiben ganz).
+        var changed = tag.count
+        for assignment in copy {
+            guard let eq = assignment.firstIndex(of: "=") else {
+                throw ValidationError("Ungültige Kopier-Zuweisung (ZIEL=QUELLE erwartet): \(assignment)")
+            }
+            let target = String(assignment[..<eq]).uppercased()
+            let source = String(assignment[assignment.index(after: eq)...]).uppercased()
+            let values = properties.filter { $0.key == source }.map(\.value)
+            guard !values.isEmpty else {
+                FileHandle.standardError.write(
+                    Data("Hinweis: Quelle \(source) ist leer — \(target) unverändert\n".utf8))
+                continue
+            }
+            properties.removeAll { $0.key == target }
+            properties.append(contentsOf: values.map { TagProperty(key: target, value: $0) })
+            changed += 1
+        }
         try tagFile.setProperties(properties)
         try tagFile.save()
-        print("OK \(url.lastPathComponent): \(tag.count) Feld(er) geändert")
+        print("OK \(url.lastPathComponent): \(changed) Feld(er) geändert")
     }
 }
 

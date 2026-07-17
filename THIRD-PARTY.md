@@ -9,6 +9,7 @@ behalten ihre eigene Lizenz:
 | [MediaInfo](https://mediaarea.net/MediaInfo) | BSD-2-Clause | Nicht gebündelt — wird als externes Programm aufgerufen, falls installiert. |
 | [ExifTool](https://exiftool.org) | Perl Artistic License | Nicht gebündelt — wird als externes Programm aufgerufen, falls installiert. |
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | Apache-2.0 | Statisch im CLI-Tool `tagx`. |
+| [Sparkle](https://sparkle-project.org) | MIT (Teile BSD-ähnlich, siehe Projekt-LICENSE) | `Sparkle.framework` wird unverändert ins App-Bundle kopiert (Contents/Frameworks); liefert die Auto-Updates. |
 
 Das App-Icon wurde mit MiniMax `image-01` generiert; die Nutzungsrechte an
 generierten Inhalten liegen laut MiniMax Platform ToS beim Ersteller.

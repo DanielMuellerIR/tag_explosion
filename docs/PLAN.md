@@ -123,7 +123,7 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   Nutzer — MIT-kompatibel). Quelle: `App/Resources/AppIcon-Quelle.png`.
 - **Bewusst Full-Bleed** statt Apple-HIG-Raster (824/1024-Kachel): Icon füllt
   die komplette Squircle-Fläche → wirkt im Dock so groß wie Chrome/Firefox
-  statt kleiner (Daniels Fastra-Feedback). Neu erzeugen:
+  statt kleiner (bewusste Gestaltungsentscheidung). Neu erzeugen:
   `swift scripts/icon-from-image.swift App/Resources/AppIcon-Quelle.png App/Resources`
 - `scripts/make-icon.swift` bleibt als programmatischer Fallback erhalten.
 
@@ -158,3 +158,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.6.0   | Bilder (exiftool, MWG-harmonisiert): Editor, Batch, tagx exif — ✅ |
 | 0.7.0   | Video-Anzeige/-Tags: mp4/m4v/mkv editierbar, mov/avi read-only via mediainfo — ✅ |
 | 0.9.0   | Distribution: build.sh --release (TagLib gebündelt, Developer-ID + Hardened Runtime, notariert + gestapelt) — ✅ |
+| 0.10.0  | Sparkle-Auto-Update (Feed via GitHub Pages, siehe docs/sparkle-release.md), Batch-Umkopieren von Tag-Werten (auch EXIF→IPTC/XMP, `tagx set -c` / `tagx exif set --copy`), Drop-Zone mit Format-Übersicht, zweisprachige READMEs + Screenshots — ✅ |

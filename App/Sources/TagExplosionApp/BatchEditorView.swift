@@ -95,7 +95,10 @@ struct BatchEditorView: View {
                         Text(field.label)
                             .gridColumnAlignment(.trailing)
                             .foregroundStyle(.secondary)
-                        BatchTextField(entries: entries, key: field.key)
+                        HStack(spacing: 6) {
+                            BatchTextField(entries: entries, key: field.key)
+                            CopyFromFieldMenu(entries: entries, targetKey: field.key)
+                        }
                     }
                 }
             }
@@ -210,6 +213,49 @@ struct BatchEditorView: View {
         if panel.runModal() == .OK, let url = panel.url,
            let data = try? Data(contentsOf: url) {
             setCoverForAll(data)
+        }
+    }
+}
+
+/// Menü „Wert aus Feld übernehmen": kopiert pro Datei den Wert eines anderen
+/// Tag-Feldes in das Zielfeld — das Werkzeug zum Umkopieren von Tags, z.B.
+/// ALBUMARTIST aus ARTIST befüllen. Audio-Tags sind durchweg Text, daher ist
+/// jede Quelle typkompatibel. Dateien ohne Quellwert bleiben unverändert.
+struct CopyFromFieldMenu: View {
+    let entries: [FileEntry]
+    let targetKey: String
+
+    /// Alle Tag-Schlüssel, die in mindestens einer der Dateien vorkommen —
+    /// außer dem Ziel selbst (inklusive Custom-Keys).
+    private var sourceKeys: [String] {
+        var keys = Set<String>()
+        for entry in entries { keys.formUnion(entry.properties.map(\.key)) }
+        keys.remove(targetKey)
+        return keys.sorted()
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(sourceKeys, id: \.self) { key in
+                Button(key) { copyValues(from: key) }
+            }
+        } label: {
+            Image(systemName: "doc.on.doc")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Wert aus anderem Feld übernehmen (pro Datei)")
+        .disabled(sourceKeys.isEmpty)
+    }
+
+    /// Übernimmt pro Datei ALLE Werte des Quell-Feldes (mehrwertige Felder
+    /// wie zwei Genres bleiben vollständig erhalten).
+    private func copyValues(from sourceKey: String) {
+        for entry in entries {
+            let values = entry.properties.filter { $0.key == sourceKey }.map(\.value)
+            guard !values.isEmpty else { continue }
+            entry.properties.removeAll { $0.key == targetKey }
+            entry.properties.append(contentsOf: values.map { TagProperty(key: targetKey, value: $0) })
         }
     }
 }

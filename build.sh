@@ -25,6 +25,11 @@ done
 
 echo "== Tag Explosion $version ($config) =="
 
+# Update-Feed: normale und Release-Builds nutzen immer den öffentlichen
+# GitHub-Pages-Feed; für einen echten Upgrade-Test kann per Umgebungsvariable
+# ein separater HTTPS-Testfeed gesetzt werden.
+sparkle_feed_url="${SPARKLE_FEED_URL:-https://danielmuellerir.github.io/tag_explosion/appcast.xml}"
+
 # 1) CLI + Core
 swift build -c "$config" --package-path "$here"
 echo "tagx: $here/.build/$config/tagx"
@@ -40,6 +45,19 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$here/App/.build/$config/TagExplosionApp" "$app/Contents/MacOS/TagExplosion"
 printf 'APPL????' > "$app/Contents/PkgInfo"
+
+# Sparkle.framework ins Bundle: SwiftPM linkt es, verpackt ein manuell gebautes
+# .app aber nicht selbst. ditto erhält die für macOS-Frameworks wesentlichen
+# Symlinks und Rechte. Ohne das Framework startet die App nicht (rpath zeigt
+# auf Contents/Frameworks).
+sparkle_src="$(find "$here/App/.build/artifacts/sparkle" -type d -name Sparkle.framework -print -quit 2>/dev/null || true)"
+[ -n "$sparkle_src" ] || { echo "FEHLER: Sparkle.framework fehlt nach dem SwiftPM-Build." >&2; exit 1; }
+fw="$app/Contents/Frameworks"
+mkdir -p "$fw"
+ditto "$sparkle_src" "$fw/Sparkle.framework"
+# Die App läuft ohne Sandbox; Sparkles XPC-Dienste sind dafür weder nötig noch
+# aktiviert. Ohne sie wird das Bundle kleiner und die Signierfläche enger.
+rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPCServices"
 
 # Icon nur kopieren, wenn vorhanden
 icon_key=""
@@ -64,6 +82,17 @@ cat > "$app/Contents/Info.plist" <<PLIST
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>CFBundleDevelopmentRegion</key><string>de</string>
+    <!-- Sparkle prüft automatisch auf Updates, installiert aber erst nach
+         Zustimmung. Archiv und Feed werden mit dem projektspezifischen
+         Ed25519-Schlüssel geprüft; CFBundleVersion muss dafür monoton steigen. -->
+    <key>SUFeedURL</key><string>${sparkle_feed_url}</string>
+    <key>SUPublicEDKey</key><string>Cpy6kemyP4778hptrUs0+guZgU3dXFzvNh7bE1xnRME=</string>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUAutomaticallyUpdate</key><false/>
+    <key>SUAllowsAutomaticUpdates</key><false/>
+    <key>SUEnableSystemProfiling</key><false/>
+    <key>SUVerifyUpdateBeforeExtraction</key><true/>
+    <key>SURequireSignedFeed</key><true/>
 ${icon_key}
     <key>CFBundleDocumentTypes</key>
     <array>
@@ -128,8 +157,7 @@ identity="$(security find-identity -v -p codesigning \
 echo "== Signiere als: $identity =="
 
 bin="$app/Contents/MacOS/TagExplosion"
-fw="$app/Contents/Frameworks"
-mkdir -p "$fw"
+# $fw (Contents/Frameworks) existiert bereits — Sparkle liegt schon dort.
 
 # 1) Direkt gelinkte Homebrew-dylibs einsammeln und im Binary umbiegen
 for dep in $(otool -L "$bin" | awk '$1 ~ /^\/opt\/homebrew\/.*\.dylib$/ {print $1}'); do
@@ -154,7 +182,15 @@ for lib in "$fw"/*.dylib; do
 done
 echo "Gebündelte Bibliotheken:"; ls "$fw"
 
-# 3) Signieren: innere Binaries ZUERST (kein --deep), dann das Bundle
+# 3) Signieren: innere Binaries ZUERST (kein --deep), dann das Bundle.
+#    Sparkles Helfer müssen dieselbe Team-ID wie die App tragen, sonst lehnt
+#    die Notarisierung ab ("binary is not signed with a valid Developer ID").
+codesign --force --options runtime --timestamp --sign "$identity" \
+    "$fw/Sparkle.framework/Versions/B/Autoupdate"
+codesign --force --options runtime --timestamp --sign "$identity" \
+    "$fw/Sparkle.framework/Versions/B/Updater.app"
+codesign --force --options runtime --timestamp --sign "$identity" \
+    "$fw/Sparkle.framework"
 for lib in "$fw"/*.dylib; do
     codesign --force --options runtime --timestamp --sign "$identity" "$lib"
 done

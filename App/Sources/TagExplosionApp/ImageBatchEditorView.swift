@@ -1,10 +1,16 @@
-// Batch-Editor für Bilder: setzt Ersteller/Copyright/Schlagwörter/Bewertung
-// für alle ausgewählten Bilder.
+// Batch-Editor für Bilder: setzt Titel/Beschreibung/Ersteller/Copyright/
+// Schlagwörter/Bewertung für alle ausgewählten Bilder. Textfelder können ihren
+// Wert pro Datei aus einem beliebigen rohen Metadaten-Tag übernehmen
+// (EXIF/IPTC/XMP, formatübergreifend) — geschrieben wird MWG-harmonisiert.
 import SwiftUI
 import TagExplosionCore
 
 struct ImageBatchEditorView: View {
     let entries: [FileEntry]
+
+    /// Roh-Tags aller ausgewählten Bilder als Kopier-Quellen:
+    /// Pfad → ("Gruppe:Tag" → Textwert). nil = wird noch geladen.
+    @State private var rawTags: [String: [String: String]]?
 
     var body: some View {
         ScrollView {
@@ -18,6 +24,9 @@ struct ImageBatchEditorView: View {
             .frame(maxWidth: .infinity)
         }
         .background(.background)
+        .task(id: entries.map(\.url)) {
+            await loadRawTags()
+        }
     }
 
     private var header: some View {
@@ -40,9 +49,20 @@ struct ImageBatchEditorView: View {
         GroupBox("Metadaten (für alle setzen)") {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
+                    label("Titel")
+                    textFieldWithCopy(
+                        get: { $0.imageFields.title },
+                        set: { entry, value in entry.imageFields.title = value })
+                }
+                GridRow {
+                    label("Beschreibung")
+                    textFieldWithCopy(
+                        get: { $0.imageFields.description },
+                        set: { entry, value in entry.imageFields.description = value })
+                }
+                GridRow {
                     label("Schlagwörter")
-                    ImageBatchTextField(
-                        entries: entries, placeholderWhenMixed: true,
+                    textFieldWithCopy(
                         get: { $0.imageFields.keywords.joined(separator: ", ") },
                         set: { entry, value in
                             entry.imageFields.keywords = value.split(separator: ",")
@@ -52,15 +72,13 @@ struct ImageBatchEditorView: View {
                 }
                 GridRow {
                     label("Ersteller")
-                    ImageBatchTextField(
-                        entries: entries, placeholderWhenMixed: true,
+                    textFieldWithCopy(
                         get: { $0.imageFields.creator },
                         set: { entry, value in entry.imageFields.creator = value })
                 }
                 GridRow {
                     label("Copyright")
-                    ImageBatchTextField(
-                        entries: entries, placeholderWhenMixed: true,
+                    textFieldWithCopy(
                         get: { $0.imageFields.copyright },
                         set: { entry, value in entry.imageFields.copyright = value })
                 }
@@ -80,6 +98,29 @@ struct ImageBatchEditorView: View {
             }
             .padding(8)
         }
+    }
+
+    /// Textfeld plus Kopier-Menü. Bewertung und GPS bekommen bewusst kein
+    /// Kopier-Menü: dorthin passt kein freier Text (Typkompatibilität).
+    private func textFieldWithCopy(
+        get: @escaping (FileEntry) -> String,
+        set: @escaping (FileEntry, String) -> Void
+    ) -> some View {
+        HStack(spacing: 6) {
+            ImageBatchTextField(entries: entries, placeholderWhenMixed: true, get: get, set: set)
+            ImageCopyFromTagMenu(entries: entries, rawTags: rawTags, assign: set)
+        }
+    }
+
+    /// Lädt die Roh-Tags aller Bilder in einem exiftool-Aufruf (im Hintergrund,
+    /// exiftool braucht spürbar Zeit pro Prozessstart).
+    private func loadRawTags() async {
+        rawTags = nil
+        let urls = entries.map(\.url)
+        let loaded = await Task.detached(priority: .userInitiated) {
+            (try? ExifTool.readRawStringTags(urls: urls)) ?? [:]
+        }.value
+        rawTags = loaded
     }
 
     private var ratingBinding: Binding<Int?> {
@@ -119,6 +160,63 @@ struct ImageBatchEditorView: View {
         Text(text)
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// Menü „Wert aus Tag übernehmen" für Bilder: Quellen sind ALLE rohen
+/// Text-Tags der ausgewählten Bilder, nach Gruppe (EXIF, IPTC, XMP-dc …)
+/// als Untermenüs sortiert. So lässt sich z.B. ein EXIF-Wert pro Datei in
+/// ein IPTC-/XMP-Feld umkopieren; geschrieben wird MWG-harmonisiert.
+/// Dateien ohne Quellwert bleiben unverändert.
+struct ImageCopyFromTagMenu: View {
+    let entries: [FileEntry]
+    /// Pfad → ("Gruppe:Tag" → Wert); nil = lädt noch.
+    let rawTags: [String: [String: String]]?
+    /// Wendet den Quellwert auf das Zielfeld eines Eintrags an.
+    let assign: (FileEntry, String) -> Void
+
+    /// Gruppen → Tag-Namen, Vereinigungsmenge über alle ausgewählten Bilder.
+    private var groupedKeys: [(group: String, tags: [String])] {
+        guard let rawTags else { return [] }
+        var byGroup: [String: Set<String>] = [:]
+        for tags in rawTags.values {
+            for key in tags.keys {
+                let parts = key.split(separator: ":", maxSplits: 1)
+                guard parts.count == 2 else { continue }
+                byGroup[String(parts[0]), default: []].insert(String(parts[1]))
+            }
+        }
+        return byGroup.keys.sorted().map { ($0, byGroup[$0]!.sorted()) }
+    }
+
+    var body: some View {
+        Menu {
+            if rawTags == nil {
+                Text("Lade Metadaten …")
+            } else {
+                ForEach(groupedKeys, id: \.group) { entry in
+                    Menu(entry.group) {
+                        ForEach(entry.tags, id: \.self) { tag in
+                            Button(tag) { copy(from: "\(entry.group):\(tag)") }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "doc.on.doc")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Wert aus anderem Tag übernehmen (pro Bild, EXIF/IPTC/XMP)")
+        .disabled(rawTags != nil && groupedKeys.isEmpty)
+    }
+
+    private func copy(from key: String) {
+        guard let rawTags else { return }
+        for entry in entries {
+            guard let value = rawTags[entry.url.path]?[key], !value.isEmpty else { continue }
+            assign(entry, value)
+        }
     }
 }
 

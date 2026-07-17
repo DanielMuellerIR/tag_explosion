@@ -122,7 +122,7 @@ struct ContentView: View {
                 ContentUnavailableView(
                     "Keine Dateien",
                     systemImage: "music.note.list",
-                    description: Text("Audiodateien hierher ziehen\noder mit ⌘O öffnen")
+                    description: Text("Mediendateien hierher ziehen\noder mit ⌘O öffnen")
                 )
             }
             if model.isLoading {
@@ -195,13 +195,70 @@ struct FileRow: View {
     }
 }
 
-/// Platzhalter, solange nichts ausgewählt/geladen ist.
+/// Platzhalter, solange nichts ausgewählt/geladen ist: erklärt, welche
+/// Medientypen die App annimmt, und listet alle unterstützten Formate auf.
 struct DropPlaceholder: View {
+    // Anzeige-Gruppen aus den echten Endungs-Sets abgeleitet, damit die Liste
+    // nicht von der tatsächlichen Unterstützung wegdriften kann. Einzige
+    // Kosmetik: mp4 zeigen wir bei Video (dort erwarten es Nutzer), technisch
+    // läuft es über denselben TagLib-Weg wie Audio (siehe MediaKind).
+    private static let audioDisplay = audioExtensions.subtracting(["mp4"]).sorted()
+    private static let imageDisplay = imageExtensions.sorted()
+    private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
+
     var body: some View {
-        ContentUnavailableView(
-            "Tag Explosion",
-            systemImage: "tag.circle",
-            description: Text("Audiodateien oder Ordner hierher ziehen,\num Tags anzuzeigen und zu bearbeiten.")
-        )
+        VStack(spacing: 28) {
+            Image(systemName: "tag.circle")
+                .font(.system(size: 56))
+                .foregroundStyle(.tertiary)
+
+            VStack(spacing: 8) {
+                Text("Tag Explosion")
+                    .font(.title2.bold())
+                Text("Audio-, Bild- und Videodateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(alignment: .top, spacing: 36) {
+                FormatColumn(title: "Audio", systemImage: "music.note",
+                             formats: Self.audioDisplay,
+                             tagFormats: "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info")
+                FormatColumn(title: "Bilder", systemImage: "photo",
+                             formats: Self.imageDisplay,
+                             tagFormats: "EXIF · IPTC · XMP (MWG-harmonisiert)")
+                FormatColumn(title: "Video", systemImage: "film",
+                             formats: Self.videoDisplay,
+                             tagFormats: "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)")
+            }
+        }
+        .padding(32)
+    }
+}
+
+/// Eine Spalte der Formatübersicht: Medientyp-Überschrift, alle Datei-Endungen
+/// und die unterstützten Tag-Formate.
+private struct FormatColumn: View {
+    let title: String
+    let systemImage: String
+    let formats: [String]
+    let tagFormats: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(formats.joined(separator: " · "))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 240)
+            Text(tagFormats)
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 240)
+        }
     }
 }

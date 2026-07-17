@@ -68,6 +68,24 @@ struct ExifToolTests {
         #expect(groups.flatMap(\.fields).contains { $0.value == "Gruppentest" })
     }
 
+    @Test("Roh-Text-Tags mehrerer Dateien in einem Aufruf (Kopier-Quellen)")
+    func readRawStringTags() throws {
+        let jpg = try Fixtures.workingCopy("cover.jpg")
+        let png = try Fixtures.workingCopy("cover.png")
+        let original = try ExifTool.readCoreFields(url: jpg)
+        var edited = original
+        edited.description = "Quelle fürs Umkopieren"
+        try ExifTool.writeCoreFields(url: jpg, fields: edited, original: original)
+
+        let raw = try ExifTool.readRawStringTags(urls: [jpg, png])
+        #expect(raw.count == 2)
+        let jpgTags = try #require(raw[jpg.path])
+        // Der geschriebene Wert muss als "Gruppe:Tag" auffindbar sein
+        #expect(jpgTags.contains { $0.key.contains(":") && $0.value == "Quelle fürs Umkopieren" })
+        // Binärwerte (z.B. Thumbnails) dürfen nicht als Kopier-Quelle auftauchen
+        #expect(!jpgTags.values.contains { $0.hasPrefix("(Binary data") })
+    }
+
     @Test("PNG: XMP-Kernfelder funktionieren")
     func pngRoundtrip() throws {
         let url = try Fixtures.workingCopy("cover.png")

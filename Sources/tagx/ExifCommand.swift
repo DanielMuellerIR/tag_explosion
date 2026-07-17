@@ -69,6 +69,18 @@ struct ExifSet: ParsableCommand {
     @Option(help: "Aufnahmedatum (YYYY:MM:DD HH:MM:SS)") var date: String?
     @Option(help: "Bewertung 0–5, leer löscht") var rating: String?
     @Option(help: "GPS als \"lat,lon\" in Dezimalgrad, leer löscht") var gps: String?
+    @Option(parsing: .upToNextOption,
+            help: """
+            Wert eines rohen Tags in ein Kernfeld übernehmen (ZIEL=Gruppe:Tag), \
+            z.B. --copy description=IFD0:ImageDescription. Ziele: title, \
+            description, keywords, creator, copyright (nur Textfelder — in \
+            Bewertung/GPS passt kein freier Text). Gruppen wie in `exif show --all`.
+            """)
+    var copy: [String] = []
+
+    /// Textuelle Kernfelder, in die kopiert werden darf (Typkompatibilität:
+    /// Text zu Text; Bewertung/GPS/Datum sind bewusst ausgenommen).
+    private static let copyTargets = ["title", "description", "keywords", "creator", "copyright"]
 
     func run() throws {
         let url = try resolveFile(file)
@@ -96,6 +108,39 @@ struct ExifSet: ParsableCommand {
                 }
                 fields.gpsLatitude = parts[0]
                 fields.gpsLongitude = parts[1]
+            }
+        }
+        // Kopier-Zuweisungen NACH den direkten Optionen: Quellwert aus den
+        // rohen Gruppen (EXIF/IPTC/XMP …) in ein Text-Kernfeld übernehmen —
+        // geschrieben wird anschließend MWG-harmonisiert.
+        if !copy.isEmpty {
+            let raw = try ExifTool.readRawStringTags(urls: [url])[url.path] ?? [:]
+            for assignment in copy {
+                guard let eq = assignment.firstIndex(of: "=") else {
+                    throw ValidationError("Ungültige Kopier-Zuweisung (ZIEL=Gruppe:Tag erwartet): \(assignment)")
+                }
+                let target = String(assignment[..<eq]).lowercased()
+                let source = String(assignment[assignment.index(after: eq)...])
+                guard Self.copyTargets.contains(target) else {
+                    throw ValidationError(
+                        "Ziel \(target) ist kein Textfeld — erlaubt: \(Self.copyTargets.joined(separator: ", "))")
+                }
+                guard let value = raw[source], !value.isEmpty else {
+                    FileHandle.standardError.write(
+                        Data("Hinweis: Quelle \(source) ist leer oder kein Text-Tag — \(target) unverändert\n".utf8))
+                    continue
+                }
+                switch target {
+                case "title": fields.title = value
+                case "description": fields.description = value
+                case "keywords":
+                    fields.keywords = value.split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                case "creator": fields.creator = value
+                case "copyright": fields.copyright = value
+                default: break
+                }
             }
         }
         guard fields != original else {

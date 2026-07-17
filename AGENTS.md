@@ -49,6 +49,11 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - App läuft ohne Sandbox (externe CLI-Tools). Distribution: `NOTARY_PROFILE=<profil>
   ./build.sh --release` bündelt TagLib-dylibs, signiert (Developer ID + Hardened
   Runtime), notarisiert und stapelt (Profilname siehe private Infra-Doku).
+- Auto-Update via Sparkle (exakt gepinnt, `App/Package.swift`): build.sh bündelt
+  `Sparkle.framework` immer (rpath `@loader_path/../Frameworks` — ohne Framework
+  startet die App nicht) und signiert Sparkles Helfer innen→außen, nie `--deep`.
+  Release-Ablauf + Schlüssel: [docs/sparkle-release.md](docs/sparkle-release.md).
+  Erste Sparkle-Version muss einmal manuell installiert werden (Bootstrap).
 - Projekt-Erkenntnisse (TagLib-Fallen, Format-Quirks) gehören nach `knowledge/`
   (eine Datei pro Problem + Zeile in `knowledge/INDEX.md`).
 
