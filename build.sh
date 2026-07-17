@@ -72,6 +72,15 @@ ${icon_key}
             </array>
         </dict>
         <dict>
+            <key>CFBundleTypeName</key><string>Bild</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.image</string>
+            </array>
+        </dict>
+        <dict>
             <key>CFBundleTypeName</key><string>Ordner</string>
             <key>CFBundleTypeRole</key><string>Viewer</string>
             <key>LSHandlerRank</key><string>None</string>

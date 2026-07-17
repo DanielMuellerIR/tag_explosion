@@ -10,7 +10,7 @@ struct Tagx: ParsableCommand {
         commandName: "tagx",
         abstract: "Medien-Tags anzeigen und bearbeiten (Tag Explosion CLI).",
         version: tagxVersion,
-        subcommands: [Show.self, Set.self, Cover.self, Info.self],
+        subcommands: [Show.self, Set.self, Cover.self, Info.self, Exif.self],
         defaultSubcommand: Show.self
     )
 }

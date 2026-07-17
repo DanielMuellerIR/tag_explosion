@@ -14,40 +14,83 @@ let audioExtensions: Set<String> = [
     "tta", "dsf", "dff", "wma", "asf",
 ]
 
+/// Bild-Endungen (Metadaten via exiftool).
+let imageExtensions: Set<String> = [
+    "jpg", "jpeg", "png", "heic", "heif", "tif", "tiff",
+    "webp", "dng", "gif",
+]
+
+/// Art der geladenen Datei — bestimmt Editor und Speicherweg.
+enum MediaKind: Sendable {
+    case audio
+    case image
+
+    static func forURL(_ url: URL) -> MediaKind? {
+        let ext = url.pathExtension.lowercased()
+        if audioExtensions.contains(ext) { return .audio }
+        if imageExtensions.contains(ext) { return .image }
+        return nil
+    }
+}
+
 /// Eine geladene Datei mit Original-Zustand und Bearbeitungspuffer.
 @Observable
 @MainActor
 final class FileEntry: Identifiable {
     nonisolated let url: URL
+    nonisolated let kind: MediaKind
     nonisolated var id: URL { url }
 
-    /// Zustand wie zuletzt von der Platte gelesen.
+    /// Zustand wie zuletzt von der Platte gelesen (Audio).
     private(set) var original: TagData
-    /// Bearbeitungspuffer — das, was die UI anzeigt und ändert.
+    /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
     var properties: [TagProperty]
     var artworks: [Artwork]
+
+    /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
+    private(set) var imageOriginal: ImageCoreFields
+    var imageFields: ImageCoreFields
 
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
     var lastError: String?
 
     init(url: URL, data: TagData) {
         self.url = url
+        self.kind = .audio
         self.original = data
         self.properties = data.properties
         self.artworks = data.artworks
+        self.imageOriginal = ImageCoreFields()
+        self.imageFields = ImageCoreFields()
+    }
+
+    init(url: URL, image: ImageCoreFields) {
+        self.url = url
+        self.kind = .image
+        self.original = TagData(properties: [], artworks: [], audio: nil)
+        self.properties = []
+        self.artworks = []
+        self.imageOriginal = image
+        self.imageFields = image
     }
 
     var audio: AudioInfo? { original.audio }
-    var isReadOnly: Bool { original.isReadOnly }
+    var isReadOnly: Bool { kind == .audio && original.isReadOnly }
 
     var isDirty: Bool {
-        properties != original.properties || artworks != original.artworks
+        switch kind {
+        case .audio:
+            return properties != original.properties || artworks != original.artworks
+        case .image:
+            return imageFields != imageOriginal
+        }
     }
 
     /// Verwirft alle ungespeicherten Änderungen.
     func revert() {
         properties = original.properties
         artworks = original.artworks
+        imageFields = imageOriginal
         lastError = nil
     }
 
@@ -56,6 +99,13 @@ final class FileEntry: Identifiable {
         original = data
         properties = data.properties
         artworks = data.artworks
+        lastError = nil
+    }
+
+    /// Bild-Pendant zu `acceptNewOriginal`.
+    func acceptNewImageOriginal(_ fields: ImageCoreFields) {
+        imageOriginal = fields
+        imageFields = fields
         lastError = nil
     }
 
@@ -90,15 +140,26 @@ final class FileEntry: Identifiable {
     }
 
     var displayTitle: String {
-        let title = firstValue("TITLE")
+        let title = kind == .image ? imageFields.title : firstValue("TITLE")
         return title.isEmpty ? url.lastPathComponent : title
     }
 
     var displaySubtitle: String {
-        [firstValue("ARTIST"), firstValue("ALBUM")]
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
+        switch kind {
+        case .audio:
+            return [firstValue("ARTIST"), firstValue("ALBUM")]
+                .filter { !$0.isEmpty }
+                .joined(separator: " · ")
+        case .image:
+            return imageFields.keywords.joined(separator: ", ")
+        }
     }
+}
+
+/// Frisch gelesener Datei-Zustand (Audio oder Bild).
+enum LoadedData: Sendable {
+    case audio(TagData)
+    case image(ImageCoreFields)
 }
 
 /// Globaler App-Zustand.
@@ -148,7 +209,7 @@ final class AppModel {
 
         // Verzeichnisse expandieren und auf Audio-Endungen filtern (Hintergrund).
         let candidates = await Task.detached(priority: .userInitiated) {
-            Self.expandToAudioFiles(urls)
+            Self.expandToMediaFiles(urls)
         }.value
 
         // Bereits geladene überspringen
@@ -160,8 +221,8 @@ final class AppModel {
         // Ordner nicht zu viele offene Dateien erzeugen), Reihenfolge stabil.
         let results = await Task.detached(priority: .userInitiated) {
             await withTaskGroup(
-                of: (Int, URL, Result<TagData, Error>).self,
-                returning: [(URL, Result<TagData, Error>)].self
+                of: (Int, URL, Result<LoadedData, Error>).self,
+                returning: [(URL, Result<LoadedData, Error>)].self
             ) { group in
                 let maxConcurrent = 8
                 var nextIndex = 0
@@ -172,14 +233,19 @@ final class AppModel {
                     nextIndex += 1
                     group.addTask {
                         do {
-                            return (i, url, .success(try TagFile.read(at: url)))
+                            switch MediaKind.forURL(url) {
+                            case .image:
+                                return (i, url, .success(.image(try ExifTool.readCoreFields(url: url))))
+                            default:
+                                return (i, url, .success(.audio(try TagFile.read(at: url))))
+                            }
                         } catch {
                             return (i, url, .failure(error))
                         }
                     }
                 }
                 for _ in 0..<min(maxConcurrent, newFiles.count) { addNext() }
-                var buffer: [(Int, URL, Result<TagData, Error>)] = []
+                var buffer: [(Int, URL, Result<LoadedData, Error>)] = []
                 for await item in group {
                     buffer.append(item)
                     addNext()
@@ -192,8 +258,10 @@ final class AppModel {
         var failures: [String] = []
         for (url, result) in results {
             switch result {
-            case .success(let data):
+            case .success(.audio(let data)):
                 entries.append(FileEntry(url: url, data: data))
+            case .success(.image(let fields)):
+                entries.append(FileEntry(url: url, image: fields))
             case .failure:
                 failures.append(url.lastPathComponent)
             }
@@ -204,8 +272,8 @@ final class AppModel {
         }
     }
 
-    /// Verzeichnisse rekursiv auflösen, nur Audio-Dateien behalten, sortiert.
-    nonisolated static func expandToAudioFiles(_ urls: [URL]) -> [URL] {
+    /// Verzeichnisse rekursiv auflösen, nur Medien-Dateien behalten, sortiert.
+    nonisolated static func expandToMediaFiles(_ urls: [URL]) -> [URL] {
         var files: [URL] = []
         let fm = FileManager.default
         for url in urls {
@@ -214,12 +282,12 @@ final class AppModel {
             if isDir.boolValue {
                 if let iterator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey]) {
                     for case let child as URL in iterator {
-                        if audioExtensions.contains(child.pathExtension.lowercased()) {
+                        if MediaKind.forURL(child) != nil {
                             files.append(child)
                         }
                     }
                 }
-            } else if audioExtensions.contains(url.pathExtension.lowercased()) {
+            } else if MediaKind.forURL(url) != nil {
                 files.append(url)
             }
         }
@@ -256,14 +324,25 @@ final class AppModel {
     /// Schreibt den Bearbeitungspuffer einer Datei und liest sie neu ein.
     func save(entry: FileEntry) async {
         let url = entry.url
-        let properties = entry.properties
-        let artworks = entry.artworks
         do {
-            let reloaded = try await Task.detached(priority: .userInitiated) {
-                try TagFile.write(properties: properties, artworks: artworks, to: url)
-                return try TagFile.read(at: url)
-            }.value
-            entry.acceptNewOriginal(reloaded)
+            switch entry.kind {
+            case .audio:
+                let properties = entry.properties
+                let artworks = entry.artworks
+                let reloaded = try await Task.detached(priority: .userInitiated) {
+                    try TagFile.write(properties: properties, artworks: artworks, to: url)
+                    return try TagFile.read(at: url)
+                }.value
+                entry.acceptNewOriginal(reloaded)
+            case .image:
+                let fields = entry.imageFields
+                let original = entry.imageOriginal
+                let reloaded = try await Task.detached(priority: .userInitiated) {
+                    try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
+                    return try ExifTool.readCoreFields(url: url)
+                }.value
+                entry.acceptNewImageOriginal(reloaded)
+            }
         } catch {
             entry.lastError = error.localizedDescription
             alertMessage = "Speichern fehlgeschlagen: \(url.lastPathComponent)\n\(error.localizedDescription)"

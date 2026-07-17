@@ -13,11 +13,29 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {
             if let entry = model.selectedEntry {
-                EditorView(entry: entry)
-                    .id(entry.url) // Editor-State pro Datei zurücksetzen
+                switch entry.kind {
+                case .audio:
+                    EditorView(entry: entry)
+                        .id(entry.url) // Editor-State pro Datei zurücksetzen
+                case .image:
+                    ImageEditorView(entry: entry)
+                        .id(entry.url)
+                }
             } else if model.selectedEntries.count > 1 {
-                BatchEditorView(entries: model.selectedEntries)
-                    .id(model.selection)
+                let selected = model.selectedEntries
+                if selected.allSatisfy({ $0.kind == .audio }) {
+                    BatchEditorView(entries: selected)
+                        .id(model.selection)
+                } else if selected.allSatisfy({ $0.kind == .image }) {
+                    ImageBatchEditorView(entries: selected)
+                        .id(model.selection)
+                } else {
+                    ContentUnavailableView(
+                        "Gemischte Auswahl",
+                        systemImage: "rectangle.on.rectangle.slash",
+                        description: Text("Audio und Bilder bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
+                    )
+                }
             } else {
                 DropPlaceholder()
             }

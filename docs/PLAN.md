@@ -130,6 +130,6 @@ tag_explosion/
 | 0.2.0   | Schreiben inkl. Cover, Roundtrip-Tests grün, tagx `set`/`cover` — ✅ (kid3-cli/ffprobe-Gegenprobe ok) |
 | 0.3.0   | MediaInfo-Panel-Daten, App-Gerüst mit Einzeldatei-Editor (read-only) — ✅ zusammen mit 0.4.0 |
 | 0.4.0   | App editiert + speichert, Cover-Tausch, Revert — ✅ (AX-End-to-End-Test grün; echtes Undo noch offen) |
-| 0.5.0   | Dateiliste/Ordner, Batch-Edit |
-| 0.6.0   | Bilder (exiftool) |
+| 0.5.0   | Dateiliste/Ordner, Batch-Edit — ✅ (AX-Test über mp3/flac/m4a) |
+| 0.6.0   | Bilder (exiftool, MWG-harmonisiert): Editor, Batch, tagx exif — ✅ |
 | 0.7.0   | Video-Anzeige/-Tags |
