@@ -20,6 +20,11 @@ let imageExtensions: Set<String> = [
     "webp", "dng", "gif",
 ]
 
+/// Video-Endungen. Tags via TagLib (mp4/m4v/mkv/webm); Rest nur anzeigen.
+let videoExtensions: Set<String> = [
+    "m4v", "mkv", "webm", "mov", "avi",
+]
+
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg.
 enum MediaKind: Sendable {
     case audio
@@ -29,6 +34,9 @@ enum MediaKind: Sendable {
         let ext = url.pathExtension.lowercased()
         if audioExtensions.contains(ext) { return .audio }
         if imageExtensions.contains(ext) { return .image }
+        // Video läuft über denselben TagLib-Weg wie Audio (PropertyMap);
+        // was TagLib nicht schreiben kann, wird read-only angezeigt.
+        if videoExtensions.contains(ext) { return .audio }
         return nil
     }
 }
@@ -237,7 +245,16 @@ final class AppModel {
                             case .image:
                                 return (i, url, .success(.image(try ExifTool.readCoreFields(url: url))))
                             default:
-                                return (i, url, .success(.audio(try TagFile.read(at: url))))
+                                do {
+                                    return (i, url, .success(.audio(try TagFile.read(at: url))))
+                                } catch {
+                                    // TagLib kennt den Container nicht (z.B. avi/mov):
+                                    // trotzdem anzeigen (Technik-Tab via mediainfo),
+                                    // aber als schreibgeschützt markieren.
+                                    let fallback = TagData(properties: [], artworks: [],
+                                                           audio: nil, isReadOnly: true)
+                                    return (i, url, .success(.audio(fallback)))
+                                }
                             }
                         } catch {
                             return (i, url, .failure(error))

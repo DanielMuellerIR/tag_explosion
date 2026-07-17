@@ -38,6 +38,17 @@ gen sample.wv   -codec:a wavpack
 # m4b = m4a-Container mit anderer Endung (Hörbuch)
 [ -f "$out/sample.m4b" ] || cp "$out/sample.m4a" "$out/sample.m4b"
 
+# Video-Fixtures: 1 s Testbild + Ton
+genv() {
+    target="$out/$1"; shift
+    [ -f "$target" ] && return 0
+    ffmpeg -nostdin -v error -y -f lavfi -i "testsrc=size=128x96:duration=1:rate=10" \
+        -i "$src" -t 1 -codec:v libx264 -preset ultrafast -codec:a aac -b:a 48k "$@" "$target"
+}
+genv sample.mp4
+genv sample.mkv
+genv sample.m4v
+
 # Testbilder: 64x64 rot (jpg) und blau (png)
 [ -f "$out/cover.jpg" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=red:size=64x64:duration=0.04" -frames:v 1 "$out/cover.jpg"
 [ -f "$out/cover.png" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=blue:size=64x64:duration=0.04" -frames:v 1 "$out/cover.png"

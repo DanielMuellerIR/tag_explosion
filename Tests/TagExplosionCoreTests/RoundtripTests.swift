@@ -47,6 +47,9 @@ let audioFormats = ["sample.mp3", "sample.m4a", "sample.m4b", "sample.flac",
                     "sample.ogg", "sample.opus", "sample.wav", "sample.aiff",
                     "sample.wv"]
 
+/// Video-Container, deren Tags TagLib schreiben kann.
+let videoFormats = ["sample.mp4", "sample.m4v", "sample.mkv"]
+
 @Suite("Tag-Roundtrip", .serialized)
 struct RoundtripTests {
 
@@ -113,6 +116,21 @@ struct RoundtripTests {
         try TagFile.write(properties: props, to: url)
         let readBack = try TagFile.read(at: url)
         #expect(readBack.values(for: "GENRE").sorted() == ["Funk", "Jazz"])
+    }
+
+    @Test("Video-Tags schreiben und lesen", arguments: videoFormats)
+    func videoPropertiesRoundtrip(format: String) throws {
+        let url = try Fixtures.workingCopy(format)
+        let props = [
+            TagProperty(key: "TITLE", value: "Video-Titel äöü"),
+            TagProperty(key: "GENRE", value: "Dokumentation"),
+        ]
+        try TagFile.write(properties: props, to: url)
+        let readBack = try TagFile.read(at: url)
+        for prop in props {
+            #expect(readBack.values(for: prop.key).contains(prop.value),
+                    "\(format): \(prop.key) fehlt oder falsch")
+        }
     }
 
     @Test("Nicht existierende Datei wirft cannotOpen")
