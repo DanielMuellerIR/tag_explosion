@@ -103,6 +103,14 @@ tag_explosion/
 - Versionierung: `VERSION`-Datei (semver), bei jedem abgeschlossenen Schritt Bump + Commit.
 - Remote: nur internes Backup-Remote. GitHub erst auf Auftrag.
 
+## Backlog / Notizen
+
+- TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
+  Shim-Erweiterung (`MPEG::File::save`-Overload) später anbieten.
+- Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.
+- ffmpeg auf diesem System hat kein libvorbis/libmp3lame? doch, aber kein libvorbis —
+  Fixtures nutzen den eingebauten Vorbis-Encoder (nur Stereo).
+
 ## Verifikation
 
 - Unit-Tests: Roundtrip (schreiben → lesen → vergleichen) für jedes Format; Edge-Cases
@@ -115,8 +123,8 @@ tag_explosion/
 
 | Version | Inhalt |
 |---------|--------|
-| 0.1.0   | Repo-Gerüst, Core liest Tags+Cover+AudioProps (mp3, m4a/m4b, flac, ogg, opus), tagx `show` |
-| 0.2.0   | Schreiben inkl. Cover, Roundtrip-Tests grün, tagx `set`/`export` |
+| 0.1.0   | Repo-Gerüst, Core liest Tags+Cover+AudioProps (mp3, m4a/m4b, flac, ogg, opus), tagx `show` — ✅ zusammen mit 0.2.0 gelandet |
+| 0.2.0   | Schreiben inkl. Cover, Roundtrip-Tests grün, tagx `set`/`cover` — ✅ (kid3-cli/ffprobe-Gegenprobe ok) |
 | 0.3.0   | MediaInfo-Panel-Daten, App-Gerüst mit Einzeldatei-Editor (read-only) |
 | 0.4.0   | App editiert + speichert, Cover-Tausch, Undo |
 | 0.5.0   | Dateiliste/Ordner, Batch-Edit |

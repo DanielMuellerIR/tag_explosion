@@ -1,0 +1,6 @@
+module CTagLib [system] {
+    header "ctaglib-umbrella.h"
+    link "tag"
+    link "tag_c"
+    export *
+}
