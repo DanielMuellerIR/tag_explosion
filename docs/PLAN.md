@@ -188,6 +188,12 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Backlog / Notizen
 
+- Effizienz-Umbauten aus dem Review 2026-07-18 (bewusst zurückgestellt):
+  EPUB-Archiv einmal öffnen statt pro Operation (`EpubFile.loadOpf`-Kontext
+  über read/write/Cover hinweg), ZIP-Rewrites beim Schreiben bündeln,
+  kombinierter `ebook-meta`-Aufruf (Felder + Cover in einem Prozess).
+  Lohnt bei Ordnern mit vielen E-Books; Details im Commit 352be5c.
+
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
   Shim-Erweiterung (`MPEG::File::save`-Overload) später anbieten.
 - Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.
