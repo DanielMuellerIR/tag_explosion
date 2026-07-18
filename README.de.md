@@ -10,7 +10,7 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
 ![Plattform: macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg)
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
 
-![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/audio.png)
+![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/de/audio.png)
 *Der Audio-Editor: Cover, alle Tag-Felder und an jedem Feld ein Kopier-Menü.*
 
 ## Funktionen
@@ -44,14 +44,18 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
   `tagx ebook`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
-die CLI spricht Englisch. Die Screenshots zeigen die deutsche Oberfläche.
+die CLI spricht Englisch.
 
-![Batch-Bearbeitung eines Albums](docs/screenshots/batch.png)
+![Batch-Bearbeitung eines Albums](docs/screenshots/de/batch.png)
 *Batch-Bearbeitung: eine Änderung wirkt auf alle ausgewählten Dateien; die
 Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 
-![Bild-Metadaten-Editor](docs/screenshots/image.png)
+![Bild-Metadaten-Editor](docs/screenshots/de/image.png)
 *Der Bild-Editor mit MWG-harmonisierten EXIF/IPTC/XMP-Feldern.*
+
+![E-Book-Metadaten-Editor](docs/screenshots/de/ebook.png)
+*Der E-Book-Editor: Metadaten wie in Calibre plus Cover für EPUB, PDF und
+Calibre-Formate.*
 
 ## Unterstützte Formate
 
@@ -62,7 +66,7 @@ Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 
-![Startbildschirm mit der Format-Übersicht](docs/screenshots/empty.png)
+![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
 
 ## Installation

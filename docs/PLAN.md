@@ -157,7 +157,7 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   zur JSON-Datei und meldet fehlende/zusätzliche Dateien; Exit-Code 1 bei
   unvollständiger Wiederherstellung.
 
-### Englische Lokalisierung — ✅ App+CLI umgesetzt in 0.15.0, Screenshots offen
+### Englische Lokalisierung — ✅ umgesetzt in 0.15.0/0.15.1
 - App: String Catalog `App/Sources/TagExplosionApp/Resources/Localizable.xcstrings`
   (Quelle Deutsch = Keys, vollständige en-Übersetzung). Abweichung vom Plan:
   `swift build` kompiliert .xcstrings NICHT (nur Xcodes Build-System) —
@@ -168,11 +168,13 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   Kontexten laufen über `String(localized:)`.
 - CLI `tagx` und Core-Fehlertexte (TagError): Englisch (Open-Source-Konvention);
   die App stellt Fehlern deutsche Kontextzeilen voran.
-- **Offen:** Screenshots zweisprachig — Aufnahme-Läufe mit
-  `-AppleLanguages '(en)'` bzw. de; Ablage `docs/screenshots/de/` +
-  `docs/screenshots/en/`, README.md nutzt en, README.de.md de. Demo-Dateien
-  für EN-Screenshots ggf. mit englischen Tags neu taggen (ffmpeg + tagx +
-  MiniMax-Cover). Braucht GUI-Läufe.
+- Screenshots zweisprachig (0.15.1): `docs/screenshots/de/` + `en/` mit je
+  fünf Motiven (empty/audio/batch/image/ebook), README.md nutzt en,
+  README.de.md de. Sprache pro Lauf über das AppleLanguages-Default der App
+  gesetzt. Demo-Dateien zweisprachig neu erzeugt (ffmpeg + tagx; Artwork
+  MiniMax ohne Text + deterministische CoreText-Typo — Bildmodelle
+  verschreiben sich sonst im Titel); für die Aufnahme auf dem Schreibtisch
+  abgelegt (lesbarer Pfad im Editor-Kopf), danach entfernt.
 
 ### Distribution: DMG statt ZIP — ✅ umgesetzt in 0.12.0
 - Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild; Bau in
@@ -220,4 +222,5 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.12.0  | Distribution als notarisiertes DMG (Hintergrundbild, /Applications-Symlink, Finder-Layout), Appcast-Workflow auf `*.dmg` — ✅ |
 | 0.13.0  | E-Books/Dokumente: EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre; Editor + Batch + `tagx ebook` — ✅ |
 | 0.14.0  | Tag-Export/-Import als JSON (`tagx export/import`, GUI-Buttons) + Auto-Backup vor Batch-Speichern — ✅ |
-| 0.15.0  | Englische Lokalisierung: App (String Catalog de→en), CLI + Core-Fehler englisch — ✅ (EN-Screenshots offen) |
+| 0.15.0  | Englische Lokalisierung: App (String Catalog de→en), CLI + Core-Fehler englisch — ✅ |
+| 0.15.1  | Zweisprachige Screenshots (de/en, inkl. E-Book-Editor) mit neuen Demo-Dateien; GUI-Regressionstest; Release-DMG-Testlauf — ✅ |

@@ -10,7 +10,7 @@ Apple-style editor, with a scriptable CLI companion.
 ![Platform: macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg)
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
 
-![Editing an audiobook: cover art, tags, and per-field copy menus](docs/screenshots/audio.png)
+![Editing an audiobook: cover art, tags, and per-field copy menus](docs/screenshots/en/audio.png)
 *The audio editor: cover art, all tag fields, and a copy menu on every field.*
 
 ## Features
@@ -43,15 +43,18 @@ Apple-style editor, with a scriptable CLI companion.
   `tagx ebook`.
 
 The app's user interface is available in English and German (it follows the
-system language); the CLI speaks English. The screenshots currently show the
-German interface.
+system language); the CLI speaks English.
 
-![Batch editing an album](docs/screenshots/batch.png)
+![Batch editing an album](docs/screenshots/en/batch.png)
 *Batch editing: one change applies to all selected files; the copy menus fill
 each file from one of its own tags.*
 
-![Image metadata editor](docs/screenshots/image.png)
+![Image metadata editor](docs/screenshots/en/image.png)
 *The image editor with MWG-harmonized EXIF/IPTC/XMP fields.*
+
+![E-book metadata editor](docs/screenshots/en/ebook.png)
+*The e-book editor: Calibre-style metadata plus cover for EPUB, PDF, and
+Calibre formats.*
 
 ## Supported formats
 
@@ -62,7 +65,7 @@ each file from one of its own tags.*
 | Video | mp4, m4v, mkv, webm (editable) · mov, avi (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 
-![Start screen with the format overview](docs/screenshots/empty.png)
+![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*
 
 ## Installation

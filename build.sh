@@ -301,11 +301,16 @@ tell application "Finder"
         set icon size of viewOptions to 96
         set background picture of viewOptions to file ".background:DmgBackground.tiff"
         -- Icons auf die gestrichelten Kreise im Hintergrundbild setzen
-        set position of item "TagExplosion.app" of container window to {150, 300}
-        set position of item "Applications" of container window to {450, 300}
-        try
-            set position of item ".background" of container window to {900, 900}
-        end try
+        -- (y=285: die Beschriftungen sollen nicht in die Hinweiszeile laufen)
+        set position of item "TagExplosion.app" of container window to {150, 285}
+        set position of item "Applications" of container window to {450, 285}
+        -- Versteckte Einträge offscreen parken: bei eingeblendeten versteckten
+        -- Dateien (AppleShowAllFiles) lägen sie sonst mitten im Fenster
+        repeat with hiddenName in {".background", ".fseventsd", ".Trashes", ".TemporaryItems"}
+            try
+                set position of item hiddenName of container window to {900, 900}
+            end try
+        end repeat
         -- Fensterrechteck mit Read-back-Retry: ein einmaliges "set bounds"
         -- übernimmt der Finder nicht zuverlässig (erbt sonst die Größe eines
         -- vorhandenen Fensters).
