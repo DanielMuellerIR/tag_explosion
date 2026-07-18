@@ -54,12 +54,6 @@ struct EbookEditorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                if !supportsCover {
-                    Text("PDF: Serie und Cover werden von diesem Format nicht unterstützt.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .padding(.top, 4)
-                }
                 if supportsCover {
                     Button("Cover auswählen …") { presentCoverPanel() }
                         .padding(.top, 6)
@@ -68,6 +62,11 @@ struct EbookEditorView: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
+                } else {
+                    Text("PDF: Serie und Cover werden von diesem Format nicht unterstützt.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 4)
                 }
             }
             Spacer()
@@ -97,7 +96,7 @@ struct EbookEditorView: View {
             }
         }
         .frame(width: 180, height: 240)
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        .onDrop(of: [.fileURL, .image], isTargeted: nil) { providers in
             handleCoverDrop(providers)
         }
         .help("Bilddatei hierher ziehen, um das Cover zu ersetzen")
@@ -134,16 +133,10 @@ struct EbookEditorView: View {
     }
 
     private func handleCoverDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        _ = provider.loadObject(ofClass: URL.self) { url, _ in
-            guard let url,
-                  ["jpg", "jpeg", "png"].contains(url.pathExtension.lowercased()),
-                  let data = try? Data(contentsOf: url) else { return }
-            Task { @MainActor in
-                entry.ebookCoverReplacement = data
-            }
+        // E-Book-Cover bleiben auf JPEG/PNG beschränkt (EPUB-Reader-Support).
+        CoverDrop.load(providers, acceptedMimeTypes: ["image/jpeg", "image/png"]) {
+            entry.ebookCoverReplacement = $0
         }
-        return true
     }
 
     // MARK: - Felder
@@ -152,23 +145,23 @@ struct EbookEditorView: View {
         GroupBox("Buch-Metadaten") {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
-                    label("Titel")
+                    GridFieldLabel("Titel")
                     TextField("", text: $entry.ebookFields.title)
                         .textFieldStyle(.roundedBorder)
                 }
                 GridRow {
-                    label("Autor(en)")
+                    GridFieldLabel("Autor(en)")
                     TextField("kommagetrennt", text: listBinding(\.authors))
                         .textFieldStyle(.roundedBorder)
                 }
                 if supportsSeries {
                     GridRow {
-                        label("Serie")
+                        GridFieldLabel("Serie")
                         TextField("", text: $entry.ebookFields.series)
                             .textFieldStyle(.roundedBorder)
                     }
                     GridRow {
-                        label("Serienindex")
+                        GridFieldLabel("Serienindex")
                         TextField("z.B. 2 oder 2.5", text: $entry.ebookFields.seriesIndex)
                             .textFieldStyle(.roundedBorder)
                             .font(.body.monospacedDigit())
@@ -176,38 +169,38 @@ struct EbookEditorView: View {
                     }
                 }
                 GridRow {
-                    label("Beschreibung")
+                    GridFieldLabel("Beschreibung")
                     TextField("", text: $entry.ebookFields.description, axis: .vertical)
                         .lineLimit(3...8)
                         .textFieldStyle(.roundedBorder)
                 }
                 GridRow {
-                    label("ISBN")
+                    GridFieldLabel("ISBN")
                     TextField("", text: $entry.ebookFields.isbn)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospacedDigit())
                         .frame(maxWidth: 240)
                 }
                 GridRow {
-                    label("Verlag")
+                    GridFieldLabel("Verlag")
                     TextField("", text: $entry.ebookFields.publisher)
                         .textFieldStyle(.roundedBorder)
                 }
                 GridRow {
-                    label("Sprache")
+                    GridFieldLabel("Sprache")
                     TextField("z.B. de", text: $entry.ebookFields.language)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 140)
                 }
                 GridRow {
-                    label("Datum")
+                    GridFieldLabel("Datum")
                     TextField("JJJJ-MM-TT", text: $entry.ebookFields.date)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospacedDigit())
                         .frame(maxWidth: 180)
                 }
                 GridRow {
-                    label("Schlagwörter")
+                    GridFieldLabel("Schlagwörter")
                     TextField("kommagetrennt", text: listBinding(\.subjects))
                         .textFieldStyle(.roundedBorder)
                 }
@@ -216,20 +209,13 @@ struct EbookEditorView: View {
         }
     }
 
-    private func label(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .gridColumnAlignment(.trailing)
-            .foregroundStyle(.secondary)
-    }
 
     /// Mehrwertiges Feld als kommagetrennter String.
     private func listBinding(_ keyPath: WritableKeyPath<EbookCoreFields, [String]>) -> Binding<String> {
         Binding(
             get: { entry.ebookFields[keyPath: keyPath].joined(separator: ", ") },
             set: { newValue in
-                entry.ebookFields[keyPath: keyPath] = newValue.split(separator: ",")
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
+                entry.ebookFields[keyPath: keyPath] = newValue.splitCommaList()
             }
         )
     }

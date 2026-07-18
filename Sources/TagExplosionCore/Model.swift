@@ -93,6 +93,16 @@ public struct TagData: Sendable, Codable, Equatable {
     }
 }
 
+public extension String {
+    /// "a, b ,c" → ["a", "b", "c"] — die gemeinsame Regel für kommagetrennte
+    /// Listenfelder (App, CLI und Backends müssen identisch splitten).
+    func splitCommaList() -> [String] {
+        split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+}
+
 /// Fehler des Cores mit verständlicher Beschreibung.
 public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case cannotOpen(path: String)

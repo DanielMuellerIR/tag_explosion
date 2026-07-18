@@ -115,7 +115,7 @@ struct ImageFieldsTab: View {
         GroupBox("Metadaten (EXIF/IPTC/XMP harmonisiert)") {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
-                    label("Titel")
+                    GridFieldLabel("Titel")
                     HStack(spacing: 6) {
                         TextField("", text: $entry.imageFields.title)
                             .textFieldStyle(.roundedBorder)
@@ -123,7 +123,7 @@ struct ImageFieldsTab: View {
                     }
                 }
                 GridRow {
-                    label("Beschreibung")
+                    GridFieldLabel("Beschreibung")
                     HStack(alignment: .top, spacing: 6) {
                         TextField("", text: $entry.imageFields.description, axis: .vertical)
                             .lineLimit(2...5)
@@ -132,19 +132,17 @@ struct ImageFieldsTab: View {
                     }
                 }
                 GridRow {
-                    label("Schlagwörter")
+                    GridFieldLabel("Schlagwörter")
                     HStack(spacing: 6) {
                         TextField("kommagetrennt", text: keywordsBinding)
                             .textFieldStyle(.roundedBorder)
                         copyMenu { entry, value in
-                            entry.imageFields.keywords = value.split(separator: ",")
-                                .map { $0.trimmingCharacters(in: .whitespaces) }
-                                .filter { !$0.isEmpty }
+                            entry.imageFields.keywords = value.splitCommaList()
                         }
                     }
                 }
                 GridRow {
-                    label("Ersteller")
+                    GridFieldLabel("Ersteller")
                     HStack(spacing: 6) {
                         TextField("", text: $entry.imageFields.creator)
                             .textFieldStyle(.roundedBorder)
@@ -152,7 +150,7 @@ struct ImageFieldsTab: View {
                     }
                 }
                 GridRow {
-                    label("Copyright")
+                    GridFieldLabel("Copyright")
                     HStack(spacing: 6) {
                         TextField("", text: $entry.imageFields.copyright)
                             .textFieldStyle(.roundedBorder)
@@ -160,13 +158,13 @@ struct ImageFieldsTab: View {
                     }
                 }
                 GridRow {
-                    label("Aufnahmedatum")
+                    GridFieldLabel("Aufnahmedatum")
                     TextField("JJJJ:MM:TT HH:MM:SS", text: $entry.imageFields.dateTimeOriginal)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospacedDigit())
                 }
                 GridRow {
-                    label("Bewertung")
+                    GridFieldLabel("Bewertung")
                     Picker("", selection: $entry.imageFields.rating) {
                         Text("keine").tag(-1)
                         ForEach(0...5, id: \.self) { stars in
@@ -177,13 +175,13 @@ struct ImageFieldsTab: View {
                     .pickerStyle(.segmented)
                 }
                 GridRow {
-                    label("GPS Breite")
+                    GridFieldLabel("GPS Breite")
                     TextField("z.B. 50.9375", text: $entry.imageFields.gpsLatitude)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospacedDigit())
                 }
                 GridRow {
-                    label("GPS Länge")
+                    GridFieldLabel("GPS Länge")
                     TextField("z.B. 6.9603", text: $entry.imageFields.gpsLongitude)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospacedDigit())
@@ -193,11 +191,6 @@ struct ImageFieldsTab: View {
         }
     }
 
-    private func label(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .gridColumnAlignment(.trailing)
-            .foregroundStyle(.secondary)
-    }
 
     /// Kopier-Menü wie im Batch-Editor, nur für dieses eine Bild.
     /// Datum/Bewertung/GPS bekommen bewusst keins (Typkompatibilität).
@@ -210,9 +203,7 @@ struct ImageFieldsTab: View {
         Binding(
             get: { entry.imageFields.keywords.joined(separator: ", ") },
             set: { newValue in
-                entry.imageFields.keywords = newValue.split(separator: ",")
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
+                entry.imageFields.keywords = newValue.splitCommaList()
             }
         )
     }

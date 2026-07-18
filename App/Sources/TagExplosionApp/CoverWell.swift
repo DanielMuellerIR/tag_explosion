@@ -69,20 +69,7 @@ struct CoverWell: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        // Bevorzugt als Datei-URL (aus Finder), sonst als Bilddaten (z.B. aus Safari)
-        if provider.canLoadObject(ofClass: URL.self) {
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, let data = try? Data(contentsOf: url) else { return }
-                DispatchQueue.main.async { setCover(data: data) }
-            }
-            return true
-        }
-        provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
-            guard let data else { return }
-            DispatchQueue.main.async { setCover(data: data) }
-        }
-        return true
+        CoverDrop.load(providers) { setCover(data: $0) }
     }
 
     private func pickImage() {
@@ -111,5 +98,34 @@ struct CoverWell: View {
         if panel.runModal() == .OK, let url = panel.url {
             try? artwork.data.write(to: url)
         }
+    }
+}
+
+/// Gemeinsames Drop-Handling für Cover: bevorzugt als Datei-URL (aus dem
+/// Finder), sonst als rohe Bilddaten (z.B. aus Safari); validiert per Magic
+/// Bytes und liefert auf dem Main-Thread. `acceptedMimeTypes` schränkt die
+/// Formate ein (nil = jedes erkannte Bildformat).
+enum CoverDrop {
+    static func load(_ providers: [NSItemProvider],
+                     acceptedMimeTypes: Set<String>? = nil,
+                     accept: @escaping @MainActor (Data) -> Void) -> Bool {
+        guard let provider = providers.first else { return false }
+        func deliver(_ data: Data) {
+            guard let mime = Artwork.sniffMimeType(from: data),
+                  acceptedMimeTypes?.contains(mime) ?? true else { return }
+            Task { @MainActor in accept(data) }
+        }
+        if provider.canLoadObject(ofClass: URL.self) {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url, let data = try? Data(contentsOf: url) else { return }
+                deliver(data)
+            }
+            return true
+        }
+        provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
+            guard let data else { return }
+            deliver(data)
+        }
+        return true
     }
 }

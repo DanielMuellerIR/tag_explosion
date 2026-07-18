@@ -13,22 +13,13 @@ let imageExtensions = MediaFormats.image
 let videoExtensions = MediaFormats.video
 let ebookExtensions = MediaFormats.ebook
 
-/// Art der geladenen Datei — bestimmt Editor und Speicherweg.
-enum MediaKind: Sendable {
-    case audio
-    case image
-    case ebook
+/// Art der geladenen Datei — bestimmt Editor und Speicherweg. Direkt der
+/// Core-Typ (auch das Archiv nutzt ihn); die Zuordnung inklusive des
+/// Video→audio-Wegs liegt zentral in MediaFormats.
+typealias MediaKind = MediaFormats.Kind
 
-    static func forURL(_ url: URL) -> MediaKind? {
-        let ext = url.pathExtension.lowercased()
-        if audioExtensions.contains(ext) { return .audio }
-        if imageExtensions.contains(ext) { return .image }
-        if ebookExtensions.contains(ext) { return .ebook }
-        // Video läuft über denselben TagLib-Weg wie Audio (PropertyMap);
-        // was TagLib nicht schreiben kann, wird read-only angezeigt.
-        if videoExtensions.contains(ext) { return .audio }
-        return nil
-    }
+extension MediaFormats.Kind {
+    static func forURL(_ url: URL) -> MediaKind? { MediaFormats.kind(of: url) }
 }
 
 /// Eine geladene Datei mit Original-Zustand und Bearbeitungspuffer.
@@ -39,59 +30,43 @@ final class FileEntry: Identifiable {
     nonisolated let kind: MediaKind
     nonisolated var id: URL { url }
 
-    /// Zustand wie zuletzt von der Platte gelesen (Audio).
-    private(set) var original: TagData
+    /// Zustand wie zuletzt von der Platte gelesen (Audio); andere Medienarten
+    /// behalten die Neutralwerte der Property-Defaults.
+    private(set) var original = TagData(properties: [], artworks: [], audio: nil)
     /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
-    var properties: [TagProperty]
-    var artworks: [Artwork]
+    var properties: [TagProperty] = []
+    var artworks: [Artwork] = []
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
-    private(set) var imageOriginal: ImageCoreFields
-    var imageFields: ImageCoreFields
+    private(set) var imageOriginal = ImageCoreFields()
+    var imageFields = ImageCoreFields()
 
     /// Original und Bearbeitungspuffer für E-Books (nur bei kind == .ebook).
-    private(set) var ebookOriginal: EbookCoreFields
-    var ebookFields: EbookCoreFields
+    private(set) var ebookOriginal = EbookCoreFields()
+    var ebookFields = EbookCoreFields()
     /// Neues Cover, das beim Speichern geschrieben wird (nil = unverändert).
     var ebookCoverReplacement: Data?
 
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
     var lastError: String?
 
-    init(url: URL, data: TagData) {
+    init(url: URL, loaded: LoadedData) {
         self.url = url
-        self.kind = .audio
-        self.original = data
-        self.properties = data.properties
-        self.artworks = data.artworks
-        self.imageOriginal = ImageCoreFields()
-        self.imageFields = ImageCoreFields()
-        self.ebookOriginal = EbookCoreFields()
-        self.ebookFields = EbookCoreFields()
-    }
-
-    init(url: URL, image: ImageCoreFields) {
-        self.url = url
-        self.kind = .image
-        self.original = TagData(properties: [], artworks: [], audio: nil)
-        self.properties = []
-        self.artworks = []
-        self.imageOriginal = image
-        self.imageFields = image
-        self.ebookOriginal = EbookCoreFields()
-        self.ebookFields = EbookCoreFields()
-    }
-
-    init(url: URL, ebook: EbookCoreFields) {
-        self.url = url
-        self.kind = .ebook
-        self.original = TagData(properties: [], artworks: [], audio: nil)
-        self.properties = []
-        self.artworks = []
-        self.imageOriginal = ImageCoreFields()
-        self.imageFields = ImageCoreFields()
-        self.ebookOriginal = ebook
-        self.ebookFields = ebook
+        switch loaded {
+        case .audio(let data):
+            self.kind = .audio
+            self.original = data
+            self.properties = data.properties
+            self.artworks = data.artworks
+        case .image(let fields):
+            self.kind = .image
+            self.imageOriginal = fields
+            self.imageFields = fields
+        case .ebook(let fields):
+            self.kind = .ebook
+            self.ebookOriginal = fields
+            self.ebookFields = fields
+        }
     }
 
     var audio: AudioInfo? { original.audio }
@@ -139,6 +114,15 @@ final class FileEntry: Identifiable {
         ebookFields = fields
         ebookCoverReplacement = nil
         lastError = nil
+    }
+
+    /// Frisch gelesenen Platten-Zustand als neues Original übernehmen.
+    func acceptNew(_ loaded: LoadedData) {
+        switch loaded {
+        case .audio(let data): acceptNewOriginal(data)
+        case .image(let fields): acceptNewImageOriginal(fields)
+        case .ebook(let fields): acceptNewEbookOriginal(fields)
+        }
     }
 
     // Bequeme Zugriffe für die UI ------------------------------------------
@@ -247,9 +231,9 @@ final class AppModel {
         isLoading = true
         defer { isLoading = false }
 
-        // Verzeichnisse expandieren und auf Audio-Endungen filtern (Hintergrund).
+        // Verzeichnisse expandieren und auf Medien-Endungen filtern (Hintergrund).
         let candidates = await Task.detached(priority: .userInitiated) {
-            Self.expandToMediaFiles(urls)
+            MediaFormats.expandMediaFiles(urls)
         }.value
 
         // Bereits geladene überspringen
@@ -273,22 +257,16 @@ final class AppModel {
                     nextIndex += 1
                     group.addTask {
                         do {
-                            switch MediaKind.forURL(url) {
-                            case .image:
-                                return (i, url, .success(.image(try ExifTool.readCoreFields(url: url))))
-                            case .ebook:
-                                return (i, url, .success(.ebook(try EbookTool.readCoreFields(url: url))))
-                            default:
-                                do {
-                                    return (i, url, .success(.audio(try TagFile.read(at: url))))
-                                } catch {
-                                    // TagLib kennt den Container nicht (z.B. avi/mov):
-                                    // trotzdem anzeigen (Technik-Tab via mediainfo),
-                                    // aber als schreibgeschützt markieren.
-                                    let fallback = TagData(properties: [], artworks: [],
-                                                           audio: nil, isReadOnly: true)
-                                    return (i, url, .success(.audio(fallback)))
-                                }
+                            let kind = MediaKind.forURL(url) ?? .audio
+                            do {
+                                return (i, url, .success(try Self.readLoaded(url: url, kind: kind)))
+                            } catch where kind == .audio {
+                                // TagLib kennt den Container nicht (z.B. avi/mov):
+                                // trotzdem anzeigen (Technik-Tab via mediainfo),
+                                // aber als schreibgeschützt markieren.
+                                let fallback = TagData(properties: [], artworks: [],
+                                                       audio: nil, isReadOnly: true)
+                                return (i, url, .success(.audio(fallback)))
                             }
                         } catch {
                             return (i, url, .failure(error))
@@ -309,12 +287,8 @@ final class AppModel {
         var failures: [String] = []
         for (url, result) in results {
             switch result {
-            case .success(.audio(let data)):
-                entries.append(FileEntry(url: url, data: data))
-            case .success(.image(let fields)):
-                entries.append(FileEntry(url: url, image: fields))
-            case .success(.ebook(let fields)):
-                entries.append(FileEntry(url: url, ebook: fields))
+            case .success(let loaded):
+                entries.append(FileEntry(url: url, loaded: loaded))
             case .failure:
                 failures.append(url.lastPathComponent)
             }
@@ -325,28 +299,13 @@ final class AppModel {
         }
     }
 
-    /// Verzeichnisse rekursiv auflösen, nur Medien-Dateien behalten, sortiert.
-    nonisolated static func expandToMediaFiles(_ urls: [URL]) -> [URL] {
-        var files: [URL] = []
-        let fm = FileManager.default
-        for url in urls {
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
-            if isDir.boolValue {
-                if let iterator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey]) {
-                    for case let child as URL in iterator {
-                        if MediaKind.forURL(child) != nil {
-                            files.append(child)
-                        }
-                    }
-                }
-            } else if MediaKind.forURL(url) != nil {
-                files.append(url)
-            }
-        }
-        // Stabile, menschliche Sortierung (Finder-artig)
-        return files.sorted {
-            $0.path.localizedStandardCompare($1.path) == .orderedAscending
+    /// Liest den Datei-Zustand passend zur Medienart (Hintergrund-tauglich);
+    /// gemeinsamer Lesepfad für Öffnen, Neuladen und Speichern-Read-back.
+    nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
+        switch kind {
+        case .audio: return .audio(try TagFile.read(at: url))
+        case .image: return .image(try ExifTool.readCoreFields(url: url))
+        case .ebook: return .ebook(try EbookTool.readCoreFields(url: url))
         }
     }
 
@@ -363,11 +322,7 @@ final class AppModel {
 
     /// Speichert alle ausgewählten Dateien mit Änderungen.
     func saveSelected() async {
-        let dirty = selectedEntries.filter(\.isDirty)
-        guard await backupIfNeeded(before: dirty) else { return }
-        for entry in dirty {
-            await save(entry: entry)
-        }
+        await saveEntries(selectedEntries.filter(\.isDirty))
     }
 
     /// Verwirft Änderungen aller ausgewählten Dateien.
@@ -380,34 +335,27 @@ final class AppModel {
     }
 
     func saveAll() async {
-        let dirty = entries.filter(\.isDirty)
+        await saveEntries(entries.filter(\.isDirty))
+    }
+
+    /// Gemeinsamer Speicherpfad: erst Auto-Backup, dann Datei für Datei.
+    private func saveEntries(_ dirty: [FileEntry]) async {
         guard await backupIfNeeded(before: dirty) else { return }
         for entry in dirty {
             await save(entry: entry)
         }
     }
 
-    /// Schreibt vor einem Batch-Speichern (mehr als eine Datei) je betroffenem
-    /// Ordner ein `tags-backup-<Zeitstempel>.json` mit dem aktuellen
-    /// Platten-Zustand (Wiederherstellen = derselbe Import-Weg).
+    /// Schreibt vor einem Batch-Speichern (mehr als eine Datei) die Backups
+    /// über TagArchiveIO (Namensschema und Ordner-Gruppierung liegen im Core,
+    /// damit CLI-Wiederherstellung und App dasselbe Format teilen).
     /// false = Backup fehlgeschlagen, Speichern wird abgebrochen.
     private func backupIfNeeded(before dirtyEntries: [FileEntry]) async -> Bool {
         guard Self.autoBackupEnabled, dirtyEntries.count > 1 else { return true }
-        // Zeitstempel ohne Doppelpunkte (Dateiname), ISO-8601-sortierbar.
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd'T'HHmmss"
-        let stamp = formatter.string(from: Date())
-
-        let byFolder = Dictionary(grouping: dirtyEntries.map(\.url)) {
-            $0.deletingLastPathComponent()
-        }
+        let files = dirtyEntries.map(\.url)
         do {
             try await Task.detached(priority: .userInitiated) {
-                for (folder, urls) in byFolder {
-                    let target = folder.appendingPathComponent("tags-backup-\(stamp).json")
-                    try TagArchiveIO.export(files: urls, to: target, includeCovers: true)
-                }
+                try TagArchiveIO.writeBackups(files: files)
             }.value
             return true
         } catch {
@@ -466,24 +414,12 @@ final class AppModel {
     /// Liest eine Datei neu von der Platte und ersetzt den Originalzustand.
     private func reload(entry: FileEntry) async {
         let url = entry.url
+        let kind = entry.kind
         do {
-            switch entry.kind {
-            case .audio:
-                let data = try await Task.detached(priority: .userInitiated) {
-                    try TagFile.read(at: url)
-                }.value
-                entry.acceptNewOriginal(data)
-            case .image:
-                let fields = try await Task.detached(priority: .userInitiated) {
-                    try ExifTool.readCoreFields(url: url)
-                }.value
-                entry.acceptNewImageOriginal(fields)
-            case .ebook:
-                let fields = try await Task.detached(priority: .userInitiated) {
-                    try EbookTool.readCoreFields(url: url)
-                }.value
-                entry.acceptNewEbookOriginal(fields)
-            }
+            let loaded = try await Task.detached(priority: .userInitiated) {
+                try Self.readLoaded(url: url, kind: kind)
+            }.value
+            entry.acceptNew(loaded)
         } catch {
             entry.lastError = error.localizedDescription
         }
@@ -492,37 +428,30 @@ final class AppModel {
     /// Schreibt den Bearbeitungspuffer einer Datei und liest sie neu ein.
     func save(entry: FileEntry) async {
         let url = entry.url
+        let kind = entry.kind
+        let properties = entry.properties
+        let artworks = entry.artworks
+        let imageFields = entry.imageFields
+        let imageOriginal = entry.imageOriginal
+        let ebookFields = entry.ebookFields
+        let ebookOriginal = entry.ebookOriginal
+        let newCover = entry.ebookCoverReplacement
         do {
-            switch entry.kind {
-            case .audio:
-                let properties = entry.properties
-                let artworks = entry.artworks
-                let reloaded = try await Task.detached(priority: .userInitiated) {
+            let reloaded = try await Task.detached(priority: .userInitiated) {
+                switch kind {
+                case .audio:
                     try TagFile.write(properties: properties, artworks: artworks, to: url)
-                    return try TagFile.read(at: url)
-                }.value
-                entry.acceptNewOriginal(reloaded)
-            case .image:
-                let fields = entry.imageFields
-                let original = entry.imageOriginal
-                let reloaded = try await Task.detached(priority: .userInitiated) {
-                    try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
-                    return try ExifTool.readCoreFields(url: url)
-                }.value
-                entry.acceptNewImageOriginal(reloaded)
-            case .ebook:
-                let fields = entry.ebookFields
-                let original = entry.ebookOriginal
-                let newCover = entry.ebookCoverReplacement
-                let reloaded = try await Task.detached(priority: .userInitiated) {
-                    try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+                case .image:
+                    try ExifTool.writeCoreFields(url: url, fields: imageFields, original: imageOriginal)
+                case .ebook:
+                    try EbookTool.writeCoreFields(url: url, fields: ebookFields, original: ebookOriginal)
                     if let newCover {
                         try EbookTool.writeCover(url: url, data: newCover)
                     }
-                    return try EbookTool.readCoreFields(url: url)
-                }.value
-                entry.acceptNewEbookOriginal(reloaded)
-            }
+                }
+                return try Self.readLoaded(url: url, kind: kind)
+            }.value
+            entry.acceptNew(reloaded)
         } catch {
             entry.lastError = error.localizedDescription
             alertMessage = String(localized: "Speichern fehlgeschlagen: \(url.lastPathComponent)")

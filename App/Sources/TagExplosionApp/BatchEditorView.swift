@@ -192,19 +192,7 @@ struct BatchEditorView: View {
     }
 
     private func handleCoverDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        if provider.canLoadObject(ofClass: URL.self) {
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, let data = try? Data(contentsOf: url) else { return }
-                DispatchQueue.main.async { setCoverForAll(data) }
-            }
-            return true
-        }
-        provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
-            guard let data else { return }
-            DispatchQueue.main.async { setCoverForAll(data) }
-        }
-        return true
+        CoverDrop.load(providers) { setCoverForAll($0) }
     }
 
     private func pickCover() {

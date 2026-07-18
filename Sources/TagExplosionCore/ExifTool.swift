@@ -58,14 +58,7 @@ public enum ExifTool {
     ]
 
     public static func locateExecutable() throws -> String {
-        for candidate in executableCandidates {
-            if candidate.contains("/") {
-                if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
-            } else if let found = which(candidate) {
-                return found
-            }
-        }
-        throw TagError.toolNotFound(name: "exiftool")
+        try MediaInfoReader.locateTool(candidates: executableCandidates, name: "exiftool")
     }
 
     // MARK: - Lesen
@@ -223,12 +216,4 @@ public enum ExifTool {
         }
     }
 
-    private static func which(_ name: String) -> String? {
-        guard let path = ProcessInfo.processInfo.environment["PATH"] else { return nil }
-        for dir in path.split(separator: ":") {
-            let candidate = "\(dir)/\(name)"
-            if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
-        }
-        return nil
-    }
 }

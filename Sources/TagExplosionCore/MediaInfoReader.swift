@@ -186,6 +186,20 @@ public enum MediaInfoReader {
         return outData
     }
 
+    /// Externes Programm über eine Kandidatenliste finden: Einträge mit "/"
+    /// werden als Pfad geprüft, alle anderen über PATH gesucht. Gemeinsamer
+    /// Mechanismus für mediainfo/exiftool/ebook-meta.
+    static func locateTool(candidates: [String], name: String) throws -> String {
+        for candidate in candidates {
+            if candidate.contains("/") {
+                if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
+            } else if let found = which(candidate) {
+                return found
+            }
+        }
+        throw TagError.toolNotFound(name: name)
+    }
+
     /// `which`-Ersatz: sucht ein Kommando im PATH.
     private static func which(_ name: String) -> String? {
         guard let path = ProcessInfo.processInfo.environment["PATH"] else { return nil }

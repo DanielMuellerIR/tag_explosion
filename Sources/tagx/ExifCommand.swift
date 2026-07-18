@@ -88,11 +88,7 @@ struct ExifSet: ParsableCommand {
         var fields = original
         if let title { fields.title = title }
         if let description { fields.description = description }
-        if let keywords {
-            fields.keywords = keywords.split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
-        }
+        if let keywords { fields.keywords = keywords.splitCommaList() }
         if let creator { fields.creator = creator }
         if let copyright { fields.copyright = copyright }
         if let date { fields.dateTimeOriginal = date }
@@ -133,10 +129,7 @@ struct ExifSet: ParsableCommand {
                 switch target {
                 case "title": fields.title = value
                 case "description": fields.description = value
-                case "keywords":
-                    fields.keywords = value.split(separator: ",")
-                        .map { $0.trimmingCharacters(in: .whitespaces) }
-                        .filter { !$0.isEmpty }
+                case "keywords": fields.keywords = value.splitCommaList()
                 case "creator": fields.creator = value
                 case "copyright": fields.copyright = value
                 default: break

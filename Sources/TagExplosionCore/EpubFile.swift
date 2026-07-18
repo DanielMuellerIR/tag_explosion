@@ -28,7 +28,7 @@ enum EpubFile {
         fields.title = textOfFirst("title", in: metadata)
         fields.authors = elements(named: "creator", in: metadata)
             // EPUB 2 markiert Rollen über opf:role; ohne Attribut gilt Autor.
-            .filter { role($0) == nil || role($0) == "aut" }
+            .filter { attribute($0, "role") == nil || attribute($0, "role") == "aut" }
             .map { $0.stringValue ?? "" }
             .filter { !$0.isEmpty }
         fields.description = textOfFirst("description", in: metadata)
@@ -338,18 +338,18 @@ enum EpubFile {
     /// Neues Dublin-Core-Element mit dem im Dokument üblichen Präfix ("dc").
     private static func dcElement(_ name: String, value: String, in metadata: XMLElement) -> XMLElement {
         // Vorhandene dc-Elemente verraten das Präfix; Standard ist "dc".
-        let prefix = elements(withLocalNames: ["title", "language", "identifier"], in: metadata)
-            .first?.name?.split(separator: ":").dropLast().first.map(String.init) ?? "dc"
+        let prefix = (metadata.children ?? [])
+            .compactMap { $0 as? XMLElement }
+            .first { ["title", "language", "identifier"].contains(localName($0)) }?
+            .name?.split(separator: ":").dropLast().first.map(String.init) ?? "dc"
         let element = XMLElement(name: "\(prefix):\(name)")
         element.stringValue = value
         return element
     }
 
-    /// "1.0" → "1" (Calibre schreibt Serienindizes als Bruchzahl).
+    /// Gemeinsame Calibre-Konvention, siehe EbookTool.
     private static func normalizedSeriesIndex(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespaces)
-        if trimmed.hasSuffix(".0") { return String(trimmed.dropLast(2)) }
-        return trimmed
+        EbookTool.normalizedSeriesIndex(raw)
     }
 
     // MARK: - XML-Helfer (namespace-tolerant über lokale Namen)
@@ -364,12 +364,6 @@ enum EpubFile {
         (parent.children ?? [])
             .compactMap { $0 as? XMLElement }
             .filter { localName($0) == name }
-    }
-
-    private static func elements(withLocalNames names: [String], in parent: XMLElement) -> [XMLElement] {
-        (parent.children ?? [])
-            .compactMap { $0 as? XMLElement }
-            .filter { names.contains(localName($0)) }
     }
 
     private static func firstElement(named name: String, in parent: XMLElement?) -> XMLElement? {
@@ -411,10 +405,5 @@ enum EpubFile {
         node.name = name
         node.stringValue = value
         element.addAttribute(node)
-    }
-
-    /// opf:role eines creators (EPUB 2), z.B. "aut".
-    private static func role(_ element: XMLElement) -> String? {
-        attribute(element, "role")
     }
 }

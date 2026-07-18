@@ -76,20 +76,19 @@ public enum EbookTool {
         "/Applications/calibre.app/Contents/MacOS/ebook-meta",
     ]
 
+    /// Einmal pro Prozess gesucht — eine Calibre-Installation ändert sich zur
+    /// Laufzeit nicht, und der Pfad-Scan liefe sonst bei jeder Datei-Operation.
+    private static let calibreLocation: String? =
+        try? MediaInfoReader.locateTool(candidates: calibreCandidates, name: "ebook-meta")
+
     public static func locateCalibre() throws -> String {
-        for candidate in calibreCandidates {
-            if candidate.contains("/") {
-                if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
-            } else if let found = which(candidate) {
-                return found
-            }
-        }
-        throw TagError.toolNotFound(name: "ebook-meta (Calibre)")
+        guard let calibreLocation else { throw TagError.toolNotFound(name: "ebook-meta (Calibre)") }
+        return calibreLocation
     }
 
     /// Ist Calibre da? (Entscheidet, ob mobi/azw3/fb2 angeboten werden.)
     public static var calibreAvailable: Bool {
-        (try? locateCalibre()) != nil
+        calibreLocation != nil
     }
 
     // MARK: - Lesen/Schreiben (Dispatcher)
@@ -279,9 +278,7 @@ public enum EbookTool {
         // "Series : Name #2.0"
         if let series = values["Series"], let hash = series.range(of: " #", options: .backwards) {
             fields.series = String(series[..<hash.lowerBound]).trimmingCharacters(in: .whitespaces)
-            var index = String(series[hash.upperBound...]).trimmingCharacters(in: .whitespaces)
-            if index.hasSuffix(".0") { index = String(index.dropLast(2)) }
-            fields.seriesIndex = index
+            fields.seriesIndex = normalizedSeriesIndex(String(series[hash.upperBound...]))
         } else {
             fields.series = values["Series"] ?? ""
         }
@@ -337,6 +334,13 @@ public enum EbookTool {
 
     // MARK: - Intern
 
+    /// "1.0" → "1" (Calibre schreibt Serienindizes als Bruchzahl).
+    static func normalizedSeriesIndex(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasSuffix(".0") { return String(trimmed.dropLast(2)) }
+        return trimmed
+    }
+
     private static func listify(_ value: Any?) -> [String] {
         if let list = value as? [Any] {
             return list.map { ExifTool.stringify($0) }.filter { !$0.isEmpty }
@@ -345,9 +349,7 @@ public enum EbookTool {
         guard !single.isEmpty else { return [] }
         // Kommagetrennte Einzelwerte (PDF:Keywords, PDF:Author "A & B")
         if single.contains(",") {
-            return single.split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
+            return single.splitCommaList()
         }
         if single.contains(" & ") {
             return single.components(separatedBy: " & ")
@@ -355,14 +357,5 @@ public enum EbookTool {
                 .filter { !$0.isEmpty }
         }
         return [single]
-    }
-
-    private static func which(_ name: String) -> String? {
-        guard let path = ProcessInfo.processInfo.environment["PATH"] else { return nil }
-        for dir in path.split(separator: ":") {
-            let candidate = "\(dir)/\(name)"
-            if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
-        }
-        return nil
     }
 }

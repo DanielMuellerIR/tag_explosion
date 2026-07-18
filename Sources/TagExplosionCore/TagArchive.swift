@@ -68,10 +68,18 @@ public enum TagArchiveIO {
                 path: relativePath(of: url, to: baseDirectory), kind: kind)
             switch kind {
             case .audio:
-                let data = try TagFile.read(at: url)
-                entry.properties = propertyMap(data.properties)
-                if includeCovers, !data.artworks.isEmpty {
-                    entry.artworks = data.artworks
+                if includeCovers {
+                    let data = try TagFile.read(at: url)
+                    entry.properties = propertyMap(data.properties)
+                    if !data.artworks.isEmpty {
+                        entry.artworks = data.artworks
+                    }
+                } else {
+                    // Ohne Cover reicht die PropertyMap — erspart das
+                    // Extrahieren aller eingebetteten Bilder.
+                    let file = try TagFile(url: url)
+                    defer { file.close() }
+                    entry.properties = propertyMap(try file.properties())
                 }
             case .image:
                 entry.image = try ExifTool.readCoreFields(url: url)
@@ -95,6 +103,27 @@ public enum TagArchiveIO {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try encoder.encode(archive).write(to: jsonURL, options: .atomic)
+    }
+
+    /// Schreibt je betroffenem Ordner ein `tags-backup-<Zeitstempel>.json` mit
+    /// dem aktuellen Platten-Zustand der Dateien (bewusst frisch gelesen, nicht
+    /// aus Puffern — das Backup soll den echten Dateizustand sichern).
+    /// Wiederherstellen = derselbe Import-Weg, auch per `tagx import`.
+    @discardableResult
+    public static func writeBackups(files: [URL]) throws -> [URL] {
+        // Zeitstempel ohne Doppelpunkte (Dateiname), ISO-8601-sortierbar.
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd'T'HHmmss"
+        let stamp = formatter.string(from: Date())
+
+        var written: [URL] = []
+        for (folder, urls) in Dictionary(grouping: files, by: { $0.deletingLastPathComponent() }) {
+            let target = folder.appendingPathComponent("tags-backup-\(stamp).json")
+            try export(files: urls, to: target, includeCovers: true)
+            written.append(target)
+        }
+        return written
     }
 
     // MARK: - Importieren
@@ -164,16 +193,14 @@ public enum TagArchiveIO {
             let current = try EbookTool.readCoreFields(url: url)
             let target = entry.ebook ?? current
             let fieldsDiffer = target != current
-            var coverDiffers = false
-            if let cover = entry.artworks?.first, EbookTool.supportsCover(url: url) {
-                coverDiffers = (try? EbookTool.readCover(url: url))?.data != cover.data
-            }
+            let cover = EbookTool.supportsCover(url: url) ? entry.artworks?.first : nil
+            let coverDiffers = cover.map { (try? EbookTool.readCover(url: url))?.data != $0.data } ?? false
             guard fieldsDiffer || coverDiffers else { return false }
             if !dryRun {
                 if fieldsDiffer {
                     try EbookTool.writeCoreFields(url: url, fields: target, original: current)
                 }
-                if coverDiffers, let cover = entry.artworks?.first {
+                if coverDiffers, let cover {
                     try EbookTool.writeCover(url: url, data: cover.data)
                 }
             }

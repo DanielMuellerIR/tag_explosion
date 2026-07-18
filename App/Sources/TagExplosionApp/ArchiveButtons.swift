@@ -41,8 +41,7 @@ struct ArchiveButtons: View {
         }
         panel.message = String(localized: "Tags der \(entries.count) ausgewählten Dateien exportieren")
         if panel.runModal() == .OK, let url = panel.url {
-            let selected = entries
-            Task { await model.exportEntries(selected, to: url) }
+            Task { await model.exportEntries(entries, to: url) }
         }
     }
 

@@ -48,55 +48,55 @@ struct EbookBatchEditorView: View {
         GroupBox("Metadaten (für alle setzen)") {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
-                    label("Autor(en)")
-                    EbookBatchTextField(
+                    GridFieldLabel("Autor(en)")
+                    BatchFieldTextField(
                         entries: entries,
                         get: { $0.ebookFields.authors.joined(separator: ", ") },
-                        set: { entry, value in entry.ebookFields.authors = splitList(value) })
+                        set: { entry, value in entry.ebookFields.authors = value.splitCommaList() })
                 }
                 if allSupportSeries {
                     GridRow {
-                        label("Serie")
-                        EbookBatchTextField(
+                        GridFieldLabel("Serie")
+                        BatchFieldTextField(
                             entries: entries,
                             get: { $0.ebookFields.series },
                             set: { entry, value in entry.ebookFields.series = value })
                     }
                 } else {
                     GridRow {
-                        label("Serie")
+                        GridFieldLabel("Serie")
                         Text("Nicht verfügbar — PDF in der Auswahl")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
                 }
                 GridRow {
-                    label("Verlag")
-                    EbookBatchTextField(
+                    GridFieldLabel("Verlag")
+                    BatchFieldTextField(
                         entries: entries,
                         get: { $0.ebookFields.publisher },
                         set: { entry, value in entry.ebookFields.publisher = value })
                 }
                 GridRow {
-                    label("Sprache")
-                    EbookBatchTextField(
+                    GridFieldLabel("Sprache")
+                    BatchFieldTextField(
                         entries: entries,
                         get: { $0.ebookFields.language },
                         set: { entry, value in entry.ebookFields.language = value })
                 }
                 GridRow {
-                    label("Datum")
-                    EbookBatchTextField(
+                    GridFieldLabel("Datum")
+                    BatchFieldTextField(
                         entries: entries,
                         get: { $0.ebookFields.date },
                         set: { entry, value in entry.ebookFields.date = value })
                 }
                 GridRow {
-                    label("Schlagwörter")
-                    EbookBatchTextField(
+                    GridFieldLabel("Schlagwörter")
+                    BatchFieldTextField(
                         entries: entries,
                         get: { $0.ebookFields.subjects.joined(separator: ", ") },
-                        set: { entry, value in entry.ebookFields.subjects = splitList(value) })
+                        set: { entry, value in entry.ebookFields.subjects = value.splitCommaList() })
                 }
             }
             .padding(8)
@@ -123,39 +123,4 @@ struct EbookBatchEditorView: View {
         }
     }
 
-    private func label(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .gridColumnAlignment(.trailing)
-            .foregroundStyle(.secondary)
-    }
-}
-
-private func splitList(_ value: String) -> [String] {
-    value.split(separator: ",")
-        .map { $0.trimmingCharacters(in: .whitespaces) }
-        .filter { !$0.isEmpty }
-}
-
-/// Batch-Textfeld für E-Books: gemeinsamer Wert oder "— verschieden —".
-struct EbookBatchTextField: View {
-    let entries: [FileEntry]
-    let get: (FileEntry) -> String
-    let set: (FileEntry, String) -> Void
-
-    var body: some View {
-        let common = commonValue
-        TextField(common == nil ? "— verschieden —" : "", text: Binding(
-            get: { common ?? "" },
-            set: { newValue in
-                for entry in entries { set(entry, newValue) }
-            }
-        ))
-        .textFieldStyle(.roundedBorder)
-    }
-
-    private var commonValue: String? {
-        guard let firstEntry = entries.first else { return nil }
-        let first = get(firstEntry)
-        return entries.allSatisfy { get($0) == first } ? first : nil
-    }
 }

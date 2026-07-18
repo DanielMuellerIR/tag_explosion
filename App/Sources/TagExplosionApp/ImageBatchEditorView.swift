@@ -50,41 +50,37 @@ struct ImageBatchEditorView: View {
         GroupBox("Metadaten (für alle setzen)") {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 10) {
                 GridRow {
-                    label("Titel")
+                    GridFieldLabel("Titel")
                     textFieldWithCopy(
                         get: { $0.imageFields.title },
                         set: { entry, value in entry.imageFields.title = value })
                 }
                 GridRow {
-                    label("Beschreibung")
+                    GridFieldLabel("Beschreibung")
                     textFieldWithCopy(
                         get: { $0.imageFields.description },
                         set: { entry, value in entry.imageFields.description = value })
                 }
                 GridRow {
-                    label("Schlagwörter")
+                    GridFieldLabel("Schlagwörter")
                     textFieldWithCopy(
                         get: { $0.imageFields.keywords.joined(separator: ", ") },
-                        set: { entry, value in
-                            entry.imageFields.keywords = value.split(separator: ",")
-                                .map { $0.trimmingCharacters(in: .whitespaces) }
-                                .filter { !$0.isEmpty }
-                        })
+                        set: { entry, value in entry.imageFields.keywords = value.splitCommaList() })
                 }
                 GridRow {
-                    label("Ersteller")
+                    GridFieldLabel("Ersteller")
                     textFieldWithCopy(
                         get: { $0.imageFields.creator },
                         set: { entry, value in entry.imageFields.creator = value })
                 }
                 GridRow {
-                    label("Copyright")
+                    GridFieldLabel("Copyright")
                     textFieldWithCopy(
                         get: { $0.imageFields.copyright },
                         set: { entry, value in entry.imageFields.copyright = value })
                 }
                 GridRow {
-                    label("Bewertung")
+                    GridFieldLabel("Bewertung")
                     Picker("", selection: ratingBinding) {
                         Text("— verschieden —").tag(Int?.none)
                         Text("keine").tag(Int?.some(-1))
@@ -108,7 +104,7 @@ struct ImageBatchEditorView: View {
         set: @escaping (FileEntry, String) -> Void
     ) -> some View {
         HStack(spacing: 6) {
-            ImageBatchTextField(entries: entries, placeholderWhenMixed: true, get: get, set: set)
+            BatchFieldTextField(entries: entries, get: get, set: set)
             ImageCopyFromTagMenu(entries: entries, rawTags: rawTags, assign: set)
         }
     }
@@ -157,11 +153,6 @@ struct ImageBatchEditorView: View {
         }
     }
 
-    private func label(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .gridColumnAlignment(.trailing)
-            .foregroundStyle(.secondary)
-    }
 }
 
 /// Menü „Wert aus Tag übernehmen" für Bilder: Quellen sind ALLE rohen
@@ -221,27 +212,3 @@ struct ImageCopyFromTagMenu: View {
     }
 }
 
-/// Batch-Textfeld für Bilder: gemeinsamer Wert oder "— verschieden —".
-struct ImageBatchTextField: View {
-    let entries: [FileEntry]
-    let placeholderWhenMixed: Bool
-    let get: (FileEntry) -> String
-    let set: (FileEntry, String) -> Void
-
-    var body: some View {
-        let common = commonValue
-        TextField(common == nil && placeholderWhenMixed ? "— verschieden —" : "", text: Binding(
-            get: { common ?? "" },
-            set: { newValue in
-                for entry in entries { set(entry, newValue) }
-            }
-        ))
-        .textFieldStyle(.roundedBorder)
-    }
-
-    private var commonValue: String? {
-        guard let firstEntry = entries.first else { return nil }
-        let first = get(firstEntry)
-        return entries.allSatisfy { get($0) == first } ? first : nil
-    }
-}

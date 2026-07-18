@@ -79,7 +79,7 @@ struct EbookSet: ParsableCommand {
         let original = try EbookTool.readCoreFields(url: url)
         var fields = original
         if let title { fields.title = title }
-        if let authors { fields.authors = splitList(authors) }
+        if let authors { fields.authors = authors.splitCommaList() }
         if let series { fields.series = series }
         if let seriesIndex { fields.seriesIndex = seriesIndex }
         if let description { fields.description = description }
@@ -87,7 +87,7 @@ struct EbookSet: ParsableCommand {
         if let publisher { fields.publisher = publisher }
         if let language { fields.language = language }
         if let date { fields.date = date }
-        if let subjects { fields.subjects = splitList(subjects) }
+        if let subjects { fields.subjects = subjects.splitCommaList() }
 
         if !EbookTool.supportsSeries(url: url),
            fields.series != original.series || fields.seriesIndex != original.seriesIndex {
@@ -109,11 +109,5 @@ struct EbookSet: ParsableCommand {
             changed = true
         }
         print(changed ? "OK \(url.lastPathComponent)" : "No changes")
-    }
-
-    private func splitList(_ value: String) -> [String] {
-        value.split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
     }
 }

@@ -224,3 +224,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.14.0  | Tag-Export/-Import als JSON (`tagx export/import`, GUI-Buttons) + Auto-Backup vor Batch-Speichern — ✅ |
 | 0.15.0  | Englische Lokalisierung: App (String Catalog de→en), CLI + Core-Fehler englisch — ✅ |
 | 0.15.1  | Zweisprachige Screenshots (de/en, inkl. E-Book-Editor) mit neuen Demo-Dateien; GUI-Regressionstest; Release-DMG-Testlauf — ✅ |
+| 0.15.2  | Cleanup-Pass nach 4-Perspektiven-Review: Duplikate zusammengelegt (Tool-Suche, Komma-Splits, Batch-Textfeld, MediaKind, Cover-Drop), Backup-Konvention in den Core — ✅ |
