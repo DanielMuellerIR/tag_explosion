@@ -81,6 +81,16 @@
         }
       }
     },
+    "Abbrechen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
     ", %lld fehlend": {
       "localizations": {
         "en": {
@@ -1001,6 +1011,26 @@
         }
       }
     },
+    "Speichern fehlgeschlagen. Die Aktion wurde nicht ausgeführt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving failed. The action was not performed."
+          }
+        }
+      }
+    },
+    "Speichere Änderungen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving changes …"
+          }
+        }
+      }
+    },
     "Sprache": {
       "localizations": {
         "en": {
@@ -1297,6 +1327,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Changes apply to all selected files."
+          }
+        }
+      }
+    },
+    "Ungespeicherte Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved Changes"
+          }
+        }
+      }
+    },
+    "Verwerfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard"
+          }
+        }
+      }
+    },
+    "Vor dem Beenden müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before quitting."
+          }
+        }
+      }
+    },
+    "Vor dem Entfernen müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before removing the files."
+          }
+        }
+      }
+    },
+    "Vor dem Import müssen die Änderungen betroffener Dateien gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes to affected files before importing."
+          }
+        }
+      }
+    },
+    "Vor dem Schließen des Fensters müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before closing the window."
           }
         }
       }

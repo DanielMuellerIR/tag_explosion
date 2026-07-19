@@ -48,6 +48,7 @@ struct ContentView: View {
         }
         .navigationTitle(navigationTitle)
         .navigationSubtitle(subtitle)
+        .background(WindowCloseAccessor(model: model).frame(width: 0, height: 0))
         // Drop überall im Fenster: Dateien/Ordner laden
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers)
@@ -66,7 +67,8 @@ struct ContentView: View {
                 } label: {
                     Label("Speichern", systemImage: "checkmark.circle.fill")
                 }
-                .disabled(!model.selectionIsDirty)
+                .disabled(!model.selectionIsDirty || model.selectionIsSaving
+                          || model.isDestructiveActionLocked)
                 .help("Änderungen der Auswahl speichern (⌘S)")
 
                 if model.entries.filter(\.isDirty).count > 1 {
@@ -75,9 +77,54 @@ struct ContentView: View {
                     } label: {
                         Label("Alle speichern", systemImage: "checkmark.circle.badge.questionmark")
                     }
+                    .disabled(model.hasSavingEntries || model.isDestructiveActionLocked)
                     .help("Alle geänderten Dateien speichern (⌥⌘S)")
                 }
             }
+        }
+        // Während der tatsächlichen Entscheidung darf kein Editor-Puffer noch
+        // eine weitere Eingabe annehmen. Der Dialog selbst bleibt außerhalb
+        // dieses Modifiers bedienbar.
+        .disabled(model.isEditorInteractionLocked)
+        .overlay {
+            if model.isResolvingConflict {
+                ProgressView("Speichere Änderungen …")
+                    .padding(20)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .confirmationDialog(
+            model.pendingConflict?.title ?? "",
+            isPresented: .init(
+                get: { model.pendingConflict != nil },
+                set: { isPresented in
+                    // Klick außerhalb des Dialogs zählt wie Abbrechen. Der
+                    // MainActor-Guard im Modell macht Button + Binding sicher
+                    // gegen doppelte Aufrufe.
+                    guard !isPresented, model.pendingConflict != nil,
+                          model.claimPendingConflict(.cancel) else { return }
+                    Task { await model.resolveClaimedPendingConflict() }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Speichern") {
+                guard model.claimPendingConflict(.save) else { return }
+                Task { await model.resolveClaimedPendingConflict() }
+            }
+            .disabled(model.isResolvingConflict)
+            Button("Verwerfen", role: .destructive) {
+                guard model.claimPendingConflict(.discard) else { return }
+                Task { await model.resolveClaimedPendingConflict() }
+            }
+            .disabled(model.isResolvingConflict)
+            Button("Abbrechen", role: .cancel) {
+                guard model.claimPendingConflict(.cancel) else { return }
+                Task { await model.resolveClaimedPendingConflict() }
+            }
+            .disabled(model.isResolvingConflict)
+        } message: {
+            Text(model.pendingConflict?.displayedMessage ?? "")
         }
         .alert("Hinweis", isPresented: .init(
             get: { model.alertMessage != nil },
@@ -97,6 +144,7 @@ struct ContentView: View {
 
     private var subtitle: String {
         if let entry = model.selectedEntry {
+            if entry.isSaving { return String(localized: "Speichert …") }
             return entry.isDirty ? String(localized: "Bearbeitet") : ""
         }
         if model.selectedEntries.count > 1 {
@@ -115,7 +163,7 @@ struct ContentView: View {
                     .tag(entry.url)
                     .contextMenu {
                         Button("Aus Liste entfernen") {
-                            model.remove(urls: [entry.url])
+                            Task { await model.remove(urls: [entry.url]) }
                         }
                         Button("Im Finder zeigen") {
                             NSWorkspace.shared.activateFileViewerSelecting([entry.url])
@@ -190,6 +238,11 @@ struct FileRow: View {
                     .lineLimit(1)
             }
             Spacer()
+            if entry.isSaving {
+                ProgressView()
+                    .controlSize(.small)
+                    .help("Speichert …")
+            }
             if entry.isDirty {
                 Circle()
                     .fill(.orange)

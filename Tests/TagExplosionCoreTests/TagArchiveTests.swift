@@ -9,6 +9,10 @@ import Testing
 @Suite("TagArchive", .serialized)
 struct TagArchiveTests {
 
+    private static let calibreFixtureAvailable = EbookTool.calibreAvailable
+        && FileManager.default.fileExists(
+            atPath: Fixtures.directory.appendingPathComponent("book.azw3").path)
+
     /// Kopiert mehrere Fixtures zusammen in EIN frisches Temp-Verzeichnis.
     private func makeFolder(_ names: [String]) throws -> URL {
         let dir = FileManager.default.temporaryDirectory
@@ -41,7 +45,7 @@ struct TagArchiveTests {
         // Verändern, dann wiederherstellen
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Kaputt")],
                           artworks: [], to: mp3)
-        let report = TagArchiveIO.apply(try TagArchiveIO.load(json),
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                         relativeTo: dir, dryRun: false)
         #expect(report.applied == ["sample.mp3"])
         #expect(report.unchanged == ["sample.flac"])
@@ -79,7 +83,7 @@ struct TagArchiveTests {
         brokenEpub.title = "Kaputt"
         try EbookTool.writeCoreFields(url: epub, fields: brokenEpub, original: epubOriginal)
 
-        let report = TagArchiveIO.apply(try TagArchiveIO.load(json),
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                         relativeTo: dir, dryRun: false)
         #expect(Set(report.applied) == ["cover.jpg", "book2.epub"])
         #expect(try ExifTool.readCoreFields(url: jpg).title == "Bild-Original")
@@ -98,7 +102,7 @@ struct TagArchiveTests {
         // Datei umbenennen: Archiv-Eintrag wird "fehlend", neue Datei "zusätzlich"
         let renamed = dir.appendingPathComponent("umbenannt.mp3")
         try FileManager.default.moveItem(at: mp3, to: renamed)
-        var report = TagArchiveIO.apply(try TagArchiveIO.load(json),
+        var report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                         relativeTo: dir, dryRun: false)
         #expect(report.missing == ["sample.mp3"])
         #expect(report.extra == ["umbenannt.mp3"])
@@ -107,7 +111,7 @@ struct TagArchiveTests {
         try FileManager.default.moveItem(at: renamed, to: mp3)
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Kaputt")],
                           artworks: [], to: mp3)
-        report = TagArchiveIO.apply(try TagArchiveIO.load(json),
+        report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                     relativeTo: dir, dryRun: true)
         #expect(report.applied == ["sample.mp3"])
         #expect(try TagFile.read(at: mp3).firstValue(for: "TITLE") == "Kaputt")
@@ -123,11 +127,12 @@ struct TagArchiveTests {
 
         let json = dir.appendingPathComponent("tags.json")
         try TagArchiveIO.export(files: [mp3], to: json, includeCovers: false)
+        #expect(try TagArchiveIO.load(json).files.first?.artworks == nil)
         // Titel ändern, Cover bleibt — Import stellt Titel her, Cover bleibt da
         let current = try TagFile.read(at: mp3)
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Kaputt")],
                           artworks: current.artworks, to: mp3)
-        let report = TagArchiveIO.apply(try TagArchiveIO.load(json),
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                         relativeTo: dir, dryRun: false)
         #expect(report.applied == ["sample.mp3"])
         let restored = try TagFile.read(at: mp3)
@@ -144,5 +149,162 @@ struct TagArchiveTests {
             of: URL(fileURLWithPath: "/a/b/c/sub/x.mp3"), to: base) == "sub/x.mp3")
         #expect(TagArchiveIO.relativePath(
             of: URL(fileURLWithPath: "/a/other/x.mp3"), to: base) == "../../other/x.mp3")
+    }
+
+    @Test("Explizit leere Audio-Cover werden exportiert und beim Import entfernt")
+    func emptyAudioCoverRemovesLaterCover() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Ohne Cover")],
+                          artworks: [], to: mp3)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [mp3], to: json, includeCovers: true)
+        let archive = try TagArchiveIO.load(json)
+        #expect(archive.files.first?.artworks == [])
+
+        // Ein nach dem Backup hinzugefügtes Cover gehört nicht zum Soll-Zustand.
+        try TagFile.write(artworks: [Artwork(data: try Fixtures.coverData("cover.jpg"))], to: mp3)
+        let report = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["sample.mp3"])
+        #expect(try TagFile.read(at: mp3).artworks.isEmpty)
+    }
+
+    @Test("Explizit leere EPUB-Cover werden exportiert und beim Import entfernt")
+    func emptyEpubCoverRemovesLaterCover() throws {
+        let dir = try makeFolder(["book2.epub"])
+        let epub = dir.appendingPathComponent("book2.epub")
+        try EbookTool.removeCover(url: epub)
+        #expect(try EbookTool.readCover(url: epub) == nil)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [epub], to: json, includeCovers: true)
+        let archive = try TagArchiveIO.load(json)
+        #expect(archive.files.first?.artworks == [])
+
+        try EbookTool.writeCover(url: epub, data: try Fixtures.coverData("cover.png"))
+        let report = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["book2.epub"])
+        #expect(try EbookTool.readCover(url: epub) == nil)
+    }
+
+    @Test("EPUB ohne archivierte Cover lässt ein späteres Cover unverändert")
+    func epubWithoutCoversKeepsLaterCover() throws {
+        let dir = try makeFolder(["book2.epub"])
+        let epub = dir.appendingPathComponent("book2.epub")
+        let original = try EbookTool.readCoreFields(url: epub)
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [epub], to: json, includeCovers: false)
+        let archive = try TagArchiveIO.load(json)
+        #expect(archive.files.first?.artworks == nil)
+
+        var changed = original
+        changed.title = "Später geändert"
+        try EbookTool.writeCoreFields(url: epub, fields: changed, original: original)
+        let replacement = try Fixtures.coverData("cover.png")
+        try EbookTool.writeCover(url: epub, data: replacement)
+
+        let report = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["book2.epub"])
+        #expect(try EbookTool.readCoreFields(url: epub) == original)
+        #expect(try EbookTool.readCover(url: epub)?.data == replacement)
+    }
+
+    @Test("Leeres Calibre-Cover wird vor allen Archivmutationen abgelehnt", .enabled(
+        if: Self.calibreFixtureAvailable,
+        "Calibre oder die azw3-Fixture fehlt"
+    ))
+    func emptyCalibreCoverIsRejectedBeforeArchiveWrites() throws {
+        let dir = try makeFolder(["sample.mp3", "book.azw3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        let azw3 = dir.appendingPathComponent("book.azw3")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Vorher")],
+                          artworks: [], to: mp3)
+        let bytesBefore = try Data(contentsOf: mp3)
+        let ebook = try EbookTool.readCoreFields(url: azw3)
+        let archive = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Darf nicht geschrieben werden"]]),
+            .init(path: "book.azw3", kind: .ebook, artworks: [], ebook: ebook),
+        ])
+
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "book.azw3",
+            detail: "the target ebook backend cannot safely remove covers"
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try Data(contentsOf: mp3) == bytesBefore)
+
+        // nil heißt weiterhin: Cover wurden nicht archiviert. Das ist kein
+        // Löschauftrag und muss deshalb auf dem Calibre-Backend erlaubt bleiben.
+        let withoutCoverInstruction = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "book.azw3", kind: .ebook, artworks: nil, ebook: ebook),
+        ])
+        let ebookBytesBefore = try Data(contentsOf: azw3)
+        let report = try TagArchiveIO.apply(withoutCoverInstruction,
+                                            relativeTo: dir, dryRun: false)
+        #expect(report.unchanged == ["book.azw3"])
+        #expect(try Data(contentsOf: azw3) == ebookBytesBefore)
+    }
+
+    @Test("Ungültiges Archiv wird vor jeder Mutation vollständig abgelehnt")
+    func invalidArchiveDoesNotChangeEarlierEntries() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")], to: mp3)
+        let before = try TagFile.read(at: mp3)
+        let archive = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Wäre geändert worden"]]),
+            .init(path: "zweiter-eintrag.mp3", kind: .audio, properties: nil),
+        ])
+
+        #expect(throws: TagArchiveError.self) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try TagFile.read(at: mp3) == before)
+    }
+
+    @Test("Symlink-Ziele im Archiv werden vor der ersten Mutation dedupliziert")
+    func symlinkArchiveTargetsDoNotMutateFirstEntry() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
+                          artworks: [], to: mp3)
+        let alias = dir.appendingPathComponent("alias.mp3")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: mp3)
+        let bytesBefore = try Data(contentsOf: mp3)
+        let archive = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Darf nicht geschrieben werden"]]),
+            .init(path: "alias.mp3", kind: .audio,
+                  properties: ["TITLE": ["Zweites Ziel"]]),
+        ])
+
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "alias.mp3",
+            detail: "different paths resolve to the same target"
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try Data(contentsOf: mp3) == bytesBefore)
+        #expect(try TagFile.read(at: mp3).firstValue(for: "TITLE") == "Original")
+    }
+
+    @Test("Nur bekannte Archivversionen und passende Pflichtdaten werden akzeptiert")
+    func archiveSchemaValidation() throws {
+        let unsupported = TagArchive(version: 2, created: "2026-07-19T00:00:00Z", files: [])
+        #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(unsupported) }
+
+        let missingImage = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: nil),
+        ])
+        #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(missingImage) }
+
+        let missingEbook = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "book.epub", kind: .ebook, ebook: nil),
+        ])
+        #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(missingEbook) }
     }
 }

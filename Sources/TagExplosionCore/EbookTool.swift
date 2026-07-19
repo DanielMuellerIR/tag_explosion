@@ -120,6 +120,14 @@ public enum EbookTool {
         backend(for: url) != .pdf
     }
 
+    /// Ein Cover kann nur dann als leerer Archiv-Sollwert angewendet werden,
+    /// wenn das Backend es tatsächlich entfernen kann. ebook-meta bietet dafür
+    /// keine öffentliche, verlässliche Operation; ein stilles Beibehalten wäre
+    /// gefährlicher als das Archiv vor dem ersten Schreiben abzulehnen.
+    public static func supportsCoverRemoval(url: URL) -> Bool {
+        backend(for: url) == .epub
+    }
+
     /// Kann dieses Format eine Serie speichern? (PDF nicht — exiftool kennt
     /// keinen Standard-Ort dafür; Serienfelder werden dort ignoriert.)
     public static func supportsSeries(url: URL) -> Bool {
@@ -154,6 +162,17 @@ public enum EbookTool {
             defer { try? FileManager.default.removeItem(at: temp) }
             try data.write(to: temp)
             _ = try runCalibre(exe, [url.path, "--cover", temp.path])
+        }
+    }
+
+    /// Entfernt ein explizit archiviertes leeres Cover. PDF besitzt keine
+    /// Cover-Metadaten. Calibres öffentliche ebook-meta-Schnittstelle kennt
+    /// nur das Setzen eines Cover-Pfads; dort melden wir den nicht sicher
+    /// ausführbaren Löschwunsch statt ein vorhandenes Cover still zu behalten.
+    public static func removeCover(url: URL) throws {
+        switch backend(for: url) {
+        case .epub: try EpubFile.removeCover(url: url)
+        case .pdf, .calibre, nil: throw TagError.saveFailed(path: url.path)
         }
     }
 
@@ -282,9 +301,12 @@ public enum EbookTool {
         } else {
             fields.series = values["Series"] ?? ""
         }
-        // "Published : 2020-01-01T00:00:00+00:00" — nur das Datum behalten
+        // "Published : 2020-01-01T00:00:00+00:00" — nur das Datum behalten.
+        // Calibre codiert einen leeren Wert als Undefined-Date-Sentinel; die
+        // öffentliche Tag-API zeigt ihn wieder als leeren Wert an.
         if let published = values["Published"] {
-            fields.date = String(published.prefix(10))
+            let day = String(published.prefix(10))
+            fields.date = day == "0101-01-01" ? "" : day
         }
         // "Identifiers : isbn:9781234567890, mobi-asin:…"
         if let identifiers = values["Identifiers"] {
@@ -306,17 +328,27 @@ public enum EbookTool {
             args += ["--authors", fields.authors.joined(separator: " & ")]
         }
         if fields.series != original.series { args += ["--series", fields.series] }
-        if fields.seriesIndex != original.seriesIndex, !fields.seriesIndex.isEmpty {
-            args += ["--index", fields.seriesIndex]
+        if fields.seriesIndex != original.seriesIndex {
+            if !fields.seriesIndex.isEmpty {
+                args += ["--index", fields.seriesIndex]
+            } else if !fields.series.isEmpty {
+                // Calibres Modell kennt bei einer vorhandenen Serie keinen
+                // indexlosen Zustand. Der stabile Default #1 ersetzt daher
+                // den alten Wert, statt ihn unbemerkt stehen zu lassen.
+                args += ["--index", "1"]
+            }
         }
         if fields.description != original.description { args += ["--comments", fields.description] }
         if fields.isbn != original.isbn { args += ["--isbn", fields.isbn] }
         if fields.publisher != original.publisher { args += ["--publisher", fields.publisher] }
         if fields.language != original.language { args += ["--language", fields.language] }
-        if fields.date != original.date, !fields.date.isEmpty {
+        if fields.date != original.date {
             // Reines Datum als UTC-Mitternacht übergeben — sonst interpretiert
             // Calibre lokal und die Ausgabe (UTC) rutscht einen Tag zurück.
-            let date = fields.date.count == 10 ? fields.date + "T00:00:00+00:00" : fields.date
+            // Ein leerer Wert wird intern als Undefined-Date-Sentinel gespeichert
+            // und beim Lesen oben wieder als leer abgebildet.
+            let date = fields.date.isEmpty ? ""
+                : (fields.date.count == 10 ? fields.date + "T00:00:00+00:00" : fields.date)
             args += ["--date", date]
         }
         if fields.subjects != original.subjects {

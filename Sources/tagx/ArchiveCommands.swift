@@ -24,6 +24,15 @@ struct Export: ParsableCommand {
             throw ValidationError("No supported media files found.")
         }
         let jsonURL = URL(fileURLWithPath: output)
+        do {
+            // Dieser Check liegt vor TagArchiveIO.build(_:), also bevor ein
+            // Eingabemedium für den Export geöffnet wird.
+            try TagArchiveIO.validateExportDestination(files: files, destination: jsonURL)
+        } catch {
+            // ArgumentParser formatiert ValidationError für CLI-Nutzer klar
+            // und beendet den Befehl mit einem Fehler-Exit-Code.
+            throw ValidationError(error.localizedDescription)
+        }
         try TagArchiveIO.export(files: files, to: jsonURL, includeCovers: !withoutCovers)
         print("OK \(files.count) file(s) → \(jsonURL.path)")
     }
@@ -40,7 +49,7 @@ struct Import: ParsableCommand {
     func run() throws {
         let jsonURL = try resolveFile(file)
         let archive = try TagArchiveIO.load(jsonURL)
-        let report = TagArchiveIO.apply(
+        let report = try TagArchiveIO.apply(
             archive, relativeTo: jsonURL.deletingLastPathComponent(), dryRun: dryRun)
 
         let verb = dryRun ? "WOULD CHANGE" : "CHANGED"

@@ -1,6 +1,6 @@
 # Tag Explosion — Architekturplan
 
-Stand: 2026-07-17. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
+Stand: 2026-07-19. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
 
 ## Ziel
 
@@ -176,6 +176,25 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   verschreiben sich sonst im Titel); für die Aufnahme auf dem Schreibtisch
   abgelegt (lesbarer Pfad im Editor-Kopf), danach entfernt.
 
+### Review: Sicherheit und Zuverlässigkeit — ✅ umgesetzt in 0.15.3
+- Alle elf Review-Befunde geschlossen: kanonische Datei-/Zielpfade verhindern
+  Exportkollisionen auch über Symlinks und Hardlinks; Archive werden vollständig
+  validiert und Alias-Ziele dedupliziert, bevor irgendeine Datei verändert wird.
+  Medienformate und EPUB/Calibre-Quirks folgen beim Cover dem klaren Tri-State:
+  `[]` löscht ein Audio-/EPUB-Cover, `nil` lässt ein vorhandenes Cover unverändert;
+  Calibre lehnt ein nicht unterstütztes Entfernen vor jeder Mutation ab.
+- Backend und CLI haben Regressionen für Kollisionen, Archiv-Validierung und
+  -Import, Medienformat-Auswahl, E-Book-Roundtrips sowie große stdout-/stderr-
+  Pipes externer Prozesse. Der MediaInfo-Wrapper leert beide Pipes parallel und
+  schützt den Hänger-Regressionstest zusätzlich durch einen begrenzten
+  Prozess-Timeout.
+- Saves nutzen und serialisieren geprüfte Platten-Snapshots. Import-, Entfernen-,
+  Fenster-Schließen- und Quit-Aktionen mit möglichem Dirty-Konflikt laufen zentral
+  durch Save/Discard/Cancel und warten auf bereits laufende Saves. Headless-App-
+  Tests prüfen diesen Zustand; der echte AX-Selbsttest prüft Bearbeitung,
+  Speichern, Screenshot und sauberes Beenden. Root- und App-Tests sowie Debug-/
+  Release-Builds wurden ausgeführt.
+
 ### Distribution: DMG statt ZIP — ✅ umgesetzt in 0.12.0
 - Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild; Bau in
   `build.sh --release` (hdiutil UDRW/HFS+ → Finder-Layout per AppleScript →
@@ -231,3 +250,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.15.0  | Englische Lokalisierung: App (String Catalog de→en), CLI + Core-Fehler englisch — ✅ |
 | 0.15.1  | Zweisprachige Screenshots (de/en, inkl. E-Book-Editor) mit neuen Demo-Dateien; GUI-Regressionstest; Release-DMG-Testlauf — ✅ |
 | 0.15.2  | Cleanup-Pass nach 4-Perspektiven-Review: Duplikate zusammengelegt (Tool-Suche, Komma-Splits, Batch-Textfeld, MediaKind, Cover-Drop), Backup-Konvention in den Core — ✅ |
+| 0.15.3  | Elf Review-Sicherheits-/Zuverlässigkeitsfixes: sichere Archiv-/Exportpfade, vollständige Vorabvalidierung, robuste E-Book- und Prozessbehandlung sowie Save-/Fenster-/GUI-Prüfungen mit Regressionstests — ✅ |

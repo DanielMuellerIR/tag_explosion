@@ -53,6 +53,11 @@ let package = Package(
             // Fixture-Generator liegt daneben; Tests rufen ihn bei Bedarf auf.
             exclude: ["Fixtures"]
         ),
+        // Echte CLI-Regressionen prüfen ArgumentParser-Fehler und Exit-Codes.
+        .testTarget(
+            name: "TagxTests",
+            dependencies: ["TagExplosionCore"]
+        ),
     ],
     cxxLanguageStandard: .cxx17
 )

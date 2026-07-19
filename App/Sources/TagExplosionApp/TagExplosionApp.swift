@@ -15,6 +15,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
+    /// Das SwiftUI-Modell gehört der App-Szene; der Delegate hält nur eine
+    /// schwache Referenz, um Cmd-Q durch dieselbe Konfliktlogik zu leiten.
+    weak var model: AppModel?
+    private var terminationReplyPending = false
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let model else { return .terminateNow }
+        guard model.hasDirtyEntries || model.hasSavingEntries || model.isDestructiveActionLocked else {
+            return .terminateNow
+        }
+        // AppKit kann die Anfrage wiederholen, solange wir terminateLater
+        // gemeldet haben. Genau ein Modellauftrag darf darauf antworten.
+        guard !terminationReplyPending else { return .terminateLater }
+        terminationReplyPending = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await model.requestTermination { [weak self] decision in
+                guard let self else { return }
+                self.terminationReplyPending = false
+                let shouldTerminate: Bool
+                switch decision {
+                case .terminateNow: shouldTerminate = true
+                case .terminateCancel: shouldTerminate = false
+                }
+                NSApp.reply(toApplicationShouldTerminate: shouldTerminate)
+            }
+        }
+        return .terminateLater
+    }
 }
 
 /// Menüpunkt „Nach Updates suchen …". Deaktiviert sich über Sparkles
@@ -43,6 +72,7 @@ struct TagExplosionApp: App {
             ContentView()
                 .environment(model)
                 .frame(minWidth: 900, minHeight: 600)
+                .onAppear { appDelegate.model = model }
                 // Dateien aus Finder/Dock ("Öffnen mit …")
                 .onOpenURL { url in
                     Task { await model.open(urls: [url]) }
@@ -63,19 +93,21 @@ struct TagExplosionApp: App {
                     Task { await model.saveSelected() }
                 }
                 .keyboardShortcut("s", modifiers: .command)
-                .disabled(!model.selectionIsDirty)
+                .disabled(!model.selectionIsDirty || model.selectionIsSaving
+                          || model.isDestructiveActionLocked)
 
                 Button("Alle speichern") {
                     Task { await model.saveAll() }
                 }
                 .keyboardShortcut("s", modifiers: [.command, .option])
-                .disabled(!model.hasDirtyEntries)
+                .disabled(!model.hasDirtyEntries || model.hasSavingEntries
+                          || model.isDestructiveActionLocked)
 
                 Button("Änderungen verwerfen") {
                     model.revertSelected()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(!model.selectionIsDirty)
+                .disabled(!model.selectionIsDirty || model.isDestructiveActionLocked)
             }
         }
 

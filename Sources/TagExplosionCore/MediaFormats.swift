@@ -50,24 +50,46 @@ public enum MediaFormats {
         return nil
     }
 
+    /// Liefert die Identität, unter der die App dieselbe Datei wiedererkennt.
+    /// `standardizedFileURL` räumt `.` und `..` auf, `resolvingSymlinksInPath`
+    /// führt anschließend auch einen Finder-Alias/Unix-Symlink auf sein Ziel
+    /// zurück. So erzeugen zwei Wege zu derselben Datei keinen zweiten Editor.
+    public static func canonicalFileURL(_ url: URL) -> URL {
+        url.standardizedFileURL.resolvingSymlinksInPath()
+    }
+
+    /// Verzeichnisse mit einer Medien-Endung sind keine Medien-Dateien. Diese
+    /// Prüfung liegt bewusst zentral, damit App, CLI und Archiv gleich filtern.
+    private static func isRegularFile(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+    }
+
     /// Verzeichnisse rekursiv auflösen, nur Medien-Dateien behalten, sortiert
     /// (Finder-artig, stabil).
     public static func expandMediaFiles(_ urls: [URL]) -> [URL] {
         var files: [URL] = []
+        var seen: Set<URL> = []
         let fm = FileManager.default
         for url in urls {
+            let canonical = canonicalFileURL(url)
             var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
+            guard fm.fileExists(atPath: canonical.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
-                if let iterator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey]) {
+                if let iterator = fm.enumerator(
+                    at: canonical,
+                    includingPropertiesForKeys: [.isRegularFileKey]
+                ) {
                     for case let child as URL in iterator {
-                        if kind(of: child) != nil {
-                            files.append(child)
+                        let childCanonical = canonicalFileURL(child)
+                        if isRegularFile(childCanonical), kind(of: childCanonical) != nil,
+                           seen.insert(childCanonical).inserted {
+                            files.append(childCanonical)
                         }
                     }
                 }
-            } else if kind(of: url) != nil {
-                files.append(url)
+            } else if isRegularFile(canonical), kind(of: canonical) != nil,
+                      seen.insert(canonical).inserted {
+                files.append(canonical)
             }
         }
         return files.sorted {

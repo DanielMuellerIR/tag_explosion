@@ -1,4 +1,4 @@
-# GUI-Selbsttests der App (Stand 2026-07-17)
+# GUI-Selbsttests der App (Stand 2026-07-19)
 
 Auto-beendende Selbsttests (Fenster blitzt kurz, App beendet sich selbst)
 laufen ohne Freigabe — siehe globale Testregeln.
@@ -17,3 +17,12 @@ laufen ohne Freigabe — siehe globale Testregeln.
   `scripts/dev-uitest.swift` (Feld setzen + Speichern + verifizierbar).
 - App für Tests immer als **.app-Bundle** starten (`open -a`), nie das nackte
   swift-build-Binary (keine Fensterpräsenz).
+- Der echte Lauf von `scripts/dev-uitest.swift` prüft jeden AX-Schritt
+  (Fokus, Wert, Auslösen), den Menüpunkt **Speichern**, Fenstergeometrie und
+  Screenshot-Datei sowie den Exit-Status des Screenshot-Prozesses. Nach dem
+  Beenden der App wird deren Prozessstatus mit einer Frist geprüft; `OK` wird
+  ausschließlich nach vollständig erfolgreichem Ablauf ausgegeben, sonst endet
+  das Skript mit einem Fehlercode.
+- **NSOpenPanel:** ⌘⇧G kommt zuverlässig erst nach explizitem Fokus und
+  `raise` beim Panel an. Ohne diesen Schritt landet die Tastenkombination unter
+  Umständen im vorherigen App-Fenster.

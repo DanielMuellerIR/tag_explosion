@@ -32,6 +32,98 @@ public struct MediaInfoReport: Sendable, Codable, Equatable {
 /// Führt `mediainfo` aus und parst dessen JSON- und Textausgabe.
 public enum MediaInfoReader {
 
+    /// Interner Fehler für Tests, die einen bewusst kurzen Schutz gegen
+    /// festhängende Hilfsprozesse einschalten. Die normalen Aufrufe verwenden
+    /// keinen Timeout und behalten dadurch ihr bisheriges Verhalten.
+    enum ProcessTimeoutError: Error, LocalizedError, Sendable, Equatable {
+        case exceeded
+
+        var errorDescription: String? {
+            "External process exceeded its test timeout"
+        }
+    }
+
+    /// Sammelt genau einen Pipe-Stream. Die zwei Instanzen pro Prozess werden
+    /// auf getrennten festen Queue-Arbeiten gelesen, damit ein volles stderr
+    /// niemals stdout (oder umgekehrt) blockieren kann.
+    private final class PipeCollector: @unchecked Sendable {
+        private let handle: FileHandle
+        private var collected = Data()
+
+        init(_ handle: FileHandle) {
+            self.handle = handle
+        }
+
+        func readToEnd() {
+            collected = handle.readDataToEndOfFile()
+        }
+
+        func data() -> Data { collected }
+    }
+
+    /// Steuert genau einen optionalen Ablauf-Timer für einen Prozess. Das Lock
+    /// entscheidet atomar, ob der Prozess normal fertig wurde oder der Timer
+    /// ihn beendet; so kann ein bereits beendeter Prozess nicht nachträglich
+    /// als Timeout gelten. `Process` ist nicht als Sendable annotiert; der
+    /// Controller kapselt deshalb seinen einzigen Zugriff aus der Timer-Queue
+    /// und schützt seinen eigenen Zustand mit dem Lock.
+    private final class ProcessTimeoutController: @unchecked Sendable {
+        private let process: Process
+        private let lock = NSLock()
+        private var timer: DispatchSourceTimer?
+        private var didTimeout = false
+
+        init(process: Process) {
+            self.process = process
+        }
+
+        /// Startet den einmaligen Timer erst, nachdem der Prozess wirklich
+        /// läuft. Eine Referenz auf Argumente wird bewusst nicht gespeichert.
+        func start(after timeout: TimeInterval) {
+            let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+            timer.setEventHandler { [weak self] in
+                self?.terminateIfStillRunning()
+            }
+            timer.schedule(deadline: .now() + timeout)
+
+            lock.lock()
+            self.timer = timer
+            lock.unlock()
+            timer.resume()
+        }
+
+        /// Macht den Timer nach einem regulären Prozessende unschädlich und
+        /// meldet, ob er zuvor die Beendigung auslösen musste.
+        func finish() -> Bool {
+            lock.lock()
+            let timer = self.timer
+            self.timer = nil
+            let didTimeout = self.didTimeout
+            lock.unlock()
+
+            timer?.cancel()
+            return didTimeout
+        }
+
+        private func terminateIfStillRunning() {
+            lock.lock()
+            guard timer != nil, process.isRunning else {
+                lock.unlock()
+                return
+            }
+            didTimeout = true
+            let timer = self.timer
+            self.timer = nil
+            lock.unlock()
+
+            // Erst den Einmal-Timer freigeben, dann den noch laufenden
+            // Kindprozess beenden. Nach `waitUntilExit()` liefern die beiden
+            // Pipe-Reader dadurch zuverlässig EOF.
+            timer?.cancel()
+            process.terminate()
+        }
+    }
+
     /// Kandidaten-Pfade für das mediainfo-Binary (PATH zuerst, dann übliche Orte).
     public static let executableCandidates: [String] = [
         "mediainfo",
@@ -163,8 +255,13 @@ public enum MediaInfoReader {
         return out
     }
 
-    /// Externes Programm ausführen, stdout zurückgeben.
-    static func run(_ executable: String, _ arguments: [String]) throws -> Data {
+    /// Externes Programm ausführen, stdout zurückgeben. Der optionale Timeout
+    /// ist nur für Regressionstests gedacht; Produktivaufrufe übergeben nil.
+    static func run(
+        _ executable: String,
+        _ arguments: [String],
+        processTimeout: TimeInterval? = nil
+    ) throws -> Data {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -173,9 +270,45 @@ public enum MediaInfoReader {
         process.standardOutput = stdout
         process.standardError = stderr
         try process.run()
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+
+        // Ein einziger Timer schützt den Hänger-Regressionstest. Er wird nach
+        // einem normalen Ende sofort abgebrochen und speichert keine Argumente.
+        let timeoutController = processTimeout.map { timeout in
+            let controller = ProcessTimeoutController(process: process)
+            controller.start(after: timeout)
+            return controller
+        }
+
+        // Niemals zuerst stdout und danach stderr synchron lesen: Schreibt ein
+        // Tool beide Pipes über ihren Kernel-Puffer hinaus, würde es beim
+        // ungelesenen zweiten Stream blockieren und `waitUntilExit()` nie
+        // erreichen. Genau zwei Queue-Arbeiten pro Prozess reichen aus; sie
+        // lesen jeweils bis EOF und erzeugen keine Arbeit pro Daten-Chunk.
+        let outCollector = PipeCollector(stdout.fileHandleForReading)
+        let errCollector = PipeCollector(stderr.fileHandleForReading)
+        let drainGroup = DispatchGroup()
+        let drainQueue = DispatchQueue(label: "io.github.tagexplosion.pipe-drain",
+                                       qos: .userInitiated, attributes: .concurrent)
+        drainGroup.enter()
+        drainQueue.async {
+            outCollector.readToEnd()
+            drainGroup.leave()
+        }
+        drainGroup.enter()
+        drainQueue.async {
+            errCollector.readToEnd()
+            drainGroup.leave()
+        }
         process.waitUntilExit()
+        let didTimeout = timeoutController?.finish() ?? false
+        // EOF erst nach dem Prozessende abwarten, damit die Fehlerdiagnose die
+        // vollständige stderr-Ausgabe enthält, nicht nur ihren ersten Puffer.
+        drainGroup.wait()
+        if didTimeout {
+            throw ProcessTimeoutError.exceeded
+        }
+        let outData = outCollector.data()
+        let errData = errCollector.data()
         guard process.terminationStatus == 0 else {
             throw TagError.toolFailed(
                 name: (executable as NSString).lastPathComponent,

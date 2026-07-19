@@ -4,6 +4,11 @@
 // Kernfelder, Cover Base64-eingebettet. Ausschließlich JSONEncoder/JSONDecoder
 // (korrektes Escaping garantiert).
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 /// Der Inhalt einer Export-/Backup-Datei.
 public struct TagArchive: Codable, Sendable, Equatable {
@@ -24,12 +29,49 @@ public struct TagArchive: Codable, Sendable, Equatable {
         public var image: ImageCoreFields?
         /// E-Books: Kernfelder.
         public var ebook: EbookCoreFields?
+
+        public init(path: String, kind: MediaFormats.Kind,
+                    properties: [String: [String]]? = nil,
+                    artworks: [Artwork]? = nil,
+                    image: ImageCoreFields? = nil,
+                    ebook: EbookCoreFields? = nil) {
+            self.path = path
+            self.kind = kind
+            self.properties = properties
+            self.artworks = artworks
+            self.image = image
+            self.ebook = ebook
+        }
     }
 
     public init(version: Int = 1, created: String, files: [Entry]) {
         self.version = version
         self.created = created
         self.files = files
+    }
+}
+
+/// Fehler eines Archivs, die vor dem ersten Schreibzugriff erkannt werden.
+/// Ein Archiv ist ein vollständiger Soll-Zustand. Deshalb ist es sicherer,
+/// unvollständige Daten komplett abzulehnen als einzelne Dateien halb zu
+/// importieren.
+public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
+    case unsupportedVersion(Int)
+    case incompleteEntry(path: String, kind: MediaFormats.Kind, missing: String)
+    case inconsistentEntry(path: String, detail: String)
+    case exportDestinationMatchesInput(input: String, destination: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupportedVersion(let version):
+            return "Unsupported tag archive version: \(version)"
+        case .incompleteEntry(let path, let kind, let missing):
+            return "Archive entry \(path) (\(kind.rawValue)) is missing required \(missing) data"
+        case .inconsistentEntry(let path, let detail):
+            return "Archive entry \(path) is inconsistent: \(detail)"
+        case .exportDestinationMatchesInput(let input, let destination):
+            return "Export destination \(destination) matches input media file \(input). Choose a different --output path."
+        }
     }
 }
 
@@ -55,6 +97,11 @@ public struct TagArchiveReport: Sendable, Equatable {
 
 public enum TagArchiveIO {
 
+    /// Aktuell versteht der Import ausschließlich das erste, veröffentlichte
+    /// Archivschema. Neue Schemata dürfen nicht versehentlich wie alte gelesen
+    /// werden, weil dabei Felder verloren gehen könnten.
+    private static let supportedVersions: Set<Int> = [1]
+
     // MARK: - Exportieren
 
     /// Liest die Dateien und baut das Archiv (Pfade relativ zu `baseDirectory`,
@@ -71,9 +118,9 @@ public enum TagArchiveIO {
                 if includeCovers {
                     let data = try TagFile.read(at: url)
                     entry.properties = propertyMap(data.properties)
-                    if !data.artworks.isEmpty {
-                        entry.artworks = data.artworks
-                    }
+                    // [] bedeutet bewusst: Es wurde nach Covern gesucht, aber
+                    // keines gefunden. nil bleibt für --without-covers reserviert.
+                    entry.artworks = data.artworks
                 } else {
                     // Ohne Cover reicht die PropertyMap — erspart das
                     // Extrahieren aller eingebetteten Bilder.
@@ -85,8 +132,10 @@ public enum TagArchiveIO {
                 entry.image = try ExifTool.readCoreFields(url: url)
             case .ebook:
                 entry.ebook = try EbookTool.readCoreFields(url: url)
-                if includeCovers, let cover = try? EbookTool.readCover(url: url) {
-                    entry.artworks = [cover]
+                if includeCovers, EbookTool.supportsCover(url: url) {
+                    // Lesefehler nicht als "kein Cover" umdeuten: Sonst könnte
+                    // ein späterer Import ein vorhandenes Cover löschen.
+                    entry.artworks = try EbookTool.readCover(url: url).map { [$0] } ?? []
                 }
             }
             entries.append(entry)
@@ -97,6 +146,7 @@ public enum TagArchiveIO {
 
     /// Baut das Archiv und schreibt es atomar als JSON.
     public static func export(files: [URL], to jsonURL: URL, includeCovers: Bool) throws {
+        try validateExportDestination(files: files, destination: jsonURL)
         let archive = try build(files: files,
                                 baseDirectory: jsonURL.deletingLastPathComponent(),
                                 includeCovers: includeCovers)
@@ -129,7 +179,9 @@ public enum TagArchiveIO {
     // MARK: - Importieren
 
     public static func load(_ url: URL) throws -> TagArchive {
-        try JSONDecoder().decode(TagArchive.self, from: Data(contentsOf: url))
+        let archive = try JSONDecoder().decode(TagArchive.self, from: Data(contentsOf: url))
+        try validate(archive)
+        return archive
     }
 
     /// Wendet ein Archiv auf die Platte an (bzw. zeigt mit `dryRun` nur, was
@@ -137,7 +189,10 @@ public enum TagArchiveIO {
     /// zur JSON-Datei; fehlende und zusätzliche Dateien werden gemeldet statt
     /// zu raten.
     public static func apply(_ archive: TagArchive, relativeTo baseDirectory: URL,
-                             dryRun: Bool) -> TagArchiveReport {
+                             dryRun: Bool) throws -> TagArchiveReport {
+        // Die gesamte Datei wird vor der Schleife geprüft. Damit kann kein
+        // fehlerhafter Eintrag nach einer schon geschriebenen Datei auffallen.
+        _ = try validatedTargets(archive, relativeTo: baseDirectory)
         var report = TagArchiveReport()
         for entry in archive.files {
             let url = resolve(path: entry.path, in: baseDirectory)
@@ -157,12 +212,31 @@ public enum TagArchiveIO {
         }
 
         // Zusätzliche Mediendateien unterhalb des JSON-Ordners melden.
-        let known = Set(archive.files.map { resolve(path: $0.path, in: baseDirectory).path })
+        // `expandMediaFiles` liefert kanonische URLs. Auch die Archiv-Ziele
+        // müssen daher vor dem Vergleich Symlinks auflösen, sonst würde eine
+        // bereits bekannte Datei fälschlich als zusätzlicher Fund erscheinen.
+        let known = Set(archive.files.map {
+            MediaFormats.canonicalFileURL(resolve(path: $0.path, in: baseDirectory)).path
+        })
         for url in MediaFormats.expandMediaFiles([baseDirectory])
-        where !known.contains(url.standardizedFileURL.path) {
+        where !known.contains(MediaFormats.canonicalFileURL(url).path) {
             report.extra.append(relativePath(of: url, to: baseDirectory))
         }
         return report
+    }
+
+    /// Prüft ein Archiv vollständig und liefert seine Ziel-URLs in einer
+    /// einheitlichen Form. Die App kann damit vor dem ersten Schreibzugriff
+    /// feststellen, welche bereits geöffneten Editoren betroffen wären.
+    /// Auch fehlende Ziele stehen in der Liste: Sie sind Teil des Archivs,
+    /// können aber naturgemäß keinem geöffneten Eintrag entsprechen.
+    public static func validatedTargets(_ archive: TagArchive,
+                                        relativeTo baseDirectory: URL) throws -> [URL] {
+        try validate(archive)
+        try validateResolvedEntries(archive, relativeTo: baseDirectory)
+        return archive.files.map {
+            MediaFormats.canonicalFileURL(resolve(path: $0.path, in: baseDirectory))
+        }
     }
 
     /// Wendet einen Eintrag an; true = Datei wurde (bzw. würde) geändert.
@@ -171,7 +245,13 @@ public enum TagArchiveIO {
         switch entry.kind {
         case .audio:
             let current = try TagFile.read(at: url)
-            let targetProperties = entry.properties ?? [:]
+            // validate(_:) garantiert diese Pflichtangabe. Das unwrap verhindert
+            // trotzdem, dass ein späterer Refactor nil als "alle Tags löschen"
+            // missversteht.
+            guard let targetProperties = entry.properties else {
+                throw TagArchiveError.incompleteEntry(
+                    path: entry.path, kind: entry.kind, missing: "properties")
+            }
             let targetArtworks = entry.artworks
             let propertiesDiffer = propertyMap(current.properties) != targetProperties
             // Ohne Cover im Archiv (--without-covers) bleiben Cover unangetastet.
@@ -191,17 +271,30 @@ public enum TagArchiveIO {
             return true
         case .ebook:
             let current = try EbookTool.readCoreFields(url: url)
-            let target = entry.ebook ?? current
+            guard let target = entry.ebook else {
+                throw TagArchiveError.incompleteEntry(
+                    path: entry.path, kind: entry.kind, missing: "ebook")
+            }
             let fieldsDiffer = target != current
-            let cover = EbookTool.supportsCover(url: url) ? entry.artworks?.first : nil
-            let coverDiffers = cover.map { (try? EbookTool.readCover(url: url))?.data != $0.data } ?? false
+            let targetArtworks = EbookTool.supportsCover(url: url) ? entry.artworks : nil
+            let targetCover = targetArtworks?.first
+            let currentCover = targetArtworks == nil ? nil : try EbookTool.readCover(url: url)
+            // nil: Cover wurden nicht archiviert und bleiben deshalb unangetastet.
+            // []: Das Archiv verlangt ausdrücklich, ein vorhandenes Cover zu entfernen.
+            let coverDiffers = targetArtworks.map { _ in
+                currentCover?.data != targetCover?.data
+            } ?? false
             guard fieldsDiffer || coverDiffers else { return false }
             if !dryRun {
                 if fieldsDiffer {
                     try EbookTool.writeCoreFields(url: url, fields: target, original: current)
                 }
-                if coverDiffers, let cover {
-                    try EbookTool.writeCover(url: url, data: cover.data)
+                if coverDiffers {
+                    if let targetCover {
+                        try EbookTool.writeCover(url: url, data: targetCover.data)
+                    } else {
+                        try EbookTool.removeCover(url: url)
+                    }
                 }
             }
             return true
@@ -209,6 +302,135 @@ public enum TagArchiveIO {
     }
 
     // MARK: - Helfer
+
+    /// Prüft das Schema unabhängig vom späteren Zielordner. Die Prüfung muss
+    /// auch in apply(_:) liegen, weil die App/Tests Archive direkt erzeugen
+    /// können und damit load(_:) umgehen würden.
+    public static func validate(_ archive: TagArchive) throws {
+        guard supportedVersions.contains(archive.version) else {
+            throw TagArchiveError.unsupportedVersion(archive.version)
+        }
+
+        var paths: Set<String> = []
+        for entry in archive.files {
+            guard !entry.path.isEmpty else {
+                throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "path is empty")
+            }
+            guard paths.insert(entry.path).inserted else {
+                throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "path appears more than once")
+            }
+
+            switch entry.kind {
+            case .audio:
+                guard entry.properties != nil else {
+                    throw TagArchiveError.incompleteEntry(
+                        path: entry.path, kind: entry.kind, missing: "properties")
+                }
+                guard entry.image == nil, entry.ebook == nil else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "audio entries may not contain image or ebook data")
+                }
+            case .image:
+                guard entry.image != nil else {
+                    throw TagArchiveError.incompleteEntry(
+                        path: entry.path, kind: entry.kind, missing: "image")
+                }
+                guard entry.properties == nil, entry.ebook == nil, entry.artworks == nil else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "image entries may only contain image data")
+                }
+            case .ebook:
+                guard entry.ebook != nil else {
+                    throw TagArchiveError.incompleteEntry(
+                        path: entry.path, kind: entry.kind, missing: "ebook")
+                }
+                guard entry.properties == nil, entry.image == nil else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "ebook entries may not contain properties or image data")
+                }
+                guard (entry.artworks?.count ?? 0) <= 1 else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "ebook entries may contain at most one cover")
+                }
+            }
+        }
+    }
+
+    /// Prüft zusätzlich den bereits vorhandenen Zielbestand. Erst hier ist
+    /// erkennbar, ob ein E-Book-Eintrag auf ein PDF zeigt: PDFs besitzen keine
+    /// Cover, daher wäre selbst ein leeres Cover-Array dort widersprüchlich.
+    /// Diese Vorprüfung bleibt vor der Import-Schleife und damit vor jeder Mutation.
+    private static func validateResolvedEntries(_ archive: TagArchive,
+                                                relativeTo baseDirectory: URL) throws {
+        var resolvedPaths: Set<String> = []
+        for entry in archive.files {
+            let url = resolve(path: entry.path, in: baseDirectory)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            guard MediaFormats.kind(of: url) == entry.kind else {
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path, detail: "target media type does not match the archive entry")
+            }
+            // Zwei verschiedene Archivpfade können über Symlinks auf dieselbe
+            // Datei zeigen. Vor der ersten Mutation muss deshalb die zentrale
+            // kanonische Dateidentität verglichen werden, nicht nur der Text
+            // des jeweiligen relativen Pfads.
+            let canonicalPath = MediaFormats.canonicalFileURL(url).path
+            guard resolvedPaths.insert(canonicalPath).inserted else {
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path, detail: "different paths resolve to the same target")
+            }
+            if entry.kind == .ebook, let artworks = entry.artworks {
+                guard EbookTool.supportsCover(url: url) else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "the target ebook format does not support covers")
+                }
+                guard !artworks.isEmpty || EbookTool.supportsCoverRemoval(url: url) else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path,
+                        detail: "the target ebook backend cannot safely remove covers")
+                }
+            }
+        }
+    }
+
+    /// Stellt vor dem Lesen sicher, dass das atomar geschriebene JSON nicht
+    /// dieselbe Datei wie ein Eingabemedium ersetzt. Kanonische Pfade decken
+    /// relative Pfade und Symlinks ab; dev/inode erkennt vorhandene Hardlinks.
+    public static func validateExportDestination(files: [URL], destination: URL) throws {
+        let destinationIdentity = FileIdentity(destination)
+        for file in files {
+            if destinationIdentity.matches(FileIdentity(file)) {
+                throw TagArchiveError.exportDestinationMatchesInput(
+                    input: file.path, destination: destination.path)
+            }
+        }
+    }
+
+    /// Identität einer Datei ohne Dateiinhalte zu lesen. Ein nicht vorhandenes
+    /// Ziel hat nur einen kanonischen Pfad; ein Hardlink kann erst verglichen
+    /// werden, wenn beide Pfade bereits existieren.
+    private struct FileIdentity {
+        let canonicalPath: String
+        let device: UInt64?
+        let inode: UInt64?
+
+        init(_ url: URL) {
+            canonicalPath = url.standardizedFileURL.resolvingSymlinksInPath().path
+            var status = stat()
+            if stat(url.path, &status) == 0 {
+                device = UInt64(status.st_dev)
+                inode = UInt64(status.st_ino)
+            } else {
+                device = nil
+                inode = nil
+            }
+        }
+
+        func matches(_ other: FileIdentity) -> Bool {
+            if canonicalPath == other.canonicalPath { return true }
+            return device != nil && device == other.device && inode != nil && inode == other.inode
+        }
+    }
 
     /// [TagProperty] → PropertyMap-Wörterbuch (mehrwertig, Reihenfolge je
     /// Schlüssel bleibt erhalten).

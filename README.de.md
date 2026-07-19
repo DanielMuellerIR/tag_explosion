@@ -73,7 +73,8 @@ Calibre-Formate.*
 
 Das notarisierte DMG von der [Releases-Seite](../../releases) laden, öffnen
 und `TagExplosion.app` auf den Ordner `Programme` ziehen. Benötigt macOS 14
-oder neuer (Apple Silicon und Intel).
+oder neuer und Apple Silicon (`arm64`). Es gibt keinen Intel/x86_64- oder
+Universal-Build.
 
 TagLib steckt im App-Bundle. Für den vollen Funktionsumfang die beiden
 externen Werkzeuge installieren, die die App aufruft:

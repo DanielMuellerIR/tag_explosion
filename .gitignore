@@ -15,6 +15,9 @@ TagExplosion-*.dmg
 .idea/
 *.swp
 
+# Lokale Schutzmarker
+.commit-lock
+
 # Testdateien, die lokal generiert werden (Fixtures werden per Skript erzeugt)
 Tests/TagExplosionCoreTests/Fixtures/generated/
 

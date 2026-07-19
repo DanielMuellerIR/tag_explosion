@@ -29,5 +29,11 @@ let package = Package(
                 .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks"])
             ]
         ),
+        // Der Save-Zustand wird ohne SwiftUI-Fenster getestet. So bleiben
+        // Nebenläufigkeitsfehler auch in der macOS-CI sichtbar.
+        .testTarget(
+            name: "TagExplosionAppTests",
+            dependencies: ["TagExplosionApp"]
+        ),
     ]
 )

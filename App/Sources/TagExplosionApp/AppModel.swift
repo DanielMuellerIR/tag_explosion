@@ -49,6 +49,22 @@ final class FileEntry: Identifiable {
 
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
     var lastError: String?
+    /// Ein Speichervorgang pro Datei reicht aus. Der Zustand verhindert, dass
+    /// zwei Buttons gleichzeitig denselben TagLib-/Dateischreibvorgang starten.
+    var isSaving = false
+    /// Wartende Aktionen (Entfernen, Import, Schließen) werden erst nach dem
+    /// laufenden Schreibvorgang fortgesetzt. Continuations vermeiden Polling
+    /// und machen den Ablauf auch in headless Tests deterministisch.
+    private var saveWaiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Unveränderlicher Stand zu Beginn eines Speichervorgangs. Der Puffer darf
+    /// sich währenddessen weiter ändern; deshalb schreiben wir nie direkt aus
+    /// den später möglicherweise veränderten UI-Feldern.
+    enum SaveSnapshot: Sendable {
+        case audio(properties: [TagProperty], artworks: [Artwork])
+        case image(fields: ImageCoreFields, original: ImageCoreFields)
+        case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
+    }
 
     init(url: URL, loaded: LoadedData) {
         self.url = url
@@ -125,6 +141,66 @@ final class FileEntry: Identifiable {
         }
     }
 
+    /// Markiert genau einen Speicherauftrag als aktiv und liefert dessen Stand.
+    /// nil bedeutet: Die Datei ist sauber oder wird bereits gespeichert.
+    func beginSaving() -> SaveSnapshot? {
+        guard isDirty, !isSaving else { return nil }
+        isSaving = true
+        switch kind {
+        case .audio:
+            return .audio(properties: properties, artworks: artworks)
+        case .image:
+            return .image(fields: imageFields, original: imageOriginal)
+        case .ebook:
+            return .ebook(fields: ebookFields, original: ebookOriginal,
+                          cover: ebookCoverReplacement)
+        }
+    }
+
+    /// Macht die Bedienung wieder frei, auch wenn das Schreiben fehlgeschlagen
+    /// ist. Original und Bearbeitungspuffer werden hier absichtlich nicht
+    /// verändert.
+    func finishSaving() {
+        isSaving = false
+        let waiters = saveWaiters
+        saveWaiters = []
+        waiters.forEach { $0.resume() }
+    }
+
+    /// Wartet nur dann, wenn aktuell wirklich geschrieben wird. Da diese
+    /// Methode und `finishSaving()` auf dem MainActor laufen, kann zwischen
+    /// Prüfung und Eintragen kein Abschluss verloren gehen.
+    func waitUntilSaveFinished() async {
+        guard isSaving else { return }
+        await withCheckedContinuation { saveWaiters.append($0) }
+    }
+
+    /// Übernimmt ausschließlich den von `snapshot` gesicherten Plattenstand.
+    /// Hat die Person während des Schreibens weitergetippt, bleibt dieser neuere
+    /// Puffer erhalten und ist gegenüber dem neuen Original weiterhin dirty.
+    func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData) {
+        switch (snapshot, reloaded) {
+        case (.audio(let savedProperties, let savedArtworks), .audio(let data)):
+            original = data
+            if properties == savedProperties { properties = data.properties }
+            if artworks == savedArtworks { artworks = data.artworks }
+        case (.image(let savedFields, _), .image(let fields)):
+            imageOriginal = fields
+            if imageFields == savedFields { imageFields = fields }
+        case (.ebook(let savedFields, _, let savedCover), .ebook(let fields)):
+            ebookOriginal = fields
+            if ebookFields == savedFields { ebookFields = fields }
+            // Ein gleiches Ersatz-Cover wurde geschrieben und ist daher nicht
+            // mehr dirty. Ein inzwischen ausgewähltes anderes Cover bleibt.
+            if ebookCoverReplacement == savedCover { ebookCoverReplacement = nil }
+        default:
+            // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
+            // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
+            assertionFailure("Save snapshot and read-back have different media kinds")
+        }
+        lastError = nil
+    }
+
     // Bequeme Zugriffe für die UI ------------------------------------------
 
     /// Erster Wert eines Schlüssels (für Einfach-Felder).
@@ -186,16 +262,83 @@ enum LoadedData: Sendable {
     case ebook(EbookCoreFields)
 }
 
+/// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
+/// oder durch Plattenwerte ersetzen würde.
+enum DirtyConflictDecision {
+    case save
+    case discard
+    case cancel
+}
+
+/// Der für SwiftUI sichtbare Teil einer wartenden Aktion. Die eigentliche
+/// Abschluss-Closure bleibt privat im Modell, damit die View keine Dateilogik
+/// oder Terminierungsdetails kennen muss.
+struct PendingDirtyConflict: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let affectedEntryCount: Int
+    var failureMessage: String?
+
+    var displayedMessage: String { failureMessage ?? message }
+}
+
+/// Rückmeldung an den AppDelegate nach einer asynchronen Terminierungsfrage.
+/// AppKit-Typen bleiben dabei aus der headless testbaren Konfliktlogik heraus.
+enum TerminationDecision {
+    case terminateNow
+    case terminateCancel
+}
+
 /// Globaler App-Zustand.
 @Observable
 @MainActor
 final class AppModel {
+    private struct PendingAction {
+        var conflict: PendingDirtyConflict
+        let entries: [FileEntry]
+        let perform: @MainActor () async -> Void
+        let cancel: @MainActor () -> Void
+    }
+
     var entries: [FileEntry] = []
     var selection: Set<URL> = []
-    /// Läuft gerade ein Ladevorgang? (Fortschritt in der Sidebar)
-    var isLoading = false
+    /// Mehrere Öffnen-Aktionen können überlappen (z.B. Finder-Drop und
+    /// Öffnen-Dialog). Der Zähler hält den Fortschrittsindikator sichtbar,
+    /// bis auch der letzte Auftrag fertig ist.
+    private var loadingOperationCount = 0
+    /// URLs werden noch vor dem ersten Hintergrundzugriff reserviert. So kann
+    /// ein zweiter Auftrag dieselbe Datei nicht parallel ein zweites Mal laden.
+    private var openingURLs: Set<URL> = []
+    /// Läuft mindestens ein Ladevorgang? (Fortschritt in der Sidebar)
+    var isLoading: Bool { loadingOperationCount > 0 }
     /// Fehlermeldung für Alert-Anzeige.
     var alertMessage: String?
+    /// Sichtbarer Save/Discard/Cancel-Zustand für Import, Entfernen, Fenster
+    /// und App-Terminierung.
+    private(set) var pendingConflict: PendingDirtyConflict?
+    /// Eine Aktion wartet zunächst auf bereits laufende Speichervorgänge.
+    /// Währenddessen darf kein zweiter konkurrierender Auftrag entstehen.
+    private var isPreparingDestructiveAction = false
+    /// Nach einem Klick auf Speichern/Verwerfen bleibt die UI gesperrt, bis
+    /// alle betroffenen Dateien fertig behandelt sind.
+    private(set) var isResolvingConflict = false
+    private var pendingAction: PendingAction?
+    /// Der Button beansprucht die Entscheidung synchron vor dem asynchronen
+    /// Task. So kann SwiftUIs anschließendes Dialog-Dismiss nicht noch ein
+    /// konkurrierendes „Abbrechen“ dazwischenschieben.
+    private var claimedConflictDecision: DirtyConflictDecision?
+
+    var isDestructiveActionLocked: Bool {
+        pendingConflict != nil || isPreparingDestructiveAction || isResolvingConflict
+    }
+
+    /// Der Dialog selbst sperrt bereits die View. Diese Ergänzung deckt die
+    /// kurze Warte- und Auflösungsphase ab, in der sonst ein Textfeld noch eine
+    /// neue, unbestätigte Änderung annehmen könnte.
+    var isEditorInteractionLocked: Bool {
+        isPreparingDestructiveAction || isResolvingConflict
+    }
 
     /// Die ausgewählten Einträge in Listenreihenfolge.
     var selectedEntries: [FileEntry] {
@@ -228,61 +371,39 @@ final class AppModel {
 
     /// Lädt Dateien/Ordner (rekursiv), liest Tags im Hintergrund.
     func open(urls: [URL]) async {
-        isLoading = true
-        defer { isLoading = false }
+        await open(urls: urls) { url, kind in
+            try await Task.detached(priority: .userInitiated) {
+                try Self.readLoaded(url: url, kind: kind)
+            }.value
+        }
+    }
+
+    /// Testbarer Öffnen-Pfad. Der Leser wird nur für die eigentliche Datei-IO
+    /// ausgetauscht; Auswahl, Reservierung und Ergebnisreihenfolge bleiben
+    /// derselbe Produktionscode.
+    func open(urls: [URL],
+              read: @escaping @Sendable (URL, MediaKind) async throws -> LoadedData) async {
+        loadingOperationCount += 1
+        defer { loadingOperationCount -= 1 }
 
         // Verzeichnisse expandieren und auf Medien-Endungen filtern (Hintergrund).
         let candidates = await Task.detached(priority: .userInitiated) {
             MediaFormats.expandMediaFiles(urls)
         }.value
 
-        // Bereits geladene überspringen
-        let existing = Set(entries.map(\.url))
-        let newFiles = candidates.filter { !existing.contains($0) }
+        // Bereits geladene UND gerade ladende Dateien in einem MainActor-Schritt
+        // vergleichen und reservieren. Zwischen Prüfung und Eintragen kann kein
+        // zweiter `open`-Aufruf dazwischenfunken.
+        let existing = Set(entries.map { MediaFormats.canonicalFileURL($0.url) })
+        let newFiles = candidates.filter {
+            !existing.contains($0) && openingURLs.insert($0).inserted
+        }
         guard !newFiles.isEmpty else { return }
+        defer { openingURLs.subtract(newFiles) }
 
         // Tags parallel lesen (begrenzte Nebenläufigkeit, damit auch riesige
         // Ordner nicht zu viele offene Dateien erzeugen), Reihenfolge stabil.
-        let results = await Task.detached(priority: .userInitiated) {
-            await withTaskGroup(
-                of: (Int, URL, Result<LoadedData, Error>).self,
-                returning: [(URL, Result<LoadedData, Error>)].self
-            ) { group in
-                let maxConcurrent = 8
-                var nextIndex = 0
-                func addNext() {
-                    guard nextIndex < newFiles.count else { return }
-                    let i = nextIndex
-                    let url = newFiles[i]
-                    nextIndex += 1
-                    group.addTask {
-                        do {
-                            let kind = MediaKind.forURL(url) ?? .audio
-                            do {
-                                return (i, url, .success(try Self.readLoaded(url: url, kind: kind)))
-                            } catch where kind == .audio {
-                                // TagLib kennt den Container nicht (z.B. avi/mov):
-                                // trotzdem anzeigen (Technik-Tab via mediainfo),
-                                // aber als schreibgeschützt markieren.
-                                let fallback = TagData(properties: [], artworks: [],
-                                                       audio: nil, isReadOnly: true)
-                                return (i, url, .success(.audio(fallback)))
-                            }
-                        } catch {
-                            return (i, url, .failure(error))
-                        }
-                    }
-                }
-                for _ in 0..<min(maxConcurrent, newFiles.count) { addNext() }
-                var buffer: [(Int, URL, Result<LoadedData, Error>)] = []
-                for await item in group {
-                    buffer.append(item)
-                    addNext()
-                }
-                buffer.sort { $0.0 < $1.0 }
-                return buffer.map { ($0.1, $0.2) }
-            }
-        }.value
+        let results = await Self.readFiles(newFiles, read: read)
 
         var failures: [String] = []
         for (url, result) in results {
@@ -296,6 +417,50 @@ final class AppModel {
         if selection.isEmpty, let first = entries.first { selection = [first.url] }
         if !failures.isEmpty {
             alertMessage = String(localized: "Nicht lesbar (Format unbekannt?):") + "\n" + failures.joined(separator: "\n")
+        }
+    }
+
+    /// Liest maximal acht Dateien gleichzeitig. Der Rückgabepuffer wird über
+    /// den Eingabeindex sortiert, damit die Auswahl im Finder stabil bleibt.
+    nonisolated private static func readFiles(
+        _ urls: [URL],
+        read: @escaping @Sendable (URL, MediaKind) async throws -> LoadedData
+    ) async -> [(URL, Result<LoadedData, Error>)] {
+        await withTaskGroup(
+            of: (Int, URL, Result<LoadedData, Error>).self,
+            returning: [(URL, Result<LoadedData, Error>)].self
+        ) { group in
+            let maxConcurrent = 8
+            var nextIndex = 0
+            func addNext() {
+                guard nextIndex < urls.count else { return }
+                let index = nextIndex
+                let url = urls[index]
+                nextIndex += 1
+                group.addTask {
+                    let kind = MediaKind.forURL(url) ?? .audio
+                    do {
+                        return (index, url, .success(try await read(url, kind)))
+                    } catch where kind == .audio {
+                        // TagLib kennt den Container nicht (z.B. avi/mov):
+                        // trotzdem anzeigen (Technik-Tab via mediainfo), aber
+                        // als schreibgeschützt markieren.
+                        let fallback = TagData(properties: [], artworks: [],
+                                               audio: nil, isReadOnly: true)
+                        return (index, url, .success(.audio(fallback)))
+                    } catch {
+                        return (index, url, .failure(error))
+                    }
+                }
+            }
+            for _ in 0..<min(maxConcurrent, urls.count) { addNext() }
+            var buffer: [(Int, URL, Result<LoadedData, Error>)] = []
+            for await item in group {
+                buffer.append(item)
+                addNext()
+            }
+            buffer.sort { $0.0 < $1.0 }
+            return buffer.map { ($0.1, $0.2) }
         }
     }
 
@@ -322,11 +487,13 @@ final class AppModel {
 
     /// Speichert alle ausgewählten Dateien mit Änderungen.
     func saveSelected() async {
+        guard !isDestructiveActionLocked else { return }
         await saveEntries(selectedEntries.filter(\.isDirty))
     }
 
     /// Verwirft Änderungen aller ausgewählten Dateien.
     func revertSelected() {
+        guard !isDestructiveActionLocked else { return }
         for entry in selectedEntries { entry.revert() }
     }
 
@@ -334,16 +501,49 @@ final class AppModel {
         selectedEntries.contains { $0.isDirty }
     }
 
+    /// Die Auswahl kann nur einmal gleichzeitig gespeichert werden. Sichtbar
+    /// deaktivierte Speichern-Aktionen verhindern unzulässige Doppel-Clicks.
+    var selectionIsSaving: Bool {
+        selectedEntries.contains { $0.isSaving }
+    }
+
+    var hasSavingEntries: Bool {
+        entries.contains { $0.isSaving }
+    }
+
     func saveAll() async {
+        guard !isDestructiveActionLocked else { return }
         await saveEntries(entries.filter(\.isDirty))
     }
 
     /// Gemeinsamer Speicherpfad: erst Auto-Backup, dann Datei für Datei.
-    private func saveEntries(_ dirty: [FileEntry]) async {
-        guard await backupIfNeeded(before: dirty) else { return }
-        for entry in dirty {
-            await save(entry: entry)
+    /// Der Rückgabewert ist für die Konfliktlogik entscheidend: Nur ein
+    /// vollständig erfolgreicher Batch darf anschließend importieren, entfernen
+    /// oder die App beenden.
+    @discardableResult
+    private func saveEntries(_ dirty: [FileEntry]) async -> Bool {
+        await saveEntries(dirty) { entry in
+            await self.save(entry: entry)
         }
+    }
+
+    /// Variante mit austauschbarem Einzel-Speicherweg für headless Tests. Die
+    /// Sicherung, Wartezeit und Erfolgsprüfung bleiben identisch zur App.
+    @discardableResult
+    private func saveEntries(
+        _ dirty: [FileEntry],
+        saveEntry: @escaping @MainActor (FileEntry) async -> Bool
+    ) async -> Bool {
+        let targets = uniqueEntries(dirty)
+        await waitForSaves(in: targets)
+        let pending = targets.filter(\.isDirty)
+        guard !pending.isEmpty else { return true }
+        guard await backupIfNeeded(before: pending) else { return false }
+        var succeeded = true
+        for entry in pending {
+            if !(await saveEntry(entry)) { succeeded = false }
+        }
+        return succeeded
     }
 
     /// Schreibt vor einem Batch-Speichern (mehr als eine Datei) die Backups
@@ -354,7 +554,7 @@ final class AppModel {
         guard Self.autoBackupEnabled, dirtyEntries.count > 1 else { return true }
         let files = dirtyEntries.map(\.url)
         do {
-            try await Task.detached(priority: .userInitiated) {
+            _ = try await Task.detached(priority: .userInitiated) {
                 try TagArchiveIO.writeBackups(files: files)
             }.value
             return true
@@ -362,6 +562,180 @@ final class AppModel {
             alertMessage = String(localized: "Auto-Backup fehlgeschlagen — Speichern abgebrochen.")
                 + "\n" + error.localizedDescription
             return false
+        }
+    }
+
+    // MARK: - Ungespeicherte Änderungen vor destruktiven Aktionen
+
+    /// Startet genau eine geschützte Aktion. Zuerst warten wir auf alle schon
+    /// laufenden Saves derselben Dateien; erst dann entscheiden wir anhand der
+    /// aktuellen Puffer, ob ein Save/Discard/Cancel-Dialog nötig ist.
+    func requestDestructiveAction(
+        title: String,
+        message: String,
+        entries affectedEntries: [FileEntry],
+        perform: @escaping @MainActor () async -> Void,
+        cancel: @escaping @MainActor () -> Void = {}
+    ) async {
+        guard !isDestructiveActionLocked else {
+            // Besonders bei App-Terminierung muss jeder terminateLater-Aufruf
+            // eine Antwort erhalten. Die neue, konkurrierende Anfrage wird
+            // daher ausdrücklich abgebrochen statt still hängen zu bleiben.
+            cancel()
+            return
+        }
+
+        isPreparingDestructiveAction = true
+        defer { isPreparingDestructiveAction = false }
+        let targets = uniqueEntries(affectedEntries)
+        await waitForSaves(in: targets)
+
+        let dirty = targets.filter(\.isDirty)
+        guard !dirty.isEmpty else {
+            await perform()
+            return
+        }
+
+        let conflict = PendingDirtyConflict(
+            title: title,
+            message: message,
+            affectedEntryCount: dirty.count
+        )
+        let action = PendingAction(conflict: conflict, entries: targets,
+                                   perform: perform, cancel: cancel)
+        pendingAction = action
+        pendingConflict = conflict
+    }
+
+    /// Beansprucht synchron genau eine sichtbare Entscheidung. Diese Methode
+    /// wird direkt aus dem Button-Callback aufgerufen, noch bevor dessen
+    /// `Task` geplant wird; der Dismiss-Callback kann sie danach nicht mehr
+    /// durch `.cancel` ersetzen.
+    @discardableResult
+    func claimPendingConflict(_ decision: DirtyConflictDecision) -> Bool {
+        guard pendingAction != nil, !isResolvingConflict else { return false }
+        isResolvingConflict = true
+        claimedConflictDecision = decision
+        return true
+    }
+
+    /// Bequemer asynchroner Einstieg für nicht-visuelle Aufrufer und Tests.
+    /// Die View benutzt stattdessen Claim + `resolveClaimedPendingConflict()`,
+    /// damit sie die Entscheidung synchron sichern kann.
+    func resolvePendingConflict(_ decision: DirtyConflictDecision) async {
+        guard claimPendingConflict(decision) else { return }
+        await resolveClaimedPendingConflict { entry in
+            await self.save(entry: entry)
+        }
+    }
+
+    /// Austauschbarer Schreibweg für Tests; der Produktionsweg oben verwendet
+    /// exakt dieselbe Konfliktsteuerung und nur den echten Dateischreiber.
+    func resolvePendingConflict(
+        _ decision: DirtyConflictDecision,
+        saveEntry: @escaping @MainActor (FileEntry) async -> Bool
+    ) async {
+        guard claimPendingConflict(decision) else { return }
+        await resolveClaimedPendingConflict(saveEntry: saveEntry)
+    }
+
+    /// Führt ausschließlich die zuvor synchron beanspruchte Entscheidung aus.
+    /// Ohne Claim bleibt der Konflikt unangetastet, damit ein versehentlicher
+    /// zweiter Task keine fremde Auswahl übernehmen kann.
+    func resolveClaimedPendingConflict() async {
+        await resolveClaimedPendingConflict { entry in
+            await self.save(entry: entry)
+        }
+    }
+
+    /// Testbare Variante des geclaimten Ablaufs mit austauschbarem Schreiber.
+    func resolveClaimedPendingConflict(
+        saveEntry: @escaping @MainActor (FileEntry) async -> Bool
+    ) async {
+        guard let decision = claimedConflictDecision, var action = pendingAction else { return }
+        defer {
+            claimedConflictDecision = nil
+            isResolvingConflict = false
+        }
+
+        switch decision {
+        case .cancel:
+            clearPendingAction()
+            action.cancel()
+
+        case .discard:
+            // Nur die tatsächlich betroffenen Puffer verwerfen. Ein offener,
+            // aber nicht importierter Editor bleibt bewusst unverändert.
+            for entry in action.entries where entry.isDirty { entry.revert() }
+            clearPendingAction()
+            await action.perform()
+
+        case .save:
+            // Ein in der Zwischenzeit gestarteter Save muss vor dem eigenen
+            // Batch enden. Danach speichern wir alle noch dirty Puffer erneut.
+            await waitForSaves(in: action.entries)
+            let succeeded = await saveEntries(
+                action.entries.filter(\.isDirty), saveEntry: saveEntry
+            )
+            let stillDirty = action.entries.contains { $0.isDirty || $0.isSaving }
+            guard succeeded, !stillDirty else {
+                action.conflict.failureMessage = String(localized:
+                    "Speichern fehlgeschlagen. Die Aktion wurde nicht ausgeführt.")
+                pendingAction = action
+                pendingConflict = action.conflict
+                return
+            }
+            clearPendingAction()
+            await action.perform()
+        }
+    }
+
+    /// AppKit erhält seine konkrete Terminierungsantwort erst hier. Dadurch
+    /// bleibt die Save/Discard/Cancel-Logik ohne Fenster und NSApplication
+    /// ausführbar testbar.
+    func requestTermination(
+        reply: @escaping @MainActor (TerminationDecision) -> Void
+    ) async {
+        await requestDestructiveAction(
+            title: String(localized: "Ungespeicherte Änderungen"),
+            message: String(localized:
+                "Vor dem Beenden müssen die Änderungen gespeichert oder verworfen werden."),
+            entries: entries,
+            perform: { reply(.terminateNow) },
+            cancel: { reply(.terminateCancel) }
+        )
+    }
+
+    /// Fenster-Schließen verwendet denselben Pfad wie Cmd-Q, antwortet aber
+    /// über den vom NSWindowDelegate bereitgestellten Close-Bypass.
+    func requestWindowClose(
+        performClose: @escaping @MainActor () -> Void
+    ) async {
+        await requestDestructiveAction(
+            title: String(localized: "Ungespeicherte Änderungen"),
+            message: String(localized:
+                "Vor dem Schließen des Fensters müssen die Änderungen gespeichert oder verworfen werden."),
+            entries: entries,
+            perform: performClose
+        )
+    }
+
+    private func clearPendingAction() {
+        pendingAction = nil
+        pendingConflict = nil
+    }
+
+    /// Dedupliziert Klasseninstanzen, nicht URLs: Ein Eintrag kann während
+    /// eines Imports noch denselben Pfad wie ein Symlink tragen, bleibt aber
+    /// trotzdem nur ein Editor-Puffer.
+    private func uniqueEntries(_ candidates: [FileEntry]) -> [FileEntry] {
+        var seen: Set<ObjectIdentifier> = []
+        return candidates.filter { seen.insert(ObjectIdentifier($0)).inserted }
+    }
+
+    private func waitForSaves(in entries: [FileEntry]) async {
+        for entry in uniqueEntries(entries) {
+            await entry.waitUntilSaveFinished()
         }
     }
 
@@ -383,18 +757,81 @@ final class AppModel {
     /// bereits geöffnete Dateien neu.
     func importArchive(from url: URL) async {
         do {
-            let report = try await Task.detached(priority: .userInitiated) {
+            let prepared = try await Task.detached(priority: .userInitiated) {
                 let archive = try TagArchiveIO.load(url)
-                return TagArchiveIO.apply(
-                    archive, relativeTo: url.deletingLastPathComponent(), dryRun: false)
+                let base = url.deletingLastPathComponent()
+                let targets = try TagArchiveIO.validatedTargets(archive, relativeTo: base)
+                return (archive, base, targets)
             }.value
+            await scheduleImport(
+                archive: prepared.0,
+                relativeTo: prepared.1,
+                targets: prepared.2
+            ) { archive, base in
+                try await Task.detached(priority: .userInitiated) {
+                    try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false)
+                }.value
+            }
+        } catch {
+            alertMessage = String(localized: "Import fehlgeschlagen:") + "\n" + error.localizedDescription
+        }
+    }
+
+    /// Testbarer Import-Einstieg mit austauschbarem Schreiber. Die Archiv-
+    /// Validierung und die Schnittmenge mit geöffneten Dateien bleiben dabei
+    /// identisch zum echten JSON-Import.
+    func importArchive(
+        archive: TagArchive,
+        relativeTo base: URL,
+        apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
+    ) async {
+        do {
+            let targets = try await Task.detached(priority: .userInitiated) {
+                try TagArchiveIO.validatedTargets(archive, relativeTo: base)
+            }.value
+            await scheduleImport(archive: archive, relativeTo: base, targets: targets, apply: apply)
+        } catch {
+            alertMessage = String(localized: "Import fehlgeschlagen:") + "\n" + error.localizedDescription
+        }
+    }
+
+    /// Der Archiv-Snapshot ist schon geladen und validiert, wird aber erst in
+    /// der `perform`-Closure nach Save/Discard angewandt. Damit kann ein
+    /// Konfliktdialog nie einen Teilimport vor der Entscheidung auslösen.
+    private func scheduleImport(
+        archive: TagArchive,
+        relativeTo base: URL,
+        targets: [URL],
+        apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
+    ) async {
+        let targetSet = Set(targets.map(MediaFormats.canonicalFileURL))
+        let openedTargets = entries.filter {
+            targetSet.contains(MediaFormats.canonicalFileURL($0.url))
+        }
+        await requestDestructiveAction(
+            title: String(localized: "Ungespeicherte Änderungen"),
+            message: String(localized:
+                "Vor dem Import müssen die Änderungen betroffener Dateien gespeichert oder verworfen werden."),
+            entries: openedTargets,
+            perform: { [weak self] in
+                await self?.applyPreparedImport(archive: archive, relativeTo: base, apply: apply)
+            }
+        )
+    }
+
+    private func applyPreparedImport(
+        archive: TagArchive,
+        relativeTo base: URL,
+        apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
+    ) async {
+        do {
+            let report = try await apply(archive, base)
 
             // Geänderte, geladene Einträge neu von der Platte lesen.
-            let base = url.deletingLastPathComponent()
             let changedPaths = Set(report.applied.map {
-                TagArchiveIO.resolve(path: $0, in: base).path
+                MediaFormats.canonicalFileURL(TagArchiveIO.resolve(path: $0, in: base))
             })
-            for entry in entries where changedPaths.contains(entry.url.standardizedFileURL.path) {
+            for entry in entries where changedPaths.contains(MediaFormats.canonicalFileURL(entry.url)) {
                 await reload(entry: entry)
             }
 
@@ -426,44 +863,84 @@ final class AppModel {
     }
 
     /// Schreibt den Bearbeitungspuffer einer Datei und liest sie neu ein.
-    func save(entry: FileEntry) async {
+    @discardableResult
+    func save(entry: FileEntry) async -> Bool {
         let url = entry.url
         let kind = entry.kind
-        let properties = entry.properties
-        let artworks = entry.artworks
-        let imageFields = entry.imageFields
-        let imageOriginal = entry.imageOriginal
-        let ebookFields = entry.ebookFields
-        let ebookOriginal = entry.ebookOriginal
-        let newCover = entry.ebookCoverReplacement
-        do {
-            let reloaded = try await Task.detached(priority: .userInitiated) {
-                switch kind {
-                case .audio:
-                    try TagFile.write(properties: properties, artworks: artworks, to: url)
-                case .image:
-                    try ExifTool.writeCoreFields(url: url, fields: imageFields, original: imageOriginal)
-                case .ebook:
-                    try EbookTool.writeCoreFields(url: url, fields: ebookFields, original: ebookOriginal)
-                    if let newCover {
-                        try EbookTool.writeCover(url: url, data: newCover)
-                    }
-                }
-                return try Self.readLoaded(url: url, kind: kind)
+        return await save(entry: entry) { snapshot in
+            return try await Task.detached(priority: .userInitiated) {
+                try Self.write(snapshot: snapshot, to: url, kind: kind)
             }.value
-            entry.acceptNew(reloaded)
-        } catch {
-            entry.lastError = error.localizedDescription
-            alertMessage = String(localized: "Speichern fehlgeschlagen: \(url.lastPathComponent)")
-                + "\n" + error.localizedDescription
         }
+    }
+
+    /// Gemeinsame Save-Steuerung. Der austauschbare Schreibblock ermöglicht
+    /// einen headless Regressionstest, der einen laufenden Save exakt anhalten
+    /// kann, ohne echte UI- oder Dateitiming-Rennen zu brauchen.
+    @discardableResult
+    func save(entry: FileEntry,
+              writeSnapshot: @escaping @Sendable (FileEntry.SaveSnapshot) async throws -> LoadedData) async -> Bool {
+        guard let snapshot = entry.beginSaving() else { return !entry.isDirty }
+        defer { entry.finishSaving() }
+
+        do {
+            let reloaded = try await writeSnapshot(snapshot)
+            entry.acceptSaved(snapshot, reloaded: reloaded)
+            return true
+        } catch {
+            // Der Puffer und das letzte gute Original bleiben unverändert.
+            entry.lastError = error.localizedDescription
+            alertMessage = String(localized: "Speichern fehlgeschlagen: \(entry.url.lastPathComponent)")
+                + "\n" + error.localizedDescription
+            return false
+        }
+    }
+
+    /// Der eigentliche Hintergrundzugriff bekommt ausschließlich den Snapshot.
+    /// Damit kann ein UI-Edit während await nicht in diesen Schreibvorgang rutschen.
+    nonisolated private static func write(snapshot: FileEntry.SaveSnapshot,
+                                          to url: URL, kind: MediaKind) throws -> LoadedData {
+        switch (kind, snapshot) {
+        case (.audio, .audio(let properties, let artworks)):
+            try TagFile.write(properties: properties, artworks: artworks, to: url)
+        case (.image, .image(let fields, let original)):
+            try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
+        case (.ebook, .ebook(let fields, let original, let cover)):
+            try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+            if let cover {
+                try EbookTool.writeCover(url: url, data: cover)
+            }
+        default:
+            throw TagError.saveFailed(path: url.path)
+        }
+        return try readLoaded(url: url, kind: kind)
     }
 
     // MARK: - Liste verwalten
 
-    func remove(urls: [URL]) {
-        entries.removeAll { urls.contains($0.url) }
-        selection.subtract(urls)
+    /// Entfernen heißt nur „aus der Liste entfernen“, kann aber einen dirty
+    /// Editor ohne sichtbare Rückfrage verschwinden lassen. Deshalb läuft es
+    /// durch dieselbe zentrale Save/Discard/Cancel-Steuerung wie Import und
+    /// Fenster-Schließen.
+    func remove(urls: [URL]) async {
+        let targets = Set(urls.map(MediaFormats.canonicalFileURL))
+        let affected = entries.filter {
+            targets.contains(MediaFormats.canonicalFileURL($0.url))
+        }
+        await requestDestructiveAction(
+            title: String(localized: "Ungespeicherte Änderungen"),
+            message: String(localized:
+                "Vor dem Entfernen müssen die Änderungen gespeichert oder verworfen werden."),
+            entries: affected,
+            perform: { [weak self] in self?.removeNow(urls: targets) }
+        )
+    }
+
+    private func removeNow(urls: Set<URL>) {
+        entries.removeAll { urls.contains(MediaFormats.canonicalFileURL($0.url)) }
+        selection = Set(selection.filter {
+            !urls.contains(MediaFormats.canonicalFileURL($0))
+        })
         if selection.isEmpty, let first = entries.first { selection = [first.url] }
     }
 }
