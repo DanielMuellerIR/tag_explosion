@@ -126,6 +126,29 @@ struct ContentView: View {
         } message: {
             Text(model.pendingConflict?.displayedMessage ?? "")
         }
+        .confirmationDialog(
+            "Externe Importziele",
+            isPresented: .init(
+                get: { model.pendingExternalImport != nil },
+                set: { isPresented in
+                    guard !isPresented, model.pendingExternalImport != nil,
+                          model.claimPendingExternalImport(approve: false) else { return }
+                    Task { await model.resolveClaimedPendingExternalImport() }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Alle Ziele freigeben", role: .destructive) {
+                guard model.claimPendingExternalImport(approve: true) else { return }
+                Task { await model.resolveClaimedPendingExternalImport() }
+            }
+            Button("Abbrechen", role: .cancel) {
+                guard model.claimPendingExternalImport(approve: false) else { return }
+                Task { await model.resolveClaimedPendingExternalImport() }
+            }
+        } message: {
+            Text(model.pendingExternalImport?.displayedMessage ?? "")
+        }
         .alert("Hinweis", isPresented: .init(
             get: { model.alertMessage != nil },
             set: { if !$0 { model.alertMessage = nil } }

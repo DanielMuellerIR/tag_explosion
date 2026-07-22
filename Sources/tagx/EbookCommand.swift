@@ -94,20 +94,19 @@ struct EbookSet: ParsableCommand {
             throw ValidationError("This format cannot store a series (PDF).")
         }
 
-        var changed = false
-        if fields != original {
-            try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
-            changed = true
-        }
+        var coverUpdate = EbookCoverUpdate.unchanged
         if let cover {
             guard EbookTool.supportsCover(url: url) else {
                 throw ValidationError("This format cannot store a cover (PDF).")
             }
             let coverURL = try resolveFile(cover)
             let data = try Data(contentsOf: coverURL)
-            try EbookTool.writeCover(url: url, data: data)
-            changed = true
+            coverUpdate = .set(data)
         }
+        let changed = fields != original || cover != nil
+        try EbookTool.write(
+            url: url, fields: fields, original: original,
+            coverUpdate: coverUpdate)
         print(changed ? "OK \(url.lastPathComponent)" : "No changes")
     }
 }

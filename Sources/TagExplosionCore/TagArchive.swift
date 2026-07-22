@@ -59,6 +59,8 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
     case unsupportedVersion(Int)
     case incompleteEntry(path: String, kind: MediaFormats.Kind, missing: String)
     case inconsistentEntry(path: String, detail: String)
+    case externalTargetRequiresApproval(path: String, resolvedPath: String)
+    case approvedTargetListChanged
     case exportDestinationMatchesInput(input: String, destination: String)
 
     public var errorDescription: String? {
@@ -69,6 +71,10 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
             return "Archive entry \(path) (\(kind.rawValue)) is missing required \(missing) data"
         case .inconsistentEntry(let path, let detail):
             return "Archive entry \(path) is inconsistent: \(detail)"
+        case .externalTargetRequiresApproval(let path, let resolvedPath):
+            return "Archive entry \(path) resolves outside the archive directory to \(resolvedPath). Explicit approval is required."
+        case .approvedTargetListChanged:
+            return "Resolved archive targets changed after approval. Nothing was written."
         case .exportDestinationMatchesInput(let input, let destination):
             return "Export destination \(destination) matches input media file \(input). Choose a different --output path."
         }
@@ -189,13 +195,24 @@ public enum TagArchiveIO {
     /// zur JSON-Datei; fehlende und zusätzliche Dateien werden gemeldet statt
     /// zu raten.
     public static func apply(_ archive: TagArchive, relativeTo baseDirectory: URL,
-                             dryRun: Bool) throws -> TagArchiveReport {
+                             dryRun: Bool, approvedTargets: [URL]? = nil) throws
+    -> TagArchiveReport {
         // Die gesamte Datei wird vor der Schleife geprüft. Damit kann kein
         // fehlerhafter Eintrag nach einer schon geschriebenen Datei auffallen.
-        _ = try validatedTargets(archive, relativeTo: baseDirectory)
+        // Ein zuvor in CLI/App angezeigter externer Pfad wird hier unmittelbar
+        // vor den Mutationen nochmals vollständig aufgelöst und geprüft.
+        let targets = try validatedTargets(
+            archive, relativeTo: baseDirectory,
+            allowExternalTargets: approvedTargets != nil
+        )
+        if let approvedTargets {
+            let approved = approvedTargets.map(MediaFormats.canonicalFileURL)
+            guard approved == targets else {
+                throw TagArchiveError.approvedTargetListChanged
+            }
+        }
         var report = TagArchiveReport()
-        for entry in archive.files {
-            let url = resolve(path: entry.path, in: baseDirectory)
+        for (entry, url) in zip(archive.files, targets) {
             guard FileManager.default.fileExists(atPath: url.path) else {
                 report.missing.append(entry.path)
                 continue
@@ -215,9 +232,7 @@ public enum TagArchiveIO {
         // `expandMediaFiles` liefert kanonische URLs. Auch die Archiv-Ziele
         // müssen daher vor dem Vergleich Symlinks auflösen, sonst würde eine
         // bereits bekannte Datei fälschlich als zusätzlicher Fund erscheinen.
-        let known = Set(archive.files.map {
-            MediaFormats.canonicalFileURL(resolve(path: $0.path, in: baseDirectory)).path
-        })
+        let known = Set(targets.map(\.path))
         for url in MediaFormats.expandMediaFiles([baseDirectory])
         where !known.contains(MediaFormats.canonicalFileURL(url).path) {
             report.extra.append(relativePath(of: url, to: baseDirectory))
@@ -231,12 +246,21 @@ public enum TagArchiveIO {
     /// Auch fehlende Ziele stehen in der Liste: Sie sind Teil des Archivs,
     /// können aber naturgemäß keinem geöffneten Eintrag entsprechen.
     public static func validatedTargets(_ archive: TagArchive,
-                                        relativeTo baseDirectory: URL) throws -> [URL] {
+                                        relativeTo baseDirectory: URL,
+                                        allowExternalTargets: Bool = false) throws -> [URL] {
         try validate(archive)
-        try validateResolvedEntries(archive, relativeTo: baseDirectory)
-        return archive.files.map {
-            MediaFormats.canonicalFileURL(resolve(path: $0.path, in: baseDirectory))
-        }
+        return try validateResolvedEntries(
+            archive, relativeTo: baseDirectory,
+            allowExternalTargets: allowExternalTargets
+        )
+    }
+
+    /// Aus einer bereits vollständig aufgelösten Zielliste die Ziele außerhalb
+    /// des Archivordners bestimmen. CLI/App zeigen diese Liste vor der Freigabe.
+    public static func externalTargets(_ targets: [URL],
+                                       relativeTo baseDirectory: URL) -> [URL] {
+        let canonicalBase = MediaFormats.canonicalFileURL(baseDirectory)
+        return targets.filter { !isDescendant($0, of: canonicalBase) }
     }
 
     /// Wendet einen Eintrag an; true = Datei wurde (bzw. würde) geändert.
@@ -286,16 +310,17 @@ public enum TagArchiveIO {
             } ?? false
             guard fieldsDiffer || coverDiffers else { return false }
             if !dryRun {
-                if fieldsDiffer {
-                    try EbookTool.writeCoreFields(url: url, fields: target, original: current)
+                let coverUpdate: EbookCoverUpdate
+                if !coverDiffers {
+                    coverUpdate = .unchanged
+                } else if let targetCover {
+                    coverUpdate = .set(targetCover.data)
+                } else {
+                    coverUpdate = .remove
                 }
-                if coverDiffers {
-                    if let targetCover {
-                        try EbookTool.writeCover(url: url, data: targetCover.data)
-                    } else {
-                        try EbookTool.removeCover(url: url)
-                    }
-                }
+                try EbookTool.write(
+                    url: url, fields: target, original: current,
+                    coverUpdate: coverUpdate)
             }
             return true
         }
@@ -360,11 +385,23 @@ public enum TagArchiveIO {
     /// erkennbar, ob ein E-Book-Eintrag auf ein PDF zeigt: PDFs besitzen keine
     /// Cover, daher wäre selbst ein leeres Cover-Array dort widersprüchlich.
     /// Diese Vorprüfung bleibt vor der Import-Schleife und damit vor jeder Mutation.
-    private static func validateResolvedEntries(_ archive: TagArchive,
-                                                relativeTo baseDirectory: URL) throws {
-        var resolvedPaths: Set<String> = []
+    private static func validateResolvedEntries(
+        _ archive: TagArchive,
+        relativeTo baseDirectory: URL,
+        allowExternalTargets: Bool
+    ) throws -> [URL] {
+        let canonicalBase = MediaFormats.canonicalFileURL(baseDirectory)
+        var identities: [FileIdentity] = []
+        var targets: [URL] = []
         for entry in archive.files {
-            let url = resolve(path: entry.path, in: baseDirectory)
+            let url = MediaFormats.canonicalFileURL(
+                resolve(path: entry.path, in: baseDirectory)
+            )
+            guard allowExternalTargets || isDescendant(url, of: canonicalBase) else {
+                throw TagArchiveError.externalTargetRequiresApproval(
+                    path: entry.path, resolvedPath: url.path)
+            }
+            targets.append(url)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             guard MediaFormats.kind(of: url) == entry.kind else {
                 throw TagArchiveError.inconsistentEntry(
@@ -374,11 +411,12 @@ public enum TagArchiveIO {
             // Datei zeigen. Vor der ersten Mutation muss deshalb die zentrale
             // kanonische Dateidentität verglichen werden, nicht nur der Text
             // des jeweiligen relativen Pfads.
-            let canonicalPath = MediaFormats.canonicalFileURL(url).path
-            guard resolvedPaths.insert(canonicalPath).inserted else {
+            let identity = FileIdentity(url)
+            guard !identities.contains(where: { $0.matches(identity) }) else {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "different paths resolve to the same target")
             }
+            identities.append(identity)
             if entry.kind == .ebook, let artworks = entry.artworks {
                 guard EbookTool.supportsCover(url: url) else {
                     throw TagArchiveError.inconsistentEntry(
@@ -391,6 +429,13 @@ public enum TagArchiveIO {
                 }
             }
         }
+        return targets
+    }
+
+    private static func isDescendant(_ target: URL, of base: URL) -> Bool {
+        let basePath = base.standardizedFileURL.path
+        let prefix = basePath.hasSuffix("/") ? basePath : basePath + "/"
+        return target.standardizedFileURL.path.hasPrefix(prefix)
     }
 
     /// Stellt vor dem Lesen sicher, dass das atomar geschriebene JSON nicht

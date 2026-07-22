@@ -1,6 +1,6 @@
 # Tag Explosion — Architekturplan
 
-Stand: 2026-07-19. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
+Stand: 2026-07-22. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
 
 ## Ziel
 
@@ -195,6 +195,21 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   Speichern, Screenshot und sauberes Beenden. Root- und App-Tests sowie Debug-/
   Release-Builds wurden ausgeführt.
 
+### Review-Nachlauf: atomare Importe und portable Builds — ✅ umgesetzt in 0.15.4
+
+- Archivimporte beschränken Ziele standardmäßig auf den JSON-Ordner. Externe
+  Ziele brauchen in CLI bzw. App eine ausdrückliche Freigabe mit vollständiger
+  kanonischer Zielliste; direkt vor dem Schreiben wird erneut geprüft.
+  Symlinks und Hardlinks werden dabei als dieselbe Datei erkannt.
+- E-Book-Felder und Cover werden pro Datei über eine Geschwisterkopie
+  transaktional geschrieben. EPUB ersetzt das Original erst nach Prüfung von
+  `mimetype`, OPF und deklarierter Cover-Ressource; Cover-Neuanlagen verwenden
+  kollisionsfreie Manifest-IDs und -Pfade.
+- Die App-Abhängigkeit zum Root-Paket besitzt einen stabilen expliziten Namen
+  und baut daher auch in anders benannten Worktrees. Der TagLib-FrameFactory-
+  Default wird threadsicher genau einmal gesetzt. Die CLI validiert Bewertungen
+  strikt als 0–5 und behandelt nur einen explizit leeren Wert als Löschwunsch.
+
 ### Distribution: DMG statt ZIP — ✅ umgesetzt in 0.12.0
 - Notarisiertes DMG mit /Applications-Symlink und Hintergrundbild; Bau in
   `build.sh --release` (hdiutil UDRW/HFS+ → Finder-Layout per AppleScript →
@@ -251,3 +266,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.15.1  | Zweisprachige Screenshots (de/en, inkl. E-Book-Editor) mit neuen Demo-Dateien; GUI-Regressionstest; Release-DMG-Testlauf — ✅ |
 | 0.15.2  | Cleanup-Pass nach 4-Perspektiven-Review: Duplikate zusammengelegt (Tool-Suche, Komma-Splits, Batch-Textfeld, MediaKind, Cover-Drop), Backup-Konvention in den Core — ✅ |
 | 0.15.3  | Elf Review-Sicherheits-/Zuverlässigkeitsfixes: sichere Archiv-/Exportpfade, vollständige Vorabvalidierung, robuste E-Book- und Prozessbehandlung sowie Save-/Fenster-/GUI-Prüfungen mit Regressionstests — ✅ |
+| 0.15.4  | Review-Nachlauf: explizit freigegebene externe Importziele, atomare E-Book-/EPUB-Schreibvorgänge, kollisionsfreie Cover, portable App-Paketidentität, threadsichere TagLib-Initialisierung und strikte Rating-Validierung — ✅ |

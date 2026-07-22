@@ -3,6 +3,7 @@
 // sichtbare Ergebnis statt nur die interne Kollisions-Hilfsfunktion.
 import Foundation
 import Testing
+import TagExplosionCore
 
 @Suite("tagx export Zielkollision", .serialized)
 struct ExportCollisionTests {
@@ -31,6 +32,69 @@ struct ExportCollisionTests {
         let hardlink = directory.appendingPathComponent("ziel-hardlink.json")
         try FileManager.default.linkItem(at: input, to: hardlink)
         try assertRejected(input: input, output: hardlink, original: original)
+    }
+
+    @Test("Ungültige Bewertung wird abgelehnt statt als Löschwunsch behandelt")
+    func invalidRatingDoesNotDeleteExistingRating() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-rating-validation-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let image = directory.appendingPathComponent("image.jpg")
+        try FileManager.default.copyItem(
+            at: root.appendingPathComponent(
+                "Tests/TagExplosionCoreTests/Fixtures/generated/cover.jpg"),
+            to: image)
+
+        #expect(try runTagx(arguments: ["exif", "set", image.path,
+                                        "--rating", "5"]).status == 0)
+        let bytesBefore = try Data(contentsOf: image)
+        for invalid in ["4x", "-1", "6"] {
+            let result = try runTagx(arguments: [
+                "exif", "set", image.path, "--rating=\(invalid)",
+            ])
+            #expect(result.status != 0)
+            #expect(result.stderr.contains("integer from 0 to 5"))
+            #expect(try Data(contentsOf: image) == bytesBefore)
+        }
+    }
+
+    @Test("Externe Importziele brauchen den Schalter und werden vollständig ausgegeben")
+    func externalImportRequiresFlagAndPrintsAllTargets() throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-cli-external-import-\(UUID().uuidString)")
+        let base = parent.appendingPathComponent("archive")
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let fixture = root.appendingPathComponent(
+            "Tests/TagExplosionCoreTests/Fixtures/generated/sample.mp3")
+        let inside = base.appendingPathComponent("inside.mp3")
+        let outside = parent.appendingPathComponent("outside.mp3")
+        try FileManager.default.copyItem(at: fixture, to: inside)
+        try FileManager.default.copyItem(at: fixture, to: outside)
+
+        let archive = TagArchive(created: "2026-07-22T00:00:00Z", files: [
+            .init(path: "inside.mp3", kind: .audio, properties: [:]),
+            .init(path: "../outside.mp3", kind: .audio, properties: [:]),
+        ])
+        let json = base.appendingPathComponent("tags.json")
+        try JSONEncoder().encode(archive).write(to: json)
+
+        let rejected = try runTagx(arguments: ["import", "--dry-run", json.path])
+        #expect(rejected.status != 0)
+        #expect(rejected.stderr.contains("Explicit approval is required"))
+
+        let allowed = try runTagx(arguments: [
+            "import", "--dry-run", "--allow-external-targets", json.path,
+        ])
+        #expect(allowed.status == 0)
+        #expect(allowed.stderr.contains("Resolved import targets:"))
+        #expect(allowed.stderr.contains(inside.path))
+        #expect(allowed.stderr.contains(outside.path))
     }
 
     private func assertRejected(input: URL, output: URL, original: Data) throws {

@@ -43,6 +43,13 @@ public struct EbookCoreFields: Sendable, Codable, Equatable {
     }
 }
 
+/// Cover-Anteil eines kombinierten E-Book-Schreibvorgangs.
+public enum EbookCoverUpdate: Sendable {
+    case unchanged
+    case set(Data)
+    case remove
+}
+
 public enum EbookTool {
 
     /// Backend je Dateiendung.
@@ -112,6 +119,44 @@ public enum EbookTool {
         case .pdf: try writePdf(url: url, fields: fields, original: original)
         case .calibre: try writeCalibre(url: url, fields: fields, original: original)
         case nil: throw TagError.cannotOpen(path: url.path)
+        }
+    }
+
+    /// Schreibt Kernfelder und Cover als eine Transaktion pro Datei. Schlägt
+    /// ein späterer Backend-Schritt fehl, bleibt das Original unverändert.
+    public static func write(
+        url: URL,
+        fields: EbookCoreFields,
+        original: EbookCoreFields,
+        coverUpdate: EbookCoverUpdate
+    ) throws {
+        let hasCoverChange: Bool
+        switch coverUpdate {
+        case .unchanged: hasCoverChange = false
+        case .set, .remove: hasCoverChange = true
+        }
+        guard fields != original || hasCoverChange else { return }
+
+        try AtomicFileRewrite.run(url: url) { temp in
+            try writeCoreFields(url: temp, fields: fields, original: original)
+            switch coverUpdate {
+            case .unchanged: break
+            case .set(let data): try writeCover(url: temp, data: data)
+            case .remove: try removeCover(url: temp)
+            }
+        } validate: { temp in
+            _ = try readCoreFields(url: temp)
+            switch coverUpdate {
+            case .unchanged: break
+            case .set:
+                guard try readCover(url: temp) != nil else {
+                    throw TagError.saveFailed(path: temp.path)
+                }
+            case .remove:
+                guard try readCover(url: temp) == nil else {
+                    throw TagError.saveFailed(path: temp.path)
+                }
+            }
         }
     }
 

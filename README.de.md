@@ -104,6 +104,12 @@ tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
 ```
 
+Importe bearbeiten standardmäßig nur Dateien innerhalb des JSON-Ordners. Ein
+Archiv mit absichtlich externen Zielen braucht ausdrücklich
+`--allow-external-targets`; `tagx` gibt vor dem Anwenden die vollständige
+aufgelöste Zielliste aus. Bewertungen akzeptieren nur ganze Zahlen von 0 bis
+5; ausschließlich ein explizit leerer `--rating`-Wert löscht das Feld.
+
 ## Aus dem Quelltext bauen
 
 Voraussetzungen: Xcode-Toolchain, Homebrew mit `taglib`; zur Laufzeit

@@ -53,6 +53,23 @@ let videoFormats = ["sample.mp4", "sample.m4v", "sample.mkv"]
 @Suite("Tag-Roundtrip", .serialized)
 struct RoundtripTests {
 
+    @Test("Parallele Audio-Öffnungen initialisieren TagLib threadsicher")
+    func concurrentAudioOpens() async throws {
+        let urls = try (0..<64).map { _ in
+            try Fixtures.workingCopy("sample.mp3")
+        }
+        try await withThrowingTaskGroup(of: Int.self) { group in
+            for url in urls {
+                group.addTask {
+                    try TagFile.read(at: url).properties.count
+                }
+            }
+            for try await propertyCount in group {
+                #expect(propertyCount >= 0)
+            }
+        }
+    }
+
     @Test("Properties schreiben und lesen", arguments: audioFormats)
     func propertiesRoundtrip(format: String) throws {
         let url = try Fixtures.workingCopy(format)

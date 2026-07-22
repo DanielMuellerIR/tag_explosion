@@ -3,6 +3,7 @@
 import Foundation
 import Testing
 @testable import TagExplosionCore
+import ZIPFoundation
 
 @Suite("EbookTool", .serialized)
 struct EbookToolTests {
@@ -162,6 +163,44 @@ struct EbookToolTests {
         #expect(prefix == "mimetypeapplication/epub+zip")
     }
 
+    @Test("EPUB: fehlgeschlagene Temp-Mutation lässt das Original bytegleich")
+    func epubAtomicRewriteFailureKeepsOriginal() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let before = try Data(contentsOf: url)
+
+        #expect(throws: TagError.self) {
+            try AtomicFileRewrite.run(url: url) { temp in
+                try Data("kein EPUB".utf8).write(to: temp)
+            } validate: { _ in
+                throw TagError.cannotOpen(path: url.path)
+            }
+        }
+
+        #expect(try Data(contentsOf: url) == before)
+        #expect(try EbookTool.readCoreFields(url: url).title == "Testbuch Zwei")
+    }
+
+    @Test("EPUB: Cover-Zyklus erzeugt eindeutige Manifest-IDs und -Pfade")
+    func epubCoverCycleAvoidsManifestCollisions() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        try EbookTool.removeCover(url: url)
+        try EbookTool.writeCover(url: url, data: try Fixtures.coverData("cover.png"))
+        try EbookTool.removeCover(url: url)
+        let replacement = try Fixtures.coverData("cover.jpg")
+        try EbookTool.writeCover(url: url, data: replacement)
+        #expect(try EbookTool.readCover(url: url)?.data == replacement)
+
+        let archive = try Archive(url: url, accessMode: .read)
+        let opf = try #require(archive["OEBPS/content.opf"])
+        var data = Data()
+        _ = try archive.extract(opf) { data.append($0) }
+        let xml = String(decoding: data, as: UTF8.self)
+        #expect(xml.components(separatedBy: "id=\"cover-tagx\"").count == 2)
+        #expect(xml.components(separatedBy: "id=\"cover-tagx-2\"").count == 2)
+        #expect(xml.components(separatedBy: "href=\"cover-tagx.png\"").count == 2)
+        #expect(xml.components(separatedBy: "href=\"cover-tagx-2.jpg\"").count == 2)
+    }
+
     // MARK: - PDF (exiftool)
 
     @Test("PDF: Roundtrip der unterstützten Felder")
@@ -213,6 +252,26 @@ struct EbookToolTests {
         #expect(readBack.publisher == edited.publisher)
         #expect(readBack.subjects == edited.subjects)
         #expect(readBack.date == edited.date)
+    }
+
+    @Test("E-Book-Transaktion rollt Kernfelder bei Cover-Fehler zurück", .enabled(
+        if: Self.calibreFixtureAvailable,
+        "Calibre oder die azw3-Fixture fehlt"
+    ))
+    func ebookTransactionRollsBackFieldsWhenCoverStepFails() throws {
+        let url = try Fixtures.workingCopy("book.azw3")
+        let original = try EbookTool.readCoreFields(url: url)
+        let bytesBefore = try Data(contentsOf: url)
+        var changed = original
+        changed.title = "Darf nicht teilweise bleiben"
+
+        #expect(throws: TagError.self) {
+            try EbookTool.write(
+                url: url, fields: changed, original: original,
+                coverUpdate: .remove)
+        }
+        #expect(try Data(contentsOf: url) == bytesBefore)
+        #expect(try EbookTool.readCoreFields(url: url).title == original.title)
     }
 
     @Test("Calibre: leeres Datum ersetzt den alten Wert durch den Undefined-Date-Sentinel", .enabled(

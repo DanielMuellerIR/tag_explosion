@@ -1,9 +1,12 @@
-# TagLib-Shim: Erkenntnisse (Stand 2026-07-17, TagLib 2.3)
+# TagLib-Shim: Erkenntnisse (Stand 2026-07-22, TagLib 2.3)
 
 - **ID3v2-Default-Encoding ist Latin1!** Ohne
   `ID3v2::FrameFactory::instance()->setDefaultTextEncoding(String::UTF8)`
   schreibt TagLib Umlaute als Latin1 → Mojibake in mediainfo/anderen Tools.
-  Wir setzen UTF-8 in `tx_open()` (idempotent). kid3 macht dasselbe.
+  Wir setzen UTF-8 beim ersten `tx_open()` über `std::call_once`. Das ist nicht
+  nur idempotent, sondern auch bei den parallelen App-Leseaufträgen frei von
+  Datenrennen; der parallele Öffnungstest läuft zusätzlich unter Thread
+  Sanitizer. kid3 setzt denselben UTF-8-Default.
 - **Die offizielle C-API (`tag_c.h`) reicht nicht** für Kapitel/Frame-Zugriff;
   eigener C++-Shim (`Sources/CTagShim`) ist der stabile Weg. Complex properties
   ("PICTURE") decken Cover ab — inkl. `pictureType`/`description`.

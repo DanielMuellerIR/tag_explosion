@@ -92,7 +92,16 @@ struct ExifSet: ParsableCommand {
         if let creator { fields.creator = creator }
         if let copyright { fields.copyright = copyright }
         if let date { fields.dateTimeOriginal = date }
-        if let rating { fields.rating = rating.isEmpty ? -1 : (Int(rating) ?? -1) }
+        if let rating {
+            if rating.isEmpty {
+                fields.rating = -1
+            } else {
+                guard let parsed = Int(rating), (0...5).contains(parsed) else {
+                    throw ValidationError("Rating must be an integer from 0 to 5; use an explicit empty value to delete it.")
+                }
+                fields.rating = parsed
+            }
+        }
         if let gps {
             if gps.isEmpty {
                 fields.gpsLatitude = ""

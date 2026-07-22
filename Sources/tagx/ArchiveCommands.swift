@@ -25,15 +25,12 @@ struct Export: ParsableCommand {
         }
         let jsonURL = URL(fileURLWithPath: output)
         do {
-            // Dieser Check liegt vor TagArchiveIO.build(_:), also bevor ein
-            // Eingabemedium für den Export geöffnet wird.
-            try TagArchiveIO.validateExportDestination(files: files, destination: jsonURL)
+            // Die Core-Grenze prüft das Ziel genau einmal und weiterhin vor dem
+            // ersten Medien-Lesezugriff.
+            try TagArchiveIO.export(files: files, to: jsonURL, includeCovers: !withoutCovers)
         } catch {
-            // ArgumentParser formatiert ValidationError für CLI-Nutzer klar
-            // und beendet den Befehl mit einem Fehler-Exit-Code.
             throw ValidationError(error.localizedDescription)
         }
-        try TagArchiveIO.export(files: files, to: jsonURL, includeCovers: !withoutCovers)
         print("OK \(files.count) file(s) → \(jsonURL.path)")
     }
 }
@@ -45,12 +42,26 @@ struct Import: ParsableCommand {
 
     @Argument(help: "Export/backup JSON") var file: String
     @Flag(name: .long, help: "Only show what would change") var dryRun = false
+    @Flag(name: .customLong("allow-external-targets"), help: "Allow resolved targets outside the archive directory after printing the complete target list")
+    var allowExternalTargets = false
 
     func run() throws {
         let jsonURL = try resolveFile(file)
         let archive = try TagArchiveIO.load(jsonURL)
+        let base = jsonURL.deletingLastPathComponent()
+        var approvedTargets: [URL]?
+        if allowExternalTargets {
+            let targets = try TagArchiveIO.validatedTargets(
+                archive, relativeTo: base, allowExternalTargets: true)
+            approvedTargets = targets
+            FileHandle.standardError.write(Data("Resolved import targets:\n".utf8))
+            for target in targets {
+                FileHandle.standardError.write(Data("  \(target.path)\n".utf8))
+            }
+        }
         let report = try TagArchiveIO.apply(
-            archive, relativeTo: jsonURL.deletingLastPathComponent(), dryRun: dryRun)
+            archive, relativeTo: base, dryRun: dryRun,
+            approvedTargets: approvedTargets)
 
         let verb = dryRun ? "WOULD CHANGE" : "CHANGED"
         for path in report.applied { print("\(verb) \(path)") }

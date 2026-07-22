@@ -8,7 +8,9 @@ let package = Package(
     defaultLocalization: "de",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(path: ".."),
+        // Der explizite Name entkoppelt die Paketidentitaet vom Namen des
+        // Checkouts/Worktrees (z.B. einem temporaeren Review-Verzeichnis).
+        .package(name: "TagExplosion", path: ".."),
         // Auto-Updates. Exakt gepinnt, nicht per Range: Ein Updater läuft mit
         // Schreibrechten im Installationspfad — Versionssprünge werden bewusst
         // geprüft übernommen, nie still.
@@ -18,7 +20,7 @@ let package = Package(
         .executableTarget(
             name: "TagExplosionApp",
             dependencies: [
-                .product(name: "TagExplosionCore", package: "tag_explosion"),
+                .product(name: "TagExplosionCore", package: "TagExplosion"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             resources: [.process("Resources")],

@@ -292,6 +292,70 @@ struct TagArchiveTests {
         #expect(try TagFile.read(at: mp3).firstValue(for: "TITLE") == "Original")
     }
 
+    @Test("Hardlink-Ziele im Archiv werden vor der ersten Mutation dedupliziert")
+    func hardlinkArchiveTargetsDoNotMutateFirstEntry() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
+                          artworks: [], to: mp3)
+        let alias = dir.appendingPathComponent("hardlink.mp3")
+        try FileManager.default.linkItem(at: mp3, to: alias)
+        let bytesBefore = try Data(contentsOf: mp3)
+        let archive = TagArchive(created: "2026-07-22T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Darf nicht geschrieben werden"]]),
+            .init(path: "hardlink.mp3", kind: .audio,
+                  properties: ["TITLE": ["Zweites Ziel"]]),
+        ])
+
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "hardlink.mp3",
+            detail: "different paths resolve to the same target"
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try Data(contentsOf: mp3) == bytesBefore)
+    }
+
+    @Test("Externe Archivziele brauchen eine ausdrückliche Freigabe")
+    func externalArchiveTargetRequiresApproval() throws {
+        let parent = try makeFolder(["sample.mp3"])
+        let base = parent.appendingPathComponent("archive")
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let external = parent.appendingPathComponent("sample.mp3")
+        let bytesBefore = try Data(contentsOf: external)
+        let archive = TagArchive(created: "2026-07-22T00:00:00Z", files: [
+            .init(path: "../sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Explizit freigegeben"]]),
+        ])
+
+        #expect(throws: TagArchiveError.externalTargetRequiresApproval(
+            path: "../sample.mp3", resolvedPath: external.path
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false)
+        }
+        #expect(try Data(contentsOf: external) == bytesBefore)
+
+        let targets = try TagArchiveIO.validatedTargets(
+            archive, relativeTo: base, allowExternalTargets: true)
+        #expect(targets == [MediaFormats.canonicalFileURL(external)])
+        #expect(TagArchiveIO.externalTargets(targets, relativeTo: base) == targets)
+
+        #expect(throws: TagArchiveError.approvedTargetListChanged) {
+            try TagArchiveIO.apply(
+                archive, relativeTo: base, dryRun: false,
+                approvedTargets: [base.appendingPathComponent("anderes-ziel.mp3")])
+        }
+        #expect(try Data(contentsOf: external) == bytesBefore)
+
+        let report = try TagArchiveIO.apply(
+            archive, relativeTo: base, dryRun: false,
+            approvedTargets: targets)
+        #expect(report.applied == ["../sample.mp3"])
+        #expect(try TagFile.read(at: external).firstValue(for: "TITLE")
+                == "Explizit freigegeben")
+    }
+
     @Test("Nur bekannte Archivversionen und passende Pflichtdaten werden akzeptiert")
     func archiveSchemaValidation() throws {
         let unsupported = TagArchive(version: 2, created: "2026-07-19T00:00:00Z", files: [])

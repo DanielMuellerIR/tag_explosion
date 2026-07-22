@@ -283,6 +283,21 @@ struct PendingDirtyConflict: Identifiable {
     var displayedMessage: String { failureMessage ?? message }
 }
 
+/// Explizite Freigabe für Archive, die mindestens ein Ziel außerhalb ihres
+/// eigenen Verzeichnisses enthalten. Angezeigt wird bewusst die vollständige
+/// aufgelöste Zielliste, nicht nur der erste auffällige Pfad.
+struct PendingExternalImportApproval: Identifiable {
+    let id = UUID()
+    let targetPaths: [String]
+    let externalTargetCount: Int
+
+    var displayedMessage: String {
+        String(localized:
+            "Dieses Archiv enthält \(externalTargetCount) Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:")
+            + "\n\n" + targetPaths.joined(separator: "\n")
+    }
+}
+
 /// Rückmeldung an den AppDelegate nach einer asynchronen Terminierungsfrage.
 /// AppKit-Typen bleiben dabei aus der headless testbaren Konfliktlogik heraus.
 enum TerminationDecision {
@@ -299,6 +314,10 @@ final class AppModel {
         let entries: [FileEntry]
         let perform: @MainActor () async -> Void
         let cancel: @MainActor () -> Void
+    }
+
+    private struct PendingExternalImportAction {
+        let perform: @MainActor () async -> Void
     }
 
     var entries: [FileEntry] = []
@@ -328,9 +347,13 @@ final class AppModel {
     /// Task. So kann SwiftUIs anschließendes Dialog-Dismiss nicht noch ein
     /// konkurrierendes „Abbrechen“ dazwischenschieben.
     private var claimedConflictDecision: DirtyConflictDecision?
+    private(set) var pendingExternalImport: PendingExternalImportApproval?
+    private var pendingExternalImportAction: PendingExternalImportAction?
+    private var claimedExternalImportApproval: Bool?
 
     var isDestructiveActionLocked: Bool {
-        pendingConflict != nil || isPreparingDestructiveAction || isResolvingConflict
+        pendingConflict != nil || pendingExternalImport != nil
+            || isPreparingDestructiveAction || isResolvingConflict
     }
 
     /// Der Dialog selbst sperrt bereits die View. Diese Ergänzung deckt die
@@ -760,16 +783,22 @@ final class AppModel {
             let prepared = try await Task.detached(priority: .userInitiated) {
                 let archive = try TagArchiveIO.load(url)
                 let base = url.deletingLastPathComponent()
-                let targets = try TagArchiveIO.validatedTargets(archive, relativeTo: base)
-                return (archive, base, targets)
+                let targets = try TagArchiveIO.validatedTargets(
+                    archive, relativeTo: base, allowExternalTargets: true)
+                let external = TagArchiveIO.externalTargets(targets, relativeTo: base)
+                return (archive, base, targets, external)
             }.value
-            await scheduleImport(
+            let approvedTargets = prepared.3.isEmpty ? nil : prepared.2
+            await requestExternalApprovalOrScheduleImport(
                 archive: prepared.0,
                 relativeTo: prepared.1,
-                targets: prepared.2
+                targets: prepared.2,
+                externalTargets: prepared.3
             ) { archive, base in
                 try await Task.detached(priority: .userInitiated) {
-                    try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false)
+                    try TagArchiveIO.apply(
+                        archive, relativeTo: base, dryRun: false,
+                        approvedTargets: approvedTargets)
                 }.value
             }
         } catch {
@@ -787,12 +816,60 @@ final class AppModel {
     ) async {
         do {
             let targets = try await Task.detached(priority: .userInitiated) {
-                try TagArchiveIO.validatedTargets(archive, relativeTo: base)
+                try TagArchiveIO.validatedTargets(
+                    archive, relativeTo: base, allowExternalTargets: true)
             }.value
-            await scheduleImport(archive: archive, relativeTo: base, targets: targets, apply: apply)
+            let external = TagArchiveIO.externalTargets(targets, relativeTo: base)
+            await requestExternalApprovalOrScheduleImport(
+                archive: archive, relativeTo: base, targets: targets,
+                externalTargets: external, apply: apply)
         } catch {
             alertMessage = String(localized: "Import fehlgeschlagen:") + "\n" + error.localizedDescription
         }
+    }
+
+    private func requestExternalApprovalOrScheduleImport(
+        archive: TagArchive,
+        relativeTo base: URL,
+        targets: [URL],
+        externalTargets: [URL],
+        apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
+    ) async {
+        guard !isDestructiveActionLocked else { return }
+        guard !externalTargets.isEmpty else {
+            await scheduleImport(
+                archive: archive, relativeTo: base, targets: targets, apply: apply)
+            return
+        }
+
+        pendingExternalImport = PendingExternalImportApproval(
+            targetPaths: targets.map(\.path),
+            externalTargetCount: externalTargets.count)
+        pendingExternalImportAction = PendingExternalImportAction(
+            perform: { [weak self] in
+                await self?.scheduleImport(
+                    archive: archive, relativeTo: base,
+                    targets: targets, apply: apply)
+            })
+    }
+
+    /// Beansprucht Freigeben/Abbrechen synchron, damit Dialog-Button und
+    /// Dismiss-Callback nicht zwei verschiedene Entscheidungen ausführen.
+    @discardableResult
+    func claimPendingExternalImport(approve: Bool) -> Bool {
+        guard pendingExternalImportAction != nil,
+              claimedExternalImportApproval == nil else { return false }
+        claimedExternalImportApproval = approve
+        return true
+    }
+
+    func resolveClaimedPendingExternalImport() async {
+        guard let approve = claimedExternalImportApproval,
+              let action = pendingExternalImportAction else { return }
+        pendingExternalImport = nil
+        pendingExternalImportAction = nil
+        claimedExternalImportApproval = nil
+        if approve { await action.perform() }
     }
 
     /// Der Archiv-Snapshot ist schon geladen und validiert, wird aber erst in
@@ -906,10 +983,9 @@ final class AppModel {
         case (.image, .image(let fields, let original)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
         case (.ebook, .ebook(let fields, let original, let cover)):
-            try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
-            if let cover {
-                try EbookTool.writeCover(url: url, data: cover)
-            }
+            try EbookTool.write(
+                url: url, fields: fields, original: original,
+                coverUpdate: cover.map(EbookCoverUpdate.set) ?? .unchanged)
         default:
             throw TagError.saveFailed(path: url.path)
         }

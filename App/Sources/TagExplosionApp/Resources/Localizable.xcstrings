@@ -91,6 +91,16 @@
         }
       }
     },
+    "Alle Ziele freigeben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow all targets"
+          }
+        }
+      }
+    },
     ", %lld fehlend": {
       "localizations": {
         "en": {
@@ -1387,6 +1397,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save or discard changes before closing the window."
+          }
+        }
+      }
+    },
+    "Externe Importziele": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External import targets"
+          }
+        }
+      }
+    },
+    "Dieses Archiv enthält %lld Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This archive contains %lld target(s) outside its folder. All resolved targets:"
           }
         }
       }

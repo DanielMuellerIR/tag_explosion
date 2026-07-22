@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <mutex>
 #include <string>
 
 namespace {
@@ -22,6 +23,16 @@ char* dup_string(const TagLib::String& s) {
     char* out = static_cast<char*>(std::malloc(utf8.size() + 1));
     if (out) std::memcpy(out, utf8.c_str(), utf8.size() + 1);
     return out;
+}
+
+// FrameFactory ist ein prozessweiter TagLib-Singleton. Der Default darf bei
+// parallelen Datei-Oeffnungen genau einmal gesetzt werden.
+void configure_frame_factory() {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        TagLib::ID3v2::FrameFactory::instance()->setDefaultTextEncoding(
+            TagLib::String::UTF8);
+    });
 }
 
 } // namespace
@@ -38,7 +49,7 @@ tx_file* tx_open(const char* path) {
     if (!path) return nullptr;
     // ID3v2-Frames als UTF-8 schreiben (TagLib-Default ist Latin1, was bei
     // Umlauten zu Mojibake in anderen Programmen führt). Einmalig, idempotent.
-    TagLib::ID3v2::FrameFactory::instance()->setDefaultTextEncoding(TagLib::String::UTF8);
+    configure_frame_factory();
     auto* f = new (std::nothrow) tx_file();
     if (!f) return nullptr;
     // Erst beschreibbar versuchen, dann read-only als Fallback (z.B. Datei

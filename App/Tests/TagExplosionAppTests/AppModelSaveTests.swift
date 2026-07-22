@@ -88,6 +88,43 @@ struct AppModelSaveTests {
         #expect(untouched.isDirty)
     }
 
+    @Test("Externe Importziele werden vollständig angezeigt und erst nach Freigabe geschrieben")
+    func externalImportTargetsRequireExplicitApproval() async throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-app-external-import-\(UUID().uuidString)")
+        let base = parent.appendingPathComponent("archive")
+        defer { try? FileManager.default.removeItem(at: parent) }
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let inside = base.appendingPathComponent("inside.mp3")
+        let outside = parent.appendingPathComponent("outside.mp3")
+        try Data().write(to: inside)
+        try Data().write(to: outside)
+        let archive = TagArchive(created: "2026-07-22T00:00:00Z", files: [
+            .init(path: "inside.mp3", kind: .audio, properties: [:]),
+            .init(path: "../outside.mp3", kind: .audio, properties: [:]),
+        ])
+        let model = AppModel()
+        let applyCalls = CallCounter()
+
+        await model.importArchive(archive: archive, relativeTo: base) { _, _ in
+            await applyCalls.increment()
+            return try TagArchiveIO.apply(
+                TagArchive(created: "2026-07-22T00:00:00Z", files: []),
+                relativeTo: base, dryRun: true)
+        }
+
+        let approval = try #require(model.pendingExternalImport)
+        #expect(approval.externalTargetCount == 1)
+        #expect(approval.targetPaths == [inside.path, outside.path])
+        #expect(await applyCalls.value == 0)
+
+        #expect(model.claimPendingExternalImport(approve: true))
+        #expect(!model.claimPendingExternalImport(approve: false))
+        await model.resolveClaimedPendingExternalImport()
+        #expect(await applyCalls.value == 1)
+        #expect(model.pendingExternalImport == nil)
+    }
+
     @Test("Entfernen respektiert Abbrechen, Verwerfen und doppelte Anfragen")
     func removeCancelDiscardAndReentrancy() async {
         let entry = dirtyAudioEntry(

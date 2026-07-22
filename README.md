@@ -102,6 +102,12 @@ tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
 ```
 
+Imports only target files inside the JSON file's directory by default. An
+archive that intentionally references external files requires the explicit
+`--allow-external-targets` flag; `tagx` prints the complete resolved target
+list before applying it. Ratings accept only integers from 0 through 5; only
+an explicitly empty `--rating` value deletes the field.
+
 ## Building from source
 
 Requirements: Xcode toolchain, Homebrew with `taglib`; `media-info` at
