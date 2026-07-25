@@ -42,10 +42,11 @@ Gegenpart (`SUPublicEDKey`) steht im App-Bundle.
 
    ```sh
    umask 077
-   key="$(mktemp)"
+   dir="$(mktemp -d)"          # Verzeichnis, nicht Datei: generate_keys -x
+   key="$dir/sparkle.key"      # weigert sich, eine vorhandene Datei zu ueberschreiben
    "$tool" --account io.github.danielmuellerir.tagexplosion -x "$key"
    gh secret set SPARKLE_PRIVATE_KEY --repo <owner>/<repo> < "$key"
-   rm -P "$key"
+   rm -P "$key"; rmdir "$dir"
    ```
 3. Den Schlüssel zusätzlich verschlüsselt sichern. Geht er verloren, ist eine
    kontrollierte Schlüsselrotation über ein Developer-ID-signiertes Archiv
