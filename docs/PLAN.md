@@ -105,7 +105,8 @@ tag_explosion/
   ffmpeg generiert (Sinuston, 1–2 s, alle Formate). Reale lokale Testdateien dienen
   nur lokal-manuell (read-only bzw. Kopien).
 - Versionierung: `VERSION`-Datei (semver), bei jedem abgeschlossenen Schritt Bump + Commit.
-- Remote: nur internes Backup-Remote. GitHub erst auf Auftrag.
+- Remotes: internes Backup-Remote als Standard; öffentliches GitHub-Repo
+  seit 0.17.0 (Push dorthin nur auf ausdrücklichen Auftrag).
 
 ## Abgleich mit kid3 (2026-07-17, kid3 3.9.6)
 
