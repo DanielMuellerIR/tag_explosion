@@ -20,6 +20,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var model: AppModel?
     private var terminationReplyPending = false
 
+    /// Dateien, die vor dem Erscheinen des Fensters ankommen (Kaltstart aus
+    /// dem Finder). Sie warten hier, bis die Szene das Modell übergibt.
+    private var pendingURLs: [URL] = []
+
+    /// Die Szene meldet sich, sobald sie da ist, und übernimmt Wartendes.
+    func attach(model: AppModel) {
+        self.model = model
+        guard !pendingURLs.isEmpty else { return }
+        let urls = pendingURLs
+        pendingURLs = []
+        Task { @MainActor in await model.open(urls: urls) }
+    }
+
+    /// Finder, Dock und `open -a` liefern Dateien über diesen Weg — zuverlässig
+    /// auch beim Kaltstart, anders als SwiftUIs `onOpenURL`. Trifft eine Datei
+    /// ein, bevor die Szene das Modell übergeben hat, wartet sie in
+    /// `pendingURLs`.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let model else {
+            pendingURLs.append(contentsOf: urls)
+            return
+        }
+        Task { @MainActor in await model.open(urls: urls) }
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        showWindowIfHidden()
+    }
+
+    /// Startet man die App aus dem Finder mit einer Datei ("Öffnen mit …",
+    /// Drag aufs Dock-Symbol), legt SwiftUI überhaupt kein Fenster der
+    /// `WindowGroup` an — `NSApp.windows` bleibt leer. Die App läuft dann
+    /// unsichtbar weiter und bekommt die zu öffnende Datei nie zugestellt, weil
+    /// macOS das Öffnen-Ereignis erst an ein vorhandenes Fenster ausliefert.
+    ///
+    /// Ein Reopen auf das eigene Bundle wirkt wie ein Klick aufs Dock-Symbol
+    /// und bringt SwiftUI dazu, das Fenster anzulegen; danach kommt auch die
+    /// Datei an. Ohne Datei gestartet ist längst ein Fenster da, dann tut diese
+    /// Prüfung nichts.
+    private func showWindowIfHidden() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) else { return }
+            NSWorkspace.shared.open(Bundle.main.bundleURL)
+        }
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let model else { return .terminateNow }
         guard model.hasDirtyEntries || model.hasSavingEntries || model.isDestructiveActionLocked else {
@@ -73,12 +120,10 @@ struct TagExplosionApp: App {
                 .environment(model)
                 .frame(minWidth: 900, minHeight: 600)
                 .onAppear {
-                    appDelegate.model = model
+                    // Übergibt das Modell und holt Dateien nach, die schon vor
+                    // dem Fenster angekommen sind ("Öffnen mit …" aus dem Finder).
+                    appDelegate.attach(model: model)
                     AppModel.applySafeMode()
-                }
-                // Dateien aus Finder/Dock ("Öffnen mit …")
-                .onOpenURL { url in
-                    Task { await model.open(urls: [url]) }
                 }
         }
         .commands {

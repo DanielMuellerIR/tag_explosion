@@ -17,6 +17,12 @@ laufen ohne Freigabe — siehe globale Testregeln.
   `scripts/dev-uitest.swift` (Feld setzen + Speichern + verifizierbar).
 - App für Tests immer als **.app-Bundle** starten (`open -a`), nie das nackte
   swift-build-Binary (keine Fensterpräsenz).
+- **Falle (2026-07-25):** Beim Start mit einer Datei (`open -a App datei.mp3`)
+  legt SwiftUI kein Fenster der `WindowGroup` an — `NSApp.windows` bleibt leer,
+  die App läuft unsichtbar, und macOS liefert das Öffnen-Ereignis nie aus.
+  `AppDelegate.showWindowIfHidden` fängt das ab (Reopen aufs eigene Bundle).
+  Der Testlauf mit Datei prüft diesen Weg mit; er ist der Weg, den ein Nutzer
+  aus dem Finder geht.
 - Der echte Lauf von `scripts/dev-uitest.swift` prüft jeden AX-Schritt
   (Fokus, Wert, Auslösen), den Menüpunkt **Speichern**, Fenstergeometrie und
   Screenshot-Datei sowie den Exit-Status des Screenshot-Prozesses. Nach dem

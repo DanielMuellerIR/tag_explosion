@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.16.1] — 2026-07-25
+
+### Behoben
+
+- Eine Datei aus dem Finder zu öffnen („Öffnen mit …", Ziehen aufs
+  Dock-Symbol, `open -a`) funktionierte nicht, wenn die App dabei startete:
+  Sie lief unsichtbar ohne Fenster weiter und lud die Datei nie. Beim Start
+  mit einer Datei legt SwiftUI kein Fenster an, und macOS liefert das
+  Öffnen-Ereignis nur an ein vorhandenes Fenster aus. Die App sorgt jetzt
+  selbst dafür, dass ein Fenster erscheint, und nimmt die Datei über den
+  App-Delegate entgegen statt über SwiftUIs `onOpenURL`.
+
 ## [0.16.0] — 2026-07-25
 
 ### Hinzugefügt
