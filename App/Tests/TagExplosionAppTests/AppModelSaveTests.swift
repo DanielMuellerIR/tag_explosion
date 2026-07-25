@@ -492,3 +492,44 @@ private actor CallCounter {
         value += 1
     }
 }
+
+@Suite("Lesepfad")
+@MainActor
+struct AppModelReadTests {
+
+    /// Container ohne TagLib-Leser (AVI) müssen sich trotzdem öffnen lassen —
+    /// schreibgeschützt, damit der Technik-Tab nutzbar bleibt.
+    @Test("AVI öffnet schreibgeschützt statt mit einem Fehler")
+    func aviOpensReadOnly() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-avi-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("clip.avi")
+        // Der Inhalt ist bewusst kein gültiges AVI: TagLib kann AVI generell
+        // nicht lesen, der Fallback darf nicht vom Dateiinhalt abhängen.
+        try Data("nicht lesbar".utf8).write(to: url)
+
+        let loaded = try AppModel.readLoaded(url: url, kind: .audio)
+        guard case .audio(let data) = loaded else {
+            Issue.record("Erwartet wurde ein Audio-Zustand")
+            return
+        }
+        #expect(data.isReadOnly)
+        #expect(data.properties.isEmpty)
+    }
+
+    @Test("Eine kaputte Audiodatei meldet weiterhin einen Fehler")
+    func brokenAudioStillFails() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-broken-audio-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("kaputt.flac")
+        try Data("kein FLAC".utf8).write(to: url)
+
+        #expect(throws: (any Error).self) {
+            _ = try AppModel.readLoaded(url: url, kind: .audio)
+        }
+    }
+}

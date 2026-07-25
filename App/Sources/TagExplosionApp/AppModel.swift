@@ -472,14 +472,10 @@ final class AppModel {
                 group.addTask {
                     let kind = MediaKind.forURL(url) ?? .audio
                     do {
+                        // Der Read-only-Fallback für Container ohne TagLib-Leser
+                        // steckt in `readLoaded`, damit Öffnen, Neuladen und
+                        // Speichern-Read-back dieselbe Regel verwenden.
                         return (index, url, .success(try await read(url, kind)))
-                    } catch where kind == .audio {
-                        // TagLib kennt den Container nicht (z.B. avi/mov):
-                        // trotzdem anzeigen (Technik-Tab via mediainfo), aber
-                        // als schreibgeschützt markieren.
-                        let fallback = TagData(properties: [], artworks: [],
-                                               audio: nil, isReadOnly: true)
-                        return (index, url, .success(.audio(fallback)))
                     } catch {
                         return (index, url, .failure(error))
                     }
@@ -500,7 +496,20 @@ final class AppModel {
     /// gemeinsamer Lesepfad für Öffnen, Neuladen und Speichern-Read-back.
     nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
         switch kind {
-        case .audio: return .audio(try TagFile.read(at: url))
+        case .audio:
+            do {
+                return .audio(try TagFile.read(at: url))
+            } catch {
+                // Container, für die TagLib keinen Tag-Leser hat (AVI, manche
+                // MOV-Varianten), sollen trotzdem geöffnet werden können: Der
+                // Technik-Tab über mediainfo funktioniert für sie, bearbeitbar
+                // sind sie nicht. Ohne diesen Weg endet das Öffnen mit einem
+                // Fehler statt mit einer Ansicht.
+                guard MediaFormats.video.contains(url.pathExtension.lowercased()) else {
+                    throw error
+                }
+                return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))
+            }
         case .image: return .image(try ExifTool.readCoreFields(url: url))
         case .ebook: return .ebook(try EbookTool.readCoreFields(url: url))
         }

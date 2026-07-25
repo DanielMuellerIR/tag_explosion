@@ -53,10 +53,13 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   `TrashBackup.shared.backUp(url)` auf. TagLib `File::save()` schreibt in-place
   und darf deshalb nie direkt auf eine Originaldatei angewendet werden.
   Fallen und Begründungen: [knowledge/dateisicherheit-schreibwege.md](knowledge/dateisicherheit-schreibwege.md).
-- App läuft ohne Sandbox (externe CLI-Tools). Distribution: `NOTARY_PROFILE=<profil>
-  ./build.sh --release` bündelt TagLib-dylibs, signiert (Developer ID + Hardened
-  Runtime), notarisiert, stapelt und baut das verteilbare DMG mit Finder-Layout
-  (headless: `--no-finder-layout`; Profilname siehe private Infra-Doku).
+- App läuft ohne Sandbox (externe CLI-Tools). Distribution über zwei Skripte,
+  die beide das Notary-Profil über `scripts/notary-profile.sh` klären
+  (`NOTARY_PROFILE`, sonst clone-lokale `git config`, sonst Abfrage):
+  `./install.sh` (notarisierter Build nach `/Applications`, erst nach
+  bestandener Stapler-/Gatekeeper-/Signaturprüfung) und `./release.sh`
+  (verteilbares DMG mit Hintergrundbild, headless `--no-finder-layout`).
+  Darunter liegt `build.sh --release [--no-dmg]`.
 - Auto-Update via Sparkle (exakt gepinnt, `App/Package.swift`): build.sh bündelt
   `Sparkle.framework` immer (rpath `@loader_path/../Frameworks` — ohne Framework
   startet die App nicht) und signiert Sparkles Helfer innen→außen, nie `--deep`.
@@ -79,6 +82,8 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - [VERSION](VERSION) — semver, Quelle der Wahrheit
 - [CHANGELOG.md](CHANGELOG.md) — Produktgeschichte ab 0.16.0
 - [build.sh](build.sh) — baut CLI und App-Bundle
+- [install.sh](install.sh) · [release.sh](release.sh) — notarisierte Installation, verteilbares DMG
+- [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) — Lizenzen der Dritt-Komponenten
 - [knowledge/](knowledge/INDEX.md) — Projekt-Wissensbasis (eine Datei pro Problem)
 - [scripts/](scripts/) — GUI-Selbsttests, Icon-Generator
 <!-- /directory-structure -->

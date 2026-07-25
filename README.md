@@ -1,14 +1,22 @@
-# Tag Explosion
+<p align="center">
+  <img src="docs/app-icon.png" width="128" alt="Tag Explosion icon">
+</p>
 
-Native macOS app for viewing and editing media metadata — audio tags, image
-metadata (EXIF/IPTC/XMP), video tags, and e-book metadata in one fast,
-Apple-style editor, with a scriptable CLI companion.
+<h1 align="center">Tag Explosion</h1>
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform: macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg)
-![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
+<p align="center">
+  <strong>Native macOS app for viewing and editing media metadata — audio tags,
+  image metadata (EXIF/IPTC/XMP), video tags, and e-book metadata in one fast,
+  Apple-style editor, with a scriptable CLI companion.</strong>
+</p>
+
+<p align="center">
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
+  <img alt="Platform: macOS 14+" src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-orange.svg">
+</p>
 
 ![Editing an audiobook: cover art, tags, and per-field copy menus](docs/screenshots/en/audio.png)
 *The audio editor: cover art, all tag fields, and a copy menu on every field.*
@@ -31,11 +39,8 @@ Apple-style editor, with a scriptable CLI companion.
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
 - **Safe mode** — before every change, an untouched copy of the file goes to
-  the trash, collected in one folder per session. If something goes wrong, drag
-  the copy back; to clean up, empty the trash. On top of that, every change is
-  written to a copy and only replaces the original after a check — a crash or a
-  full disk cannot leave a half-written file behind. On by default (setting
-  under ⌘,, `--no-backup` or `TAGX_NO_BACKUP=1` in the CLI).
+  the trash, and every write goes through a checked copy of the file. See
+  [Keeping your files safe](#keeping-your-files-safe).
 - **Tag export/import with auto-backup** — the batch editors export all tags
   of a selection (covers embedded) into one self-contained JSON file and
   restore from it; before batch saves the app automatically writes a
@@ -61,6 +66,56 @@ each file from one of its own tags.*
 ![E-book metadata editor](docs/screenshots/en/ebook.png)
 *The e-book editor: Calibre-style metadata plus cover for EPUB, PDF, and
 Calibre formats.*
+
+## Keeping your files safe
+
+Tag Explosion edits files you cannot easily recreate. Losing an audiobook or a
+scanned photo to a botched write would be a poor trade for a corrected artist
+name, so the app is built to make that outcome unlikely — and recoverable when
+it happens anyway.
+
+**Every change is written to a copy first.** The new version is created next to
+the original, then checked (does the file still open, are channels, sample rate
+and duration unchanged, is the cover count right), and only then does it replace
+the original in a single atomic step. A crash, a format error or a full disk
+cannot leave a half-written file behind: either the change is complete, or the
+original is untouched. On APFS the copy is a clone, so this costs neither
+noticeable time nor disk space.
+
+**Safe mode puts the previous version in the trash.** Before each change, an
+untouched copy of the file goes to the trash — collected in one folder per
+session and per volume, named `Tag Explosion Backup <timestamp>`. If a change
+turns out to be wrong, drag the copy back. To clean up, empty the trash; nothing
+piles up in a hidden folder you never look at. On APFS the copy is a clone
+again, so it only takes up the space that actually changes. Safe mode is on by
+default while the app is young; turn it off under ⌘, or with `--no-backup` /
+`TAGX_NO_BACKUP=1` in the CLI.
+
+**Changes made by other programs are not overwritten silently.** If a file
+changed on disk after you opened it, saving stops and asks. Choosing "Save
+anyway" is safe as well: the state currently on disk is what safe mode copies to
+the trash.
+
+**Before writing, the app checks that there is room.** A batch that would run
+out of disk space is refused instead of started.
+
+**Batch saves also write a tag backup.** Before saving more than one file, a
+`tags-backup-<timestamp>.json` with the previous state (covers included) is
+written next to the files, restorable through the same import path or
+`tagx import`.
+
+**Formats the app cannot write safely stay read-only.** Containers that TagLib
+cannot write, PDFs without cover support, and e-book formats that need Calibre
+but do not have it are shown, not edited. A field that a format cannot store is
+rejected before anything is written, not silently dropped.
+
+**Verified by tests, not by hope.** The test suite checks that the audio stream
+is bit-identical before and after a tag write, that a failed write leaves the
+original byte-for-byte intact, that a read-only file, a read-only folder and a
+genuinely full disk are refused, that broken and hostile input (empty,
+truncated, random bytes, a leading dash in the file name) cannot damage
+anything, and that the trash copy really holds the state from before the change.
+These run on every push (see `.github/workflows/tests.yml`).
 
 ## Supported formats
 
@@ -122,9 +177,23 @@ Requirements: Xcode toolchain, Homebrew with `taglib`; `mediainfo` at
 runtime, optional `exiftool` and `ffmpeg` for the tests.
 
 ```sh
-./build.sh          # builds tagx and TagExplosion.app
+./build.sh          # builds tagx and TagExplosion.app in the project folder
 swift test          # tests generate their own fixtures
+swift test --package-path App   # app tests (headless, no window)
 ```
+
+With an Apple Developer ID in the keychain there are two more scripts. Both ask
+once for the local notarytool keychain profile and remember its name for this
+clone only:
+
+```sh
+./install.sh        # notarized build, installed to /Applications
+./release.sh        # notarized DMG with background image, ready to publish
+```
+
+`install.sh` copies to `/Applications` only after stapler, Gatekeeper and the
+signature confirm the bundle really is notarized; `./install.sh --no-notarize`
+builds a quick test bundle that stays in the project folder.
 
 The core library and CLI are kept free of AppKit/SwiftUI so they stay portable
 to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
@@ -132,10 +201,15 @@ to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
 
 ## License
 
-MIT (see [LICENSE](LICENSE)). TagLib is linked dynamically as a system library
-(LGPL/MPL); mediainfo (BSD-2), exiftool (Artistic), and Calibre's `ebook-meta`
-(GPL) are only invoked as external programs. Details in
-[THIRD-PARTY.md](THIRD-PARTY.md).
+MIT (see [LICENSE](LICENSE)), © 2026 Daniel Müller.
+
+TagLib (LGPL-2.1-or-later or MPL-1.1) is linked dynamically and shipped
+unmodified inside the app bundle, so it stays replaceable. Sparkle (MIT),
+ZIPFoundation (MIT), and swift-argument-parser (Apache-2.0) are linked as
+well. mediainfo (BSD-2), exiftool (Artistic/GPL), and Calibre's `ebook-meta`
+(GPL) are neither bundled nor linked — they are only invoked as external
+programs. Full licence texts and the reasoning:
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 The demo files and cover art in the screenshots are entirely generated for
 this documentation — the titles, authors, and artists do not exist.

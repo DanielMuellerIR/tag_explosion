@@ -1,6 +1,6 @@
 # Tag Explosion — Architekturplan
 
-Stand: 2026-07-22. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
+Stand: 2026-07-25. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
 
 ## Ziel
 
@@ -68,7 +68,11 @@ Drei Schichten, ein Swift-Package-Monorepo:
   Bekannte Schlüssel bekommen Anzeige-Metadaten (deutscher Label, Reihenfolge, Editor-Typ),
   unbekannte werden generisch angezeigt (nichts verstecken!).
 - `Artwork`: Daten, MIME (kann fehlen → aus Magic Bytes ableiten), Bildtyp (Front/Back/…), Beschreibung.
-- Schreiben ist **atomar pro Datei** über TagLib `File::save()`; vorher optionales Backup.
+- Schreiben ist **atomar pro Datei**: Die Änderung entsteht an einer
+  Geschwisterkopie, wird geprüft und ersetzt das Original erst per `rename`.
+  TagLib `File::save()` schreibt in-place und wird deshalb nie direkt auf ein
+  Original angewendet. Davor legt der abgesicherte Modus eine unveränderte
+  Kopie in den Papierkorb (`knowledge/dateisicherheit-schreibwege.md`).
 
 ## GUI (Phase 1, Haupt-Prio)
 
@@ -290,3 +294,5 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.15.3  | Elf Review-Sicherheits-/Zuverlässigkeitsfixes: sichere Archiv-/Exportpfade, vollständige Vorabvalidierung, robuste E-Book- und Prozessbehandlung sowie Save-/Fenster-/GUI-Prüfungen mit Regressionstests — ✅ |
 | 0.15.4  | Review-Nachlauf: explizit freigegebene externe Importziele, atomare E-Book-/EPUB-Schreibvorgänge, kollisionsfreie Cover, portable App-Paketidentität, threadsichere TagLib-Initialisierung und strikte Rating-Validierung — ✅ |
 | 0.16.0  | Abgesicherter Modus: Papierkorb-Kopie vor jeder Änderung, atomarer Audio-/Video-Schreibweg mit Prüfung, Erkennung fremder Änderungen, Freiplatz-Prüfung, Integritäts-Tests und Test-CI — ✅ |
+| 0.16.1  | Datei aus dem Finder öffnen wieder möglich (beim Start mit Datei legte SwiftUI kein Fenster an) — ✅ |
+| 0.17.0  | Verteilung: `install.sh` (notarisiert nach /Applications) und `release.sh` (notarisiertes DMG), public-safe Notary-Profil je Mac, vollständige Third-Party-Lizenzen, READMEs mit Icon und Sicherheitsabschnitt, AVI-Read-only-Fallback repariert — ✅ |

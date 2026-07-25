@@ -1,14 +1,22 @@
-# Tag Explosion
+<p align="center">
+  <img src="docs/app-icon.png" width="128" alt="Tag-Explosion-Symbol">
+</p>
 
-Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten — Audio-Tags,
-Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in einem
-schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
+<h1 align="center">Tag Explosion</h1>
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
-![Lizenz: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
-![Plattform: macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg)
-![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
+<p align="center">
+  <strong>Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten —
+  Audio-Tags, Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in
+  einem schnellen Editor im Apple-Stil, mit skriptfähiger CLI.</strong>
+</p>
+
+<p align="center">
+  <img alt="Lizenz: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
+  <img alt="Plattform: macOS 14+" src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-orange.svg">
+</p>
 
 ![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/de/audio.png)
 *Der Audio-Editor: Cover, alle Tag-Felder und an jedem Feld ein Kopier-Menü.*
@@ -32,12 +40,8 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
   typkompatible Textfelder.
 - **Abgesicherter Modus** — vor jeder Änderung landet eine unveränderte Kopie
-  der Datei im Papierkorb, gesammelt in einem Ordner je Sitzung. Geht etwas
-  schief, ziehen Sie die Kopie zurück; zum Aufräumen genügt es, den Papierkorb
-  zu leeren. Zusätzlich entsteht jede Änderung an einer Kopie und ersetzt das
-  Original erst nach einer Prüfung — ein Absturz oder ein voller Datenträger
-  kann keine halb geschriebene Datei hinterlassen. Standardmäßig an
-  (Einstellung ⌘,, in der CLI `--no-backup` bzw. `TAGX_NO_BACKUP=1`).
+  der Datei im Papierkorb, und jeder Schreibvorgang läuft über eine geprüfte
+  Kopie. Siehe [Wie die Dateien geschützt werden](#wie-die-dateien-geschützt-werden).
 - **Tag-Export/-Import mit Auto-Backup** — die Batch-Editoren exportieren alle
   Tags einer Auswahl (Cover eingebettet) in eine selbständige JSON-Datei und
   stellen daraus wieder her; vor Batch-Speichern legt die App automatisch ein
@@ -63,6 +67,61 @@ Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 ![E-Book-Metadaten-Editor](docs/screenshots/de/ebook.png)
 *Der E-Book-Editor: Metadaten wie in Calibre plus Cover für EPUB, PDF und
 Calibre-Formate.*
+
+## Wie die Dateien geschützt werden
+
+Tag Explosion bearbeitet Dateien, die sich nicht ohne Weiteres wiederherstellen
+lassen. Ein Hörbuch oder ein gescanntes Foto für einen korrigierten
+Künstlernamen zu verlieren, wäre ein schlechtes Geschäft. Deshalb ist die App so
+gebaut, dass das unwahrscheinlich wird — und im Ernstfall umkehrbar bleibt.
+
+**Jede Änderung entsteht zuerst an einer Kopie.** Die neue Fassung wird neben
+dem Original angelegt, geprüft (lässt sich die Datei noch öffnen, sind Kanäle,
+Samplerate und Spielzeit unverändert, stimmt die Zahl der Cover) und ersetzt das
+Original erst danach in einem einzigen atomaren Schritt. Ein Absturz, ein
+Formatfehler oder ein voller Datenträger kann keine halb geschriebene Datei
+hinterlassen: Entweder die Änderung ist vollständig, oder das Original ist
+unberührt. Auf APFS ist die Kopie ein Klon und kostet dadurch weder spürbar Zeit
+noch Speicherplatz.
+
+**Der abgesicherte Modus legt die alte Fassung in den Papierkorb.** Vor jeder
+Änderung wandert eine unveränderte Kopie der Datei dorthin — gesammelt in einem
+Ordner je Sitzung und Datenträger, benannt `Tag Explosion Sicherung
+<Zeitstempel>`. Stellt sich eine Änderung als falsch heraus, ziehen Sie die
+Kopie einfach zurück. Zum Aufräumen genügt es, den Papierkorb zu leeren; es
+sammelt sich nichts in einem versteckten Ordner an, in den nie jemand schaut.
+Auch hier ist die Kopie auf APFS ein Klon und belegt nur das, was sich
+tatsächlich ändert. Der Modus ist standardmäßig an, solange die App jung ist;
+abschalten unter ⌘, oder in der CLI mit `--no-backup` bzw. `TAGX_NO_BACKUP=1`.
+
+**Fremde Änderungen werden nicht stillschweigend überschrieben.** Hat sich eine
+Datei nach dem Öffnen auf der Platte geändert, hält das Speichern an und fragt
+nach. Auch „Trotzdem speichern" bleibt sicher: Der Stand, der gerade auf der
+Platte liegt, ist genau das, was der abgesicherte Modus vorher in den Papierkorb
+kopiert.
+
+**Vor dem Schreiben wird geprüft, ob genug Platz da ist.** Ein Stapel, dem der
+Speicherplatz ausginge, wird abgelehnt statt begonnen.
+
+**Vor Batch-Speichern entsteht zusätzlich ein Tag-Backup.** Bei mehr als einer
+Datei wird ein `tags-backup-<Zeitstempel>.json` mit dem bisherigen Zustand
+(inklusive Cover) neben die Dateien gelegt, wiederherstellbar über denselben
+Import-Weg oder `tagx import`.
+
+**Was sich nicht sicher schreiben lässt, bleibt read-only.** Container, die
+TagLib nicht schreiben kann, PDFs ohne Cover-Unterstützung und E-Book-Formate,
+die Calibre brauchen, es aber nicht vorfinden, werden angezeigt statt bearbeitet.
+Ein Feld, das ein Format nicht aufnehmen kann, wird vor dem Schreiben abgelehnt
+und nicht stillschweigend verworfen.
+
+**Durch Tests belegt, nicht bloß behauptet.** Die Testsuite prüft, dass der
+Audiostream vor und nach dem Tag-Schreiben bitgleich ist, dass ein
+fehlgeschlagener Schreibvorgang das Original bytegleich stehen lässt, dass eine
+schreibgeschützte Datei, ein schreibgeschützter Ordner und ein wirklich voller
+Datenträger abgelehnt werden, dass kaputte und feindselige Eingaben (leer,
+abgeschnitten, Zufallsbytes, führender Bindestrich im Dateinamen) nichts
+beschädigen, und dass die Papierkorb-Kopie wirklich den Stand vor der Änderung
+enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 ## Unterstützte Formate
 
@@ -125,9 +184,24 @@ Voraussetzungen: Xcode-Toolchain, Homebrew mit `taglib`; zur Laufzeit
 `mediainfo`, optional `exiftool` und `ffmpeg` für die Tests.
 
 ```sh
-./build.sh          # baut tagx und TagExplosion.app
+./build.sh          # baut tagx und TagExplosion.app im Projektordner
 swift test          # Tests generieren sich ihre Fixtures selbst
+swift test --package-path App   # App-Tests (headless, ohne Fenster)
 ```
+
+Mit einer Apple Developer ID im Schlüsselbund gibt es zwei weitere Skripte.
+Beide fragen einmalig nach dem lokalen notarytool-Schlüsselbundprofil und
+merken sich dessen Namen nur für diesen Clone:
+
+```sh
+./install.sh        # notarisierter Build, installiert nach /Applications
+./release.sh        # notarisiertes DMG mit Hintergrundbild, fertig zum Veröffentlichen
+```
+
+`install.sh` kopiert erst nach `/Applications`, wenn Stapler, Gatekeeper und
+Signatur bestätigen, dass das Bundle wirklich notarisiert ist;
+`./install.sh --no-notarize` baut ein schnelles Testbundle, das im Projektordner
+bleibt.
 
 Core-Bibliothek und CLI bleiben frei von AppKit/SwiftUI und damit
 Linux-portabel. Architektur und Meilensteine stehen in
@@ -136,10 +210,15 @@ Linux-portabel. Architektur und Meilensteine stehen in
 
 ## Lizenz
 
-MIT (siehe [LICENSE](LICENSE)). TagLib wird als Systembibliothek dynamisch
-gelinkt (LGPL/MPL); mediainfo (BSD-2), exiftool (Artistic) und Calibres
-`ebook-meta` (GPL) werden nur als externe Programme aufgerufen. Details in
-[THIRD-PARTY.md](THIRD-PARTY.md).
+MIT (siehe [LICENSE](LICENSE)), © 2026 Daniel Müller.
+
+TagLib (LGPL-2.1-or-later oder MPL-1.1) wird dynamisch gelinkt und unverändert
+im App-Bundle mitgeliefert, bleibt dort also austauschbar. Ebenfalls gelinkt
+sind Sparkle (MIT), ZIPFoundation (MIT) und swift-argument-parser (Apache-2.0).
+mediainfo (BSD-2), exiftool (Artistic/GPL) und Calibres `ebook-meta` (GPL)
+werden weder gebündelt noch gelinkt, sondern nur als externe Programme
+aufgerufen. Vollständige Lizenztexte und die Begründung:
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Die Demo-Dateien und Cover in den Screenshots sind vollständig für diese
 Dokumentation generiert — die Titel, Autoren und Künstler existieren nicht.

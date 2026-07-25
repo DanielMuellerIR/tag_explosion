@@ -9,6 +9,7 @@
 #                (notarytool-Keychain-Profil).
 #   --no-finder-layout  DMG ohne AppleScript-Finder-Layout bauen (headless/CI;
 #                das DMG funktioniert, das Fenster sieht nur schlichter aus).
+#   --no-dmg     nur die notarisierte App erzeugen, kein DMG (nutzt install.sh).
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -17,6 +18,7 @@ config="release"
 cli_only=0
 release=0
 finder_layout=1
+build_dmg=1
 
 for arg in "$@"; do
     case "$arg" in
@@ -24,6 +26,7 @@ for arg in "$@"; do
         --debug) config="debug" ;;
         --release) release=1 ;;
         --no-finder-layout) finder_layout=0 ;;
+        --no-dmg) build_dmg=0 ;;
         *) echo "Unbekannte Option: $arg" >&2; exit 2 ;;
     esac
 done
@@ -66,7 +69,7 @@ rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPC
 
 # Lizenzhinweise der Dritt-Komponenten gehören auch ins ausgelieferte
 # Binärpaket (LGPL-/Apache-Hinweispflicht), nicht nur in den Quelltext.
-cp "$here/THIRD-PARTY.md" "$app/Contents/Resources/Third-Party-Licenses.md"
+cp "$here/THIRD-PARTY-NOTICES.md" "$app/Contents/Resources/Third-Party-Licenses.md"
 
 # Lokalisierung: Der String Catalog (Quelle Deutsch, Übersetzung Englisch)
 # wird zu .lproj/Localizable.strings kompiliert. swift build kann .xcstrings
@@ -244,6 +247,11 @@ spctl --assess --type execute -vv "$app"
 #    in APFS-DMGs auf älteren macOS unzuverlässig), App + /Applications-Symlink
 #    + Hintergrundbild rein, Finder-Layout per AppleScript, dann zu UDZO
 #    komprimieren. Zum Schluss das DMG selbst signieren, notarisieren, stapeln.
+if [ "$build_dmg" = "0" ]; then
+    echo "App (notarisiert): $app"
+    exit 0
+fi
+
 echo "== DMG bauen =="
 dmg="$here/TagExplosion-$version.dmg"
 rm -f "$dmg"
