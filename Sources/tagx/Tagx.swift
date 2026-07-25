@@ -45,6 +45,23 @@ func resolveFile(_ path: String) throws -> URL {
     return url
 }
 
+/// Gemeinsame Optionen aller ändernden Unterbefehle.
+///
+/// Abgesicherter Modus: Vor jeder Änderung wandert eine unveränderte Kopie der
+/// Datei in den Papierkorb. Standard ist an; abschalten per `--no-backup` oder
+/// `TAGX_NO_BACKUP=1` (für Skripte, die selbst sichern).
+struct SafeModeOptions: ParsableArguments {
+    @Flag(name: .long, help: "Do not copy files to the trash before changing them")
+    var noBackup = false
+
+    /// Muss zu Beginn jedes ändernden `run()` aufgerufen werden.
+    func apply() {
+        let envDisabled = ProcessInfo.processInfo.environment["TAGX_NO_BACKUP"]
+            .map { $0 == "1" || $0.lowercased() == "true" } ?? false
+        TrashBackup.shared.isEnabled = !(noBackup || envDisabled)
+    }
+}
+
 /// Objekt als hübsches JSON auf stdout schreiben.
 func printJSON<T: Encodable>(_ value: T) throws {
     let encoder = JSONEncoder()
@@ -132,16 +149,19 @@ struct Set: ParsableCommand {
             help: "Copy the value of another field (TARGET=SOURCE), e.g. -c ALBUMARTIST=ARTIST")
     var copy: [String] = []
     @Flag(name: .long, help: "Remove all existing fields first") var replaceAll = false
+    @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
+        safeMode.apply()
         guard !tag.isEmpty || !copy.isEmpty else {
             throw ValidationError("Provide at least one -t KEY=VALUE or -c TARGET=SOURCE.")
         }
         let url = try resolveFile(file)
-        let tagFile = try TagFile(url: url)
-        defer { tagFile.close() }
+        // Gelesen wird vorab; geschrieben wird ausschließlich über den
+        // atomaren Weg in `TagFile.write`, nie in-place auf dem Original.
+        let existing = try TagFile.read(at: url)
 
-        var properties = replaceAll ? [] : (try tagFile.properties())
+        var properties: [TagProperty] = replaceAll ? [] : existing.properties
         for assignment in tag {
             guard let eq = assignment.firstIndex(of: "=") else {
                 throw ValidationError("Invalid assignment (expected KEY=VALUE): \(assignment)")
@@ -173,8 +193,8 @@ struct Set: ParsableCommand {
             properties.append(contentsOf: values.map { TagProperty(key: target, value: $0) })
             changed += 1
         }
-        try tagFile.setProperties(properties)
-        try tagFile.save()
+        try TrashBackup.shared.backUp(url)
+        try TagFile.write(properties: properties, to: url)
         print("OK \(url.lastPathComponent): \(changed) field(s) changed")
     }
 }
@@ -225,12 +245,15 @@ struct Cover: ParsableCommand {
 
         @Argument(help: "Media file") var file: String
         @Argument(help: "Image file (jpg/png/…)") var image: String
+        @OptionGroup var safeMode: SafeModeOptions
 
         func run() throws {
+            safeMode.apply()
             let url = try resolveFile(file)
             let imageURL = try resolveFile(image)
             let imageData = try Data(contentsOf: imageURL)
             let artwork = Artwork(data: imageData, pictureType: "Front Cover")
+            try TrashBackup.shared.backUp(url)
             try TagFile.write(artworks: [artwork], to: url)
             print("OK \(url.lastPathComponent): cover set (\(imageData.count) bytes)")
         }
@@ -241,9 +264,12 @@ struct Cover: ParsableCommand {
             commandName: "remove", abstract: "Remove all embedded images.")
 
         @Argument(help: "Media file") var file: String
+        @OptionGroup var safeMode: SafeModeOptions
 
         func run() throws {
+            safeMode.apply()
             let url = try resolveFile(file)
+            try TrashBackup.shared.backUp(url)
             try TagFile.write(artworks: [], to: url)
             print("OK \(url.lastPathComponent): images removed")
         }

@@ -282,6 +282,7 @@ public enum TagArchiveIO {
             let artworksDiffer = targetArtworks.map { $0 != current.artworks } ?? false
             guard propertiesDiffer || artworksDiffer else { return false }
             if !dryRun {
+                try TrashBackup.shared.backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
                                   artworks: targetArtworks ?? current.artworks, to: url)
             }
@@ -290,6 +291,7 @@ public enum TagArchiveIO {
             let current = try ExifTool.readCoreFields(url: url)
             guard let target = entry.image, target != current else { return false }
             if !dryRun {
+                try TrashBackup.shared.backUp(url)
                 try ExifTool.writeCoreFields(url: url, fields: target, original: current)
             }
             return true
@@ -318,6 +320,7 @@ public enum TagArchiveIO {
                 } else {
                     coverUpdate = .remove
                 }
+                try TrashBackup.shared.backUp(url)
                 try EbookTool.write(
                     url: url, fields: target, original: current,
                     coverUpdate: coverUpdate)

@@ -26,6 +26,35 @@ struct TagArchiveTests {
         return dir
     }
 
+    @Test("Eine schreibgeschützte Datei stoppt den Batch nicht")
+    func batchContinuesAfterOneFailure() throws {
+        let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        let flac = dir.appendingPathComponent("sample.flac")
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Soll")], to: mp3)
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Soll")], to: flac)
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [mp3, flac], to: json, includeCovers: false)
+
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Weg")], to: mp3)
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Weg")], to: flac)
+        // Eine der beiden Dateien lässt sich nicht schreiben.
+        try FileManager.default.setAttributes([.posixPermissions: 0o444],
+                                              ofItemAtPath: flac.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o644],
+                                                   ofItemAtPath: flac.path)
+        }
+
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
+                                            relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["sample.mp3"])
+        #expect(report.failed.map(\.0) == ["sample.flac"])
+        // Die gute Datei ist vollständig wiederhergestellt, die andere unberührt.
+        #expect(try TagFile.read(at: mp3).firstValue(for: "TITLE") == "Soll")
+        #expect(try TagFile.read(at: flac).firstValue(for: "TITLE") == "Weg")
+    }
+
     @Test("Audio: Export → Ändern → Import stellt Tags und Cover wieder her")
     func audioRestore() throws {
         let dir = try makeFolder(["sample.mp3", "sample.flac"])

@@ -188,7 +188,7 @@ public enum EbookTool {
             let temp = FileManager.default.temporaryDirectory
                 .appendingPathComponent("tagx-cover-\(UUID().uuidString).jpg")
             defer { try? FileManager.default.removeItem(at: temp) }
-            _ = try runCalibre(exe, [url.path, "--get-cover", temp.path])
+            _ = try runCalibre(exe, [MediaInfoReader.toolArgument(for: url), "--get-cover", temp.path])
             guard let data = try? Data(contentsOf: temp), !data.isEmpty else { return nil }
             return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
                            pictureType: "Front Cover")
@@ -206,7 +206,7 @@ public enum EbookTool {
                 .appendingPathComponent("tagx-cover-\(UUID().uuidString).\(ext)")
             defer { try? FileManager.default.removeItem(at: temp) }
             try data.write(to: temp)
-            _ = try runCalibre(exe, [url.path, "--cover", temp.path])
+            _ = try runCalibre(exe, [MediaInfoReader.toolArgument(for: url), "--cover", temp.path])
         }
     }
 
@@ -230,7 +230,7 @@ public enum EbookTool {
         let args = ["-j", "-XMP-dc:Title", "-PDF:Title", "-XMP-dc:Creator", "-PDF:Author",
                     "-XMP-dc:Description", "-PDF:Subject", "-XMP-dc:Subject", "-PDF:Keywords",
                     "-XMP-dc:Publisher", "-XMP-dc:Language", "-XMP-dc:Date",
-                    "-XMP-prism:ISBN", url.path]
+                    "-XMP-prism:ISBN", MediaInfoReader.toolArgument(for: url)]
         let data = try MediaInfoReader.run(exe, args)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
@@ -295,7 +295,7 @@ public enum EbookTool {
 
         guard !args.isEmpty else { return }
         let exe = try ExifTool.locateExecutable()
-        _ = try MediaInfoReader.run(exe, ["-overwrite_original", "-m"] + args + [url.path])
+        _ = try MediaInfoReader.run(exe, ["-overwrite_original", "-m"] + args + [MediaInfoReader.toolArgument(for: url)])
     }
 
     // MARK: - mobi/azw3/fb2 via Calibre ebook-meta
@@ -305,7 +305,7 @@ public enum EbookTool {
     /// Fortsetzungszeilen angehängt.
     private static func readCalibre(url: URL) throws -> EbookCoreFields {
         let exe = try locateCalibre()
-        let output = MediaInfoReader.decodeLossy(try runCalibre(exe, [url.path]))
+        let output = MediaInfoReader.decodeLossy(try runCalibre(exe, [MediaInfoReader.toolArgument(for: url)]))
 
         var values: [String: String] = [:]
         var currentKey: String?
@@ -367,7 +367,7 @@ public enum EbookTool {
     }
 
     private static func writeCalibre(url: URL, fields: EbookCoreFields, original: EbookCoreFields) throws {
-        var args: [String] = [url.path]
+        var args: [String] = [MediaInfoReader.toolArgument(for: url)]
         if fields.title != original.title { args += ["--title", fields.title] }
         if fields.authors != original.authors {
             args += ["--authors", fields.authors.joined(separator: " & ")]

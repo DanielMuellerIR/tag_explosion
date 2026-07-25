@@ -30,6 +30,12 @@ Apple-style editor, with a scriptable CLI companion.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
+- **Safe mode** — before every change, an untouched copy of the file goes to
+  the trash, collected in one folder per session. If something goes wrong, drag
+  the copy back; to clean up, empty the trash. On top of that, every change is
+  written to a copy and only replaces the original after a check — a crash or a
+  full disk cannot leave a half-written file behind. On by default (setting
+  under ⌘,, `--no-backup` or `TAGX_NO_BACKUP=1` in the CLI).
 - **Tag export/import with auto-backup** — the batch editors export all tags
   of a selection (covers embedded) into one self-contained JSON file and
   restore from it; before batch saves the app automatically writes a
@@ -86,7 +92,8 @@ Optional: with [Calibre](https://calibre-ebook.com) installed the app also
 edits mobi/azw3/fb2 through its `ebook-meta` command line tool.
 
 Later updates arrive through the built-in updater
-(**Tag Explosion → Nach Updates suchen …**).
+(**Tag Explosion → Check for Updates …**). It fetches the update feed from
+GitHub Pages; the app sends no other data.
 
 ## CLI
 
@@ -100,6 +107,7 @@ tagx ebook set book.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
+tagx set song.mp3 -t ARTIST="X" --no-backup    # skip the safety copy in the trash
 ```
 
 Imports only target files inside the JSON file's directory by default. An
@@ -110,8 +118,8 @@ an explicitly empty `--rating` value deletes the field.
 
 ## Building from source
 
-Requirements: Xcode toolchain, Homebrew with `taglib`; `media-info` at
-runtime, optional `ffmpeg` for test fixtures.
+Requirements: Xcode toolchain, Homebrew with `taglib`; `mediainfo` at
+runtime, optional `exiftool` and `ffmpeg` for the tests.
 
 ```sh
 ./build.sh          # builds tagx and TagExplosion.app

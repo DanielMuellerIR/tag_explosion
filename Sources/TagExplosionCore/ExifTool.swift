@@ -68,7 +68,7 @@ public enum ExifTool {
     public static func readAllGroups(url: URL) throws -> [MetadataGroup] {
         let exe = try locateExecutable()
         // -G1 = Untergruppen (IFD0, ExifIFD, XMP-dc …), -s = Tag-Namen statt Beschreibungen
-        let data = try MediaInfoReader.run(exe, ["-use", "MWG", "-j", "-G1", "-s", url.path])
+        let data = try MediaInfoReader.run(exe, ["-use", "MWG", "-j", "-G1", "-s", MediaInfoReader.toolArgument(for: url)])
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
         else { return [] }
@@ -108,7 +108,7 @@ public enum ExifTool {
         guard !urls.isEmpty else { return [:] }
         let exe = try locateExecutable()
         let data = try MediaInfoReader.run(
-            exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map(\.path))
+            exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map { MediaInfoReader.toolArgument(for: $0) })
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else { return [:] }
 
@@ -131,7 +131,8 @@ public enum ExifTool {
         let exe = try locateExecutable()
         let args = ["-use", "MWG", "-j", "-n", "-XMP-dc:Title", "-MWG:Description", "-MWG:Keywords",
                     "-MWG:Creator", "-MWG:Copyright", "-MWG:DateTimeOriginal",
-                    "-MWG:Rating", "-GPSLatitude", "-GPSLongitude", url.path]
+                    "-MWG:Rating", "-GPSLatitude", "-GPSLongitude",
+                    MediaInfoReader.toolArgument(for: url)]
         let data = try MediaInfoReader.run(exe, args)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
@@ -201,7 +202,7 @@ public enum ExifTool {
 
         let exe = try locateExecutable()
         // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
-        _ = try MediaInfoReader.run(exe, ["-use", "MWG", "-overwrite_original", "-m"] + args + [url.path])
+        _ = try MediaInfoReader.run(exe, ["-use", "MWG", "-overwrite_original", "-m"] + args + [MediaInfoReader.toolArgument(for: url)])
     }
 
     // MARK: - Intern

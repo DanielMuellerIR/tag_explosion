@@ -36,7 +36,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 
 ## Test
 
-- `swift test` — Unit-/Roundtrip-Tests (Fixtures werden bei Bedarf generiert).
+- `swift test` — Unit-/Roundtrip-/Integritätstests (Fixtures werden bei Bedarf
+  generiert). Dieselben Tests laufen in `.github/workflows/tests.yml` auf macOS.
+- App-Tests: `swift test` im Ordner `App/`.
 - Cross-Check der Schreibergebnisse: `kid3-cli` (unter macOS im Bundle
   /Applications/kid3.app/Contents/MacOS/), `mediainfo`, `ffprobe`.
 - Reale lokale Testdateien nur lesend bzw. auf Kopien bearbeiten; nie committen.
@@ -46,7 +48,11 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - mediainfo-JSON ist nicht immer sauberes UTF-8 (Latin1-Reste in ID3) — Encoding-
   Fallback nötig (UTF-8 → MacRoman → Latin1 probieren).
 - Cover können ohne MIME-Type vorliegen → aus Magic Bytes ableiten.
-- TagLib `File::save()` schreibt in-place; vor Batch-Writes Backup-Option beachten.
+- **Dateisicherheit hat Vorrang.** Jeder Schreibweg läuft über
+  `AtomicFileRewrite` (Kopie → prüfen → atomar ersetzen) und ruft vorher
+  `TrashBackup.shared.backUp(url)` auf. TagLib `File::save()` schreibt in-place
+  und darf deshalb nie direkt auf eine Originaldatei angewendet werden.
+  Fallen und Begründungen: [knowledge/dateisicherheit-schreibwege.md](knowledge/dateisicherheit-schreibwege.md).
 - App läuft ohne Sandbox (externe CLI-Tools). Distribution: `NOTARY_PROFILE=<profil>
   ./build.sh --release` bündelt TagLib-dylibs, signiert (Developer ID + Hardened
   Runtime), notarisiert, stapelt und baut das verteilbare DMG mit Finder-Layout
@@ -71,6 +77,7 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - [App/](App/) — SwiftUI-App-Quellen
 - [Tests/](Tests/) — XCTest + Fixture-Generator
 - [VERSION](VERSION) — semver, Quelle der Wahrheit
+- [CHANGELOG.md](CHANGELOG.md) — Produktgeschichte ab 0.16.0
 - [build.sh](build.sh) — baut CLI und App-Bundle
 - [knowledge/](knowledge/INDEX.md) — Projekt-Wissensbasis (eine Datei pro Problem)
 - [scripts/](scripts/) — GUI-Selbsttests, Icon-Generator

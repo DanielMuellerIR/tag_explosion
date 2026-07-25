@@ -77,12 +77,14 @@ struct ExifSet: ParsableCommand {
             rating/GPS take no free text). Groups as in `exif show --all`.
             """)
     var copy: [String] = []
+    @OptionGroup var safeMode: SafeModeOptions
 
     /// Textuelle Kernfelder, in die kopiert werden darf (Typkompatibilität:
     /// Text zu Text; Bewertung/GPS/Datum sind bewusst ausgenommen).
     private static let copyTargets = ["title", "description", "keywords", "creator", "copyright"]
 
     func run() throws {
+        safeMode.apply()
         let url = try resolveFile(file)
         let original = try ExifTool.readCoreFields(url: url)
         var fields = original
@@ -149,6 +151,7 @@ struct ExifSet: ParsableCommand {
             print("No changes")
             return
         }
+        try TrashBackup.shared.backUp(url)
         try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
         print("OK \(url.lastPathComponent)")
     }

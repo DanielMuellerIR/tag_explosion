@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "de",
   "strings": {
+    "%@ wurde seit dem Öffnen von einem anderen Programm geändert. Speichern überschreibt diese Änderung. Der jetzige Stand der Datei wird vorher in den Papierkorb kopiert, sofern der abgesicherte Modus aktiv ist.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ has been changed by another program since it was opened. Saving overwrites that change. The file's current state is copied to the trash first, as long as safe mode is on."
+          }
+        }
+      }
+    },
     "%lld Bilder ausgewählt": {
       "localizations": {
         "en": {
@@ -81,26 +91,6 @@
         }
       }
     },
-    "Abbrechen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
-          }
-        }
-      }
-    },
-    "Alle Ziele freigeben": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Allow all targets"
-          }
-        }
-      }
-    },
     ", %lld fehlend": {
       "localizations": {
         "en": {
@@ -117,6 +107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": ", %lld not in the archive"
+          }
+        }
+      }
+    },
+    "Abbrechen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         }
       }
@@ -157,6 +157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Write all tags (including covers) of the selection to a JSON file"
+          }
+        }
+      }
+    },
+    "Alle Ziele freigeben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow all targets"
           }
         }
       }
@@ -441,6 +451,16 @@
         }
       }
     },
+    "Datei wurde außerhalb geändert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File changed outside the app"
+          }
+        }
+      }
+    },
     "Dateien oder Ordner öffnen (⌘O)": {
       "localizations": {
         "en": {
@@ -467,6 +487,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This file is read-only — changes cannot be saved."
+          }
+        }
+      }
+    },
+    "Dieses Archiv enthält %lld Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This archive contains %lld target(s) outside its folder. All resolved targets:"
           }
         }
       }
@@ -567,6 +597,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Export …"
+          }
+        }
+      }
+    },
+    "Externe Importziele": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External import targets"
           }
         }
       }
@@ -697,6 +737,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Import: %lld changed, %lld unchanged"
+          }
+        }
+      }
+    },
+    "In dieser Sitzung gesichert: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backed up in this session: %@"
           }
         }
       }
@@ -921,12 +971,32 @@
         }
       }
     },
+    "Originale vor jeder Änderung in den Papierkorb kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy originals to the trash before every change"
+          }
+        }
+      }
+    },
     "PDF: Serie und Cover werden von diesem Format nicht unterstützt.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "PDF: this format does not support series or cover."
+          }
+        }
+      }
+    },
+    "Papierkorb öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Trash"
           }
         }
       }
@@ -1001,22 +1071,22 @@
         }
       }
     },
+    "Speichere Änderungen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving changes …"
+          }
+        }
+      }
+    },
     "Speichern": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Save"
-          }
-        }
-      }
-    },
-    "Speichern fehlgeschlagen: %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saving failed: %@"
           }
         }
       }
@@ -1031,12 +1101,12 @@
         }
       }
     },
-    "Speichere Änderungen …": {
+    "Speichern fehlgeschlagen: %@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saving changes …"
+            "value": "Saving failed: %@"
           }
         }
       }
@@ -1047,6 +1117,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Language"
+          }
+        }
+      }
+    },
+    "Tag Explosion Sicherung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag Explosion Backup"
           }
         }
       }
@@ -1131,12 +1211,22 @@
         }
       }
     },
+    "Trotzdem speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save anyway"
+          }
+        }
+      }
+    },
     "Ungespeicherte Änderungen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unsaved changes"
+            "value": "Unsaved Changes"
           }
         }
       }
@@ -1147,6 +1237,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Publisher"
+          }
+        }
+      }
+    },
+    "Verwerfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard"
           }
         }
       }
@@ -1167,6 +1267,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create a tag backup before batch saves"
+          }
+        }
+      }
+    },
+    "Vor dem Beenden müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before quitting."
+          }
+        }
+      }
+    },
+    "Vor dem Entfernen müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before removing the files."
+          }
+        }
+      }
+    },
+    "Vor dem Import müssen die Änderungen betroffener Dateien gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes to affected files before importing."
+          }
+        }
+      }
+    },
+    "Vor dem Schließen des Fensters müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard changes before closing the window."
+          }
+        }
+      }
+    },
+    "Vor jeder Änderung landet eine unveränderte Kopie der Datei im Papierkorb — gesammelt in einem Ordner je Sitzung. Geht etwas schief, ziehen Sie die Kopie einfach zurück; zum Aufräumen genügt es, den Papierkorb zu leeren.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before every change, an untouched copy of the file goes to the trash, collected in one folder per session. If something goes wrong, just drag the copy back; to clean up, empty the trash."
           }
         }
       }
@@ -1337,86 +1487,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Changes apply to all selected files."
-          }
-        }
-      }
-    },
-    "Ungespeicherte Änderungen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unsaved Changes"
-          }
-        }
-      }
-    },
-    "Verwerfen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discard"
-          }
-        }
-      }
-    },
-    "Vor dem Beenden müssen die Änderungen gespeichert oder verworfen werden.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save or discard changes before quitting."
-          }
-        }
-      }
-    },
-    "Vor dem Entfernen müssen die Änderungen gespeichert oder verworfen werden.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save or discard changes before removing the files."
-          }
-        }
-      }
-    },
-    "Vor dem Import müssen die Änderungen betroffener Dateien gespeichert oder verworfen werden.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save or discard changes to affected files before importing."
-          }
-        }
-      }
-    },
-    "Vor dem Schließen des Fensters müssen die Änderungen gespeichert oder verworfen werden.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save or discard changes before closing the window."
-          }
-        }
-      }
-    },
-    "Externe Importziele": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "External import targets"
-          }
-        }
-      }
-    },
-    "Dieses Archiv enthält %lld Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This archive contains %lld target(s) outside its folder. All resolved targets:"
           }
         }
       }

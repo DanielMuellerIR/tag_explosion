@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+
+    steps:
+      - name: Quelltext auschecken
+        uses: actions/checkout@v7
+
+      - name: Abhängigkeiten installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          # taglib: Pflicht (Core linkt dagegen). mediainfo/exiftool/ffmpeg:
+          # ohne sie überspringen sich die betroffenen Tests selbst — hier sind
+          # sie erwünscht, damit die CI wirklich alles prüft.
+          brew install taglib mediainfo exiftool ffmpeg
+
+      - name: Core und CLI bauen
+        run: swift build
+
+      - name: Core- und CLI-Tests
+        run: swift test
+
+      - name: App bauen und testen
+        working-directory: App
+        run: |
+          set -euo pipefail
+          swift build
+          swift test

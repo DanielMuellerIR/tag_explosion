@@ -144,11 +144,26 @@ public enum MediaInfoReader {
         throw TagError.toolNotFound(name: "mediainfo")
     }
 
+    /// Dateipfad in der Form, in der externe Programme ihn bekommen dürfen.
+    ///
+    /// Immer absolut: mediainfo, exiftool und `ebook-meta` lesen jedes Argument
+    /// mit führendem Bindestrich als Option. Ein absoluter Pfad beginnt immer
+    /// mit „/" und kann deshalb nie als Option missverstanden werden — auch
+    /// nicht bei einer Datei namens „-etwas.jpg".
+    public static func toolArgument(for url: URL) -> String {
+        let path = MediaFormats.canonicalFileURL(url).path
+        guard path.hasPrefix("/") else {
+            return URL(fileURLWithPath: path).standardizedFileURL.path
+        }
+        return path
+    }
+
     /// Liest den kompletten technischen Report einer Datei.
     public static func read(url: URL) throws -> MediaInfoReport {
         let exe = try locateExecutable()
-        let jsonData = try run(exe, ["--Output=JSON", url.path])
-        let textData = try run(exe, [url.path])
+        let path = toolArgument(for: url)
+        let jsonData = try run(exe, ["--Output=JSON", path])
+        let textData = try run(exe, [path])
         let tracks = try parseTracks(jsonData: jsonData)
         let text = decodeLossy(textData).trimmingCharacters(in: .whitespacesAndNewlines)
         return MediaInfoReport(tracks: tracks, text: text)

@@ -149,6 +149,22 @@ struct ContentView: View {
         } message: {
             Text(model.pendingExternalImport?.displayedMessage ?? "")
         }
+        .alert("Datei wurde außerhalb geändert", isPresented: .init(
+            get: { model.pendingStaleWrite != nil },
+            set: { if !$0 { model.cancelStaleWrite() } }
+        )) {
+            Button("Trotzdem speichern") {
+                Task { await model.confirmStaleWrite() }
+            }
+            Button("Abbrechen", role: .cancel) { model.cancelStaleWrite() }
+        } message: {
+            Text("""
+            \(model.pendingStaleWrite?.fileName ?? "") wurde seit dem Öffnen von \
+            einem anderen Programm geändert. Speichern überschreibt diese \
+            Änderung. Der jetzige Stand der Datei wird vorher in den Papierkorb \
+            kopiert, sofern der abgesicherte Modus aktiv ist.
+            """)
+        }
         .alert("Hinweis", isPresented: .init(
             get: { model.alertMessage != nil },
             set: { if !$0 { model.alertMessage = nil } }

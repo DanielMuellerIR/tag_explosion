@@ -28,4 +28,3 @@ Tests/TagExplosionCoreTests/Fixtures/generated/
 *.flac
 *.ogg
 *.opus
-!Tests/Fixtures/checked-in/**

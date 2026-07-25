@@ -72,7 +72,10 @@ struct TagExplosionApp: App {
             ContentView()
                 .environment(model)
                 .frame(minWidth: 900, minHeight: 600)
-                .onAppear { appDelegate.model = model }
+                .onAppear {
+                    appDelegate.model = model
+                    AppModel.applySafeMode()
+                }
                 // Dateien aus Finder/Dock ("Öffnen mit …")
                 .onOpenURL { url in
                     Task { await model.open(urls: [url]) }
@@ -117,23 +120,60 @@ struct TagExplosionApp: App {
     }
 }
 
-/// Einstellungen (⌘,): momentan nur das Auto-Backup vor Batch-Speichern.
+/// Einstellungen (⌘,): abgesicherter Modus und Tag-Backup vor Batch-Speichern.
 struct SettingsView: View {
+    @AppStorage(AppModel.safeModeDefaultsKey) private var safeMode = true
     @AppStorage(AppModel.autoBackupDefaultsKey) private var autoBackup = true
+    /// Wird beim Öffnen und nach jedem Speichern neu gelesen, damit die
+    /// Größenangabe nicht veraltet.
+    @State private var backedUpBytes: Int64 = 0
 
     var body: some View {
         Form {
-            Toggle("Vor Batch-Speichern Tag-Backup anlegen", isOn: $autoBackup)
-            Text("""
-            Schreibt vor dem Speichern mehrerer Dateien je Ordner ein \
-            tags-backup-<Zeitstempel>.json mit dem bisherigen Zustand \
-            (inklusive Cover). Wiederherstellen: „Tags aus JSON importieren …" \
-            im Batch-Editor oder `tagx import`.
-            """)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Section {
+                Toggle("Originale vor jeder Änderung in den Papierkorb kopieren", isOn: $safeMode)
+                    .onChange(of: safeMode) { AppModel.applySafeMode() }
+                Text("""
+                Vor jeder Änderung landet eine unveränderte Kopie der Datei im \
+                Papierkorb — gesammelt in einem Ordner je Sitzung. Geht etwas \
+                schief, ziehen Sie die Kopie einfach zurück; zum Aufräumen \
+                genügt es, den Papierkorb zu leeren.
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                if backedUpBytes > 0 {
+                    HStack {
+                        Text("In dieser Sitzung gesichert: \(formattedBytes)")
+                            .font(.caption)
+                        Spacer()
+                        Button("Papierkorb öffnen") {
+                            NSWorkspace.shared.open(
+                                URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".Trash"))
+                        }
+                        .controlSize(.small)
+                    }
+                }
+            }
+
+            Section {
+                Toggle("Vor Batch-Speichern Tag-Backup anlegen", isOn: $autoBackup)
+                Text("""
+                Schreibt vor dem Speichern mehrerer Dateien je Ordner ein \
+                tags-backup-<Zeitstempel>.json mit dem bisherigen Zustand \
+                (inklusive Cover). Wiederherstellen: „Tags aus JSON importieren …" \
+                im Batch-Editor oder `tagx import`.
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(width: 460)
+        .onAppear { backedUpBytes = TrashBackup.shared.backedUpBytes }
+    }
+
+    private var formattedBytes: String {
+        ByteCountFormatter.string(fromByteCount: backedUpBytes, countStyle: .file)
     }
 }

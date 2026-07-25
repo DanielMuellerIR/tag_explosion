@@ -220,6 +220,28 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   Release-Notes (werden vom Appcast-Workflow als Sparkle-Release-Notes
   übernommen).
 
+### Dateisicherheit: abgesicherter Modus — ✅ umgesetzt in 0.16.0
+
+- Zwei Schichten, die zusammengehören: (1) Jede Änderung entsteht an einer
+  Geschwisterkopie und ersetzt das Original erst nach einer Prüfung —
+  jetzt auch für Audio/Video, die bis dahin als einziger Weg in-place
+  schrieben. (2) `TrashBackup` legt vor jeder Änderung eine unveränderte
+  Kopie in den Papierkorb, gesammelt in einem Ordner je Sitzung und
+  Datenträger; auf APFS als Klon, also zunächst ohne Platzbedarf.
+- Bewusst der Papierkorb statt eines eigenen Sicherungsordners: sichtbar,
+  jeder weiß, wie man ihn leert, und es entsteht kein unbemerkt wachsender
+  Datenhaufen. Standard an, solange die App jung ist; abschaltbar in den
+  Einstellungen und per `--no-backup`/`TAGX_NO_BACKUP=1`.
+- Dazu: Erkennung fremder Änderungen zwischen Öffnen und Speichern (mit
+  Rückfrage statt stillem Überschreiben), Freiplatz-Prüfung und absolute
+  Pfade an alle externen Programme.
+- Tests prüfen jetzt Unversehrtheit statt nur Verhalten: Audiostream vor/nach
+  dem Tag-Schreiben identisch (ffmpeg-Prüfsumme), Abbruch in der Prüfung,
+  schreibgeschützte Datei und schreibgeschützter Ordner, voller Datenträger
+  (eigenes hdiutil-Volume), kaputte und feindselige Eingaben, Papierkorb-
+  Sicherung und Batch mit einer fehlschlagenden Datei. Details und Fallen:
+  `knowledge/dateisicherheit-schreibwege.md`.
+
 ## Backlog / Notizen
 
 - Effizienz-Umbauten aus dem Review 2026-07-18 (bewusst zurückgestellt):
@@ -267,3 +289,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.15.2  | Cleanup-Pass nach 4-Perspektiven-Review: Duplikate zusammengelegt (Tool-Suche, Komma-Splits, Batch-Textfeld, MediaKind, Cover-Drop), Backup-Konvention in den Core — ✅ |
 | 0.15.3  | Elf Review-Sicherheits-/Zuverlässigkeitsfixes: sichere Archiv-/Exportpfade, vollständige Vorabvalidierung, robuste E-Book- und Prozessbehandlung sowie Save-/Fenster-/GUI-Prüfungen mit Regressionstests — ✅ |
 | 0.15.4  | Review-Nachlauf: explizit freigegebene externe Importziele, atomare E-Book-/EPUB-Schreibvorgänge, kollisionsfreie Cover, portable App-Paketidentität, threadsichere TagLib-Initialisierung und strikte Rating-Validierung — ✅ |
+| 0.16.0  | Abgesicherter Modus: Papierkorb-Kopie vor jeder Änderung, atomarer Audio-/Video-Schreibweg mit Prüfung, Erkennung fremder Änderungen, Freiplatz-Prüfung, Integritäts-Tests und Test-CI — ✅ |

@@ -44,8 +44,10 @@ struct Import: ParsableCommand {
     @Flag(name: .long, help: "Only show what would change") var dryRun = false
     @Flag(name: .customLong("allow-external-targets"), help: "Allow resolved targets outside the archive directory after printing the complete target list")
     var allowExternalTargets = false
+    @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
+        safeMode.apply()
         let jsonURL = try resolveFile(file)
         let archive = try TagArchiveIO.load(jsonURL)
         let base = jsonURL.deletingLastPathComponent()

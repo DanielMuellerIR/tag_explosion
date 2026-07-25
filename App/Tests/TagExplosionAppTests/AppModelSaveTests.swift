@@ -352,6 +352,60 @@ struct AppModelSaveTests {
         #expect(entry.firstValue("TITLE") == "Neuere Eingabe")
         #expect(entry.isDirty)
     }
+
+    @Test("Fremde Änderung auf der Platte wird nicht stillschweigend überschrieben",
+          .enabled(if: AudioFixture.isAvailable, "Audio-Fixture fehlt"))
+    func externalChangeStopsSaveUntilConfirmed() async throws {
+        let url = try AudioFixture.workingCopy()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+        let entry = FileEntry(url: url, loaded: .audio(try TagFile.read(at: url)))
+        entry.setSingleValue("TITLE", "Mein Stand")
+        let model = AppModel()
+
+        // Ein anderes Programm schreibt, während die Datei geöffnet ist.
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Fremder Stand")], to: url)
+
+        #expect(await model.save(entry: entry) == false)
+        #expect(model.pendingStaleWrite?.fileName == url.lastPathComponent)
+        #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Fremder Stand")
+        #expect(entry.isDirty)
+
+        // Erst die ausdrückliche Bestätigung überschreibt.
+        await model.confirmStaleWrite()
+        #expect(model.pendingStaleWrite == nil)
+        #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Mein Stand")
+        #expect(!entry.isDirty)
+    }
+}
+
+/// Zugriff auf die vom Root-Paket erzeugten Audio-Fixtures. Der Generator ist
+/// idempotent; ohne ffmpeg wird der Test übersprungen.
+private enum AudioFixture {
+    static let directory: URL? = {
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // TagExplosionAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // App
+            .deletingLastPathComponent() // Repo-Wurzel
+        let generated = repoRoot
+            .appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated")
+        return FileManager.default.fileExists(
+            atPath: generated.appendingPathComponent("sample.mp3").path) ? generated : nil
+    }()
+
+    static var isAvailable: Bool { directory != nil }
+
+    static func workingCopy() throws -> URL {
+        guard let directory else { throw ConflictTestError.expectedSaveFailure }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-app-stale-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let target = folder.appendingPathComponent("sample.mp3")
+        try FileManager.default.copyItem(
+            at: directory.appendingPathComponent("sample.mp3"), to: target)
+        return target
+    }
 }
 
 private enum ConflictTestError: Error {

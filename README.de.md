@@ -31,6 +31,13 @@ schnellen Editor im Apple-Stil, mit skriptfähiger CLI.
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
   typkompatible Textfelder.
+- **Abgesicherter Modus** — vor jeder Änderung landet eine unveränderte Kopie
+  der Datei im Papierkorb, gesammelt in einem Ordner je Sitzung. Geht etwas
+  schief, ziehen Sie die Kopie zurück; zum Aufräumen genügt es, den Papierkorb
+  zu leeren. Zusätzlich entsteht jede Änderung an einer Kopie und ersetzt das
+  Original erst nach einer Prüfung — ein Absturz oder ein voller Datenträger
+  kann keine halb geschriebene Datei hinterlassen. Standardmäßig an
+  (Einstellung ⌘,, in der CLI `--no-backup` bzw. `TAGX_NO_BACKUP=1`).
 - **Tag-Export/-Import mit Auto-Backup** — die Batch-Editoren exportieren alle
   Tags einer Auswahl (Cover eingebettet) in eine selbständige JSON-Datei und
   stellen daraus wieder her; vor Batch-Speichern legt die App automatisch ein
@@ -88,7 +95,8 @@ die App zusätzlich mobi/azw3/fb2 über dessen Kommandozeilenwerkzeug
 `ebook-meta`.
 
 Spätere Updates kommen über den eingebauten Updater
-(**Tag Explosion → Nach Updates suchen …**).
+(**Tag Explosion → Nach Updates suchen …**). Dabei ruft die App den
+Update-Feed auf GitHub Pages ab; weitere Daten sendet sie nicht.
 
 ## CLI
 
@@ -102,6 +110,7 @@ tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
+tagx set song.mp3 -t ARTIST="X" --no-backup    # ohne Sicherungskopie im Papierkorb
 ```
 
 Importe bearbeiten standardmäßig nur Dateien innerhalb des JSON-Ordners. Ein
@@ -113,7 +122,7 @@ aufgelöste Zielliste aus. Bewertungen akzeptieren nur ganze Zahlen von 0 bis
 ## Aus dem Quelltext bauen
 
 Voraussetzungen: Xcode-Toolchain, Homebrew mit `taglib`; zur Laufzeit
-`media-info`, optional `ffmpeg` für Test-Fixtures.
+`mediainfo`, optional `exiftool` und `ffmpeg` für die Tests.
 
 ```sh
 ./build.sh          # baut tagx und TagExplosion.app

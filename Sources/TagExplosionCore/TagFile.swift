@@ -177,16 +177,65 @@ public final class TagFile {
     }
 
     /// Schreibt Properties und/oder Artworks in eine Datei (nil = unverändert lassen).
+    ///
+    /// TagLib schreibt grundsätzlich in-place. Damit ein Absturz, ein voller
+    /// Datenträger oder ein Formatfehler die Originaldatei nicht halb fertig
+    /// zurücklässt, läuft der Schreibvorgang über eine Geschwisterkopie: Erst
+    /// wird die Kopie beschrieben und geprüft, dann ersetzt sie das Original in
+    /// einem einzigen atomaren Schritt.
+    ///
+    /// Nebenwirkung dieses Verfahrens: Die Datei bekommt eine neue Inode.
+    /// Zusätzliche Hardlinks auf dieselben Daten zeigen danach weiter auf den
+    /// alten Stand.
     public static func write(
         properties: [TagProperty]? = nil,
         artworks: [Artwork]? = nil,
         to url: URL
     ) throws {
-        let file = try TagFile(url: url)
+        // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
+        let before = try TagFile.read(at: url)
+        if before.isReadOnly { throw TagError.readOnly(path: url.path) }
+
+        try AtomicFileRewrite.run(url: url) { temp in
+            let file = try TagFile(url: temp)
+            defer { file.close() }
+            if let properties { try file.setProperties(properties) }
+            if let artworks { try file.setArtworks(artworks) }
+            try file.save()
+        } validate: { temp in
+            try validateWriteResult(at: temp, expecting: artworks, comparedTo: before.audio,
+                                    originalPath: url.path)
+        }
+    }
+
+    /// Prüft die frisch beschriebene Kopie, bevor sie das Original ersetzt.
+    ///
+    /// Ein reiner Tag-Schreibvorgang darf den Audiostream nicht anfassen. Wenn
+    /// Kanäle, Samplerate oder Spielzeit wegbrechen, hat TagLib die Datei
+    /// beschädigt — dann bleibt das Original stehen.
+    private static func validateWriteResult(
+        at url: URL, expecting artworks: [Artwork]?, comparedTo before: AudioInfo?,
+        originalPath: String
+    ) throws {
+        let file = try TagFile(url: url) // muss überhaupt wieder lesbar sein
         defer { file.close() }
-        if let properties { try file.setProperties(properties) }
-        if let artworks { try file.setArtworks(artworks) }
-        try file.save()
+        _ = try file.properties()
+
+        if let artworks, (try file.artworks()).count != artworks.count {
+            throw TagError.saveFailed(path: originalPath)
+        }
+
+        guard let before, before.lengthMilliseconds > 0 else { return }
+        guard let after = file.audioInfo() else {
+            throw TagError.saveFailed(path: originalPath)
+        }
+        // Zwei Prozent Toleranz: manche Formate berechnen die Spielzeit aus der
+        // Dateigröße, die sich mit der Tag-Größe minimal verschiebt.
+        let tolerance = max(1000, before.lengthMilliseconds / 50)
+        guard after.channels == before.channels,
+              after.sampleRateHz == before.sampleRateHz,
+              abs(after.lengthMilliseconds - before.lengthMilliseconds) <= tolerance
+        else { throw TagError.saveFailed(path: originalPath) }
     }
 
     /// Version der gelinkten TagLib, z.B. "2.3.0".

@@ -25,18 +25,31 @@ enum AtomicFileRewrite {
             throw TagError.saveFailed(path: url.path)
         }
 
+        // Die Kopie braucht Platz. Auf Dateisystemen mit Copy-on-Write (APFS)
+        // kostet sie zunaechst nichts, sonst die volle Dateigroesse.
+        try VolumeSpace.requireRoom(for: destination)
+
         do {
             try fileManager.copyItem(at: destination, to: temp)
-            defer { try? fileManager.removeItem(at: temp) }
+        } catch {
+            throw TagError.saveFailed(path: url.path)
+        }
+        defer { try? fileManager.removeItem(at: temp) }
+
+        do {
             try mutate(temp)
             try validate(temp)
-
-            // Beide Pfade liegen im selben Verzeichnis. POSIX rename ersetzt
-            // das Ziel in genau einem atomaren Dateisystem-Schritt.
-            guard rename(temp.path, destination.path) == 0 else {
-                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
-            }
+        } catch let error as TagError {
+            // Den echten Grund erhalten — er unterscheidet ein nicht
+            // unterstuetztes Feld von einem kaputten Schreibvorgang.
+            throw error
         } catch {
+            throw TagError.saveFailed(path: url.path)
+        }
+
+        // Beide Pfade liegen im selben Verzeichnis. POSIX rename ersetzt
+        // das Ziel in genau einem atomaren Dateisystem-Schritt.
+        guard rename(temp.path, destination.path) == 0 else {
             throw TagError.saveFailed(path: url.path)
         }
     }
@@ -47,5 +60,64 @@ enum AtomicFileRewrite {
         var name = ".\(stem).tagx-\(UUID().uuidString)"
         if !ext.isEmpty { name += ".\(ext)" }
         return url.deletingLastPathComponent().appendingPathComponent(name)
+    }
+}
+
+/// Platzpruefung vor jeder Kopie. Ohne sie endet ein voller Datentraeger
+/// mitten im Schreibvorgang — genau der Fall, den der atomare Rahmen
+/// verhindern soll.
+enum VolumeSpace {
+
+    /// Reserve fuer Dateisystem-Metadaten, damit die Kopie nicht am
+    /// allerletzten Block scheitert.
+    static let margin: Int64 = 8 * 1024 * 1024
+
+    /// Wirft `notEnoughSpace`, wenn eine Kopie der Datei nicht mehr sicher
+    /// auf ihren eigenen Datentraeger passt. Kann der Datentraeger klonen
+    /// (APFS), belegt die Kopie anfangs keine zusaetzlichen Bloecke.
+    static func requireRoom(for url: URL, extraFiles: [URL] = []) throws {
+        let needed = try requiredBytes(for: [url] + extraFiles)
+        guard needed > 0 else { return }
+        guard let free = availableBytes(at: url) else { return }
+        guard free >= needed + margin else {
+            throw TagError.notEnoughSpace(path: url.path, needBytes: needed, freeBytes: free)
+        }
+    }
+
+    /// Wie viele Bytes eine Kopie der Dateien tatsaechlich kostet.
+    static func requiredBytes(for urls: [URL]) throws -> Int64 {
+        guard let first = urls.first, !supportsCloning(at: first) else { return 0 }
+        return urls.reduce(into: Int64(0)) { total, url in
+            total += fileSize(of: url) ?? 0
+        }
+    }
+
+    static func fileSize(of url: URL) -> Int64? {
+        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
+              let size = values.fileSize else { return nil }
+        return Int64(size)
+    }
+
+    static func availableBytes(at url: URL) -> Int64? {
+        let directory = url.deletingLastPathComponent()
+        guard let values = try? directory.resourceValues(
+            forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
+        else { return nil }
+        if let important = values.volumeAvailableCapacityForImportantUsage {
+            return Int64(important)
+        }
+        return values.volumeAvailableCapacity.map(Int64.init)
+    }
+
+    /// APFS klont Dateien blockweise (Copy-on-Write) — die Kopie kostet dann
+    /// erst Platz, wenn sich eine der beiden Seiten aendert.
+    static func supportsCloning(at url: URL) -> Bool {
+        #if canImport(Darwin)
+        let directory = url.deletingLastPathComponent()
+        let values = try? directory.resourceValues(forKeys: [.volumeSupportsFileCloningKey])
+        return values?.volumeSupportsFileCloning ?? false
+        #else
+        return false
+        #endif
     }
 }

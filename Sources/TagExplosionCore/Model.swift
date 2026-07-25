@@ -111,6 +111,15 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case propertiesRejected(count: Int)
     case toolNotFound(name: String)
     case toolFailed(name: String, exitCode: Int32, stderr: String)
+    /// Auf dem Datenträger ist zu wenig Platz für die Sicherheitskopie, die
+    /// jedem Schreibvorgang vorausgeht.
+    case notEnoughSpace(path: String, needBytes: Int64, freeBytes: Int64)
+    /// Die Sicherungskopie in den Papierkorb ist fehlgeschlagen. Im
+    /// abgesicherten Modus wird dann bewusst gar nicht geschrieben.
+    case backupFailed(path: String, reason: String)
+    /// Die Datei hat sich seit dem Öffnen auf der Platte verändert; ein
+    /// Speichern würde fremde Änderungen überschreiben.
+    case fileChangedOnDisk(path: String)
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -128,6 +137,13 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "External program not found: \(name)"
         case .toolFailed(let name, let code, let stderr):
             return "\(name) failed (exit code \(code)): \(stderr)"
+        case .notEnoughSpace(let path, let need, let free):
+            return "Not enough free space for a safety copy of \(path) "
+                + "(needs \(need) bytes, \(free) bytes available)"
+        case .backupFailed(let path, let reason):
+            return "Safety copy failed, nothing was written: \(path) (\(reason))"
+        case .fileChangedOnDisk(let path):
+            return "File changed on disk since it was opened: \(path)"
         }
     }
 }

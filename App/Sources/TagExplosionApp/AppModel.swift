@@ -47,6 +47,11 @@ final class FileEntry: Identifiable {
     /// Neues Cover, das beim Speichern geschrieben wird (nil = unverändert).
     var ebookCoverReplacement: Data?
 
+    /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
+    /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
+    /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
+    private(set) var diskStamp: FileStamp?
+
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
     var lastError: String?
     /// Ein Speichervorgang pro Datei reicht aus. Der Zustand verhindert, dass
@@ -68,6 +73,7 @@ final class FileEntry: Identifiable {
 
     init(url: URL, loaded: LoadedData) {
         self.url = url
+        self.diskStamp = FileStamp.current(of: url)
         switch loaded {
         case .audio(let data):
             self.kind = .audio
@@ -134,6 +140,7 @@ final class FileEntry: Identifiable {
 
     /// Frisch gelesenen Platten-Zustand als neues Original übernehmen.
     func acceptNew(_ loaded: LoadedData) {
+        diskStamp = FileStamp.current(of: url)
         switch loaded {
         case .audio(let data): acceptNewOriginal(data)
         case .image(let fields): acceptNewImageOriginal(fields)
@@ -179,6 +186,8 @@ final class FileEntry: Identifiable {
     /// Hat die Person während des Schreibens weitergetippt, bleibt dieser neuere
     /// Puffer erhalten und ist gegenüber dem neuen Original weiterhin dirty.
     func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData) {
+        // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
+        diskStamp = FileStamp.current(of: url)
         switch (snapshot, reloaded) {
         case (.audio(let savedProperties, let savedArtworks), .audio(let data)):
             original = data
@@ -501,6 +510,24 @@ final class AppModel {
 
     /// Schlüssel der Auto-Backup-Einstellung (Toggle in den Einstellungen).
     static let autoBackupDefaultsKey = "autoBackupBeforeBatchSave"
+
+    /// Schlüssel des abgesicherten Modus (Kopie in den Papierkorb vor jeder
+    /// Änderung).
+    static let safeModeDefaultsKey = "trashBackupBeforeSave"
+
+    /// Abgesicherter Modus aktiv? Default an — solange die App jung ist, soll
+    /// keine Änderung eine Datei endgültig kosten.
+    static var safeModeEnabled: Bool {
+        UserDefaults.standard.object(forKey: safeModeDefaultsKey) == nil
+            || UserDefaults.standard.bool(forKey: safeModeDefaultsKey)
+    }
+
+    /// Überträgt die Einstellung in den Core. Muss beim Start und nach jeder
+    /// Änderung der Einstellung laufen.
+    static func applySafeMode() {
+        TrashBackup.shared.isEnabled = safeModeEnabled
+        TrashBackup.shared.folderLabel = String(localized: "Tag Explosion Sicherung")
+    }
 
     /// Auto-Backup vor Batch-Speichern? (Default: an)
     static var autoBackupEnabled: Bool {
@@ -940,15 +967,42 @@ final class AppModel {
     }
 
     /// Schreibt den Bearbeitungspuffer einer Datei und liest sie neu ein.
+    ///
+    /// `ignoringDiskChange` überspringt die Prüfung auf fremde Änderungen —
+    /// nur nach ausdrücklicher Bestätigung. Die Sicherungskopie im Papierkorb
+    /// enthält dann den fremden Stand, das Überschreiben bleibt also umkehrbar.
     @discardableResult
-    func save(entry: FileEntry) async -> Bool {
+    func save(entry: FileEntry, ignoringDiskChange: Bool = false) async -> Bool {
         let url = entry.url
         let kind = entry.kind
-        return await save(entry: entry) { snapshot in
+        let stamp = ignoringDiskChange ? nil : entry.diskStamp
+        return await save(entry: entry, staleCandidate: ignoringDiskChange ? nil : entry) { snapshot in
             return try await Task.detached(priority: .userInitiated) {
-                try Self.write(snapshot: snapshot, to: url, kind: kind)
+                try Self.write(snapshot: snapshot, to: url, kind: kind, expecting: stamp)
             }.value
         }
+    }
+
+    /// Eine Datei wurde außerhalb der App verändert; das Speichern wartet auf
+    /// die Entscheidung der Person.
+    struct PendingStaleWrite: Equatable {
+        var fileName: String
+    }
+
+    private(set) var pendingStaleWrite: PendingStaleWrite?
+    private var staleEntry: FileEntry?
+
+    /// Trotzdem speichern — der bisherige Plattenstand liegt im Papierkorb.
+    func confirmStaleWrite() async {
+        guard let entry = staleEntry else { return }
+        pendingStaleWrite = nil
+        staleEntry = nil
+        await save(entry: entry, ignoringDiskChange: true)
+    }
+
+    func cancelStaleWrite() {
+        pendingStaleWrite = nil
+        staleEntry = nil
     }
 
     /// Gemeinsame Save-Steuerung. Der austauschbare Schreibblock ermöglicht
@@ -956,6 +1010,7 @@ final class AppModel {
     /// kann, ohne echte UI- oder Dateitiming-Rennen zu brauchen.
     @discardableResult
     func save(entry: FileEntry,
+              staleCandidate: FileEntry? = nil,
               writeSnapshot: @escaping @Sendable (FileEntry.SaveSnapshot) async throws -> LoadedData) async -> Bool {
         guard let snapshot = entry.beginSaving() else { return !entry.isDirty }
         defer { entry.finishSaving() }
@@ -964,6 +1019,13 @@ final class AppModel {
             let reloaded = try await writeSnapshot(snapshot)
             entry.acceptSaved(snapshot, reloaded: reloaded)
             return true
+        } catch TagError.fileChangedOnDisk(let path) where staleCandidate != nil {
+            // Kein normaler Fehler, sondern eine Entscheidung: überschreiben
+            // oder nicht. Der Puffer bleibt in jedem Fall erhalten.
+            entry.lastError = TagError.fileChangedOnDisk(path: path).localizedDescription
+            staleEntry = staleCandidate
+            pendingStaleWrite = PendingStaleWrite(fileName: entry.url.lastPathComponent)
+            return false
         } catch {
             // Der Puffer und das letzte gute Original bleiben unverändert.
             entry.lastError = error.localizedDescription
@@ -976,7 +1038,14 @@ final class AppModel {
     /// Der eigentliche Hintergrundzugriff bekommt ausschließlich den Snapshot.
     /// Damit kann ein UI-Edit während await nicht in diesen Schreibvorgang rutschen.
     nonisolated private static func write(snapshot: FileEntry.SaveSnapshot,
-                                          to url: URL, kind: MediaKind) throws -> LoadedData {
+                                          to url: URL, kind: MediaKind,
+                                          expecting stamp: FileStamp?) throws -> LoadedData {
+        // Hat ein anderes Programm die Datei seit dem Öffnen geändert, wäre das
+        // Speichern ein stilles Überschreiben fremder Arbeit.
+        try FileStamp.requireUnchanged(stamp, at: url)
+        // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
+        // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
+        try TrashBackup.shared.backUp(url)
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks)):
             try TagFile.write(properties: properties, artworks: artworks, to: url)

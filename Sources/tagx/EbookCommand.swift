@@ -73,8 +73,10 @@ struct EbookSet: ParsableCommand {
     @Option(help: "Publication date (ISO 8601)") var date: String?
     @Option(help: "Tags/subjects, comma-separated") var subjects: String?
     @Option(help: "Set cover from image file (jpg/png)") var cover: String?
+    @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
+        safeMode.apply()
         let url = try resolveFile(file)
         let original = try EbookTool.readCoreFields(url: url)
         var fields = original
@@ -104,6 +106,7 @@ struct EbookSet: ParsableCommand {
             coverUpdate = .set(data)
         }
         let changed = fields != original || cover != nil
+        if changed { try TrashBackup.shared.backUp(url) }
         try EbookTool.write(
             url: url, fields: fields, original: original,
             coverUpdate: coverUpdate)

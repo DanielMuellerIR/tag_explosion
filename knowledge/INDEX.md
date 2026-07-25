@@ -2,6 +2,9 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [dateisicherheit-schreibwege.md](dateisicherheit-schreibwege.md) — Bei jedem
+  Schreibweg und beim abgesicherten Modus: atomarer Rahmen, Papierkorb-
+  Sicherung, `URL.resourceValues`-Cache-Falle, Platz- und Pfad-Regeln.
 - [taglib-shim.md](taglib-shim.md) — Bei Arbeit am CTagShim/TagLib-Upgrade:
   Encoding-Default, C-API-Grenzen, PropertyMap-Verhalten, Format-Toleranzen.
 - [mediainfo-exiftool-wrapper.md](mediainfo-exiftool-wrapper.md) — Bei kaputten
