@@ -86,5 +86,5 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - [install.sh](install.sh) · [release.sh](release.sh) — notarisierte Installation, verteilbares DMG
 - [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) — Lizenzen der Dritt-Komponenten
 - [knowledge/](knowledge/INDEX.md) — Projekt-Wissensbasis (eine Datei pro Problem)
-- [scripts/](scripts/) — GUI-Selbsttests, Icon-Generator
+- [scripts/](scripts/) — GUI-Selbsttests, Icon- und Social-Preview-Generator
 <!-- /directory-structure -->

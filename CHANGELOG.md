@@ -8,6 +8,31 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.17.2] — 2026-07-25
+
+### Hinzugefügt
+
+- Social-Preview-Bild für GitHub (`docs/social-preview.png`) samt
+  reproduzierbarem Generator `scripts/gen-social-preview.py`.
+
+### Geändert
+
+- `docs/sparkle-release.md`: genaue Befehle für den Export des
+  Sparkle-Schlüssels (mit `--account`, ohne ihn je auf stdout zu zeigen), der
+  Release-Ablauf verweist jetzt auf `release.sh`, und es steht dort, warum
+  dieses Projekt seinen eigenen Schlüssel behält, obwohl Sparkle einen
+  Schlüssel für beliebig viele Apps erlaubt: Jede bereits verteilte Fassung
+  akzeptiert nur Updates, die zu ihrem eingebauten `SUPublicEDKey` passen.
+
+## [0.17.1] — 2026-07-25
+
+### Behoben
+
+- Die Bildvorschau ließ ein `NSImage` aus einem Hintergrund-Task auf den
+  MainActor wandern. Mit älteren Swift-6-Toolchains als der lokalen ist das ein
+  Übersetzungsfehler — gefunden vom ersten CI-Lauf auf GitHub. Gelesen werden
+  jetzt die Bytes, das Bild entsteht auf dem MainActor.
+
 ## [0.17.0] — 2026-07-25
 
 ### Hinzugefügt
@@ -32,10 +57,6 @@ jeder Entscheidung steht im jeweiligen Commit.
 
 ### Behoben
 
-- Die Bildvorschau ließ ein `NSImage` aus einem Hintergrund-Task auf den
-  MainActor wandern. Mit älteren Swift-6-Toolchains als der lokalen ist das ein
-  Übersetzungsfehler — aufgefallen im neuen CI-Lauf. Gelesen werden jetzt die
-  Bytes, das Bild entsteht auf dem MainActor.
 - AVI-Dateien ließen sich nicht öffnen, obwohl sie als „nur Anzeige"
   angekündigt sind: TagLib kann AVI nicht lesen, und der Read-only-Fallback
   griff nur beim Öffnen, nicht beim Neuladen. Er liegt jetzt an einer Stelle

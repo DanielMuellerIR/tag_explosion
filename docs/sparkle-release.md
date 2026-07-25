@@ -26,21 +26,48 @@ Gegenpart (`SUPublicEDKey`) steht im App-Bundle.
 ## Einmalige GitHub-Einrichtung
 
 1. In den Repository-Einstellungen unter **Pages** als Quelle **GitHub Actions**
-   wählen.
+   wählen. ✅ eingerichtet.
 2. Den privaten Schlüssel als Actions-Secret `SPARKLE_PRIVATE_KEY` hinterlegen.
-   Sparkles `generate_keys -x` exportiert ihn vorübergehend in eine lokale
-   Datei; `gh secret set SPARKLE_PRIVATE_KEY < datei` liest diese Datei über
-   stdin. Die Exportdatei danach sicher entfernen. Den Schlüssel nie auf stdout
-   ausgeben.
+   Der zum Bundle passende Schlüssel liegt bereits im Login-Schlüsselbund; sein
+   öffentlicher Gegenpart lässt sich jederzeit gefahrlos nachsehen:
+
+   ```sh
+   tool="$(find App/.build/artifacts/sparkle -name generate_keys -print -quit)"
+   "$tool" --account io.github.danielmuellerir.tagexplosion -p
+   # muss SUPublicEDKey aus build.sh ergeben
+   ```
+
+   Export und Übergabe an GitHub in einem Rutsch, ohne den Schlüssel je auf
+   stdout zu zeigen:
+
+   ```sh
+   umask 077
+   key="$(mktemp)"
+   "$tool" --account io.github.danielmuellerir.tagexplosion -x "$key"
+   gh secret set SPARKLE_PRIVATE_KEY --repo <owner>/<repo> < "$key"
+   rm -P "$key"
+   ```
 3. Den Schlüssel zusätzlich verschlüsselt sichern. Geht er verloren, ist eine
    kontrollierte Schlüsselrotation über ein Developer-ID-signiertes Archiv
    nötig.
+
+### Warum dieses Projekt einen eigenen Schlüssel behält
+
+Sparkle selbst schreibt, ein Schlüssel reiche für beliebig viele Apps. Für ein
+neues Projekt kann man den Schlüssel eines anderen also mitbenutzen. Hier
+verbietet sich der Wechsel trotzdem: Jede bereits verteilte Fassung trägt den
+`SUPublicEDKey` in ihrer `Info.plist` und akzeptiert später **nur** Updates, die
+zu genau diesem Schlüssel passen. Ein Umstieg auf einen fremden Schlüssel wäre
+eine Rotation und würde jede installierte Version von Updates abschneiden. Der
+projekteigene Schlüssel existiert bereits — es gibt also auch nichts zu sparen.
+
 
 ## Ablauf pro Release
 
 1. `VERSION` aktualisieren. `CFBundleVersion` wird daraus übernommen und muss
    monoton steigen — Sparkle vergleicht darüber.
-2. `NOTARY_PROFILE=<profil> ./build.sh --release` ausführen: bündelt
+2. `./release.sh` ausführen (klärt das Notary-Profil selbst; darunter läuft
+   `build.sh --release`): bündelt
    TagLib-dylibs und Sparkle.framework, signiert (Developer ID + Hardened
    Runtime), notarisiert und stapelt die App, baut daraus das DMG mit
    /Applications-Symlink und Hintergrundbild (Finder-Layout per AppleScript;
