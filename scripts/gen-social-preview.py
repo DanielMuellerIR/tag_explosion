@@ -87,13 +87,19 @@ def main():
     d.text((94, 352), "audio tags  ·  EXIF/IPTC/XMP  ·  video  ·  e-books  ·  CLI",
            font=f_sub2, fill=MUTED)
 
-    # Beispielzeile in einer dezenten Terminal-Box
+    # Beispielzeile in einer dezenten Terminal-Box. Die Box wird um den
+    # gemessenen Text herum gezeichnet, nie auf eine feste Breite — sonst läuft
+    # eine geänderte Beispielzeile aus dem Rahmen.
     box_y = 436
-    d.rounded_rectangle([90, box_y, 806, box_y + 76], radius=14,
-                        fill=(28, 30, 37), outline=(62, 58, 66), width=2)
+    box_x, pad = 90, 28
     parts = [("tagx set ", MUTED), ("song.mp3 ", FG),
              ("-t ", MUTED), ("ARTIST", KEY_FG), ("=", MUTED), ('"Miles Davis"', VALUE_FG)]
-    x = 118
+    text_width = sum(d.textlength(text, font=f_mono) for text, _ in parts)
+    box_right = box_x + pad * 2 + text_width
+    assert box_right < W - 60, "Beispielzeile passt nicht ins Bild"
+    d.rounded_rectangle([box_x, box_y, box_right, box_y + 76], radius=14,
+                        fill=(28, 30, 37), outline=(62, 58, 66), width=2)
+    x = box_x + pad
     for text, color in parts:
         d.text((x, box_y + 20), text, font=f_mono, fill=color)
         x += d.textlength(text, font=f_mono)
