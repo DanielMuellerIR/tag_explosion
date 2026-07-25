@@ -48,7 +48,19 @@ Gegenpart (`SUPublicEDKey`) steht im App-Bundle.
    gh secret set SPARKLE_PRIVATE_KEY --repo <owner>/<repo> < "$key"
    rm -P "$key"; rmdir "$dir"
    ```
-3. Den Schlüssel zusätzlich verschlüsselt sichern. Geht er verloren, ist eine
+3. Der Release-Workflow läuft auf dem Tag, nicht auf `main`. Die Umgebung
+   **github-pages** lässt Deployments standardmäßig nur von geschützten
+   Branches zu und lehnt den Lauf sonst mit „Tag … is not allowed to deploy to
+   github-pages" ab. Deshalb unter **Settings → Environments → github-pages →
+   Deployment branches and tags** neben `main` (Branch) auch `v*` (Tag)
+   eintragen, oder per API:
+
+   ```sh
+   gh api --method POST \
+     repos/<owner>/<repo>/environments/github-pages/deployment-branch-policies \
+     -f name='v*' -f type=tag
+   ```
+4. Den Schlüssel zusätzlich verschlüsselt sichern. Geht er verloren, ist eine
    kontrollierte Schlüsselrotation über ein Developer-ID-signiertes Archiv
    nötig.
 
@@ -79,7 +91,19 @@ projekteigene Schlüssel existiert bereits — es gibt also auch nichts zu spare
 4. `.github/workflows/publish-appcast.yml` lädt dieses DMG, erzeugt mit
    Sparkles `generate_appcast` einen signierten Feed, bettet die Release Notes
    ein und veröffentlicht `appcast.xml` über GitHub Pages.
-5. Den Workflow und anschließend
+5. Den signierten Feed gegenprüfen, ohne auf einen Update-Lauf zu warten:
+
+   ```sh
+   curl -sS https://<owner>.github.io/<repo>/appcast.xml -o /tmp/appcast.xml
+   sig="$(python3 -c "import re,sys;print(re.search('edSignature=\"([^\"]+)\"',open('/tmp/appcast.xml').read()).group(1))")"
+   "$(find App/.build/artifacts/sparkle -name sign_update -print -quit)" \
+     --account io.github.danielmuellerir.tagexplosion --verify \
+     TagExplosion-<version>.dmg "$sig" && echo "Signatur ok"
+   ```
+
+   `sign_update --verify` braucht `--account`, sonst sucht es unter dem
+   Standardkonto und meldet „Signing key not found".
+6. Den Workflow und anschließend
    `https://danielmuellerir.github.io/tag_explosion/appcast.xml` prüfen. Im
    App-Menü **„Nach Updates suchen …“** muss eine ältere, notarisiert
    installierte und bereits Sparkle-fähige Testversion das neue Release finden,

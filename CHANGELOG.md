@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.17.3] — 2026-07-25
+
+### Geändert
+
+- `docs/sparkle-release.md` um die beiden Stolpersteine des ersten echten
+  Release-Laufs ergänzt: Die Umgebung `github-pages` muss neben `main` auch
+  Tags (`v*`) zum Deployment zulassen, sonst lehnt sie den vom Release
+  ausgelösten Lauf ab; und `sign_update --verify` braucht `--account`, um den
+  Feed gegen das DMG zu prüfen.
+
 ## [0.17.2] — 2026-07-25
 
 ### Hinzugefügt
