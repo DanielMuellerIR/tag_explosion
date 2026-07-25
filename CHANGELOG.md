@@ -32,6 +32,10 @@ jeder Entscheidung steht im jeweiligen Commit.
 
 ### Behoben
 
+- Die Bildvorschau ließ ein `NSImage` aus einem Hintergrund-Task auf den
+  MainActor wandern. Mit älteren Swift-6-Toolchains als der lokalen ist das ein
+  Übersetzungsfehler — aufgefallen im neuen CI-Lauf. Gelesen werden jetzt die
+  Bytes, das Bild entsteht auf dem MainActor.
 - AVI-Dateien ließen sich nicht öffnen, obwohl sie als „nur Anzeige"
   angekündigt sind: TagLib kann AVI nicht lesen, und der Read-only-Fallback
   griff nur beim Öffnen, nicht beim Neuladen. Er liegt jetzt an einer Stelle

@@ -60,9 +60,13 @@ struct ImageFieldsTab: View {
         }
         .task(id: entry.url) {
             let url = entry.url
-            preview = await Task.detached(priority: .userInitiated) {
-                NSImage(contentsOf: url)
+            // NSImage ist nicht Sendable und darf den Hintergrund-Task deshalb
+            // nicht verlassen. Gelesen werden die Bytes, das Bild entsteht
+            // hier auf dem MainActor.
+            let data = await Task.detached(priority: .userInitiated) {
+                try? Data(contentsOf: url, options: .mappedIfSafe)
             }.value
+            preview = data.flatMap { NSImage(data: $0) }
         }
         .task(id: entry.url) {
             rawTags = nil
