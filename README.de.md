@@ -149,6 +149,11 @@ externen Werkzeuge installieren, die die App aufruft:
 brew install mediainfo exiftool   # Technik-Panel, Bild- und PDF-Metadaten
 ```
 
+Fehlen die Werkzeuge, bietet die App das bei jedem Start selbst an: Mit
+vorhandenem Homebrew installiert sie die fehlenden Formeln auf Klick, ohne
+Homebrew verweist sie auf [brew.sh](https://brew.sh). Das Angebot endet,
+sobald nichts mehr fehlt oder „Nicht mehr fragen" gewählt wurde.
+
 Optional: mit installiertem [Calibre](https://calibre-ebook.com) bearbeitet
 die App zusätzlich mobi/azw3/fb2 über dessen Kommandozeilenwerkzeug
 `ebook-meta`.

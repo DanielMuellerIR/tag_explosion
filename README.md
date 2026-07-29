@@ -143,6 +143,11 @@ external tools the app calls:
 brew install mediainfo exiftool   # tech panel, image and PDF metadata
 ```
 
+If the tools are missing, the app offers this itself at every launch: with
+Homebrew present it installs the missing formulae on click, without Homebrew
+it points to [brew.sh](https://brew.sh). The offer stops once nothing is
+missing or "Don't Ask Again" is chosen.
+
 Optional: with [Calibre](https://calibre-ebook.com) installed the app also
 edits mobi/azw3/fb2 through its `ebook-meta` command line tool.
 

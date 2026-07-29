@@ -173,6 +173,9 @@ struct ContentView: View {
         } message: {
             Text(model.alertMessage ?? "")
         }
+        // Startangebot: fehlende Brew-Werkzeuge (mediainfo, exiftool) erkennen
+        // und auf Wunsch installieren; Details in BrewToolInstallOffer.swift.
+        .modifier(BrewToolInstallOffer())
     }
 
     private var navigationTitle: String {

@@ -701,6 +701,26 @@
         }
       }
     },
+    "Homebrew ist fertig, aber die Werkzeuge sind weiterhin nicht auffindbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew finished, but the tools still cannot be found."
+          }
+        }
+      }
+    },
+    "Homebrew konnte die Werkzeuge nicht installieren: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Homebrew could not install the tools: %@"
+          }
+        }
+      }
+    },
     "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info": {
       "localizations": {
         "en": {
@@ -751,6 +771,26 @@
         }
       }
     },
+    "Installation fehlgeschlagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installation Failed"
+          }
+        }
+      }
+    },
+    "Installiere %@ …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installing %@ …"
+          }
+        }
+      }
+    },
     "JJJJ-MM-TT": {
       "localizations": {
         "en": {
@@ -777,6 +817,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Year"
+          }
+        }
+      }
+    },
+    "Jetzt verfügbar: %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now available: %@."
           }
         }
       }
@@ -921,6 +971,16 @@
         }
       }
     },
+    "Mit Homebrew installieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install with Homebrew"
+          }
+        }
+      }
+    },
     "Nach Updates suchen …": {
       "localizations": {
         "en": {
@@ -957,6 +1017,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not readable (unknown format?):"
+          }
+        }
+      }
+    },
+    "Nicht mehr fragen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't Ask Again"
           }
         }
       }
@@ -1121,12 +1191,42 @@
         }
       }
     },
+    "Später": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        }
+      }
+    },
     "Tag Explosion Sicherung": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Tag Explosion Backup"
+          }
+        }
+      }
+    },
+    "Tag Explosion nutzt %@ für technische Mediendaten sowie Bild- und PDF-Metadaten. Jetzt über Homebrew installieren? Das kann einige Minuten dauern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag Explosion uses %@ for technical media details as well as image and PDF metadata. Install now with Homebrew? This can take a few minutes."
+          }
+        }
+      }
+    },
+    "Tag Explosion nutzt %@, aber weder die Werkzeuge noch Homebrew wurden gefunden. Bitte zuerst Homebrew installieren — danach kann die App die Werkzeuge selbst einrichten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag Explosion uses %@, but neither the tools nor Homebrew were found. Please install Homebrew first — afterwards the app can set up the tools itself."
           }
         }
       }
@@ -1331,6 +1431,16 @@
         }
       }
     },
+    "Werkzeuge installiert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tools Installed"
+          }
+        }
+      }
+    },
     "Wert": {
       "localizations": {
         "en": {
@@ -1357,6 +1467,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Take the value from another tag (per image, EXIF/IPTC/XMP)"
+          }
+        }
+      }
+    },
+    "Zusatzwerkzeuge fehlen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Additional Tools Missing"
+          }
+        }
+      }
+    },
+    "Zusatzwerkzeuge installieren?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install Additional Tools?"
+          }
+        }
+      }
+    },
+    "brew.sh öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open brew.sh"
           }
         }
       }

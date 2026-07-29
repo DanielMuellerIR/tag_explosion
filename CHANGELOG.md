@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.18.0] — 2026-07-29
+
+### Hinzugefügt
+
+- Fehlen `mediainfo` oder `exiftool`, bietet die App bei jedem Start an, die
+  fehlenden Formeln über Homebrew zu installieren (mit Fortschrittsanzeige und
+  ehrlicher Fehlermeldung); ohne Homebrew verweist sie auf brew.sh. „Später"
+  verschiebt auf den nächsten Start, „Nicht mehr fragen" beendet das Angebot
+  dauerhaft. Calibre bleibt bewusst außen vor (optionales Extra, Cask statt
+  Formel).
+
 ## [0.17.3] — 2026-07-25
 
 ### Geändert
