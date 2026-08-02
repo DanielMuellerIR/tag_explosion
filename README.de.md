@@ -217,8 +217,10 @@ Linux-portabel. Architektur und Meilensteine stehen in
 
 MIT (siehe [LICENSE](LICENSE)), © 2026 Daniel Müller.
 
-TagLib (LGPL-2.1-or-later oder MPL-1.1) wird dynamisch gelinkt und unverändert
-im App-Bundle mitgeliefert, bleibt dort also austauschbar. Ebenfalls gelinkt
+TagLib (LGPL-2.1-or-later oder MPL-1.1) wird dynamisch gelinkt und im
+App-Bundle mitgeliefert, bleibt dort also austauschbar. Der Bibliothekscode
+bleibt dabei unverändert; nur die Install-Namen werden auf den Ordner im
+Bundle umgebogen und die Dateien neu signiert. Ebenfalls gelinkt
 sind Sparkle (MIT), ZIPFoundation (MIT) und swift-argument-parser (Apache-2.0).
 mediainfo (BSD-2), exiftool (Artistic/GPL) und Calibres `ebook-meta` (GPL)
 werden weder gebündelt noch gelinkt, sondern nur als externe Programme

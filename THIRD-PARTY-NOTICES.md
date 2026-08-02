@@ -5,14 +5,14 @@ Tag Explosion selbst steht unter der MIT-Lizenz, © 2026 Daniel Müller (siehe
 mitgeliefert, gelinkt oder aufgerufen werden, und gibt die Lizenztexte
 vollständig wieder, wo die jeweilige Lizenz das verlangt.
 
-Stand: 2026-07-25. TagLib-Version im Bundle: 2.3.
+Stand: 2026-08-03. TagLib-Version im Bundle: 2.3.
 
 ## Übersicht
 
 | Komponente | Verwendung | Lizenz |
 |---|---|---|
-| [TagLib](https://taglib.org) | Audio-/Video-Tags lesen und schreiben; `libtag`/`libtag_c` **unverändert** ins App-Bundle kopiert und dynamisch gelinkt | LGPL-2.1-or-later **oder** MPL-1.1 |
-| [Sparkle](https://sparkle-project.org) | Signierte App-Updates; `Sparkle.framework` unverändert im App-Bundle | MIT (mit weiteren Copyright-Vermerken) |
+| [TagLib](https://taglib.org) | Audio-/Video-Tags lesen und schreiben; `libtag`/`libtag_c` ins App-Bundle kopiert und dynamisch gelinkt. Der Bibliothekscode bleibt unverändert; beim Bündeln werden nur die Install-Namen der `.dylib`-Dateien umgeschrieben und die Dateien neu signiert (siehe unten) | LGPL-2.1-or-later **oder** MPL-1.1 |
+| [Sparkle](https://sparkle-project.org) | Signierte App-Updates; `Sparkle.framework` im App-Bundle. Der Framework-Code bleibt unverändert; beim Bündeln wird der ungenutzte Ordner `XPCServices` entfernt (die App läuft ohne Sandbox) und das Framework neu signiert | MIT (mit weiteren Copyright-Vermerken) |
 | [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) | ZIP-Container-Zugriff für EPUB; statisch in Core, CLI und App | MIT |
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | Argumentparser der CLI `tagx`; statisch gelinkt | Apache-2.0 |
 | [MediaInfo](https://mediaarea.net/MediaInfo) | Technik-Ansicht; **nicht gebündelt**, nur als externes Programm aufgerufen | BSD-2-Clause |
@@ -24,13 +24,19 @@ unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
 
 ## Warum das lizenzrechtlich zusammenpasst
 
-- **TagLib (LGPL/MPL)** wird ausschließlich **dynamisch** gelinkt und
-  unverändert übernommen. Das Bundle enthält die Bibliothek als eigenständige
-  `.dylib`; sie lässt sich durch eine andere Fassung derselben Bibliothek
-  ersetzen (`Contents/Frameworks/libtag*.dylib`), womit die LGPL-Bedingung zum
-  Austausch erfüllt ist. Der Quellcode liegt unter taglib.org bzw. in der
-  Homebrew-Formel `taglib` vor. Der eigene Shim bleibt eigenständiger
-  MIT-Code, der die Bibliothek nur benutzt.
+- **TagLib (LGPL/MPL)** wird ausschließlich **dynamisch** gelinkt. Der
+  Bibliothekscode wird nicht verändert. Beim Bündeln passiert genau zweierlei:
+  Die Install-Namen der `.dylib`-Dateien werden mit `install_name_tool` auf den
+  Ordner im App-Bundle umgebogen, und die Dateien werden mit dem Zertifikat
+  dieses Projekts neu signiert. Beides ist technisch nötig, damit die Hardened
+  Runtime die Bibliothek überhaupt lädt (Library Validation lehnt fremd
+  signierte Bibliotheken ab). Das Bundle enthält die Bibliothek weiterhin als
+  eigenständige `.dylib`; sie lässt sich durch eine andere Fassung derselben
+  Bibliothek ersetzen (`Contents/Frameworks/libtag*.dylib`, danach neu
+  signieren), womit die LGPL-Bedingung zum Austausch erfüllt ist. Der
+  Quellcode liegt unter taglib.org bzw. in der Homebrew-Formel `taglib` vor.
+  Der eigene Shim bleibt eigenständiger MIT-Code, der die Bibliothek nur
+  benutzt.
 - **MediaInfo, ExifTool und Calibre** werden als eigenständige Programme
   aufgerufen (Prozessgrenze, Austausch über stdin/stdout). Sie werden weder
   gebündelt noch gelinkt; ihre Lizenzen — auch die GPL von `ebook-meta` —
@@ -38,7 +44,10 @@ unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
   jeweilige Funktion.
 - **Sparkle, ZIPFoundation und swift-argument-parser** stehen unter
   MIT bzw. Apache-2.0 und sind mit MIT verträglich. Ihre Copyright-Vermerke
-  stehen vollständig weiter unten.
+  stehen vollständig weiter unten. Am ausgelieferten `Sparkle.framework` wird
+  der ungenutzte Ordner `XPCServices` entfernt und das Framework anschließend
+  neu signiert; der Framework-Code selbst bleibt unverändert. Die MIT-Lizenz
+  erlaubt das ausdrücklich, der Copyright-Vermerk bleibt erhalten.
 
 ## Icon
 

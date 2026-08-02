@@ -209,7 +209,9 @@ to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
 MIT (see [LICENSE](LICENSE)), © 2026 Daniel Müller.
 
 TagLib (LGPL-2.1-or-later or MPL-1.1) is linked dynamically and shipped
-unmodified inside the app bundle, so it stays replaceable. Sparkle (MIT),
+inside the app bundle, so it stays replaceable. The library code itself is
+untouched; bundling only rewrites the install names to point at the bundle's
+framework folder and re-signs the files. Sparkle (MIT),
 ZIPFoundation (MIT), and swift-argument-parser (Apache-2.0) are linked as
 well. mediainfo (BSD-2), exiftool (Artistic/GPL), and Calibre's `ebook-meta`
 (GPL) are neither bundled nor linked — they are only invoked as external

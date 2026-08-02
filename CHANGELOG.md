@@ -8,6 +8,52 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.19.0] — 2026-08-03
+
+### Behoben
+
+- Dateisicherheit: Der beim Lesen erhobene Datei-Stempel wird jetzt bis
+  unmittelbar vor den atomaren Austausch mitgeführt und dort erneut geprüft.
+  Ändert ein anderes Programm die Datei währenddessen, bricht das Speichern ab,
+  statt die fremde Änderung zu verwerfen. Der Stempel enthält zusätzlich die
+  Dateikennung, damit auch eine gleich große Ersetzung mit erhaltener
+  Änderungszeit auffällt.
+- Die App liest Inhalt und Stempel als einen zusammengehörigen Schnappschuss.
+  Vorher konnten alte Daten mit dem Stempel einer neueren, fremden Dateiversion
+  zusammenkommen — das nächste Speichern hätte diese Version ungefragt
+  überschrieben.
+- Beim Speichern mehrerer Dateien bekommt jede Datei mit fremder Änderung ihre
+  eigene Rückfrage. Vorher überschrieb ein zweiter Konflikt den ersten: Der
+  Dialog gehörte dann zur falschen Datei.
+- EPUB: Eine Autorenänderung löscht keine Mitwirkenden mit anderer Rolle
+  (Herausgeber, Übersetzer) mehr, und eine Serienänderung lässt unabhängige
+  Sammlungen des Buchs stehen. Platzmangel wird wieder als solcher gemeldet.
+- Archiv-Import: Wird ein freigegebenes Ziel nach der Anzeige durch eine
+  Verknüpfung auf eine andere Datei ersetzt, bricht der Import ab.
+  Bildbewertungen außerhalb von -1 bis 5 und Serienangaben für PDF werden vor
+  jeder Änderung abgelehnt. Zwei Sicherungen desselben Ordners innerhalb einer
+  Sekunde überschreiben sich nicht mehr.
+- Papierkorb-Sicherung: parallele Sicherungen laufen serialisiert, ein
+  gemerkter Stand gilt nur solange seine Kopie wirklich existiert, und ein
+  Stapel wird vor der ersten Kopie im Ganzen gegen den freien Platz geprüft.
+  Auf Nicht-APFS-Datenträgern schlägt die Platzprüfung nicht mehr grundlos fehl.
+- `tagx set` schreibt nur noch, wenn sich wirklich etwas ändert, und meldet die
+  echte Zahl geänderter Felder.
+- `./install.sh` beendet eine laufende App nur noch regulär und bricht ab, wenn
+  sie nicht beendet wird; ungesicherte Änderungen gehen dadurch nicht mehr
+  verloren. Das neue Bundle wird erst vollständig geprüft und dann eingesetzt —
+  eine fehlgeschlagene Aktualisierung lässt die alte Installation stehen.
+
+### Geändert
+
+- Die in-place arbeitenden Backend-Methoden von `TagFile` und `EbookTool` sind
+  nicht mehr Teil der öffentlichen Core-Schnittstelle. Schreiben läuft von außen
+  ausschließlich über den abgesicherten Transaktionsweg.
+- `THIRD-PARTY-NOTICES.md` und die READMEs beschreiben jetzt genau, was beim
+  Bündeln an TagLib und Sparkle verändert wird (Install-Namen, entfernter
+  `XPCServices`-Ordner, Neusignierung) statt sie pauschal „unverändert" zu
+  nennen.
+
 ## [0.18.0] — 2026-07-29
 
 ### Hinzugefügt
