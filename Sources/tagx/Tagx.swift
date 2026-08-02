@@ -176,7 +176,6 @@ struct Set: ParsableCommand {
         }
         // Kopier-Zuweisungen NACH den direkten Zuweisungen: pro Datei werden
         // ALLE Werte der Quelle übernommen (mehrwertige Felder bleiben ganz).
-        var changed = tag.count
         for assignment in copy {
             guard let eq = assignment.firstIndex(of: "=") else {
                 throw ValidationError("Invalid copy assignment (expected TARGET=SOURCE): \(assignment)")
@@ -191,11 +190,31 @@ struct Set: ParsableCommand {
             }
             properties.removeAll { $0.key == target }
             properties.append(contentsOf: values.map { TagProperty(key: target, value: $0) })
-            changed += 1
+        }
+
+        // Gezählt und geschrieben wird nur, was sich wirklich ändert: Ein
+        // semantischer No-op (alle Sollwerte entsprechen dem Dateizustand)
+        // darf weder Dateiidentität/Zeitstempel anfassen noch eine Sicherung
+        // erzeugen — und die Meldung soll die echte Änderungszahl nennen.
+        func valueMap(_ properties: [TagProperty]) -> [String: [String]] {
+            var map: [String: [String]] = [:]
+            for property in properties {
+                map[property.key, default: []].append(property.value)
+            }
+            return map
+        }
+        let before = valueMap(existing.properties)
+        let after = valueMap(properties)
+        // Swift.Set: "Set" ist in dieser Datei der Name des CLI-Befehls.
+        let changedKeys = Swift.Set(before.keys).union(after.keys)
+            .filter { (before[$0] ?? []) != (after[$0] ?? []) }
+        guard !changedKeys.isEmpty else {
+            print("OK \(url.lastPathComponent): 0 field(s) changed")
+            return
         }
         try TrashBackup.shared.backUp(url)
         try TagFile.write(properties: properties, to: url)
-        print("OK \(url.lastPathComponent): \(changed) field(s) changed")
+        print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
     }
 }
 
