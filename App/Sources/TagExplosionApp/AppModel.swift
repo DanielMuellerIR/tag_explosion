@@ -71,9 +71,12 @@ final class FileEntry: Identifiable {
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
     }
 
-    init(url: URL, loaded: LoadedData) {
+    /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
+    /// Schnappschuss aus `AppModel.readStamped`). Beides zusammen ist die
+    /// Vergleichsbasis für die Konfliktprüfung beim Speichern.
+    init(url: URL, loaded: LoadedData, stamp: FileStamp?) {
         self.url = url
-        self.diskStamp = FileStamp.current(of: url)
+        self.diskStamp = stamp
         switch loaded {
         case .audio(let data):
             self.kind = .audio
@@ -89,6 +92,14 @@ final class FileEntry: Identifiable {
             self.ebookOriginal = fields
             self.ebookFields = fields
         }
+    }
+
+    /// Bequemer Weg für Tests: Stempel getrennt vom Inhalt erheben. Der
+    /// Produktionspfad benutzt ausschließlich den konsistenten Schnappschuss
+    /// (`AppModel.readStamped`), weil zwischen Lesen und Stempeln sonst eine
+    /// fremde Änderung unbemerkt dazwischenrutschen kann.
+    convenience init(url: URL, loaded: LoadedData) {
+        self.init(url: url, loaded: loaded, stamp: FileStamp.current(of: url))
     }
 
     var audio: AudioInfo? { original.audio }
@@ -139,8 +150,12 @@ final class FileEntry: Identifiable {
     }
 
     /// Frisch gelesenen Platten-Zustand als neues Original übernehmen.
-    func acceptNew(_ loaded: LoadedData) {
-        diskStamp = FileStamp.current(of: url)
+    /// `stamp` muss zum selben Leseschnappschuss gehören wie `loaded` —
+    /// ein getrennt erhobener Stempel könnte schon zu einer fremden, nie
+    /// gelesenen Dateiversion gehören, die das nächste Speichern dann als
+    /// "unverändert" überschriebe.
+    func acceptNew(_ loaded: LoadedData, stamp: FileStamp?) {
+        diskStamp = stamp
         switch loaded {
         case .audio(let data): acceptNewOriginal(data)
         case .image(let fields): acceptNewImageOriginal(fields)
@@ -185,9 +200,12 @@ final class FileEntry: Identifiable {
     /// Übernimmt ausschließlich den von `snapshot` gesicherten Plattenstand.
     /// Hat die Person während des Schreibens weitergetippt, bleibt dieser neuere
     /// Puffer erhalten und ist gegenüber dem neuen Original weiterhin dirty.
-    func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData) {
+    /// `stamp` gehört zum Read-back `reloaded` (konsistenter Schnappschuss) —
+    /// so kann nie ein Stempel einer neueren, fremden Dateiversion mit den
+    /// hier gelesenen älteren Daten kombiniert werden.
+    func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData, stamp: FileStamp?) {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
-        diskStamp = FileStamp.current(of: url)
+        diskStamp = stamp
         switch (snapshot, reloaded) {
         case (.audio(let savedProperties, let savedArtworks), .audio(let data)):
             original = data
@@ -405,16 +423,18 @@ final class AppModel {
     func open(urls: [URL]) async {
         await open(urls: urls) { url, kind in
             try await Task.detached(priority: .userInitiated) {
-                try Self.readLoaded(url: url, kind: kind)
+                try Self.readStamped(url: url, kind: kind)
             }.value
         }
     }
 
     /// Testbarer Öffnen-Pfad. Der Leser wird nur für die eigentliche Datei-IO
     /// ausgetauscht; Auswahl, Reservierung und Ergebnisreihenfolge bleiben
-    /// derselbe Produktionscode.
+    /// derselbe Produktionscode. Der Leser liefert Inhalt UND den dazu
+    /// konsistenten Stempel (Tests dürfen nil geben — dann entfällt die
+    /// Konfliktprüfung für diesen Eintrag).
     func open(urls: [URL],
-              read: @escaping @Sendable (URL, MediaKind) async throws -> LoadedData) async {
+              read: @escaping @Sendable (URL, MediaKind) async throws -> (LoadedData, FileStamp?)) async {
         loadingOperationCount += 1
         defer { loadingOperationCount -= 1 }
 
@@ -440,8 +460,8 @@ final class AppModel {
         var failures: [String] = []
         for (url, result) in results {
             switch result {
-            case .success(let loaded):
-                entries.append(FileEntry(url: url, loaded: loaded))
+            case .success(let (loaded, stamp)):
+                entries.append(FileEntry(url: url, loaded: loaded, stamp: stamp))
             case .failure:
                 failures.append(url.lastPathComponent)
             }
@@ -456,11 +476,11 @@ final class AppModel {
     /// den Eingabeindex sortiert, damit die Auswahl im Finder stabil bleibt.
     nonisolated private static func readFiles(
         _ urls: [URL],
-        read: @escaping @Sendable (URL, MediaKind) async throws -> LoadedData
-    ) async -> [(URL, Result<LoadedData, Error>)] {
+        read: @escaping @Sendable (URL, MediaKind) async throws -> (LoadedData, FileStamp?)
+    ) async -> [(URL, Result<(LoadedData, FileStamp?), Error>)] {
         await withTaskGroup(
-            of: (Int, URL, Result<LoadedData, Error>).self,
-            returning: [(URL, Result<LoadedData, Error>)].self
+            of: (Int, URL, Result<(LoadedData, FileStamp?), Error>).self,
+            returning: [(URL, Result<(LoadedData, FileStamp?), Error>)].self
         ) { group in
             let maxConcurrent = 8
             var nextIndex = 0
@@ -482,7 +502,7 @@ final class AppModel {
                 }
             }
             for _ in 0..<min(maxConcurrent, urls.count) { addNext() }
-            var buffer: [(Int, URL, Result<LoadedData, Error>)] = []
+            var buffer: [(Int, URL, Result<(LoadedData, FileStamp?), Error>)] = []
             for await item in group {
                 buffer.append(item)
                 addNext()
@@ -512,6 +532,31 @@ final class AppModel {
             }
         case .image: return .image(try ExifTool.readCoreFields(url: url))
         case .ebook: return .ebook(try EbookTool.readCoreFields(url: url))
+        }
+    }
+
+    /// Liest Datei-Zustand UND Stempel als konsistenten Schnappschuss: Der
+    /// Stempel wird vor und nach dem Lesen erhoben; nur wenn beide gleich
+    /// sind, gehören Inhalt und Stempel sicher zusammen. Schreibt ein anderes
+    /// Programm genau währenddessen, wird erneut gelesen; bleibt die Datei
+    /// dauerhaft in Bewegung, bricht das Lesen ab. Ohne diese Kopplung könnte
+    /// das Modell alte Daten mit dem Stempel einer neueren, fremden Version
+    /// kombinieren — das nächste Speichern hielte die fremde Version dann für
+    /// den eigenen Stand und überschriebe sie ungefragt.
+    nonisolated static func readStamped(
+        url: URL, kind: MediaKind,
+        read: (URL, MediaKind) throws -> LoadedData = AppModel.readLoaded
+    ) throws -> (LoadedData, FileStamp?) {
+        var remainingAttempts = 3
+        while true {
+            let before = FileStamp.current(of: url)
+            let loaded = try read(url, kind)
+            let after = FileStamp.current(of: url)
+            if before == after { return (loaded, after) }
+            remainingAttempts -= 1
+            guard remainingAttempts > 0 else {
+                throw TagError.fileChangedOnDisk(path: url.path)
+            }
         }
     }
 
@@ -966,10 +1011,10 @@ final class AppModel {
         let url = entry.url
         let kind = entry.kind
         do {
-            let loaded = try await Task.detached(priority: .userInitiated) {
-                try Self.readLoaded(url: url, kind: kind)
+            let (loaded, stamp) = try await Task.detached(priority: .userInitiated) {
+                try Self.readStamped(url: url, kind: kind)
             }.value
-            entry.acceptNew(loaded)
+            entry.acceptNew(loaded, stamp: stamp)
         } catch {
             entry.lastError = error.localizedDescription
         }
@@ -999,19 +1044,42 @@ final class AppModel {
     }
 
     private(set) var pendingStaleWrite: PendingStaleWrite?
-    private var staleEntry: FileEntry?
+    /// Wartende Konflikte in Reihenfolge ihres Auftretens. Ein Batch kann
+    /// mehrere Dateien mit fremden Änderungen enthalten — jede bekommt ihre
+    /// eigene Frage. Ein einzelner Merker würde beim zweiten Konflikt den
+    /// ersten überschreiben: Der Dialog gehörte dann zur falschen Datei.
+    private var staleEntries: [FileEntry] = []
 
     /// Trotzdem speichern — der bisherige Plattenstand liegt im Papierkorb.
     func confirmStaleWrite() async {
-        guard let entry = staleEntry else { return }
-        pendingStaleWrite = nil
-        staleEntry = nil
-        await save(entry: entry, ignoringDiskChange: true)
+        await confirmStaleWrite { entry in
+            await self.save(entry: entry, ignoringDiskChange: true)
+        }
     }
 
-    func cancelStaleWrite() {
+    /// Testbare Variante mit austauschbarem Schreiber; die Warteschlangen-
+    /// Logik ist identisch zum Produktionsweg oben.
+    func confirmStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
+        guard !staleEntries.isEmpty else { return }
+        let entry = staleEntries.removeFirst()
+        // Erst nach dem Speichern den nächsten Konflikt anzeigen, sonst
+        // stünde der Dialog schon während des laufenden Schreibvorgangs da.
         pendingStaleWrite = nil
-        staleEntry = nil
+        _ = await saveEntry(entry)
+        refreshPendingStaleWrite()
+    }
+
+    /// Verwirft nur die aktuell angezeigte Frage; weitere wartende Konflikte
+    /// bekommen danach ihre eigene Entscheidung.
+    func cancelStaleWrite() {
+        guard !staleEntries.isEmpty else { return }
+        staleEntries.removeFirst()
+        refreshPendingStaleWrite()
+    }
+
+    private func refreshPendingStaleWrite() {
+        pendingStaleWrite = staleEntries.first
+            .map { PendingStaleWrite(fileName: $0.url.lastPathComponent) }
     }
 
     /// Gemeinsame Save-Steuerung. Der austauschbare Schreibblock ermöglicht
@@ -1020,20 +1088,23 @@ final class AppModel {
     @discardableResult
     func save(entry: FileEntry,
               staleCandidate: FileEntry? = nil,
-              writeSnapshot: @escaping @Sendable (FileEntry.SaveSnapshot) async throws -> LoadedData) async -> Bool {
+              writeSnapshot: @escaping @Sendable (FileEntry.SaveSnapshot) async throws -> (LoadedData, FileStamp?)) async -> Bool {
         guard let snapshot = entry.beginSaving() else { return !entry.isDirty }
         defer { entry.finishSaving() }
 
         do {
-            let reloaded = try await writeSnapshot(snapshot)
-            entry.acceptSaved(snapshot, reloaded: reloaded)
+            let (reloaded, stamp) = try await writeSnapshot(snapshot)
+            entry.acceptSaved(snapshot, reloaded: reloaded, stamp: stamp)
             return true
         } catch TagError.fileChangedOnDisk(let path) where staleCandidate != nil {
             // Kein normaler Fehler, sondern eine Entscheidung: überschreiben
             // oder nicht. Der Puffer bleibt in jedem Fall erhalten.
             entry.lastError = TagError.fileChangedOnDisk(path: path).localizedDescription
-            staleEntry = staleCandidate
-            pendingStaleWrite = PendingStaleWrite(fileName: entry.url.lastPathComponent)
+            if let staleCandidate,
+               !staleEntries.contains(where: { $0 === staleCandidate }) {
+                staleEntries.append(staleCandidate)
+            }
+            if pendingStaleWrite == nil { refreshPendingStaleWrite() }
             return false
         } catch {
             // Der Puffer und das letzte gute Original bleiben unverändert.
@@ -1048,26 +1119,32 @@ final class AppModel {
     /// Damit kann ein UI-Edit während await nicht in diesen Schreibvorgang rutschen.
     nonisolated private static func write(snapshot: FileEntry.SaveSnapshot,
                                           to url: URL, kind: MediaKind,
-                                          expecting stamp: FileStamp?) throws -> LoadedData {
+                                          expecting stamp: FileStamp?) throws -> (LoadedData, FileStamp?) {
         // Hat ein anderes Programm die Datei seit dem Öffnen geändert, wäre das
-        // Speichern ein stilles Überschreiben fremder Arbeit.
+        // Speichern ein stilles Überschreiben fremder Arbeit. Diese frühe
+        // Prüfung bricht vor Backup und Kopie ab; der Stempel wandert
+        // zusätzlich bis in den atomaren Austausch (expecting:) und wird dort
+        // unmittelbar vor dem rename ein letztes Mal geprüft.
         try FileStamp.requireUnchanged(stamp, at: url)
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(url)
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks)):
-            try TagFile.write(properties: properties, artworks: artworks, to: url)
+            try TagFile.write(properties: properties, artworks: artworks, to: url,
+                              expecting: stamp)
         case (.image, .image(let fields, let original)):
-            try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
+            try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
+                                         expecting: stamp)
         case (.ebook, .ebook(let fields, let original, let cover)):
             try EbookTool.write(
                 url: url, fields: fields, original: original,
-                coverUpdate: cover.map(EbookCoverUpdate.set) ?? .unchanged)
+                coverUpdate: cover.map(EbookCoverUpdate.set) ?? .unchanged,
+                expecting: stamp)
         default:
             throw TagError.saveFailed(path: url.path)
         }
-        return try readLoaded(url: url, kind: kind)
+        return try readStamped(url: url, kind: kind)
     }
 
     // MARK: - Liste verwalten

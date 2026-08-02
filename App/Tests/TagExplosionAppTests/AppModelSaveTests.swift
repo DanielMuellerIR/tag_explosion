@@ -36,10 +36,10 @@ struct AppModelSaveTests {
         #expect(!model.claimPendingConflict(.cancel))
         await model.resolveClaimedPendingConflict { candidate in
             await model.save(entry: candidate) { _ in
-                .audio(TagData(
+                (.audio(TagData(
                     properties: [TagProperty(key: "TITLE", value: "Speichern")],
                     artworks: [], audio: nil
-                ))
+                )), nil)
             }
         }
 
@@ -167,10 +167,10 @@ struct AppModelSaveTests {
             await model.save(entry: entry) { _ in
                 await gate.markStarted()
                 await gate.waitForRelease()
-                return .audio(TagData(
+                return (.audio(TagData(
                     properties: [TagProperty(key: "TITLE", value: "Gespeichert")],
                     artworks: [], audio: nil
-                ))
+                )), nil)
             }
         }
         await gate.waitUntilStarted()
@@ -236,10 +236,10 @@ struct AppModelSaveTests {
             await model.save(entry: entry) { _ in
                 await gate.markStarted()
                 await gate.waitForRelease()
-                return .audio(TagData(
+                return (.audio(TagData(
                     properties: [TagProperty(key: "TITLE", value: "Gespeichert")],
                     artworks: [], audio: nil
-                ))
+                )), nil)
             }
         }
         await gate.waitUntilStarted()
@@ -282,10 +282,10 @@ struct AppModelSaveTests {
             await model.open(urls: [first, folder]) { url, _ in
                 await gate.markStarted()
                 await gate.waitForRelease()
-                return .audio(TagData(
+                return (.audio(TagData(
                     properties: [TagProperty(key: "TITLE", value: url.lastPathComponent)],
                     artworks: [], audio: nil
-                ))
+                )), nil)
             }
         }
         await gate.waitUntilStarted()
@@ -296,7 +296,7 @@ struct AppModelSaveTests {
         let overlappingOpen = Task { @MainActor in
             await model.open(urls: [folder, folder]) { _, _ in
                 await secondOpenCalls.increment()
-                return .audio(TagData(properties: [], artworks: [], audio: nil))
+                return (.audio(TagData(properties: [], artworks: [], audio: nil)), nil)
             }
         }
         await overlappingOpen.value
@@ -328,10 +328,10 @@ struct AppModelSaveTests {
             await model.save(entry: entry) { _ in
                 await gate.markStarted()
                 await gate.waitForRelease()
-                return .audio(TagData(
+                return (.audio(TagData(
                     properties: [TagProperty(key: "TITLE", value: "Gespeicherter Stand")],
                     artworks: [], audio: nil
-                ))
+                )), nil)
             }
         }
         await gate.waitUntilStarted()
@@ -341,7 +341,7 @@ struct AppModelSaveTests {
         entry.properties = [TagProperty(key: "TITLE", value: "Neuere Eingabe")]
         await model.save(entry: entry) { _ in
             await duplicateWrites.increment()
-            return .audio(original)
+            return (.audio(original), nil)
         }
         #expect(await duplicateWrites.value == 0)
 
@@ -377,10 +377,92 @@ struct AppModelSaveTests {
         #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Mein Stand")
         #expect(!entry.isDirty)
     }
+
+    @Test("Mehrere Konflikte im Batch bekommen nacheinander je eigene Frage")
+    func multipleStaleConflictsAreQueuedPerFile() async {
+        // Zwei Dateien melden im selben Batch eine fremde Änderung. Ein
+        // einzelner Merker würde den ersten Konflikt überschreiben: Der Dialog
+        // gehörte zur falschen Datei und eine Entscheidung ginge verloren.
+        let first = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-erste.mp3"), changedTitle: "Puffer 1")
+        let second = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-zweite.mp3"), changedTitle: "Puffer 2")
+        let model = AppModel()
+        model.entries = [first, second]
+
+        for entry in [first, second] {
+            await model.save(entry: entry, staleCandidate: entry) { _ in
+                throw TagError.fileChangedOnDisk(path: entry.url.path)
+            }
+        }
+        // Der ERSTE Konflikt bleibt sichtbar, der zweite wartet dahinter.
+        #expect(model.pendingStaleWrite?.fileName == "stale-erste.mp3")
+
+        // Bestätigen speichert genau die erste Datei; danach erscheint die
+        // Frage zur zweiten.
+        var savedNames: [String] = []
+        await model.confirmStaleWrite { entry in
+            savedNames.append(entry.url.lastPathComponent)
+            return await model.save(entry: entry) { _ in
+                (.audio(TagData(
+                    properties: [TagProperty(key: "TITLE", value: "Puffer 1")],
+                    artworks: [], audio: nil
+                )), nil)
+            }
+        }
+        #expect(savedNames == ["stale-erste.mp3"])
+        #expect(!first.isDirty)
+        #expect(model.pendingStaleWrite?.fileName == "stale-zweite.mp3")
+
+        // Abbrechen verwirft nur die zweite Frage; ihr Puffer bleibt dirty.
+        model.cancelStaleWrite()
+        #expect(model.pendingStaleWrite == nil)
+        #expect(second.isDirty)
+    }
+
+    @Test("Lesen liefert Inhalt und Stempel als konsistenten Schnappschuss")
+    func readStampedRetriesUntilContentAndStampMatch() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-read-stamped-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("wackelig.mp3")
+        try Data("erster Stand".utf8).write(to: url)
+
+        // Der erste Leseversuch wird von einer "fremden" Änderung überlappt:
+        // Der Leser verändert die Datei nach dem Lesen selbst. Ein getrennt
+        // erhobener Stempel gehörte dann zur neuen Datei, der Inhalt zur alten.
+        var reads = 0
+        let (_, stamp) = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
+            reads += 1
+            let loaded = LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
+            if reads == 1 {
+                try Data("fremde Änderung mit anderer Länge".utf8).write(to: url)
+            }
+            return loaded
+        }
+
+        // Genau ein Wiederholungsversuch, und der Stempel passt zum Endstand.
+        #expect(reads == 2)
+        #expect(stamp == FileStamp.current(of: url))
+
+        // Kommt die Datei nie zur Ruhe, bricht das Lesen ab, statt einen
+        // inkonsistenten Zustand zu liefern.
+        var restlessReads = 0
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            _ = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
+                restlessReads += 1
+                try Data("Änderung Nr. \(restlessReads) ...".utf8).write(to: url)
+                return LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
+            }
+        }
+    }
 }
 
-/// Zugriff auf die vom Root-Paket erzeugten Audio-Fixtures. Der Generator ist
-/// idempotent; ohne ffmpeg wird der Test übersprungen.
+/// Zugriff auf die Audio-Fixtures des Root-Pakets. Der Generator wird bei
+/// Bedarf selbst ausgeführt (idempotent) — sonst hinge dieser App-Test davon
+/// ab, dass vorher zufällig die Root-Tests liefen. Übersprungen wird nur noch,
+/// wenn die Erzeugung selbst nicht möglich ist (ffmpeg fehlt).
 private enum AudioFixture {
     static let directory: URL? = {
         let repoRoot = URL(fileURLWithPath: #filePath)
@@ -390,8 +472,18 @@ private enum AudioFixture {
             .deletingLastPathComponent() // Repo-Wurzel
         let generated = repoRoot
             .appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated")
-        return FileManager.default.fileExists(
-            atPath: generated.appendingPathComponent("sample.mp3").path) ? generated : nil
+        let sample = generated.appendingPathComponent("sample.mp3")
+        if !FileManager.default.fileExists(atPath: sample.path) {
+            let script = repoRoot.appendingPathComponent(
+                "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh")
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = [script.path]
+            process.standardOutput = FileHandle.nullDevice
+            try? process.run()
+            process.waitUntilExit()
+        }
+        return FileManager.default.fileExists(atPath: sample.path) ? generated : nil
     }()
 
     static var isAvailable: Bool { directory != nil }
