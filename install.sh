@@ -61,17 +61,49 @@ spctl --assess --type execute --verbose=2 "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 
 # Eine laufende Instanz würde beim Kopieren ein offenes Binary treffen.
+# Nur regulär beenden (Apple Event) und auf den echten Prozessausstieg warten:
+# Ein hartes pkill würde ungesicherte Änderungen verwerfen und träfe zudem
+# jeden gleichnamigen Prozess. Lehnt die App das Beenden ab (z.B. offener
+# Sichern-Dialog) oder dauert es zu lange, bricht die Installation ab.
 if pgrep -x TagExplosion >/dev/null 2>&1; then
-    echo "== Beende die laufende Instanz =="
+    echo "== Beende die laufende Instanz (regulär) =="
     osascript -e 'tell application id "io.github.danielmuellerir.tagexplosion" to quit' \
         >/dev/null 2>&1 || true
-    sleep 2
-    pkill -x TagExplosion 2>/dev/null || true
+    for _ in $(seq 1 30); do
+        pgrep -x TagExplosion >/dev/null 2>&1 || break
+        sleep 1
+    done
+    if pgrep -x TagExplosion >/dev/null 2>&1; then
+        echo "FEHLER: TagExplosion läuft noch (Beenden abgelehnt oder zu langsam)." >&2
+        echo "Bitte die App beenden — ungesicherte Änderungen vorher sichern — und ./install.sh erneut starten." >&2
+        exit 1
+    fi
 fi
 
 echo "== Installiere nach /Applications =="
-rm -rf "$dest"
-ditto "$app" "$dest"
+# Erst vollständig in ein verstecktes Geschwisterverzeichnis kopieren und DORT
+# prüfen; die funktionierende Installation weicht erst, wenn der Ersatz
+# nachweislich gültig ist. Ein Kopier- oder Prüffehler lässt sie unangetastet.
+new="/Applications/.TagExplosion.app.new.$$"
+old="/Applications/.TagExplosion.app.old.$$"
+# Bei jedem Ausgang (auch einem Prüf-Abbruch via set -e) keine Reste liegen
+# lassen; nach erfolgreichem Umzug existiert "$new" nicht mehr.
+trap 'rm -rf "$new"' EXIT
+rm -rf "$new"
+ditto "$app" "$new"
+xcrun stapler validate "$new"
+spctl --assess --type execute --verbose=2 "$new"
+codesign --verify --deep --strict --verbose=2 "$new"
+
+# Austausch: alt beiseite stellen, neu einsetzen, alt entfernen. Schlägt das
+# Einsetzen fehl, kommt die alte Installation zurück.
+if [ -d "$dest" ]; then mv "$dest" "$old"; fi
+if ! mv "$new" "$dest"; then
+    [ -d "$old" ] && mv "$old" "$dest"
+    echo "FEHLER: Konnte $dest nicht ersetzen — alte Installation wiederhergestellt." >&2
+    exit 1
+fi
+rm -rf "$old"
 
 # Dieselben Prüfungen noch einmal am tatsächlich installierten Bundle: Erst das
 # beweist, dass in /Applications eine gültige, notarisierte App liegt.
