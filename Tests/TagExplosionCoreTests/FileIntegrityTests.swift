@@ -217,6 +217,92 @@ struct FileIntegrityTests {
             try FileStamp.requireUnchanged(stamp, at: url)
         }
     }
+
+    @Test("Auch eine gleich große Ersetzung mit erhaltener Änderungszeit fällt auf")
+    func sameSizeSameMtimeReplacementIsDetected() throws {
+        // Größe + Änderungszeit allein reichen nicht: Ein Programm kann eine
+        // Datei atomar durch eine gleich große ersetzen und die mtime exakt
+        // wiederherstellen. Erst die Inode im Stempel macht das sichtbar.
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let originalData = try Data(contentsOf: url)
+
+        // Fremde Ersetzung: gleicher Inhalt und damit gleiche Größe. Beide
+        // Dateien bekommen dieselbe ganzzahlige Sekunde als mtime (identische
+        // Rundung im Dateisystem), erst DANACH wird der Stempel erhoben —
+        // Größe und Zeit sind damit garantiert gleich, nur die Inode wechselt.
+        let replacement = url.deletingLastPathComponent()
+            .appendingPathComponent("ersatz.mp3")
+        try originalData.write(to: replacement)
+        let sharedDate = Date(timeIntervalSince1970: 1_700_000_000)
+        for path in [url.path, replacement.path] {
+            try FileManager.default.setAttributes([.modificationDate: sharedDate],
+                                                  ofItemAtPath: path)
+        }
+        let stamp = try #require(FileStamp.current(of: url))
+        try FileManager.default.removeItem(at: url)
+        try FileManager.default.moveItem(at: replacement, to: url)
+
+        let after = try #require(FileStamp.current(of: url))
+        #expect(after.size == stamp.size)
+        #expect(after.modified == stamp.modified)
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            try FileStamp.requireUnchanged(stamp, at: url)
+        }
+    }
+
+    @Test("Über eine Verknüpfung geöffnete Datei meldet keinen Scheinkonflikt")
+    func stampOfSymlinkDescribesTheTargetFile() throws {
+        // Der Stempel enthält jetzt auch die Inode. `attributesOfItem` folgt
+        // einer Verknüpfung aber nicht — ohne Auflösung beschriebe der Stempel
+        // die Verknüpfung (eigene Inode, eigene Größe), während der atomare
+        // Austausch am aufgelösten Ziel prüft. Jedes Speichern über eine
+        // Verknüpfung meldete dann einen Konflikt, den es nicht gibt.
+        let real = try Fixtures.workingCopy("sample.mp3")
+        let link = real.deletingLastPathComponent().appendingPathComponent("verweis.mp3")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+
+        let viaLink = try #require(FileStamp.current(of: link))
+        #expect(viaLink == FileStamp.current(of: real))
+
+        // Und der Schreibweg läuft mit genau diesem Stempel durch.
+        try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Über Verweis")],
+                          to: link, expecting: viaLink)
+        #expect(try TagFile.read(at: link).firstValue(for: "ARTIST") == "Über Verweis")
+        // Geschrieben wurde die Zieldatei; die Verknüpfung bleibt eine.
+        #expect(try TagFile.read(at: real).firstValue(for: "ARTIST") == "Über Verweis")
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path)
+                == real.path)
+    }
+
+    @Test("Fremde Änderung während des Schreibvorgangs bricht vor dem Austausch ab")
+    func externalChangeDuringRewriteAbortsBeforeRename() throws {
+        // Die frühe Stempel-Prüfung vor dem Backup deckt nur den Beginn ab.
+        // Ändert ein anderes Programm die Datei, WÄHREND die Geschwisterkopie
+        // beschrieben und geprüft wird, muss der Austausch trotzdem
+        // unterbleiben — sonst verwirft rename genau diese fremde Änderung.
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let stamp = try #require(FileStamp.current(of: url))
+        let foreignContent = Data("fremder Stand während der Mutation".utf8)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
+                // Gültige Mutation auf der Kopie …
+                try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "X")], to: temp)
+                // … und genau jetzt schreibt ein anderes Programm das Original.
+                try foreignContent.write(to: url)
+            } validate: { _ in }
+        }
+
+        // Die fremde Änderung hat überlebt; unser Stand wurde nicht daraufgelegt.
+        #expect(try Data(contentsOf: url) == foreignContent)
+
+        // Gegenprobe: Ohne fremde Änderung läuft derselbe Weg durch.
+        let calm = try Fixtures.workingCopy("sample.mp3")
+        let calmStamp = try #require(FileStamp.current(of: calm))
+        try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Ruhig")],
+                          to: calm, expecting: calmStamp)
+        #expect(try TagFile.read(at: calm).firstValue(for: "ARTIST") == "Ruhig")
+    }
 }
 
 /// Ein kleines, im Test erzeugtes Dateisystem — nur so lässt sich „Datenträger

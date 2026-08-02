@@ -8,8 +8,14 @@ import Glibc
 #endif
 
 enum AtomicFileRewrite {
+    /// `expecting` traegt den beim Lesen erhobenen `FileStamp` bis unmittelbar
+    /// vor den Austausch: Hat ein anderes Programm das Original waehrend
+    /// Kopieren/Mutieren/Pruefen veraendert, wird abgebrochen statt dessen
+    /// Aenderung per rename zu verwerfen. nil = keine Pruefung (Aufrufer ohne
+    /// bekannten Ausgangsstand).
     static func run(
         url: URL,
+        expecting stamp: FileStamp? = nil,
         mutate: (URL) throws -> Void,
         validate: (URL) throws -> Void
     ) throws {
@@ -46,6 +52,11 @@ enum AtomicFileRewrite {
         } catch {
             throw TagError.saveFailed(path: url.path)
         }
+
+        // Letzte Kontrolle direkt vor dem Austausch: Die Kopie entstand aus dem
+        // Stand von vor Mutation und Pruefung. Hat sich das Original seither
+        // geaendert, wuerde rename genau diese fremde Aenderung ueberschreiben.
+        try FileStamp.requireUnchanged(stamp, at: destination)
 
         // Beide Pfade liegen im selben Verzeichnis. POSIX rename ersetzt
         // das Ziel in genau einem atomaren Dateisystem-Schritt.
@@ -103,7 +114,11 @@ enum VolumeSpace {
         guard let values = try? directory.resourceValues(
             forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
         else { return nil }
-        if let important = values.volumeAvailableCapacityForImportantUsage {
+        // "Important usage" ist ein APFS-Konzept (kennt purgeable Space).
+        // Nicht-APFS-Volumes (HFS+, FAT, DMGs) melden hier 0, obwohl Platz
+        // frei ist — 0 heisst deshalb "nicht unterstuetzt", nicht "voll",
+        // sonst schluege JEDER Schreibvorgang auf solchen Datentraegern fehl.
+        if let important = values.volumeAvailableCapacityForImportantUsage, important > 0 {
             return Int64(important)
         }
         return values.volumeAvailableCapacity.map(Int64.init)

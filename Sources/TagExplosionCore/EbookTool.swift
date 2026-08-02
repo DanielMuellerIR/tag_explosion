@@ -110,7 +110,12 @@ public enum EbookTool {
     }
 
     /// Schreibt nur die Unterschiede zu `original`; leerer Wert löscht.
-    public static func writeCoreFields(
+    ///
+    /// Bewusst nicht public: Der Calibre-Zweig verändert die übergebene Datei
+    /// direkt, ohne Backup und atomaren Austausch. Von außen führt jeder
+    /// Schreibweg über `write(url:fields:original:coverUpdate:)`, das diesen
+    /// Mutator nur auf der Geschwisterkopie aufruft.
+    static func writeCoreFields(
         url: URL, fields: EbookCoreFields, original: EbookCoreFields
     ) throws {
         guard fields != original else { return }
@@ -124,11 +129,16 @@ public enum EbookTool {
 
     /// Schreibt Kernfelder und Cover als eine Transaktion pro Datei. Schlägt
     /// ein späterer Backend-Schritt fehl, bleibt das Original unverändert.
+    ///
+    /// `expecting` (optional): Stempel des gelesenen Standes; bei Abweichung
+    /// unmittelbar vor dem Austausch bricht das Schreiben ab
+    /// (`fileChangedOnDisk`), statt eine fremde Änderung zu überschreiben.
     public static func write(
         url: URL,
         fields: EbookCoreFields,
         original: EbookCoreFields,
-        coverUpdate: EbookCoverUpdate
+        coverUpdate: EbookCoverUpdate,
+        expecting stamp: FileStamp? = nil
     ) throws {
         let hasCoverChange: Bool
         switch coverUpdate {
@@ -137,7 +147,7 @@ public enum EbookTool {
         }
         guard fields != original || hasCoverChange else { return }
 
-        try AtomicFileRewrite.run(url: url) { temp in
+        try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             try writeCoreFields(url: temp, fields: fields, original: original)
             switch coverUpdate {
             case .unchanged: break
@@ -195,7 +205,9 @@ public enum EbookTool {
         }
     }
 
-    public static func writeCover(url: URL, data: Data) throws {
+    /// Nicht public — direkter Backend-Mutator ohne Backup/Atomik, nur für
+    /// `write(...)` auf der Geschwisterkopie (und Tests).
+    static func writeCover(url: URL, data: Data) throws {
         switch backend(for: url) {
         case .epub: try EpubFile.writeCover(url: url, data: data)
         case .pdf, nil: throw TagError.saveFailed(path: url.path)
@@ -214,7 +226,8 @@ public enum EbookTool {
     /// Cover-Metadaten. Calibres öffentliche ebook-meta-Schnittstelle kennt
     /// nur das Setzen eines Cover-Pfads; dort melden wir den nicht sicher
     /// ausführbaren Löschwunsch statt ein vorhandenes Cover still zu behalten.
-    public static func removeCover(url: URL) throws {
+    /// Nicht public — siehe `writeCover`.
+    static func removeCover(url: URL) throws {
         switch backend(for: url) {
         case .epub: try EpubFile.removeCover(url: url)
         case .pdf, .calibre, nil: throw TagError.saveFailed(path: url.path)

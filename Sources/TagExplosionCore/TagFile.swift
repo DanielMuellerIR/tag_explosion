@@ -112,7 +112,12 @@ public final class TagFile {
     /// Ersetzt alle Text-Properties (noch nicht persistent — `save()` aufrufen).
     /// Wirft `propertiesRejected`, wenn das Format Felder nicht aufnehmen kann;
     /// die restlichen Felder sind dann trotzdem gesetzt.
-    public func setProperties(_ properties: [TagProperty]) throws {
+    ///
+    /// Bewusst nicht public: Von außen führt jeder Schreibweg über das
+    /// statische `write(properties:artworks:to:)` (Backup + atomarer
+    /// Austausch). Ein öffentlicher Mutator würde einladen, TagLib in-place
+    /// auf ein Original loszulassen.
+    func setProperties(_ properties: [TagProperty]) throws {
         let h = try requireHandle()
         var cProps: [tx_prop] = []
         // C-Strings müssen bis zum Aufruf gültig bleiben — strdup + explizites free.
@@ -128,8 +133,9 @@ public final class TagFile {
         if rejected > 0 { throw TagError.propertiesRejected(count: Int(rejected)) }
     }
 
-    /// Ersetzt alle eingebetteten Bilder (noch nicht persistent — `save()` aufrufen).
-    public func setArtworks(_ artworks: [Artwork]) throws {
+    /// Ersetzt alle eingebetteten Bilder (noch nicht persistent — `save()`
+    /// aufrufen). Nicht public — siehe `setProperties`.
+    func setArtworks(_ artworks: [Artwork]) throws {
         let h = try requireHandle()
         // Bilddaten in stabile Heap-Puffer kopieren, damit die Pointer während
         // des C-Aufrufs garantiert gültig bleiben.
@@ -160,8 +166,10 @@ public final class TagFile {
         }
     }
 
-    /// Schreibt alle Änderungen in die Datei.
-    public func save() throws {
+    /// Schreibt alle Änderungen in die Datei. TagLib schreibt dabei in-place —
+    /// deshalb nicht public und nur innerhalb von `write(...)` auf der
+    /// Geschwisterkopie erlaubt, nie auf einem Original.
+    func save() throws {
         let h = try requireHandle()
         if isReadOnly { throw TagError.readOnly(path: path) }
         guard tx_save(h) == 1 else { throw TagError.saveFailed(path: path) }
@@ -187,16 +195,22 @@ public final class TagFile {
     /// Nebenwirkung dieses Verfahrens: Die Datei bekommt eine neue Inode.
     /// Zusätzliche Hardlinks auf dieselben Daten zeigen danach weiter auf den
     /// alten Stand.
+    ///
+    /// `expecting` (optional): Stempel des Standes, den der Aufrufer gelesen
+    /// hat. Weicht die Datei unmittelbar vor dem Austausch davon ab, bricht
+    /// das Schreiben mit `fileChangedOnDisk` ab, statt die fremde Änderung zu
+    /// überschreiben.
     public static func write(
         properties: [TagProperty]? = nil,
         artworks: [Artwork]? = nil,
-        to url: URL
+        to url: URL,
+        expecting stamp: FileStamp? = nil
     ) throws {
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
         if before.isReadOnly { throw TagError.readOnly(path: url.path) }
 
-        try AtomicFileRewrite.run(url: url) { temp in
+        try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             let file = try TagFile(url: temp)
             defer { file.close() }
             if let properties { try file.setProperties(properties) }

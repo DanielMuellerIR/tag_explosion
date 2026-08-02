@@ -159,8 +159,15 @@ public enum ExifTool {
 
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
     /// Leerer String löscht das jeweilige Feld.
+    ///
+    /// `expecting` (optional): Stempel des gelesenen Standes. exiftool ersetzt
+    /// die Datei selbst atomar (Temp + Rename via `-overwrite_original`); die
+    /// Prüfung hier verengt das Fenster für fremde Änderungen auf den Moment
+    /// unmittelbar vor dem Werkzeuglauf — enger geht es ohne eigenen
+    /// Schreibpfad für Bilder nicht.
     public static func writeCoreFields(
-        url: URL, fields: ImageCoreFields, original: ImageCoreFields
+        url: URL, fields: ImageCoreFields, original: ImageCoreFields,
+        expecting stamp: FileStamp? = nil
     ) throws {
         var args: [String] = []
 
@@ -201,6 +208,8 @@ public enum ExifTool {
         guard !args.isEmpty else { return } // nichts zu tun
 
         let exe = try locateExecutable()
+        // So spät wie möglich prüfen: Danach übernimmt exiftool die Datei.
+        try FileStamp.requireUnchanged(stamp, at: url)
         // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
         _ = try MediaInfoReader.run(exe, ["-use", "MWG", "-overwrite_original", "-m"] + args + [MediaInfoReader.toolArgument(for: url)])
     }
