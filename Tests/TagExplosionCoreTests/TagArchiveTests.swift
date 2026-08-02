@@ -385,6 +385,118 @@ struct TagArchiveTests {
                 == "Explizit freigegeben")
     }
 
+    @Test("Ein nach der Freigabe untergeschobener Symlink stoppt den Import")
+    func symlinkSwappedAfterApprovalIsRejected() throws {
+        // Angriffsbild: Zwischen Anzeige/Freigabe der Zielliste und dem
+        // Schreiben wird das bestätigte Ziel durch einen Symlink auf eine
+        // andere Datei ersetzt. Würden die freigegebenen Pfade beim Vergleich
+        // erneut kanonisiert, ergäben beide Seiten denselben NEUEN Pfad und
+        // das nie angezeigte Ziel würde überschrieben.
+        let parent = try makeFolder(["sample.mp3"])
+        let base = parent.appendingPathComponent("archive")
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let victim = parent.appendingPathComponent("sample.mp3")
+        let victimBytes = try Data(contentsOf: victim)
+        let entry = base.appendingPathComponent("entry.mp3")
+        try FileManager.default.copyItem(at: victim, to: entry)
+        let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
+            .init(path: "entry.mp3", kind: .audio,
+                  properties: ["TITLE": ["Nur für das freigegebene Ziel"]]),
+        ])
+
+        // Freigabe auf Basis der ehrlich aufgelösten Liste …
+        let approved = try TagArchiveIO.validatedTargets(
+            archive, relativeTo: base, allowExternalTargets: true)
+        #expect(approved == [MediaFormats.canonicalFileURL(entry)])
+
+        // … dann der Austausch: entry.mp3 zeigt jetzt woandershin.
+        try FileManager.default.removeItem(at: entry)
+        try FileManager.default.createSymbolicLink(at: entry, withDestinationURL: victim)
+
+        #expect(throws: TagArchiveError.approvedTargetListChanged) {
+            try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false,
+                                   approvedTargets: approved)
+        }
+        #expect(try Data(contentsOf: victim) == victimBytes)
+    }
+
+    @Test("Bild-Bewertungen außerhalb von -1…5 werden vor jeder Mutation abgelehnt")
+    func imageRatingOutsideRangeIsRejected() throws {
+        // ExifTool behandelt jeden negativen Wert außer -1 als Löschauftrag;
+        // Werte über 5 wären ein unsinniges Rating. Das Archiv muss dieselben
+        // Grenzen durchsetzen wie die CLI (0–5, -1 = nicht gesetzt).
+        for invalid in [-2, 6] {
+            var fields = ImageCoreFields()
+            fields.rating = invalid
+            let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
+                .init(path: "cover.jpg", kind: .image, image: fields),
+            ])
+            #expect(throws: TagArchiveError.inconsistentEntry(
+                path: "cover.jpg",
+                detail: "image rating must be between -1 (unset) and 5"
+            )) {
+                try TagArchiveIO.validate(archive)
+            }
+        }
+        for valid in [-1, 0, 5] {
+            var fields = ImageCoreFields()
+            fields.rating = valid
+            let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
+                .init(path: "cover.jpg", kind: .image, image: fields),
+            ])
+            #expect(throws: Never.self) { try TagArchiveIO.validate(archive) }
+        }
+    }
+
+    @Test("Ein Serienwunsch für ein PDF wird vor jeder Mutation abgelehnt",
+          .enabled(if: FileManager.default.fileExists(
+              atPath: Fixtures.directory.appendingPathComponent("book.pdf").path),
+              "PDF-Fixture fehlt (braucht sips)"))
+    func pdfSeriesIsRejectedBeforeArchiveWrites() throws {
+        // PDF hat keinen Serien-Ort; das Backend ignoriert das Feld still.
+        // Ohne Vorprüfung meldete der Import Erfolg, ohne den Wert zu schreiben.
+        let dir = try makeFolder(["sample.mp3", "book.pdf"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        let bytesBefore = try Data(contentsOf: mp3)
+        var ebook = try EbookTool.readCoreFields(url: dir.appendingPathComponent("book.pdf"))
+        ebook.series = "Nicht speicherbar"
+        let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Darf nicht geschrieben werden"]]),
+            .init(path: "book.pdf", kind: .ebook, ebook: ebook),
+        ])
+
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "book.pdf",
+            detail: "the target ebook format cannot store a series"
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try Data(contentsOf: mp3) == bytesBefore)
+    }
+
+    @Test("Schnell aufeinanderfolgende Backups überschreiben sich nicht")
+    func rapidBackupsGetDistinctFileNames() throws {
+        // Der Namens-Zeitstempel ist nur sekundengenau — mehrere Backups
+        // desselben Ordners innerhalb einer Sekunde brauchen trotzdem je
+        // eine eigene Datei.
+        let dir = try makeFolder(["sample.mp3"])
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+
+        var written: [URL] = []
+        for _ in 1...3 {
+            written.append(contentsOf: try TagArchiveIO.writeBackups(files: [mp3]))
+        }
+
+        #expect(Set(written.map(\.path)).count == 3)
+        for url in written {
+            // Jede Datei existiert und ist ein vollständiges, ladbares Archiv
+            // (keine leere Reservierung, kein überschriebener Stand).
+            let archive = try TagArchiveIO.load(url)
+            #expect(archive.files.map(\.path) == ["sample.mp3"])
+        }
+    }
+
     @Test("Nur bekannte Archivversionen und passende Pflichtdaten werden akzeptiert")
     func archiveSchemaValidation() throws {
         let unsupported = TagArchive(version: 2, created: "2026-07-19T00:00:00Z", files: [])

@@ -175,11 +175,44 @@ public enum TagArchiveIO {
 
         var written: [URL] = []
         for (folder, urls) in Dictionary(grouping: files, by: { $0.deletingLastPathComponent() }) {
-            let target = folder.appendingPathComponent("tags-backup-\(stamp).json")
-            try export(files: urls, to: target, includeCovers: true)
+            // Der Zeitstempel ist nur sekundengenau: Zwei Backups desselben
+            // Ordners innerhalb einer Sekunde wählen sonst denselben Namen und
+            // der atomare Export überschriebe still den ersten Stand. Deshalb
+            // wird der Name exklusiv reserviert (O_EXCL) und bei Kollision
+            // hochgezählt.
+            let target = try reserveBackupFile(in: folder, stamp: stamp)
+            do {
+                try export(files: urls, to: target, includeCovers: true)
+            } catch {
+                // Die leere Reservierung wieder entfernen — eine 0-Byte-Datei
+                // wäre sonst ein scheinbares, aber unbrauchbares Backup.
+                try? FileManager.default.removeItem(at: target)
+                throw error
+            }
             written.append(target)
         }
         return written
+    }
+
+    /// Reserviert exklusiv einen freien Backup-Dateinamen im Ordner
+    /// (`tags-backup-<stamp>.json`, bei Kollision `…-2.json`, `…-3.json` …).
+    private static func reserveBackupFile(in folder: URL, stamp: String) throws -> URL {
+        var counter = 1
+        while counter <= 1000 {
+            let name = counter == 1
+                ? "tags-backup-\(stamp).json"
+                : "tags-backup-\(stamp)-\(counter).json"
+            let candidate = folder.appendingPathComponent(name)
+            do {
+                // .withoutOverwriting = O_EXCL: legt die Datei nur an, wenn es
+                // sie noch nicht gibt — atomar, auch gegenüber Fremdprozessen.
+                try Data().write(to: candidate, options: .withoutOverwriting)
+                return candidate
+            } catch CocoaError.fileWriteFileExists {
+                counter += 1
+            }
+        }
+        throw TagError.saveFailed(path: folder.path)
     }
 
     // MARK: - Importieren
@@ -194,6 +227,10 @@ public enum TagArchiveIO {
     /// passieren würde). Gematcht wird ausschließlich über den relativen Pfad
     /// zur JSON-Datei; fehlende und zusätzliche Dateien werden gemeldet statt
     /// zu raten.
+    ///
+    /// `approvedTargets` muss unverändert die Ausgabe von `validatedTargets`
+    /// sein, die dem Menschen zur Freigabe angezeigt wurde. Sie wird hier
+    /// wörtlich mit den frisch aufgelösten Zielen verglichen.
     public static func apply(_ archive: TagArchive, relativeTo baseDirectory: URL,
                              dryRun: Bool, approvedTargets: [URL]? = nil) throws
     -> TagArchiveReport {
@@ -206,8 +243,14 @@ public enum TagArchiveIO {
             allowExternalTargets: approvedTargets != nil
         )
         if let approvedTargets {
-            let approved = approvedTargets.map(MediaFormats.canonicalFileURL)
-            guard approved == targets else {
+            // Bewusst KEINE erneute Kanonisierung der freigegebenen Pfade: Sie
+            // sind der beim Bestätigen angezeigte, bereits vollständig
+            // aufgelöste Stand (Ausgabe von `validatedTargets`). Würde man sie
+            // hier nochmals auflösen, könnte ein zwischenzeitlich
+            // untergeschobener Symlink beide Seiten auf DASSELBE neue Ziel
+            // ziehen — die Gleichheitsprüfung wäre dann wirkungslos und ein
+            // nie angezeigtes Ziel würde überschrieben.
+            guard approvedTargets == targets else {
                 throw TagArchiveError.approvedTargetListChanged
             }
         }
@@ -359,13 +402,22 @@ public enum TagArchiveIO {
                         path: entry.path, detail: "audio entries may not contain image or ebook data")
                 }
             case .image:
-                guard entry.image != nil else {
+                guard let image = entry.image else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "image")
                 }
                 guard entry.properties == nil, entry.ebook == nil, entry.artworks == nil else {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "image entries may only contain image data")
+                }
+                // Dieselben Wertebereiche wie die CLI: 0–5 gesetzt, -1 gelöscht.
+                // Andere negative Werte würde das Backend sonst still als
+                // Löschanforderung interpretieren (z.B. -2), Werte über 5 als
+                // unsinniges Rating schreiben.
+                guard (-1...5).contains(image.rating) else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path,
+                        detail: "image rating must be between -1 (unset) and 5")
                 }
             case .ebook:
                 guard entry.ebook != nil else {
@@ -430,6 +482,17 @@ public enum TagArchiveIO {
                         path: entry.path,
                         detail: "the target ebook backend cannot safely remove covers")
                 }
+            }
+            // PDF kennt keinen Serien-Ort; das Backend ignoriert Serienfelder
+            // still. Ein Archiv mit Serienwunsch für ein PDF würde deshalb
+            // "Erfolg" melden, ohne den Wert zu schreiben — besser vorab
+            // ablehnen (dieselbe Regel wie `tagx ebook set`).
+            if entry.kind == .ebook, let ebook = entry.ebook,
+               !EbookTool.supportsSeries(url: url),
+               !ebook.series.isEmpty || !ebook.seriesIndex.isEmpty {
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path,
+                    detail: "the target ebook format cannot store a series")
             }
         }
         return targets
