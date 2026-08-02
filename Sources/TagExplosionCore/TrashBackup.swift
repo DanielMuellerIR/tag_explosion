@@ -27,6 +27,13 @@ public final class TrashBackup: @unchecked Sendable {
     public init() {}
 
     private let lock = NSLock()
+    /// Serialisiert komplette Sicherungsvorgänge: Zwei parallele `backUp`-
+    /// Aufrufe dürfen weder doppelte Sitzungsordner anlegen noch denselben
+    /// freien Zielnamen wählen (Prüfen und Kopieren wären sonst getrennte,
+    /// nicht atomare Schritte). Bewusst ein zweites Lock neben `lock`, damit
+    /// die kurzen Zustands-Zugriffe der Getter nicht hinter laufenden Kopien
+    /// warten müssen.
+    private let operationLock = NSLock()
     /// Standard aus: Eine Bibliothek darf nicht ungefragt in den Papierkorb
     /// schreiben. App und CLI schalten den Modus beim Start ausdrücklich ein
     /// (dort ist er standardmäßig aktiv), Tests lassen ihn aus.
@@ -37,8 +44,15 @@ public final class TrashBackup: @unchecked Sendable {
     private var folders: [String: URL] = [:]
     /// Kanonischer Quellordner → Name seines Unterordners in der Sicherung.
     private var subfolderNames: [String: String] = [:]
+    /// Bereits gesicherter Stand samt Ablageort der Kopie. Der Ort gehört
+    /// dazu: Nur wenn die Kopie noch existiert (Papierkorb nicht geleert),
+    /// darf ein unveränderter Stand übersprungen werden.
+    private struct SavedState {
+        var stamp: FileStamp
+        var backupCopy: URL
+    }
     /// Kanonischer Dateipfad → Stand, der bereits gesichert ist.
-    private var savedStates: [String: FileStamp] = [:]
+    private var savedStates: [String: SavedState] = [:]
     private var bytesWritten: Int64 = 0
 
     /// Ist der abgesicherte Modus aktiv? In App und CLI standardmäßig ja.
@@ -75,40 +89,9 @@ public final class TrashBackup: @unchecked Sendable {
     public func backUp(_ urls: [URL]) throws {
         guard isEnabled else { return }
         #if os(macOS)
-        let fileManager = FileManager.default
-        var pending: [(url: URL, state: FileStamp)] = []
-        var seen: Set<String> = []
-
-        for url in urls {
-            let canonical = MediaFormats.canonicalFileURL(url)
-            guard seen.insert(canonical.path).inserted,
-                  fileManager.fileExists(atPath: canonical.path),
-                  let state = FileStamp.current(of: canonical) else { continue }
-            if lock.withLock({ savedStates[canonical.path] }) == state { continue }
-            pending.append((canonical, state))
-        }
-        guard !pending.isEmpty else { return }
-
-        // Platz prüfen, bevor die erste Kopie entsteht: eine halb geschriebene
-        // Sicherung ist schlimmer als gar keine.
-        for (url, _) in pending {
-            try VolumeSpace.requireRoom(for: url)
-        }
-
-        for (url, state) in pending {
-            do {
-                let target = try destination(for: url)
-                try clone(url, to: target)
-                lock.withLock {
-                    savedStates[url.path] = state
-                    bytesWritten += state.size
-                }
-            } catch let error as TagError {
-                throw error
-            } catch {
-                throw TagError.backupFailed(path: url.path,
-                                            reason: error.localizedDescription)
-            }
+        // Ein Sicherungsvorgang nach dem anderen — siehe `operationLock`.
+        try operationLock.withLock {
+            try serializedBackUp(urls)
         }
         #else
         // Ohne Papierkorb (Linux) schützt nur der atomare Schreibweg. Das ist
@@ -122,6 +105,59 @@ public final class TrashBackup: @unchecked Sendable {
     public func backUp(_ url: URL) throws {
         try backUp([url])
     }
+
+    #if os(macOS)
+    /// Eigentlicher Sicherungsvorgang; läuft immer unter `operationLock`.
+    private func serializedBackUp(_ urls: [URL]) throws {
+        let fileManager = FileManager.default
+        var pending: [(url: URL, state: FileStamp)] = []
+        var seen: Set<String> = []
+
+        for url in urls {
+            let canonical = MediaFormats.canonicalFileURL(url)
+            guard seen.insert(canonical.path).inserted,
+                  fileManager.fileExists(atPath: canonical.path),
+                  let state = FileStamp.current(of: canonical) else { continue }
+            // Überspringen nur, wenn der Stand gesichert ist UND die Kopie noch
+            // existiert — nach einem geleerten Papierkorb muss neu gesichert
+            // werden, sonst liefe ein zweiter Schreibversuch ohne Sicherung.
+            if let saved = lock.withLock({ savedStates[canonical.path] }),
+               saved.stamp == state,
+               fileManager.fileExists(atPath: saved.backupCopy.path) {
+                continue
+            }
+            pending.append((canonical, state))
+        }
+        guard !pending.isEmpty else { return }
+
+        // Platz prüfen, bevor die erste Kopie entsteht: eine halb geschriebene
+        // Sicherung ist schlimmer als gar keine. Pro Datenträger zählt der
+        // GESAMTE Bedarf des Stapels — jede Datei einzeln gegen denselben
+        // freien Platz zu prüfen, ließe einen zu großen Stapel erst mitten in
+        // den Kopien scheitern.
+        let byVolume = Dictionary(grouping: pending.map(\.url), by: volumeKey(for:))
+        for volumeURLs in byVolume.values {
+            try VolumeSpace.requireRoom(for: volumeURLs[0],
+                                        extraFiles: Array(volumeURLs.dropFirst()))
+        }
+
+        for (url, state) in pending {
+            do {
+                let target = try destination(for: url)
+                try clone(url, to: target)
+                lock.withLock {
+                    savedStates[url.path] = SavedState(stamp: state, backupCopy: target)
+                    bytesWritten += state.size
+                }
+            } catch let error as TagError {
+                throw error
+            } catch {
+                throw TagError.backupFailed(path: url.path,
+                                            reason: error.localizedDescription)
+            }
+        }
+    }
+    #endif
 
     /// Setzt die Sitzung zurück (Tests; danach entsteht ein neuer Ordner).
     public func resetSession() {
