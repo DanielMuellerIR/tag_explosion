@@ -329,6 +329,151 @@ struct EbookToolTests {
         #expect(readBack.seriesIndex == "1")
     }
 
+    // MARK: - EPUB: fremde Metadaten überleben eigene Änderungen
+
+    @Test("EPUB 2: Eine Autorenänderung erhält Creator mit anderer Rolle")
+    func epub2AuthorChangeKeepsOtherRoles() throws {
+        // Editoren/Übersetzer sind eigene Metadaten. Eine reine
+        // Autorenänderung darf sie nicht mitlöschen.
+        let url = try Fixtures.workingCopy("book2.epub")
+        try rewriteOpf(in: url, path: "OEBPS/content.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:creator opf:role=\"aut\">Erika Beispiel</dc:creator>",
+                with: "<dc:creator opf:role=\"aut\">Erika Beispiel</dc:creator>"
+                    + "<dc:creator opf:role=\"edt\">Eddie Editor</dc:creator>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        #expect(original.authors == ["Erika Beispiel"]) // edt ist kein Autor
+
+        var changed = original
+        changed.authors = ["Neue Autorin"]
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        #expect(try EbookTool.readCoreFields(url: url).authors == ["Neue Autorin"])
+        let xml = try opfContents(of: url, path: "OEBPS/content.opf")
+        #expect(xml.contains("Eddie Editor"))
+        #expect(!xml.contains("Erika Beispiel"))
+    }
+
+    @Test("EPUB 3: Eine per refines markierte Rolle bleibt samt Verfeinerung erhalten")
+    func epub3AuthorChangeKeepsRefinedRoles() throws {
+        // EPUB 3 markiert Rollen über <meta refines="#id" property="role">.
+        // Solche Creator sind keine Autoren und bleiben mitsamt ihrer
+        // Verfeinerung stehen.
+        let url = try Fixtures.workingCopy("book3.epub")
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:creator>Erika Beispiel</dc:creator>",
+                with: "<dc:creator>Erika Beispiel</dc:creator>"
+                    + "<dc:creator id=\"ed1\">Eddie Editor</dc:creator>"
+                    + "<meta refines=\"#ed1\" property=\"role\" scheme=\"marc:relators\">edt</meta>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        #expect(original.authors == ["Max Muster", "Erika Beispiel"])
+
+        var changed = original
+        changed.authors = ["Nur Noch Eine"]
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        #expect(try EbookTool.readCoreFields(url: url).authors == ["Nur Noch Eine"])
+        let xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(xml.contains("Eddie Editor"))
+        #expect(xml.contains("refines=\"#ed1\""))
+    }
+
+    @Test("EPUB 3: Serienänderung und -löschung erhalten fremde Sammlungen")
+    func epub3SeriesChangeKeepsUnrelatedCollections() throws {
+        // Ein Buch kann neben der Serie weiteren Sammlungen angehören
+        // (collection-type != "series"). Die dürfen weder beim Ändern noch
+        // beim Löschen der Serie verschwinden.
+        let url = try Fixtures.workingCopy("book3.epub")
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<meta property=\"belongs-to-collection\" id=\"c01\">Dreierreihe</meta>",
+                with: "<meta property=\"belongs-to-collection\" id=\"c01\">Dreierreihe</meta>"
+                    + "<meta property=\"belongs-to-collection\" id=\"set1\">Gesamtausgabe</meta>"
+                    + "<meta refines=\"#set1\" property=\"collection-type\">set</meta>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        // Die typlose Sammlung c01 bleibt die Serie; "set" zählt nicht.
+        #expect(original.series == "Dreierreihe")
+
+        var changed = original
+        changed.series = "Neue Reihe"
+        changed.seriesIndex = "9"
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+        var readBack = try EbookTool.readCoreFields(url: url)
+        #expect(readBack.series == "Neue Reihe")
+        #expect(readBack.seriesIndex == "9")
+        var xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(xml.contains("Gesamtausgabe"))
+        #expect(xml.contains("collection-type"))
+        #expect(!xml.contains("Dreierreihe"))
+
+        // Serie ganz löschen — die fremde Sammlung bleibt trotzdem.
+        let beforeClear = try EbookTool.readCoreFields(url: url)
+        var cleared = beforeClear
+        cleared.series = ""
+        cleared.seriesIndex = ""
+        try EbookTool.writeCoreFields(url: url, fields: cleared, original: beforeClear)
+        readBack = try EbookTool.readCoreFields(url: url)
+        #expect(readBack.series.isEmpty)
+        xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(xml.contains("Gesamtausgabe"))
+    }
+
+    @Test("EPUB: Platzmangel bleibt als solcher erkennbar",
+          .enabled(if: TestVolume.isSupported, "hdiutil nicht verfügbar"))
+    func epubOutOfSpaceKeepsTypedError() throws {
+        // `notEnoughSpace` trägt die konkrete Ursache (und den Originalpfad).
+        // Die EPUB-Fehlervereinheitlichung darf ihn nicht zu einem
+        // nichtssagenden `saveFailed` verwischen.
+        let volume = try TestVolume(megabytes: 12)
+        defer { volume.detach() }
+        let url = volume.mountPoint.appendingPathComponent("book2.epub")
+        try FileManager.default.copyItem(
+            at: Fixtures.directory.appendingPathComponent("book2.epub"), to: url)
+        try volume.fillRemainingSpace()
+
+        let original = try EbookTool.readCoreFields(url: url)
+        var changed = original
+        changed.title = "Passt nicht mehr"
+        do {
+            try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+            Issue.record("Das Schreiben hätte am Platz scheitern müssen")
+        } catch TagError.notEnoughSpace {
+            // erwartet: der konkrete Grund bleibt sichtbar
+        }
+        #expect(try EbookTool.readCoreFields(url: url).title == original.title)
+    }
+
+    /// Schreibt die OPF-Datei eines Test-EPUBs als rohen XML-Text um — zum
+    /// Einschleusen von Metadaten, die die Fixtures nicht enthalten.
+    private func rewriteOpf(in url: URL, path: String,
+                            _ transform: (String) -> String) throws {
+        let archive = try Archive(url: url, accessMode: .update)
+        let entry = try #require(archive[path])
+        var data = Data()
+        _ = try archive.extract(entry) { data.append($0) }
+        let xml = transform(String(decoding: data, as: UTF8.self))
+        try archive.remove(entry)
+        let newData = Data(xml.utf8)
+        try archive.addEntry(with: path, type: .file,
+                             uncompressedSize: Int64(newData.count),
+                             compressionMethod: .deflate) { position, size in
+            newData.subdata(in: Int(position)..<(Int(position) + size))
+        }
+    }
+
+    /// Liest die OPF-Datei als Text (für Erhaltungs-Prüfungen am rohen XML).
+    private func opfContents(of url: URL, path: String) throws -> String {
+        let archive = try Archive(url: url, accessMode: .read)
+        let entry = try #require(archive[path])
+        var data = Data()
+        _ = try archive.extract(entry) { data.append($0) }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     /// Führt ebook-meta direkt aus. Der Test kontrolliert damit den externen
     /// Dateizustand und nicht nur die eigene Parser-Interpretation.
     private func directCalibreOutput(url: URL) throws -> String {

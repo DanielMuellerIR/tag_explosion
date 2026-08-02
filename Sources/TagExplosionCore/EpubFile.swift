@@ -27,8 +27,7 @@ enum EpubFile {
         var fields = EbookCoreFields()
         fields.title = textOfFirst("title", in: metadata)
         fields.authors = elements(named: "creator", in: metadata)
-            // EPUB 2 markiert Rollen über opf:role; ohne Attribut gilt Autor.
-            .filter { attribute($0, "role") == nil || attribute($0, "role") == "aut" }
+            .filter { isAuthor($0, in: metadata) }
             .map { $0.stringValue ?? "" }
             .filter { !$0.isEmpty }
         fields.description = textOfFirst("description", in: metadata)
@@ -42,9 +41,11 @@ enum EpubFile {
             .filter { !$0.isEmpty }
         fields.isbn = isbnFromIdentifiers(in: metadata)
 
-        // Serie: EPUB 3 belongs-to-collection (mit group-position) vor Calibre-Metas.
+        // Serie: EPUB 3 belongs-to-collection (mit group-position) vor Calibre-
+        // Metas. Nur als Serie klassifizierte Sammlungen zählen — ein Buch kann
+        // daneben weiteren Sammlungen (z.B. collection-type="set") angehören.
         let metas = elements(named: "meta", in: metadata)
-        if let collection = metas.first(where: { attribute($0, "property") == "belongs-to-collection" }) {
+        if let collection = metas.first(where: { isSeriesCollection($0, in: metadata) }) {
             fields.series = collection.stringValue ?? ""
             if let id = attribute(collection, "id"),
                let position = metas.first(where: {
@@ -110,7 +111,7 @@ enum EpubFile {
         setSingle(metadata, "date", fields.date, fields.date != original.date)
 
         if fields.authors != original.authors {
-            setList(metadata, "creator", fields.authors)
+            replaceAuthors(metadata, with: fields.authors)
         }
         if fields.subjects != original.subjects {
             setList(metadata, "subject", fields.subjects)
@@ -293,9 +294,17 @@ enum EpubFile {
 
     /// ZIPFoundation kann beim Umschreiben unterschiedliche Detailfehler
     /// liefern. Nach außen ist jeder davon ein einheitlicher Speicherversuch.
+    /// Ausnahme: Platzmangel bleibt als `notEnoughSpace` sichtbar — CLI und
+    /// App melden ihn gezielt; er trägt außerdem bereits den Originalpfad.
+    /// Andere typisierte Fehler (z.B. `cannotOpen` aus der Temp-Prüfung)
+    /// werden weiter vereinheitlicht, weil sie den Pfad der versteckten
+    /// Geschwisterkopie nennen würden.
     private static func mapWriteError(url: URL, _ body: () throws -> Void) throws {
         do {
             try body()
+        } catch let error as TagError {
+            if case .notEnoughSpace = error { throw error }
+            throw TagError.saveFailed(path: url.path)
         } catch {
             throw TagError.saveFailed(path: url.path)
         }
@@ -384,35 +393,47 @@ enum EpubFile {
     }
 
     private static func writeSeries(_ fields: EbookCoreFields, in metadata: XMLElement) {
-        // Alle bisherigen Serien-Angaben (beide Konventionen) entfernen …
+        // Nur die bisherigen SERIEN-Angaben entfernen (beide Konventionen).
+        // Andere Sammlungen des Buchs (z.B. collection-type="set") sind
+        // eigenständige Metadaten und bleiben samt Verfeinerungen erhalten.
         var refinedIds: [String] = []
         for meta in elements(named: "meta", in: metadata) {
             let name = attribute(meta, "name")
-            let property = attribute(meta, "property")
             if name == "calibre:series" || name == "calibre:series_index" {
                 meta.detach()
-            } else if property == "belongs-to-collection" {
+            } else if isSeriesCollection(meta, in: metadata) {
                 if let id = attribute(meta, "id") { refinedIds.append(id) }
                 meta.detach()
             }
         }
-        for meta in elements(named: "meta", in: metadata) {
-            if let refines = attribute(meta, "refines"),
-               refinedIds.contains(String(refines.dropFirst())) {
-                meta.detach()
-            }
-        }
+        detachRefinements(of: refinedIds, in: metadata)
         guard !fields.series.isEmpty else { return }
 
         // … und in beiden Formen neu schreiben (EPUB 3 + Calibre-kompatibel).
+        // Die id darf nicht mit einer erhaltenen Sammlung kollidieren.
+        let usedIds = Set(elements(named: "meta", in: metadata)
+            .compactMap { attribute($0, "id") })
+        var seriesId = "series-tagx"
+        var suffix = 2
+        while usedIds.contains(seriesId) {
+            seriesId = "series-tagx-\(suffix)"
+            suffix += 1
+        }
         let collection = XMLElement(name: "meta")
         setAttribute(collection, "property", "belongs-to-collection")
-        setAttribute(collection, "id", "series-tagx")
+        setAttribute(collection, "id", seriesId)
         collection.stringValue = fields.series
         metadata.addChild(collection)
+        // Der explizite Sammlungstyp macht die eigene Serie beim Wiederlesen
+        // (auch durch andere Programme) eindeutig als Serie erkennbar.
+        let collectionType = XMLElement(name: "meta")
+        setAttribute(collectionType, "refines", "#\(seriesId)")
+        setAttribute(collectionType, "property", "collection-type")
+        collectionType.stringValue = "series"
+        metadata.addChild(collectionType)
         if !fields.seriesIndex.isEmpty {
             let position = XMLElement(name: "meta")
-            setAttribute(position, "refines", "#series-tagx")
+            setAttribute(position, "refines", "#\(seriesId)")
             setAttribute(position, "property", "group-position")
             position.stringValue = fields.seriesIndex
             metadata.addChild(position)
@@ -426,6 +447,67 @@ enum EpubFile {
             setAttribute(calibreIndex, "name", "calibre:series_index")
             setAttribute(calibreIndex, "content", fields.seriesIndex)
             metadata.addChild(calibreIndex)
+        }
+    }
+
+    /// Ist dieses `meta` eine als Serie zu behandelnde Sammlung? Eine
+    /// `belongs-to-collection` zählt als Serie, wenn ihre `collection-type`-
+    /// Verfeinerung "series" lautet ODER ganz fehlt (verbreitete Praxis, auch
+    /// unser eigenes Format vor dieser Ergänzung). Andere Typen ("set" …)
+    /// sind eigenständige Sammlungen.
+    private static func isSeriesCollection(_ meta: XMLElement, in metadata: XMLElement) -> Bool {
+        guard attribute(meta, "property") == "belongs-to-collection" else { return false }
+        guard let id = attribute(meta, "id"),
+              let type = elements(named: "meta", in: metadata).first(where: {
+                  attribute($0, "refines") == "#\(id)"
+                      && attribute($0, "property") == "collection-type"
+              })?.stringValue
+        else { return true }
+        return type == "series"
+    }
+
+    /// Rolle eines Creators: EPUB 2 als Inline-Attribut (`opf:role`), EPUB 3
+    /// als Verfeinerung (`<meta refines="#id" property="role">`).
+    private static func creatorRole(_ creator: XMLElement, in metadata: XMLElement) -> String? {
+        if let role = attribute(creator, "role") { return role }
+        guard let id = attribute(creator, "id") else { return nil }
+        return elements(named: "meta", in: metadata).first(where: {
+            attribute($0, "refines") == "#\(id)" && attribute($0, "property") == "role"
+        })?.stringValue
+    }
+
+    /// Ohne Rolle gilt ein Creator als Autor; sonst zählt nur "aut".
+    /// Editoren, Übersetzer usw. sind eigenständige Metadaten.
+    private static func isAuthor(_ creator: XMLElement, in metadata: XMLElement) -> Bool {
+        let role = creatorRole(creator, in: metadata)
+        return role == nil || role == "aut"
+    }
+
+    /// Ersetzt ausschließlich die als Autoren klassifizierten Creator.
+    /// Creator mit anderer Rolle bleiben samt ihrer Verfeinerungen erhalten —
+    /// eine reine Autorenänderung darf keine fremden Mitwirkenden löschen.
+    private static func replaceAuthors(_ metadata: XMLElement, with authors: [String]) {
+        var removedIds: [String] = []
+        for creator in elements(named: "creator", in: metadata)
+        where isAuthor(creator, in: metadata) {
+            if let id = attribute(creator, "id") { removedIds.append(id) }
+            creator.detach()
+        }
+        detachRefinements(of: removedIds, in: metadata)
+        for value in authors where !value.isEmpty {
+            metadata.addChild(dcElement("creator", value: value, in: metadata))
+        }
+    }
+
+    /// Entfernt alle Verfeinerungen (`refines="#id"`), deren Bezugselement
+    /// gerade entfernt wurde — sonst blieben verwaiste Metas zurück.
+    private static func detachRefinements(of ids: [String], in metadata: XMLElement) {
+        guard !ids.isEmpty else { return }
+        for meta in elements(named: "meta", in: metadata) {
+            if let refines = attribute(meta, "refines"),
+               ids.contains(String(refines.dropFirst())) {
+                meta.detach()
+            }
         }
     }
 
