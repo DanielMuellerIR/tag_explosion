@@ -249,6 +249,24 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Backlog / Notizen
 
+- **Linux: abgesicherter Modus blockiert jedes Schreiben** (Review 2026-08-02,
+  Entscheidung Daniel 2026-08-03). Stand heute: `TrashBackup.backUp`
+  (`Sources/TagExplosionCore/TrashBackup.swift`) wirft außerhalb von macOS immer
+  („trash is only available on macOS"), weil es dort keinen Papierkorb-Aufruf
+  gibt. Der abgesicherte Modus ist aber die Voreinstellung, also scheitert unter
+  Linux jeder ändernde Befehl — `set`, `cover`, `import`, `exif`, `ebook` —
+  solange nicht `--no-backup` oder `TAGX_NO_BACKUP=1` gesetzt ist. Core und CLI
+  gelten hier trotzdem als „Linux-portabel", und die CI läuft nur auf `macos-15`;
+  gebaut oder getestet wird unter Linux also nirgends.
+  Ein Wiedereinschalten bräuchte zwei Dinge: eine Papierkorb-Sicherung nach der
+  XDG-Spezifikation (`~/.local/share/Trash/files` plus `.trashinfo`, je
+  Datenträger `.Trash-$uid`) und einen Linux-Job in der CI, der die Tests dort
+  wirklich ausführt. Ohne beides bliebe es eine ungeprüfte Behauptung.
+  Priorität: **niedrig.** Daniels Entscheidung im Wortlaut: „Linux-Unterstützung
+  ist gewünscht, aber kein Muss und richtet sich auch nach der Praktikabilität."
+  Bis dahin bleibt der Code unverändert; das Werfen ist die gewollte, sichtbare
+  Einschränkung und kein stiller Fehlschlag.
+
 - Effizienz-Umbauten aus dem Review 2026-07-18 (bewusst zurückgestellt):
   EPUB-Archiv einmal öffnen statt pro Operation (`EpubFile.loadOpf`-Kontext
   über read/write/Cover hinweg), ZIP-Rewrites beim Schreiben bündeln,
