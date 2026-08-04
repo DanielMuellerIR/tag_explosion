@@ -172,8 +172,24 @@ ${icon_key}
 </plist>
 PLIST
 
+# Debug-Symbole aus der eigenen Binärdatei entfernen, BEVOR signiert wird (strip
+# macht eine vorhandene Signatur ungültig). `swift build -c release` legt eine
+# Debug-Map hinein: für jede übersetzte Quelldatei einen Eintrag mit dem vollen
+# Pfad ihrer .o-Datei auf DIESEM Mac. Die App braucht das nicht, es verrät nur
+# Benutzernamen und Projektaufbau (gefunden am 2026-08-04). `strip -S` nimmt
+# genau diese Debug-Symbole und lässt die normale Symboltabelle stehen, damit
+# Absturzberichte lesbar bleiben. Xcode tut das bei Release-Builds von sich aus
+# (STRIP_STYLE=debugging), SwiftPM nicht.
+#
+# Nur die eigene Binärdatei: Sparkle und die gebündelten Bibliotheken kommen
+# fertig gebaut von außen und tragen keinen Pfad dieses Macs.
+strip_eigene_binary() {
+    strip -S "$app/Contents/MacOS/TagExplosion"
+}
+
 if [ "$release" = "0" ]; then
     # 4) Ad-hoc-Signatur (lokaler Testbuild)
+    strip_eigene_binary
     codesign --force --sign - "$app/Contents/MacOS/TagExplosion"
     codesign --force --sign - "$app"
     echo "App: $app"
@@ -216,6 +232,11 @@ for lib in "$fw"/*.dylib; do
     done
 done
 echo "Gebündelte Bibliotheken:"; ls "$fw"
+
+# Erst jetzt strippen: install_name_tool oben hat die Binärdatei noch verändert,
+# und strip muss vor dem Signieren laufen (siehe Erklärung bei
+# strip_eigene_binary weiter oben).
+strip_eigene_binary
 
 # 3) Signieren: innere Binaries ZUERST (kein --deep), dann das Bundle.
 #    Sparkles Helfer müssen dieselbe Team-ID wie die App tragen, sonst lehnt
