@@ -250,7 +250,7 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 ## Backlog / Notizen
 
 - **Linux: abgesicherter Modus blockiert jedes Schreiben** (Review 2026-08-02,
-  Entscheidung Daniel 2026-08-03). Stand heute: `TrashBackup.backUp`
+  Maintainer-Entscheidung 2026-08-03). Stand heute: `TrashBackup.backUp`
   (`Sources/TagExplosionCore/TrashBackup.swift`) wirft außerhalb von macOS immer
   („trash is only available on macOS"), weil es dort keinen Papierkorb-Aufruf
   gibt. Der abgesicherte Modus ist aber die Voreinstellung, also scheitert unter
@@ -262,7 +262,7 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   XDG-Spezifikation (`~/.local/share/Trash/files` plus `.trashinfo`, je
   Datenträger `.Trash-$uid`) und einen Linux-Job in der CI, der die Tests dort
   wirklich ausführt. Ohne beides bliebe es eine ungeprüfte Behauptung.
-  Priorität: **niedrig.** Daniels Entscheidung im Wortlaut: „Linux-Unterstützung
+  Priorität: **niedrig.** Maintainer-Entscheidung im Wortlaut: „Linux-Unterstützung
   ist gewünscht, aber kein Muss und richtet sich auch nach der Praktikabilität."
   Bis dahin bleibt der Code unverändert; das Werfen ist die gewollte, sichtbare
   Einschränkung und kein stiller Fehlschlag.

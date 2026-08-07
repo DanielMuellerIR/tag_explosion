@@ -33,8 +33,8 @@ tagx_require_notary_profile() {
     # findet gültige Profile nicht immer und meldet sie fälschlich als fehlend.
     #
     # Fünf Versuche statt einem: `history` meldet gelegentlich fälschlich „No
-    # Keychain password item found", obwohl das Profil da ist (2026-07-26 auf M3
-    # belegt — Versuch 1 fehlgeschlagen, Versuch 2 sofort ok). Ein einzelner
+    # Keychain password item found", obwohl das Profil da ist (2026-07-26 auf einem
+    # Entwicklungs-Mac belegt — Versuch 1 fehlgeschlagen, Versuch 2 sofort ok). Ein einzelner
     # Fehlversuch würde sonst einen ganzen Lauf grundlos abbrechen oder unnötig
     # nach store-credentials fragen; ein wirklich fehlendes Profil scheitert auch
     # nach fünf Versuchen.
