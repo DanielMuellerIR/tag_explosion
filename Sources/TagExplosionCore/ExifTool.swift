@@ -160,11 +160,11 @@ public enum ExifTool {
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
     /// Leerer String löscht das jeweilige Feld.
     ///
-    /// `expecting` (optional): Stempel des gelesenen Standes. exiftool ersetzt
-    /// die Datei selbst atomar (Temp + Rename via `-overwrite_original`); die
-    /// Prüfung hier verengt das Fenster für fremde Änderungen auf den Moment
-    /// unmittelbar vor dem Werkzeuglauf — enger geht es ohne eigenen
-    /// Schreibpfad für Bilder nicht.
+    /// `expecting` (optional): Stempel des gelesenen Standes. exiftool läuft
+    /// bewusst NICHT auf dem Original, sondern auf der Geschwisterkopie des
+    /// atomaren Rahmens: Sonst könnte eine fremde Änderung, die genau während
+    /// des Werkzeuglaufs passiert, still verworfen werden. Erst unmittelbar
+    /// vor dem eigenen Austausch wird der Stempel ein letztes Mal geprüft.
     public static func writeCoreFields(
         url: URL, fields: ImageCoreFields, original: ImageCoreFields,
         expecting stamp: FileStamp? = nil
@@ -208,10 +208,26 @@ public enum ExifTool {
         guard !args.isEmpty else { return } // nichts zu tun
 
         let exe = try locateExecutable()
-        // So spät wie möglich prüfen: Danach übernimmt exiftool die Datei.
+        // Früh prüfen spart Kopie und Werkzeuglauf, wenn die Datei ohnehin
+        // schon fremd verändert ist. Die verbindliche Prüfung macht der
+        // atomare Rahmen unten direkt vor dem Austausch.
         try FileStamp.requireUnchanged(stamp, at: url)
-        // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
-        _ = try MediaInfoReader.run(exe, ["-use", "MWG", "-overwrite_original", "-m"] + args + [MediaInfoReader.toolArgument(for: url)])
+        try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
+            // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
+            _ = try MediaInfoReader.run(
+                exe,
+                ["-use", "MWG", "-overwrite_original", "-m"] + args
+                    + [MediaInfoReader.toolArgument(for: temp)])
+        } validate: { temp in
+            // exiftool bricht bei einem Bild, das es nicht versteht, selbst ab
+            // (Exit-Code ungleich 0, oben als `toolFailed` sichtbar) und lässt
+            // die Datei dann unverändert. Ein zweiter exiftool-Lauf nur zur
+            // Kontrolle würde die Prozessanzahl je Bild verdoppeln — geprüft
+            // wird deshalb nur, dass überhaupt eine nicht-leere Datei entstand.
+            guard let size = VolumeSpace.fileSize(of: temp), size > 0 else {
+                throw TagError.saveFailed(path: url.path)
+            }
+        }
     }
 
     // MARK: - Intern

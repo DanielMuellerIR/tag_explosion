@@ -61,6 +61,7 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
     case inconsistentEntry(path: String, detail: String)
     case externalTargetRequiresApproval(path: String, resolvedPath: String)
     case approvedTargetListChanged
+    case targetChangedAfterValidation(path: String)
     case exportDestinationMatchesInput(input: String, destination: String)
 
     public var errorDescription: String? {
@@ -75,6 +76,8 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
             return "Archive entry \(path) resolves outside the archive directory to \(resolvedPath). Explicit approval is required."
         case .approvedTargetListChanged:
             return "Resolved archive targets changed after approval. Nothing was written."
+        case .targetChangedAfterValidation(let path):
+            return "Archive target \(path) is no longer the file that was checked. It was not written."
         case .exportDestinationMatchesInput(let input, let destination):
             return "Export destination \(destination) matches input media file \(input). Choose a different --output path."
         }
@@ -156,6 +159,12 @@ public enum TagArchiveIO {
         let archive = try build(files: files,
                                 baseDirectory: jsonURL.deletingLastPathComponent(),
                                 includeCovers: includeCovers)
+        // Ein Archiv, das der eigene Import nicht mehr annimmt, wäre als
+        // Sicherung wertlos. `build` übernimmt zum Beispiel jede von exiftool
+        // gelesene Zahl als Bildbewertung, während der Import nur -1 bis 5
+        // zulässt. Deshalb hier dieselbe Prüfung wie beim Laden: lieber laut
+        // scheitern als eine nicht wiederherstellbare Sicherung anlegen.
+        try validate(archive)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try encoder.encode(archive).write(to: jsonURL, options: .atomic)
@@ -254,13 +263,26 @@ public enum TagArchiveIO {
                 throw TagArchiveError.approvedTargetListChanged
             }
         }
+        // Die Identität jedes Ziels zum Prüfzeitpunkt festhalten. Zwischen der
+        // Prüfung und dem Schreiben eines SPÄTEREN Eintrags liegen alle
+        // vorherigen Schreibvorgänge — Zeit genug, ein noch nicht bearbeitetes
+        // Ziel durch eine Verknüpfung auf eine ganz andere Datei zu ersetzen.
+        // Ohne diese Wiederholung folgten Lesen, Sicherung und Schreiben dem
+        // untergeschobenen Ziel.
+        let validatedIdentities = targets.map(FileIdentity.init)
         var report = TagArchiveReport()
-        for (entry, url) in zip(archive.files, targets) {
+        for (index, (entry, url)) in zip(archive.files, targets).enumerated() {
             guard FileManager.default.fileExists(atPath: url.path) else {
                 report.missing.append(entry.path)
                 continue
             }
             do {
+                guard FileIdentity(url).matches(validatedIdentities[index]) else {
+                    // Bewusst nur dieser Eintrag: Die übrigen Ziele werden
+                    // einzeln genauso geprüft, und der Bericht soll weiterhin
+                    // zeigen, was tatsächlich geschrieben wurde.
+                    throw TagArchiveError.targetChangedAfterValidation(path: entry.path)
+                }
                 if try applyEntry(entry, to: url, dryRun: dryRun) {
                     report.applied.append(entry.path)
                 } else {
@@ -309,6 +331,11 @@ public enum TagArchiveIO {
     /// Wendet einen Eintrag an; true = Datei wurde (bzw. würde) geändert.
     private static func applyEntry(_ entry: TagArchive.Entry, to url: URL,
                                    dryRun: Bool) throws -> Bool {
+        // Stempel VOR dem Lesen erheben und bis zum Austausch mitführen:
+        // Zwischen Lesen und Schreiben liegt noch die Papierkorb-Sicherung.
+        // Ändert ein anderes Programm die Datei in dieser Zeit, bricht das
+        // Schreiben ab, statt die fremde Änderung stillschweigend zu verwerfen.
+        let stamp = FileStamp.current(of: url)
         switch entry.kind {
         case .audio:
             let current = try TagFile.read(at: url)
@@ -327,7 +354,8 @@ public enum TagArchiveIO {
             if !dryRun {
                 try TrashBackup.shared.backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
-                                  artworks: targetArtworks ?? current.artworks, to: url)
+                                  artworks: targetArtworks ?? current.artworks, to: url,
+                                  expecting: stamp)
             }
             return true
         case .image:
@@ -335,7 +363,8 @@ public enum TagArchiveIO {
             guard let target = entry.image, target != current else { return false }
             if !dryRun {
                 try TrashBackup.shared.backUp(url)
-                try ExifTool.writeCoreFields(url: url, fields: target, original: current)
+                try ExifTool.writeCoreFields(url: url, fields: target, original: current,
+                                             expecting: stamp)
             }
             return true
         case .ebook:
@@ -366,7 +395,7 @@ public enum TagArchiveIO {
                 try TrashBackup.shared.backUp(url)
                 try EbookTool.write(
                     url: url, fields: target, original: current,
-                    coverUpdate: coverUpdate)
+                    coverUpdate: coverUpdate, expecting: stamp)
             }
             return true
         }

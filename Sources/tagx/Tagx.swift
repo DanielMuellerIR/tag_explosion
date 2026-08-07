@@ -159,7 +159,13 @@ struct Set: ParsableCommand {
         let url = try resolveFile(file)
         // Gelesen wird vorab; geschrieben wird ausschließlich über den
         // atomaren Weg in `TagFile.write`, nie in-place auf dem Original.
+        // Inhalt und Stempel gehören zusammen: Verändert ein anderes Programm
+        // die Datei WÄHREND des Lesens, passt der Stempel zu einer neueren
+        // Fassung als der gelesene Inhalt — dann lieber abbrechen als auf
+        // unklarer Grundlage entscheiden.
+        let stamp = FileStamp.current(of: url)
         let existing = try TagFile.read(at: url)
+        try FileStamp.requireUnchanged(stamp, at: url)
 
         var properties: [TagProperty] = replaceAll ? [] : existing.properties
         for assignment in tag {
@@ -209,11 +215,17 @@ struct Set: ParsableCommand {
         let changedKeys = Swift.Set(before.keys).union(after.keys)
             .filter { (before[$0] ?? []) != (after[$0] ?? []) }
         guard !changedKeys.isEmpty else {
+            // Der Vergleich beruht auf dem Lesestand von oben. Erst die
+            // Stempel-Prüfung macht die Erfolgsmeldung ehrlich: Hat ein anderes
+            // Programm die Datei inzwischen auf einen abweichenden Wert
+            // gesetzt, wäre "0 field(s) changed" eine falsche Zusicherung —
+            // der gewünschte Sollwert stünde gar nicht in der Datei.
+            try FileStamp.requireUnchanged(stamp, at: url)
             print("OK \(url.lastPathComponent): 0 field(s) changed")
             return
         }
         try TrashBackup.shared.backUp(url)
-        try TagFile.write(properties: properties, to: url)
+        try TagFile.write(properties: properties, to: url, expecting: stamp)
         print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
     }
 }

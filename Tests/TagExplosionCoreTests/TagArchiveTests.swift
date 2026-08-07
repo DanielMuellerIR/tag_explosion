@@ -448,6 +448,29 @@ struct TagArchiveTests {
         }
     }
 
+    @Test("Ein Export, den der eigene Import ablehnen würde, entsteht gar nicht erst")
+    func exportRejectsAnArchiveTheImportCouldNotLoad() throws {
+        // exiftool übernimmt beim Lesen jede Zahl als Bewertung, der Import
+        // lässt nur -1…5 zu. Ohne Prüfung beim Export entstünde eine Sicherung,
+        // die sich später nicht mehr laden und damit nicht wiederherstellen
+        // ließe — schlimmstenfalls fällt das erst im Ernstfall auf.
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let exe = try ExifTool.locateExecutable()
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=6", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == 6)
+
+        let json = dir.appendingPathComponent("tags.json")
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "cover.jpg",
+            detail: "image rating must be between -1 (unset) and 5"
+        )) {
+            try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+        }
+    }
+
     @Test("Ein Serienwunsch für ein PDF wird vor jeder Mutation abgelehnt",
           .enabled(if: FileManager.default.fileExists(
               atPath: Fixtures.directory.appendingPathComponent("book.pdf").path),

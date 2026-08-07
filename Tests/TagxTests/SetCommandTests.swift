@@ -9,19 +9,15 @@ import TagExplosionCore
 @Suite("tagx set No-op", .serialized)
 struct SetCommandTests {
 
-    @Test("Unveränderte Sollwerte lassen die Datei byte-gleich und melden 0 Felder")
+    @Test("Unveränderte Sollwerte lassen die Datei byte-gleich und melden 0 Felder",
+          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
     func noopSetDoesNotRewriteFile() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("tagx-set-noop-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let file = directory.appendingPathComponent("song.mp3")
-        try FileManager.default.copyItem(
-            at: root.appendingPathComponent(
-                "Tests/TagExplosionCoreTests/Fixtures/generated/sample.mp3"),
-            to: file)
+        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: file)
 
         // Erster Lauf setzt den Wert wirklich (genau ein geändertes Feld).
         let first = try runTagx(arguments: [

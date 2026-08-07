@@ -422,6 +422,33 @@ struct EbookToolTests {
         #expect(xml.contains("Gesamtausgabe"))
     }
 
+    @Test("EPUB 3: Die neue Serien-id weicht auch einer id außerhalb der meta-Elemente aus")
+    func epub3SeriesIdAvoidsIdsOutsideMetaElements() throws {
+        // Die Kollisionsprüfung sah früher nur die <meta>-Kinder von
+        // <metadata>. Trägt ein anderes Element — hier ein dc:creator — die id
+        // "series-tagx" bereits, entstünde eine doppelte XML-ID und die neu
+        // geschriebenen refines-Verweise wären mehrdeutig.
+        let url = try Fixtures.workingCopy("book3.epub")
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:creator>Erika Beispiel</dc:creator>",
+                with: "<dc:creator id=\"series-tagx\">Erika Beispiel</dc:creator>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        var changed = original
+        changed.series = "Neue Reihe"
+        changed.seriesIndex = "2"
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        let xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        // Die fremde id bleibt genau einmal vergeben …
+        #expect(xml.components(separatedBy: "id=\"series-tagx\"").count - 1 == 1)
+        // … und die eigene Sammlung weicht samt ihrer Verweise darauf aus.
+        #expect(xml.contains("id=\"series-tagx-2\""))
+        #expect(xml.contains("refines=\"#series-tagx-2\""))
+        #expect(try EbookTool.readCoreFields(url: url).series == "Neue Reihe")
+    }
+
     @Test("EPUB: Platzmangel bleibt als solcher erkennbar",
           .enabled(if: TestVolume.isSupported, "hdiutil nicht verfügbar"))
     func epubOutOfSpaceKeepsTypedError() throws {

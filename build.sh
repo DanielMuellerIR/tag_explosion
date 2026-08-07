@@ -189,7 +189,12 @@ strip_eigene_binary() {
 
 if [ "$release" = "0" ]; then
     # 4) Ad-hoc-Signatur (lokaler Testbuild)
-    strip_eigene_binary
+    # Ein ausdrücklich mit --debug angeforderter Build behält seine
+    # Debug-Symbole: Ohne sie gäbe es kein verlässliches Quellzeilen-Debugging,
+    # und genau dafür baut man debug. Gestrippt wird nur die Release-Konfiguration.
+    if [ "$config" = "release" ]; then
+        strip_eigene_binary
+    fi
     codesign --force --sign - "$app/Contents/MacOS/TagExplosion"
     codesign --force --sign - "$app"
     echo "App: $app"

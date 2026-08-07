@@ -8,6 +8,56 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.20.0] — 2026-08-07
+
+Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-06.
+
+### Geändert
+
+- Bild-Metadaten schreibt exiftool nicht mehr direkt in die Originaldatei,
+  sondern in eine Geschwisterkopie; erst nach der Prüfung ersetzt sie das
+  Original in einem atomaren Schritt, und der Datei-Stempel wird unmittelbar
+  davor noch einmal verglichen. Eine fremde Änderung während des
+  exiftool-Laufs kann so nicht mehr still verworfen werden. Nebenwirkung wie
+  schon bei Audio: Die Datei bekommt eine neue Inode, zusätzliche Hardlinks
+  zeigen danach weiter auf den alten Stand.
+- `tagx set` bricht mit einer Fehlermeldung ab, wenn ein anderes Programm die
+  Datei zwischen Lesen und Schreiben verändert hat — auch dann, wenn sich aus
+  Sicht des gelesenen Standes gar nichts ändern müsste. Vorher meldete der
+  Befehl in diesem Fall „0 field(s) changed" und Erfolg, obwohl der gewünschte
+  Wert nicht in der Datei stand.
+
+### Behoben
+
+- Die Rückfrage „Datei wurde außerhalb geändert" führt genau die angeklickte
+  Entscheidung aus. Vorher räumte das Schließen des Dialogs die bestätigte
+  Datei aus der Warteschlange: Sie wurde nicht gespeichert, und die Bestätigung
+  traf stattdessen die nächste Datei ohne deren eigene Rückfrage.
+- Archiv-Import: Jedes Ziel wird unmittelbar vor seiner Änderung erneut auf
+  Dateiidentität geprüft. Wird eine noch nicht bearbeitete Datei während des
+  laufenden Imports durch eine Verknüpfung auf eine andere Datei ersetzt,
+  bleibt diese unangetastet; der Eintrag erscheint als fehlgeschlagen. Der beim
+  Lesen erhobene Stempel wandert außerdem bis in den Schreibvorgang.
+- Tag-Export und Tag-Sicherung erzeugen kein Archiv mehr, das der eigene Import
+  später ablehnen würde (etwa eine Bildbewertung außerhalb von -1 bis 5). Eine
+  solche Sicherung ließe sich nicht wiederherstellen.
+- EPUB: Die id einer neu geschriebenen Serie weicht allen im OPF vergebenen ids
+  aus, nicht nur denen der `<meta>`-Elemente. Vorher konnte eine doppelte
+  XML-ID entstehen und die zugehörigen `refines`-Verweise mehrdeutig machen.
+- E-Book-Schreibweg: Innerhalb der Geschwisterkopie entsteht keine zweite
+  Vollkopie mehr, und Fehlermeldungen nennen die gewählte Datei statt des
+  versteckten Zwischenpfads.
+- Eine Videodatei, die zwischen Auswahl und Lesen verschwindet, landet nicht
+  mehr als schreibgeschützter Platzhalter in der Liste.
+- `install.sh` stellt die bisherige Installation wieder her, wenn der Austausch
+  abgebrochen wird oder die abschließende Prüfung des installierten Bundles
+  fehlschlägt. Vorher konnte `/Applications/TagExplosion.app` ganz verschwinden
+  oder ein abgelehntes Bundle stehen bleiben.
+- `build.sh --debug` behält seine Debug-Symbole; gestrippt wird nur noch der
+  Release-Build.
+- Die CLI-Tests erzeugen ihre Audio-Fixture selbst. Ein gefilterter Testlauf
+  auf einem frischen Checkout scheiterte vorher am fehlenden `sample.mp3`.
+
 ## [0.19.0] — 2026-08-03
 
 ### Behoben

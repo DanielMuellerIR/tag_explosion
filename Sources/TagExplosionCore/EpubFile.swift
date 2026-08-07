@@ -238,6 +238,27 @@ enum EpubFile {
         try replaceEntry(path: opfPath, data: document.xmlData(options: .nodePrettyPrint), in: archive)
     }
 
+    /// Ändert Kernfelder und Cover DIREKT in der übergebenen Datei — ohne
+    /// eigene Kopie und ohne eigenen atomaren Austausch.
+    ///
+    /// Gedacht für `EbookTool.write`, das bereits auf einer Geschwisterkopie
+    /// arbeitet: Über `writeCoreFields`/`writeCover` entstünde dort eine ZWEITE
+    /// Vollkopie (doppelter Platzbedarf auf Datenträgern ohne Klonen), und ein
+    /// Platzmangel nennte den versteckten Temp-Pfad statt der gewählten Datei.
+    /// Für Einzelaufrufe bleiben die atomaren Wege oben zuständig.
+    static func mutateContents(url: URL, fields: EbookCoreFields,
+                               original: EbookCoreFields,
+                               coverUpdate: EbookCoverUpdate) throws {
+        if fields != original {
+            try writeCoreFieldsContents(url: url, fields: fields, original: original)
+        }
+        switch coverUpdate {
+        case .unchanged: break
+        case .set(let data): try writeCoverContents(url: url, data: data)
+        case .remove: try removeCoverContents(url: url)
+        }
+    }
+
     // MARK: - Container/OPF
 
     /// Öffnet das Archiv, findet die OPF über META-INF/container.xml und
@@ -271,8 +292,10 @@ enum EpubFile {
     }
 
     /// Prüft die EPUB-Invarianten der vollständig geschriebenen Temp-Datei,
-    /// bevor sie das Original atomar ersetzt.
-    private static func validateContainer(url: URL) throws {
+    /// bevor sie das Original atomar ersetzt. Auch `EbookTool.write` prüft
+    /// damit seine Geschwisterkopie, seit dort kein verschachtelter
+    /// EPUB-Austausch mehr läuft.
+    static func validateContainer(url: URL) throws {
         let archive = try Archive(url: url, accessMode: .read)
         guard let first = archive.first(where: { _ in true }),
               first.path == "mimetype", !first.isCompressed else {
@@ -410,9 +433,12 @@ enum EpubFile {
         guard !fields.series.isEmpty else { return }
 
         // … und in beiden Formen neu schreiben (EPUB 3 + Calibre-kompatibel).
-        // Die id darf nicht mit einer erhaltenen Sammlung kollidieren.
-        let usedIds = Set(elements(named: "meta", in: metadata)
-            .compactMap { attribute($0, "id") })
+        // Die id muss im GESAMTEN OPF-Dokument eindeutig sein, nicht nur unter
+        // den <meta>-Elementen: Auch dc:creator, dc:identifier oder ein
+        // Manifest-Eintrag kann "series-tagx" schon tragen. Eine doppelte
+        // XML-ID machte die neuen refines-Verweise mehrdeutig.
+        let scope: XMLNode = metadata.rootDocument ?? metadata
+        let usedIds = allIds(in: scope)
         var seriesId = "series-tagx"
         var suffix = 2
         while usedIds.contains(seriesId) {
@@ -584,6 +610,20 @@ enum EpubFile {
         for child in (parent.children ?? []).compactMap({ $0 as? XMLElement }) {
             if localName(child) == name { result.append(child) }
             result.append(contentsOf: descendants(named: name, in: child))
+        }
+        return result
+    }
+
+    /// Alle `id`-Attribute unterhalb (und einschließlich) `node`. Eine neu
+    /// vergebene XML-ID muss gegen ALLE bestehenden eindeutig sein, nicht nur
+    /// gegen die der direkten Geschwister.
+    private static func allIds(in node: XMLNode) -> Set<String> {
+        var result: Set<String> = []
+        if let element = node as? XMLElement, let id = attribute(element, "id") {
+            result.insert(id)
+        }
+        for child in (node.children ?? []) {
+            result.formUnion(allIds(in: child))
         }
         return result
     }

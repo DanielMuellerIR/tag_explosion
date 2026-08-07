@@ -420,6 +420,56 @@ struct AppModelSaveTests {
         #expect(second.isDirty)
     }
 
+    @Test("Bestätigtes Überschreiben übersteht den sofort folgenden Dialog-Dismiss")
+    func claimedStaleWriteSurvivesTheDismissCallback() async {
+        // SwiftUI ruft nach dem Button-Callback sofort den Dismiss-Callback des
+        // Alerts. Solange der bestätigte Eintrag erst im Task aus der
+        // Warteschlange kam, räumte der Dismiss ihn dazwischen weg: Die
+        // bestätigte Datei wurde nicht gespeichert, und die Bestätigung traf
+        // stattdessen die NÄCHSTE Datei ohne deren eigene Rückfrage.
+        let first = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-erste.mp3"), changedTitle: "Puffer 1")
+        let second = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-zweite.mp3"), changedTitle: "Puffer 2")
+        let model = AppModel()
+        model.entries = [first, second]
+        for entry in [first, second] {
+            await model.save(entry: entry, staleCandidate: entry) { _ in
+                throw TagError.fileChangedOnDisk(path: entry.url.path)
+            }
+        }
+        #expect(model.pendingStaleWrite?.fileName == "stale-erste.mp3")
+
+        // Button „Trotzdem speichern“: Entscheidung synchron beanspruchen …
+        #expect(model.claimStaleWrite(write: true))
+        // … der unmittelbar folgende Dismiss findet nichts mehr zum Abbrechen.
+        #expect(!model.claimStaleWrite(write: false))
+        model.cancelStaleWrite()
+
+        var savedNames: [String] = []
+        await model.resolveClaimedStaleWrite { entry in
+            savedNames.append(entry.url.lastPathComponent)
+            return true
+        }
+        #expect(savedNames == ["stale-erste.mp3"])
+        // Die zweite Datei wartet unverändert auf ihre eigene Entscheidung.
+        #expect(model.pendingStaleWrite?.fileName == "stale-zweite.mp3")
+        #expect(second.isDirty)
+    }
+
+    @Test("Eine verschwundene Videodatei wird nicht als read-only Platzhalter geöffnet")
+    func readStampedRejectsAVanishedFile() {
+        // `readLoaded` fängt für Video-Container einen Lesefehler bewusst als
+        // read-only-Platzhalter ab. Ohne die Stempel-Pflicht landete eine gar
+        // nicht mehr vorhandene .avi als scheinbar erfolgreich geöffneter
+        // Eintrag in der Liste.
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("verschwunden-\(UUID().uuidString).avi")
+        #expect(throws: TagError.cannotOpen(path: url.path)) {
+            _ = try AppModel.readStamped(url: url, kind: .audio)
+        }
+    }
+
     @Test("Lesen liefert Inhalt und Stempel als konsistenten Schnappschuss")
     func readStampedRetriesUntilContentAndStampMatch() throws {
         let folder = FileManager.default.temporaryDirectory

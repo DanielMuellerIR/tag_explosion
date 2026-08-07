@@ -148,24 +148,65 @@ public enum EbookTool {
         guard fields != original || hasCoverChange else { return }
 
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
-            try writeCoreFields(url: temp, fields: fields, original: original)
-            switch coverUpdate {
-            case .unchanged: break
-            case .set(let data): try writeCover(url: temp, data: data)
-            case .remove: try removeCover(url: temp)
+            // Auf der Geschwisterkopie laufen nur reine Inhalts-Mutatoren.
+            // Fehlerpfade zeigen dabei auf die versteckte Kopie; nach außen
+            // muss die vom Menschen gewählte Datei stehen (siehe unten).
+            try withOriginalPath(url) {
+                switch backend(for: temp) {
+                case .epub:
+                    try EpubFile.mutateContents(url: temp, fields: fields,
+                                                original: original,
+                                                coverUpdate: coverUpdate)
+                default:
+                    try writeCoreFields(url: temp, fields: fields, original: original)
+                    switch coverUpdate {
+                    case .unchanged: break
+                    case .set(let data): try writeCover(url: temp, data: data)
+                    case .remove: try removeCover(url: temp)
+                    }
+                }
             }
         } validate: { temp in
-            _ = try readCoreFields(url: temp)
-            switch coverUpdate {
-            case .unchanged: break
-            case .set:
-                guard try readCover(url: temp) != nil else {
-                    throw TagError.saveFailed(path: temp.path)
+            try withOriginalPath(url) {
+                // Die EPUB-Invarianten prüfte bisher der verschachtelte
+                // Austausch in `EpubFile`; ohne ihn gehört die Prüfung hierher.
+                if backend(for: temp) == .epub { try EpubFile.validateContainer(url: temp) }
+                _ = try readCoreFields(url: temp)
+                switch coverUpdate {
+                case .unchanged: break
+                case .set:
+                    guard try readCover(url: temp) != nil else {
+                        throw TagError.saveFailed(path: temp.path)
+                    }
+                case .remove:
+                    guard try readCover(url: temp) == nil else {
+                        throw TagError.saveFailed(path: temp.path)
+                    }
                 }
-            case .remove:
-                guard try readCover(url: temp) == nil else {
-                    throw TagError.saveFailed(path: temp.path)
-                }
+            }
+        }
+    }
+
+    /// Führt einen Schritt auf der Geschwisterkopie aus und stellt dessen
+    /// typisierte Fehler auf die Originaldatei um. Die Kopie trägt einen
+    /// versteckten Zufallsnamen und existiert nach dem Abbruch nicht mehr —
+    /// ihr Pfad in einer Meldung sagt niemandem etwas.
+    private static func withOriginalPath(_ url: URL, _ body: () throws -> Void) throws {
+        do {
+            try body()
+        } catch let error as TagError {
+            switch error {
+            case .cannotOpen: throw TagError.cannotOpen(path: url.path)
+            case .saveFailed: throw TagError.saveFailed(path: url.path)
+            case .readOnly: throw TagError.readOnly(path: url.path)
+            case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
+            case .backupFailed(_, let reason):
+                throw TagError.backupFailed(path: url.path, reason: reason)
+            case .notEnoughSpace(_, let needBytes, let freeBytes):
+                throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
+                                              freeBytes: freeBytes)
+            // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
+            case .propertiesRejected, .toolNotFound, .toolFailed: throw error
             }
         }
     }

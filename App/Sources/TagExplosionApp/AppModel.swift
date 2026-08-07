@@ -552,7 +552,15 @@ final class AppModel {
             let before = FileStamp.current(of: url)
             let loaded = try read(url, kind)
             let after = FileStamp.current(of: url)
-            if before == after { return (loaded, after) }
+            if before == after {
+                // Ohne Stempel ist die Datei nicht (mehr) erreichbar. Für
+                // Video-Container fängt `readLoaded` einen Lesefehler bewusst
+                // als read-only-Platzhalter ab — ohne diese Prüfung landete
+                // eine inzwischen verschwundene .avi/.mov als scheinbar
+                // erfolgreich geöffneter Eintrag in der Liste.
+                guard let after else { throw TagError.cannotOpen(path: url.path) }
+                return (loaded, after)
+            }
             remainingAttempts -= 1
             guard remainingAttempts > 0 else {
                 throw TagError.fileChangedOnDisk(path: url.path)
@@ -1049,31 +1057,62 @@ final class AppModel {
     /// eigene Frage. Ein einzelner Merker würde beim zweiten Konflikt den
     /// ersten überschreiben: Der Dialog gehörte dann zur falschen Datei.
     private var staleEntries: [FileEntry] = []
+    /// Der synchron beanspruchte Konflikt: Eintrag plus Entscheidung
+    /// (true = trotzdem speichern). Solange ein Claim besteht, ist der Eintrag
+    /// schon aus `staleEntries` heraus — ein zusätzlicher Dismiss findet ihn
+    /// dort nicht mehr und kann weder ihn noch den nächsten Eintrag abbrechen.
+    private var claimedStaleWrite: (entry: FileEntry, write: Bool)?
 
-    /// Trotzdem speichern — der bisherige Plattenstand liegt im Papierkorb.
-    func confirmStaleWrite() async {
-        await confirmStaleWrite { entry in
+    /// Beansprucht synchron genau den gerade angezeigten Konflikt. Der Aufruf
+    /// steht direkt im Button-Callback, noch bevor dessen `Task` läuft; der
+    /// unmittelbar danach folgende Dismiss-Callback trifft auf einen bereits
+    /// vergebenen Claim und lässt die Warteschlange in Ruhe.
+    @discardableResult
+    func claimStaleWrite(write: Bool) -> Bool {
+        guard claimedStaleWrite == nil, !staleEntries.isEmpty else { return false }
+        claimedStaleWrite = (staleEntries.removeFirst(), write)
+        // Erst nach der Entscheidung den nächsten Konflikt anzeigen, sonst
+        // stünde der Dialog schon während des laufenden Schreibvorgangs da.
+        pendingStaleWrite = nil
+        return true
+    }
+
+    /// Führt ausschließlich den zuvor beanspruchten Konflikt aus.
+    func resolveClaimedStaleWrite() async {
+        await resolveClaimedStaleWrite { entry in
             await self.save(entry: entry, ignoringDiskChange: true)
         }
     }
 
     /// Testbare Variante mit austauschbarem Schreiber; die Warteschlangen-
     /// Logik ist identisch zum Produktionsweg oben.
-    func confirmStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
-        guard !staleEntries.isEmpty else { return }
-        let entry = staleEntries.removeFirst()
-        // Erst nach dem Speichern den nächsten Konflikt anzeigen, sonst
-        // stünde der Dialog schon während des laufenden Schreibvorgangs da.
-        pendingStaleWrite = nil
-        _ = await saveEntry(entry)
+    func resolveClaimedStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
+        guard let claim = claimedStaleWrite else { return }
+        claimedStaleWrite = nil
+        if claim.write { _ = await saveEntry(claim.entry) }
         refreshPendingStaleWrite()
+    }
+
+    /// Trotzdem speichern — der bisherige Plattenstand liegt im Papierkorb.
+    /// Bequemer Einstieg für nicht-visuelle Aufrufer und Tests; die View
+    /// benutzt Claim + `resolveClaimedStaleWrite()`, damit sie die Entscheidung
+    /// synchron sichern kann.
+    func confirmStaleWrite() async {
+        guard claimStaleWrite(write: true) else { return }
+        await resolveClaimedStaleWrite()
+    }
+
+    /// Testbare Variante mit austauschbarem Schreiber.
+    func confirmStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
+        guard claimStaleWrite(write: true) else { return }
+        await resolveClaimedStaleWrite(saveEntry: saveEntry)
     }
 
     /// Verwirft nur die aktuell angezeigte Frage; weitere wartende Konflikte
     /// bekommen danach ihre eigene Entscheidung.
     func cancelStaleWrite() {
-        guard !staleEntries.isEmpty else { return }
-        staleEntries.removeFirst()
+        guard claimStaleWrite(write: false) else { return }
+        claimedStaleWrite = nil
         refreshPendingStaleWrite()
     }
 

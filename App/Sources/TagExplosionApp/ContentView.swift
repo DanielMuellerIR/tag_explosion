@@ -149,14 +149,27 @@ struct ContentView: View {
         } message: {
             Text(model.pendingExternalImport?.displayedMessage ?? "")
         }
+        // Wie bei den anderen Dialogen wird die Entscheidung synchron im
+        // Button-Callback beansprucht. Sonst räumte der unmittelbar folgende
+        // Dismiss den bestätigten Eintrag aus der Warteschlange, und der erst
+        // danach laufende Task schriebe die NÄCHSTE Datei ohne ihre eigene
+        // Bestätigung.
         .alert("Datei wurde außerhalb geändert", isPresented: .init(
             get: { model.pendingStaleWrite != nil },
-            set: { if !$0 { model.cancelStaleWrite() } }
+            set: { isPresented in
+                guard !isPresented, model.pendingStaleWrite != nil,
+                      model.claimStaleWrite(write: false) else { return }
+                Task { await model.resolveClaimedStaleWrite() }
+            }
         )) {
             Button("Trotzdem speichern") {
-                Task { await model.confirmStaleWrite() }
+                guard model.claimStaleWrite(write: true) else { return }
+                Task { await model.resolveClaimedStaleWrite() }
             }
-            Button("Abbrechen", role: .cancel) { model.cancelStaleWrite() }
+            Button("Abbrechen", role: .cancel) {
+                guard model.claimStaleWrite(write: false) else { return }
+                Task { await model.resolveClaimedStaleWrite() }
+            }
         } message: {
             Text("""
             \(model.pendingStaleWrite?.fileName ?? "") wurde seit dem Öffnen von \
