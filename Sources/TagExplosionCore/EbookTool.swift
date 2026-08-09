@@ -50,6 +50,19 @@ public enum EbookCoverUpdate: Sendable {
     case remove
 }
 
+/// Zusammengehöriger Inhalt eines E-Book-Schnappschusses. Wenn `includeCover`
+/// beim Lesen false war, bleibt `cover` ebenfalls nil; der Aufrufer kennt diese
+/// bewusste Auslassung aus seiner Option.
+public struct EbookContents: Sendable, Equatable {
+    public let fields: EbookCoreFields
+    public let cover: Artwork?
+
+    public init(fields: EbookCoreFields, cover: Artwork?) {
+        self.fields = fields
+        self.cover = cover
+    }
+}
+
 public enum EbookTool {
 
     /// Backend je Dateiendung.
@@ -109,6 +122,34 @@ public enum EbookTool {
         }
     }
 
+    /// Felder und optional Cover unter einem gemeinsamen Dateistempel lesen.
+    /// Zwei Backend-Aufrufe dürfen nie Werte aus zwei verschiedenen Fassungen
+    /// derselben Datei zu einem scheinbaren Zustand verbinden.
+    public static func readSnapshot(
+        url: URL,
+        includeCover: Bool,
+        expecting stamp: FileStamp? = nil
+    ) throws -> FileSnapshot<EbookContents> {
+        try readSnapshot(
+            url: url, includeCover: includeCover, expecting: stamp, betweenReads: {})
+    }
+
+    /// Testbarer Kern: `betweenReads` liegt absichtlich zwischen Feldern und
+    /// Cover, damit genau der frühere Mischzustand reproduzierbar ist.
+    static func readSnapshot(
+        url: URL,
+        includeCover: Bool,
+        expecting stamp: FileStamp? = nil,
+        betweenReads: () throws -> Void
+    ) throws -> FileSnapshot<EbookContents> {
+        try FileSnapshot.capture(at: url, expecting: stamp) {
+            let fields = try readCoreFields(url: url)
+            try betweenReads()
+            let cover = includeCover ? try readCover(url: url) : nil
+            return EbookContents(fields: fields, cover: cover)
+        }
+    }
+
     /// Schreibt nur die Unterschiede zu `original`; leerer Wert löscht.
     ///
     /// Bewusst nicht public: Der Calibre-Zweig verändert die übergebene Datei
@@ -145,7 +186,14 @@ public enum EbookTool {
         case .unchanged: hasCoverChange = false
         case .set, .remove: hasCoverChange = true
         }
-        guard fields != original || hasCoverChange else { return }
+        guard fields != original || hasCoverChange else {
+            try FileStamp.requireUnchanged(stamp, at: url)
+            return
+        }
+
+        // Früh auf einen veralteten Schnappschuss reagieren; AtomicFileRewrite
+        // prüft denselben Stempel zusätzlich direkt vor dem Austausch.
+        try FileStamp.requireUnchanged(stamp, at: url)
 
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             // Auf der Geschwisterkopie laufen nur reine Inhalts-Mutatoren.

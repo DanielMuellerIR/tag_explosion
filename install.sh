@@ -81,49 +81,10 @@ if pgrep -x TagExplosion >/dev/null 2>&1; then
 fi
 
 echo "== Installiere nach /Applications =="
-# Erst vollständig in ein verstecktes Geschwisterverzeichnis kopieren und DORT
-# prüfen; die funktionierende Installation weicht erst, wenn der Ersatz
-# nachweislich gültig ist. Ein Kopier- oder Prüffehler lässt sie unangetastet.
-new="/Applications/.TagExplosion.app.new.$$"
-old="/Applications/.TagExplosion.app.old.$$"
-# Erst nach der bestandenen Endprüfung gilt die Installation als geglückt.
-installed=0
-# Bei jedem Ausgang (Prüf-Abbruch via set -e, Signal, regulär) zustandsabhängig
-# aufräumen: Solange der Austausch nicht bis zur bestandenen Endprüfung
-# gekommen ist, kommt die bisherige, funktionierende Installation zurück. Sie
-# liegt zwischen den beiden mv-Schritten nur beiseite — ein Abbruch genau dort
-# ließ "/Applications/TagExplosion.app" sonst ganz verschwinden, und ein
-# nachträglich abgelehntes Bundle bliebe an ihrer Stelle stehen.
-cleanup() {
-    if [ "$installed" -eq 0 ] && [ -d "$old" ]; then
-        rm -rf "$dest"
-        mv "$old" "$dest" 2>/dev/null || true
-    fi
-    rm -rf "$new" "$old"
-}
-trap cleanup EXIT
-trap 'cleanup; exit 130' INT TERM HUP
-rm -rf "$new"
-ditto "$app" "$new"
-xcrun stapler validate "$new"
-spctl --assess --type execute --verbose=2 "$new"
-codesign --verify --deep --strict --verbose=2 "$new"
-
-# Austausch: alt beiseite stellen, neu einsetzen. Die alte Fassung bleibt bis
-# nach den Endprüfungen liegen; das Zurückholen und Entfernen macht `cleanup`.
-if [ -d "$dest" ]; then mv "$dest" "$old"; fi
-if ! mv "$new" "$dest"; then
-    echo "FEHLER: Konnte $dest nicht ersetzen — alte Installation wird wiederhergestellt." >&2
-    exit 1
-fi
-
-# Dieselben Prüfungen noch einmal am tatsächlich installierten Bundle: Erst das
-# beweist, dass in /Applications eine gültige, notarisierte App liegt. Fällt
-# eine davon durch, holt `cleanup` die alte Installation zurück.
-xcrun stapler validate "$dest"
-spctl --assess --type execute --verbose=2 "$dest"
-codesign --verify --deep --strict --verbose=2 "$dest"
-installed=1
+# Erst vollständig in ein verstecktes Geschwisterverzeichnis kopieren und dort
+# prüfen. Der Helfer entfernt auch eine abgelehnte Erstinstallation und bewahrt
+# eine alte Fassung, falls ihr Zurückholen selbst fehlschlägt.
+"$here/scripts/install-verified-app.sh" "$app" "$dest"
 
 echo
 echo "INSTALL OK: $dest ($version)"

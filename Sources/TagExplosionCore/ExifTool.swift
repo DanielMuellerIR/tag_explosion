@@ -155,6 +155,30 @@ public enum ExifTool {
         return fields
     }
 
+    /// Kernfelder und zugehörigen Dateistempel als einen konsistenten
+    /// Schnappschuss lesen. Eine Ersetzung während des exiftool-Aufrufs wird
+    /// erkannt, auch wenn der Pfad gleich bleibt.
+    public static func readCoreFieldsSnapshot(
+        url: URL,
+        expecting stamp: FileStamp? = nil
+    ) throws -> FileSnapshot<ImageCoreFields> {
+        try readCoreFieldsSnapshot(url: url, expecting: stamp, afterRead: {})
+    }
+
+    /// Testbarer Kern des Schnappschusses. `afterRead` erlaubt eine gezielte
+    /// Dateiänderung genau zwischen Backend-Read und Abschlussprüfung.
+    static func readCoreFieldsSnapshot(
+        url: URL,
+        expecting stamp: FileStamp? = nil,
+        afterRead: () throws -> Void
+    ) throws -> FileSnapshot<ImageCoreFields> {
+        try FileSnapshot.capture(at: url, expecting: stamp) {
+            let fields = try readCoreFields(url: url)
+            try afterRead()
+            return fields
+        }
+    }
+
     // MARK: - Schreiben
 
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
@@ -205,7 +229,11 @@ public enum ExifTool {
             }
         }
 
-        guard !args.isEmpty else { return } // nichts zu tun
+        guard !args.isEmpty else {
+            // Auch ein No-op ist eine Aussage über den gelesenen Stand.
+            try FileStamp.requireUnchanged(stamp, at: url)
+            return
+        }
 
         let exe = try locateExecutable()
         // Früh prüfen spart Kopie und Werkzeuglauf, wenn die Datei ohnehin

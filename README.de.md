@@ -98,7 +98,10 @@ abschalten unter ⌘, oder in der CLI mit `--no-backup` bzw. `TAGX_NO_BACKUP=1`.
 Datei nach dem Öffnen auf der Platte geändert, hält das Speichern an und fragt
 nach. Auch „Trotzdem speichern" bleibt sicher: Der Stand, der gerade auf der
 Platte liegt, ist genau das, was der abgesicherte Modus vorher in den Papierkorb
-kopiert.
+kopiert. Metadaten-Reads werden vorher und nachher als ein Schnappschuss geprüft
+— bei E-Books Felder und Cover gemeinsam — und erneut vor einer No-op-Meldung
+oder dem atomaren Austausch. Eine Ersetzung am gleichen Pfad fällt durch ihre
+neue Dateiidentität auf und gilt nicht als die zuvor gelesene Datei.
 
 **Vor dem Schreiben wird geprüft, ob genug Platz da ist.** Ein Stapel, dem der
 Speicherplatz ausginge, wird abgelehnt statt begonnen.
@@ -206,7 +209,8 @@ merken sich dessen Namen nur für diesen Clone:
 `install.sh` kopiert erst nach `/Applications`, wenn Stapler, Gatekeeper und
 Signatur bestätigen, dass das Bundle wirklich notarisiert ist;
 `./install.sh --no-notarize` baut ein schnelles Testbundle, das im Projektordner
-bleibt.
+bleibt. Scheitert die Endprüfung der eingesetzten App, wird eine vorhandene
+Installation wiederhergestellt; eine abgelehnte Erstinstallation wird entfernt.
 
 Core-Bibliothek und CLI bleiben frei von AppKit/SwiftUI und damit
 Linux-portabel. Architektur und Meilensteine stehen in

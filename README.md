@@ -94,7 +94,10 @@ default while the app is young; turn it off under ⌘, or with `--no-backup` /
 **Changes made by other programs are not overwritten silently.** If a file
 changed on disk after you opened it, saving stops and asks. Choosing "Save
 anyway" is safe as well: the state currently on disk is what safe mode copies to
-the trash.
+the trash. Metadata reads are checked before and after as one snapshot — e-book
+fields and cover together — and checked again before a no-op result or the
+atomic replacement. Replacing a file at the same path is detected by its changed
+file identity, not mistaken for the file that was read.
 
 **Before writing, the app checks that there is room.** A batch that would run
 out of disk space is refused instead of started.
@@ -198,7 +201,9 @@ clone only:
 
 `install.sh` copies to `/Applications` only after stapler, Gatekeeper and the
 signature confirm the bundle really is notarized; `./install.sh --no-notarize`
-builds a quick test bundle that stays in the project folder.
+builds a quick test bundle that stays in the project folder. If the installed
+bundle fails its final checks, an existing installation is restored; a rejected
+first installation is removed again.
 
 The core library and CLI are kept free of AppKit/SwiftUI so they stay portable
 to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and

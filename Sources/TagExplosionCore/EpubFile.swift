@@ -165,7 +165,10 @@ enum EpubFile {
         }
         let ext = mime == "image/png" ? "png" : "jpg"
         let items = manifestItems(in: document)
-        let usedIDs = Set(items.compactMap { attribute($0, "id") })
+        // XML-IDs gelten im gesamten OPF-Dokument. Auch dc:creator,
+        // dc:identifier oder ein anderer Knoten außerhalb des Manifests kann
+        // den bevorzugten Namen bereits belegen.
+        let usedIDs = allIds(in: document)
         let usedHrefs = Set(items.compactMap { attribute($0, "href") })
         var suffix = 1
         var id = "cover-tagx"

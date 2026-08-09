@@ -346,6 +346,59 @@ struct TagArchiveTests {
         #expect(try Data(contentsOf: mp3) == bytesBefore)
     }
 
+    @Test("Atomare Ersetzung am gleichen Pfad nach der Zielprüfung wird abgelehnt")
+    func samePathReplacementAfterValidationIsRejected() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let target = dir.appendingPathComponent("sample.mp3")
+        try TagFile.write(
+            properties: [TagProperty(key: "TITLE", value: "Geprüfter Stand")],
+            artworks: [], to: target)
+        let replacement = dir.appendingPathComponent("replacement.mp3")
+        try FileManager.default.copyItem(at: target, to: replacement)
+        try TagFile.write(
+            properties: [TagProperty(key: "TITLE", value: "Fremder Ersatz")],
+            artworks: [], to: replacement)
+        let replacementBytes = try Data(contentsOf: replacement)
+        let archive = TagArchive(created: "2026-08-10T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Archivwert"]], artworks: []),
+        ])
+
+        let report = try TagArchiveIO.apply(
+            archive, relativeTo: dir, dryRun: false,
+            afterValidation: {
+                _ = try FileManager.default.replaceItemAt(target, withItemAt: replacement)
+            })
+
+        #expect(report.applied.isEmpty)
+        #expect(report.failed.map(\.0) == ["sample.mp3"])
+        #expect(report.failed.first?.1.contains("targetChangedAfterValidation") == true)
+        #expect(try Data(contentsOf: target) == replacementBytes)
+        #expect(try TagFile.read(at: target).firstValue(for: "TITLE") == "Fremder Ersatz")
+    }
+
+    @Test("Ein Archiv-No-op prüft den verglichenen Stand unmittelbar vor Erfolg")
+    func noopChangedAfterComparisonIsRejected() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        let target = dir.appendingPathComponent("sample.mp3")
+        let archive = try TagArchiveIO.build(
+            files: [target], baseDirectory: dir, includeCovers: true)
+
+        let report = try TagArchiveIO.apply(
+            archive, relativeTo: dir, dryRun: false,
+            afterValidation: {},
+            beforeNoopReturn: { url in
+                try TagFile.write(
+                    properties: [TagProperty(key: "TITLE", value: "Fremd nach Vergleich")],
+                    artworks: [], to: url)
+            })
+
+        #expect(report.unchanged.isEmpty)
+        #expect(report.failed.map(\.0) == ["sample.mp3"])
+        #expect(try TagFile.read(at: target).firstValue(for: "TITLE")
+                == "Fremd nach Vergleich")
+    }
+
     @Test("Externe Archivziele brauchen eine ausdrückliche Freigabe")
     func externalArchiveTargetRequiresApproval() throws {
         let parent = try makeFolder(["sample.mp3"])

@@ -163,9 +163,10 @@ struct Set: ParsableCommand {
         // die Datei WÄHREND des Lesens, passt der Stempel zu einer neueren
         // Fassung als der gelesene Inhalt — dann lieber abbrechen als auf
         // unklarer Grundlage entscheiden.
-        let stamp = FileStamp.current(of: url)
-        let existing = try TagFile.read(at: url)
-        try FileStamp.requireUnchanged(stamp, at: url)
+        let snapshot = try FileSnapshot.capture(at: url) {
+            try TagFile.read(at: url)
+        }
+        let existing = snapshot.value
 
         var properties: [TagProperty] = replaceAll ? [] : existing.properties
         for assignment in tag {
@@ -220,12 +221,13 @@ struct Set: ParsableCommand {
             // Programm die Datei inzwischen auf einen abweichenden Wert
             // gesetzt, wäre "0 field(s) changed" eine falsche Zusicherung —
             // der gewünschte Sollwert stünde gar nicht in der Datei.
-            try FileStamp.requireUnchanged(stamp, at: url)
+            try snapshot.requireCurrent(at: url)
             print("OK \(url.lastPathComponent): 0 field(s) changed")
             return
         }
+        try snapshot.requireCurrent(at: url)
         try TrashBackup.shared.backUp(url)
-        try TagFile.write(properties: properties, to: url, expecting: stamp)
+        try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp)
         print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
     }
 }

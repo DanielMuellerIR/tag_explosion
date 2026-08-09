@@ -7,8 +7,10 @@ oder `FileStamp` — und bevor irgendwo ein neuer Schreibweg entsteht.
 
 1. **Atomar schreiben (immer):** Jede Änderung entsteht an einer
    Geschwisterkopie, wird geprüft und ersetzt das Original erst per `rename`.
-   Gilt für Audio/Video (TagLib), EPUB und Calibre-Formate. Bilder erledigt
-   exiftool selbst über `-overwrite_original` (Temp + Rename).
+   Gilt für Audio/Video (TagLib), Bilder (exiftool), EPUB und Calibre-Formate.
+   exiftools `-overwrite_original` wirkt nur intern auf dieser
+   Geschwisterkopie; den verbindlichen Austausch erledigt auch dort
+   `AtomicFileRewrite`.
 2. **Papierkorb-Sicherung (`TrashBackup`, abgesicherter Modus):** Vor der
    Änderung wandert eine unveränderte Kopie in den Papierkorb.
 
@@ -23,10 +25,19 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   sieht die Änderung nie. `FileStamp` benutzt deshalb bewusst
   `FileManager.attributesOfItem`. Das war real: Der erste Entwurf der
   Stale-Prüfung war wirkungslos und fiel nur durch den zugehörigen Test auf.
-- **Neue Inode nach jedem Schreiben.** Der atomare Weg ersetzt die Datei.
-  Zusätzliche Hardlinks zeigen danach weiter auf den alten Stand. Bewusst in
-  Kauf genommen; erweiterte Attribute, Finder-Tags und Rechte übernimmt
-  `copyItem`.
+- **Neue Inode nach jedem Schreiben.** Der atomare Weg ersetzt nur den
+  gewählten Verzeichniseintrag. Ein zweiter Hardlink bleibt bytegleich auf der
+  alten Inode; das ist die bewusste Folge des sicheren Austauschs. Der
+  bestätigte Fehler war ein anderer: Eine atomare Ersetzung am **gleichen
+  Pfad** galt wegen der Pfadgleichheit fälschlich als dieselbe Datei. Deshalb
+  vergleicht `FileStamp` für Identität immer Datenträger und Inode;
+  Pfadgleichheit dient nur der Zielauflösung. Erweiterte Attribute,
+  Finder-Tags und Rechte übernimmt `copyItem`.
+- **Reads bilden einen Schnappschuss.** `FileSnapshot` erhebt den Stempel vor
+  den zusammengehörigen Leseoperationen und prüft ihn danach erneut. Der
+  Stempel wird außerdem vor einem No-op und direkt vor `rename` geprüft. Bei
+  E-Books gehören Kernfelder und Cover in denselben Schnappschuss, damit ein
+  Backup keinen Mischzustand aus zwei Dateifassungen enthält.
 - **Der Papierkorb ist pro Datenträger.** Eine Kopie muss auf demselben
   Volume entstehen wie das Original, sonst schreibt die Sicherung einer
   externen Platte die Systemplatte voll. `TrashBackup` legt den Ordner deshalb

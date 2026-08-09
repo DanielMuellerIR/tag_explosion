@@ -86,7 +86,8 @@ struct ExifSet: ParsableCommand {
     func run() throws {
         safeMode.apply()
         let url = try resolveFile(file)
-        let original = try ExifTool.readCoreFields(url: url)
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
+        let original = snapshot.value
         var fields = original
         if let title { fields.title = title }
         if let description { fields.description = description }
@@ -122,6 +123,10 @@ struct ExifSet: ParsableCommand {
         // geschrieben wird anschließend MWG-harmonisiert.
         if !copy.isEmpty {
             let raw = try ExifTool.readRawStringTags(urls: [url])[url.path] ?? [:]
+            // Kernfelder und Roh-Tags müssen weiterhin dieselbe Dateifassung
+            // beschreiben; der zweite exiftool-Aufruf darf nicht unbemerkt auf
+            // eine zwischenzeitlich ersetzte Datei wechseln.
+            try snapshot.requireCurrent(at: url)
             for assignment in copy {
                 guard let eq = assignment.firstIndex(of: "=") else {
                     throw ValidationError("Invalid copy assignment (expected TARGET=Group:Tag): \(assignment)")
@@ -148,11 +153,14 @@ struct ExifSet: ParsableCommand {
             }
         }
         guard fields != original else {
+            try snapshot.requireCurrent(at: url)
             print("No changes")
             return
         }
+        try snapshot.requireCurrent(at: url)
         try TrashBackup.shared.backUp(url)
-        try ExifTool.writeCoreFields(url: url, fields: fields, original: original)
+        try ExifTool.writeCoreFields(
+            url: url, fields: fields, original: original, expecting: snapshot.stamp)
         print("OK \(url.lastPathComponent)")
     }
 }

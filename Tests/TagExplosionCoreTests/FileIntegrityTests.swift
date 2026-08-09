@@ -250,6 +250,30 @@ struct FileIntegrityTests {
         }
     }
 
+    @Test("Atomarer Schreibweg ändert keinen zweiten Hardlink")
+    func atomicRewriteLeavesSecondHardlinkOnPreviousVersion() throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let link = url.deletingLastPathComponent().appendingPathComponent("zweiter-link.mp3")
+        try FileManager.default.linkItem(at: url, to: link)
+        let linkedBytesBefore = try Data(contentsOf: link)
+        let sharedStamp = try #require(FileStamp.current(of: url))
+        #expect(FileStamp.current(of: link)?.hasSameFileIdentity(as: sharedStamp) == true)
+
+        try TagFile.write(
+            properties: [TagProperty(key: "TITLE", value: "Nur am Zielpfad neu")],
+            to: url, expecting: sharedStamp)
+
+        // rename ersetzt nur den Verzeichniseintrag von `url`. Der zweite
+        // Hardlink bleibt bewusst auf der vorigen Inode und ist bytegleich.
+        #expect(try Data(contentsOf: link) == linkedBytesBefore)
+        #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Nur am Zielpfad neu")
+        #expect(try TagFile.read(at: link).firstValue(for: "TITLE")
+                != "Nur am Zielpfad neu")
+        let newStamp = try #require(FileStamp.current(of: url))
+        #expect(!newStamp.hasSameFileIdentity(as: sharedStamp))
+        #expect(FileStamp.current(of: link)?.hasSameFileIdentity(as: sharedStamp) == true)
+    }
+
     @Test("Über eine Verknüpfung geöffnete Datei meldet keinen Scheinkonflikt")
     func stampOfSymlinkDescribesTheTargetFile() throws {
         // Der Stempel enthält jetzt auch die Inode. `attributesOfItem` folgt

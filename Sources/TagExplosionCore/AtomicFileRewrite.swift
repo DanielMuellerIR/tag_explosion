@@ -23,6 +23,11 @@ enum AtomicFileRewrite {
         let temp = siblingTempURL(for: destination)
         let fileManager = FileManager.default
 
+        // Einen bereits veralteten Lesestand ablehnen, bevor Kopie, Platztest
+        // und Backend-Arbeit beginnen. Die zweite, verbindliche Prüfung direkt
+        // vor rename bleibt bestehen und schließt das anschließende Zeitfenster.
+        try FileStamp.requireUnchanged(stamp, at: destination)
+
         // Ein schreibgeschuetztes Original darf durch die beschreibbare
         // Verzeichnis-Kopie nicht unbemerkt doch veraendert werden.
         let attributes = try fileManager.attributesOfItem(atPath: destination.path)

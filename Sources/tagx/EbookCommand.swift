@@ -78,7 +78,13 @@ struct EbookSet: ParsableCommand {
     func run() throws {
         safeMode.apply()
         let url = try resolveFile(file)
-        let original = try EbookTool.readCoreFields(url: url)
+        let snapshot = try EbookTool.readSnapshot(
+            // Felder und Cover bilden genau dann einen gemeinsamen Snapshot,
+            // wenn --cover den bestehenden Cover-Stand wirklich vergleicht.
+            // Reine Feldänderungen dürfen nicht von einem unnötigen
+            // ebook-meta --get-cover-Aufruf abhängen.
+            url: url, includeCover: cover != nil && EbookTool.supportsCover(url: url))
+        let original = snapshot.value.fields
         var fields = original
         if let title { fields.title = title }
         if let authors { fields.authors = authors.splitCommaList() }
@@ -103,13 +109,30 @@ struct EbookSet: ParsableCommand {
             }
             let coverURL = try resolveFile(cover)
             let data = try Data(contentsOf: coverURL)
-            coverUpdate = .set(data)
+            // Auch das Lesen der externen Cover-Datei öffnet ein Zeitfenster.
+            // Vor Vergleich/Schreiben muss das E-Book noch der Ausgangsfassung
+            // entsprechen. Identische Coverdaten bleiben ein echter No-op.
+            try snapshot.requireCurrent(at: url)
+            if data != snapshot.value.cover?.data {
+                coverUpdate = .set(data)
+            }
         }
-        let changed = fields != original || cover != nil
-        if changed { try TrashBackup.shared.backUp(url) }
+        let coverChanged: Bool
+        switch coverUpdate {
+        case .unchanged: coverChanged = false
+        case .set, .remove: coverChanged = true
+        }
+        let changed = fields != original || coverChanged
+        guard changed else {
+            try snapshot.requireCurrent(at: url)
+            print("No changes")
+            return
+        }
+        try snapshot.requireCurrent(at: url)
+        try TrashBackup.shared.backUp(url)
         try EbookTool.write(
             url: url, fields: fields, original: original,
-            coverUpdate: coverUpdate)
-        print(changed ? "OK \(url.lastPathComponent)" : "No changes")
+            coverUpdate: coverUpdate, expecting: snapshot.stamp)
+        print("OK \(url.lastPathComponent)")
     }
 }

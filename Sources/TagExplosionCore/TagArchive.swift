@@ -4,11 +4,6 @@
 // Kernfelder, Cover Base64-eingebettet. Ausschließlich JSONEncoder/JSONDecoder
 // (korrektes Escaping garantiert).
 import Foundation
-#if canImport(Darwin)
-import Darwin
-#elseif canImport(Glibc)
-import Glibc
-#endif
 
 /// Der Inhalt einer Export-/Backup-Datei.
 public struct TagArchive: Codable, Sendable, Equatable {
@@ -125,7 +120,9 @@ public enum TagArchiveIO {
             switch kind {
             case .audio:
                 if includeCovers {
-                    let data = try TagFile.read(at: url)
+                    let data = try FileSnapshot.capture(at: url) {
+                        try TagFile.read(at: url)
+                    }.value
                     entry.properties = propertyMap(data.properties)
                     // [] bedeutet bewusst: Es wurde nach Covern gesucht, aber
                     // keines gefunden. nil bleibt für --without-covers reserviert.
@@ -133,18 +130,23 @@ public enum TagArchiveIO {
                 } else {
                     // Ohne Cover reicht die PropertyMap — erspart das
                     // Extrahieren aller eingebetteten Bilder.
-                    let file = try TagFile(url: url)
-                    defer { file.close() }
-                    entry.properties = propertyMap(try file.properties())
+                    entry.properties = try FileSnapshot.capture(at: url) {
+                        let file = try TagFile(url: url)
+                        defer { file.close() }
+                        return propertyMap(try file.properties())
+                    }.value
                 }
             case .image:
-                entry.image = try ExifTool.readCoreFields(url: url)
+                entry.image = try ExifTool.readCoreFieldsSnapshot(url: url).value
             case .ebook:
-                entry.ebook = try EbookTool.readCoreFields(url: url)
-                if includeCovers, EbookTool.supportsCover(url: url) {
+                let readsCover = includeCovers && EbookTool.supportsCover(url: url)
+                let snapshot = try EbookTool.readSnapshot(
+                    url: url, includeCover: readsCover)
+                entry.ebook = snapshot.value.fields
+                if readsCover {
                     // Lesefehler nicht als "kein Cover" umdeuten: Sonst könnte
                     // ein späterer Import ein vorhandenes Cover löschen.
-                    entry.artworks = try EbookTool.readCover(url: url).map { [$0] } ?? []
+                    entry.artworks = snapshot.value.cover.map { [$0] } ?? []
                 }
             }
             entries.append(entry)
@@ -243,14 +245,33 @@ public enum TagArchiveIO {
     public static func apply(_ archive: TagArchive, relativeTo baseDirectory: URL,
                              dryRun: Bool, approvedTargets: [URL]? = nil) throws
     -> TagArchiveReport {
+        try apply(
+            archive, relativeTo: baseDirectory, dryRun: dryRun,
+            approvedTargets: approvedTargets, afterValidation: {},
+            beforeNoopReturn: { _ in })
+    }
+
+    /// Testbarer Kern: Der Hook liegt exakt nach Ziel-/Identitätsprüfung und
+    /// vor dem ersten Read. Produktive Aufrufer verwenden den öffentlichen
+    /// Overload ohne Hook.
+    static func apply(
+        _ archive: TagArchive,
+        relativeTo baseDirectory: URL,
+        dryRun: Bool,
+        approvedTargets: [URL]? = nil,
+        afterValidation: () throws -> Void,
+        beforeNoopReturn: (URL) throws -> Void = { _ in }
+    ) throws -> TagArchiveReport {
         // Die gesamte Datei wird vor der Schleife geprüft. Damit kann kein
         // fehlerhafter Eintrag nach einer schon geschriebenen Datei auffallen.
         // Ein zuvor in CLI/App angezeigter externer Pfad wird hier unmittelbar
         // vor den Mutationen nochmals vollständig aufgelöst und geprüft.
-        let targets = try validatedTargets(
+        try validate(archive)
+        let validated = try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
             allowExternalTargets: approvedTargets != nil
         )
+        let targets = validated.map(\.url)
         if let approvedTargets {
             // Bewusst KEINE erneute Kanonisierung der freigegebenen Pfade: Sie
             // sind der beim Bestätigen angezeigte, bereits vollständig
@@ -263,27 +284,26 @@ public enum TagArchiveIO {
                 throw TagArchiveError.approvedTargetListChanged
             }
         }
-        // Die Identität jedes Ziels zum Prüfzeitpunkt festhalten. Zwischen der
-        // Prüfung und dem Schreiben eines SPÄTEREN Eintrags liegen alle
-        // vorherigen Schreibvorgänge — Zeit genug, ein noch nicht bearbeitetes
-        // Ziel durch eine Verknüpfung auf eine ganz andere Datei zu ersetzen.
-        // Ohne diese Wiederholung folgten Lesen, Sicherung und Schreiben dem
-        // untergeschobenen Ziel.
-        let validatedIdentities = targets.map(FileIdentity.init)
+        try afterValidation()
+
         var report = TagArchiveReport()
-        for (index, (entry, url)) in zip(archive.files, targets).enumerated() {
-            guard FileManager.default.fileExists(atPath: url.path) else {
+        for (entry, target) in zip(archive.files, validated) {
+            let url = target.url
+            guard let validatedStamp = target.stamp else {
                 report.missing.append(entry.path)
                 continue
             }
             do {
-                guard FileIdentity(url).matches(validatedIdentities[index]) else {
+                guard let current = FileStamp.current(of: url),
+                      current.hasSameFileIdentity(as: validatedStamp) else {
                     // Bewusst nur dieser Eintrag: Die übrigen Ziele werden
                     // einzeln genauso geprüft, und der Bericht soll weiterhin
                     // zeigen, was tatsächlich geschrieben wurde.
                     throw TagArchiveError.targetChangedAfterValidation(path: entry.path)
                 }
-                if try applyEntry(entry, to: url, dryRun: dryRun) {
+                if try applyEntry(
+                    entry, to: url, dryRun: dryRun, expecting: validatedStamp,
+                    beforeNoopReturn: beforeNoopReturn) {
                     report.applied.append(entry.path)
                 } else {
                     report.unchanged.append(entry.path)
@@ -317,7 +337,7 @@ public enum TagArchiveIO {
         return try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
             allowExternalTargets: allowExternalTargets
-        )
+        ).map(\.url)
     }
 
     /// Aus einer bereits vollständig aufgelösten Zielliste die Ziele außerhalb
@@ -329,16 +349,19 @@ public enum TagArchiveIO {
     }
 
     /// Wendet einen Eintrag an; true = Datei wurde (bzw. würde) geändert.
-    private static func applyEntry(_ entry: TagArchive.Entry, to url: URL,
-                                   dryRun: Bool) throws -> Bool {
-        // Stempel VOR dem Lesen erheben und bis zum Austausch mitführen:
-        // Zwischen Lesen und Schreiben liegt noch die Papierkorb-Sicherung.
-        // Ändert ein anderes Programm die Datei in dieser Zeit, bricht das
-        // Schreiben ab, statt die fremde Änderung stillschweigend zu verwerfen.
-        let stamp = FileStamp.current(of: url)
+    private static func applyEntry(
+        _ entry: TagArchive.Entry,
+        to url: URL,
+        dryRun: Bool,
+        expecting stamp: FileStamp,
+        beforeNoopReturn: (URL) throws -> Void
+    ) throws -> Bool {
         switch entry.kind {
         case .audio:
-            let current = try TagFile.read(at: url)
+            let snapshot = try FileSnapshot.capture(at: url, expecting: stamp) {
+                try TagFile.read(at: url)
+            }
+            let current = snapshot.value
             // validate(_:) garantiert diese Pflichtangabe. Das unwrap verhindert
             // trotzdem, dass ein späterer Refactor nil als "alle Tags löschen"
             // missversteht.
@@ -350,39 +373,57 @@ public enum TagArchiveIO {
             let propertiesDiffer = propertyMap(current.properties) != targetProperties
             // Ohne Cover im Archiv (--without-covers) bleiben Cover unangetastet.
             let artworksDiffer = targetArtworks.map { $0 != current.artworks } ?? false
-            guard propertiesDiffer || artworksDiffer else { return false }
+            guard propertiesDiffer || artworksDiffer else {
+                try beforeNoopReturn(url)
+                try snapshot.requireCurrent(at: url)
+                return false
+            }
             if !dryRun {
+                try snapshot.requireCurrent(at: url)
                 try TrashBackup.shared.backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
                                   artworks: targetArtworks ?? current.artworks, to: url,
-                                  expecting: stamp)
+                                  expecting: snapshot.stamp)
             }
             return true
         case .image:
-            let current = try ExifTool.readCoreFields(url: url)
-            guard let target = entry.image, target != current else { return false }
+            let snapshot = try ExifTool.readCoreFieldsSnapshot(
+                url: url, expecting: stamp)
+            let current = snapshot.value
+            guard let target = entry.image, target != current else {
+                try beforeNoopReturn(url)
+                try snapshot.requireCurrent(at: url)
+                return false
+            }
             if !dryRun {
+                try snapshot.requireCurrent(at: url)
                 try TrashBackup.shared.backUp(url)
                 try ExifTool.writeCoreFields(url: url, fields: target, original: current,
-                                             expecting: stamp)
+                                             expecting: snapshot.stamp)
             }
             return true
         case .ebook:
-            let current = try EbookTool.readCoreFields(url: url)
             guard let target = entry.ebook else {
                 throw TagArchiveError.incompleteEntry(
                     path: entry.path, kind: entry.kind, missing: "ebook")
             }
-            let fieldsDiffer = target != current
             let targetArtworks = EbookTool.supportsCover(url: url) ? entry.artworks : nil
+            let snapshot = try EbookTool.readSnapshot(
+                url: url, includeCover: targetArtworks != nil, expecting: stamp)
+            let current = snapshot.value.fields
+            let fieldsDiffer = target != current
             let targetCover = targetArtworks?.first
-            let currentCover = targetArtworks == nil ? nil : try EbookTool.readCover(url: url)
+            let currentCover = snapshot.value.cover
             // nil: Cover wurden nicht archiviert und bleiben deshalb unangetastet.
             // []: Das Archiv verlangt ausdrücklich, ein vorhandenes Cover zu entfernen.
             let coverDiffers = targetArtworks.map { _ in
                 currentCover?.data != targetCover?.data
             } ?? false
-            guard fieldsDiffer || coverDiffers else { return false }
+            guard fieldsDiffer || coverDiffers else {
+                try beforeNoopReturn(url)
+                try snapshot.requireCurrent(at: url)
+                return false
+            }
             if !dryRun {
                 let coverUpdate: EbookCoverUpdate
                 if !coverDiffers {
@@ -392,10 +433,11 @@ public enum TagArchiveIO {
                 } else {
                     coverUpdate = .remove
                 }
+                try snapshot.requireCurrent(at: url)
                 try TrashBackup.shared.backUp(url)
                 try EbookTool.write(
                     url: url, fields: target, original: current,
-                    coverUpdate: coverUpdate, expecting: stamp)
+                    coverUpdate: coverUpdate, expecting: snapshot.stamp)
             }
             return true
         }
@@ -473,10 +515,10 @@ public enum TagArchiveIO {
         _ archive: TagArchive,
         relativeTo baseDirectory: URL,
         allowExternalTargets: Bool
-    ) throws -> [URL] {
+    ) throws -> [ValidatedTarget] {
         let canonicalBase = MediaFormats.canonicalFileURL(baseDirectory)
         var identities: [FileIdentity] = []
-        var targets: [URL] = []
+        var targets: [ValidatedTarget] = []
         for entry in archive.files {
             let url = MediaFormats.canonicalFileURL(
                 resolve(path: entry.path, in: baseDirectory)
@@ -485,22 +527,27 @@ public enum TagArchiveIO {
                 throw TagArchiveError.externalTargetRequiresApproval(
                     path: entry.path, resolvedPath: url.path)
             }
-            targets.append(url)
-            guard FileManager.default.fileExists(atPath: url.path) else { continue }
-            guard MediaFormats.kind(of: url) == entry.kind else {
-                throw TagArchiveError.inconsistentEntry(
-                    path: entry.path, detail: "target media type does not match the archive entry")
-            }
-            // Zwei verschiedene Archivpfade können über Symlinks auf dieselbe
-            // Datei zeigen. Vor der ersten Mutation muss deshalb die zentrale
-            // kanonische Dateidentität verglichen werden, nicht nur der Text
-            // des jeweiligen relativen Pfads.
-            let identity = FileIdentity(url)
-            guard !identities.contains(where: { $0.matches(identity) }) else {
+            let exists = FileManager.default.fileExists(atPath: url.path)
+            let stamp = exists ? FileStamp.current(of: url) : nil
+            if exists && stamp == nil { throw TagError.cannotOpen(path: url.path) }
+
+            // Pfad und Identität werden in derselben Validierungsrunde erfasst
+            // und gemeinsam bis zum Schreibweg getragen. Ein später frisch
+            // erhobener Stempel könnte bereits zu einer untergeschobenen Datei
+            // gehören und wäre als Ausgangsbeweis wertlos.
+            let identity = FileIdentity(url, validatedStamp: stamp)
+            guard !identities.contains(where: { $0.resolvesToSameTarget(as: identity) }) else {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "different paths resolve to the same target")
             }
             identities.append(identity)
+            targets.append(ValidatedTarget(url: url, stamp: stamp))
+
+            guard exists else { continue }
+            guard MediaFormats.kind(of: url) == entry.kind else {
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path, detail: "target media type does not match the archive entry")
+            }
             if entry.kind == .ebook, let artworks = entry.artworks {
                 guard EbookTool.supportsCover(url: url) else {
                     throw TagArchiveError.inconsistentEntry(
@@ -539,7 +586,7 @@ public enum TagArchiveIO {
     public static func validateExportDestination(files: [URL], destination: URL) throws {
         let destinationIdentity = FileIdentity(destination)
         for file in files {
-            if destinationIdentity.matches(FileIdentity(file)) {
+            if destinationIdentity.resolvesToSameTarget(as: FileIdentity(file)) {
                 throw TagArchiveError.exportDestinationMatchesInput(
                     input: file.path, destination: destination.path)
             }
@@ -549,26 +596,35 @@ public enum TagArchiveIO {
     /// Identität einer Datei ohne Dateiinhalte zu lesen. Ein nicht vorhandenes
     /// Ziel hat nur einen kanonischen Pfad; ein Hardlink kann erst verglichen
     /// werden, wenn beide Pfade bereits existieren.
+    private struct ValidatedTarget {
+        let url: URL
+        /// nil bedeutet: Das Ziel fehlte während der vollständigen Vorprüfung.
+        let stamp: FileStamp?
+    }
+
     private struct FileIdentity {
         let canonicalPath: String
-        let device: UInt64?
-        let inode: UInt64?
+        let stamp: FileStamp?
 
         init(_ url: URL) {
             canonicalPath = url.standardizedFileURL.resolvingSymlinksInPath().path
-            var status = stat()
-            if stat(url.path, &status) == 0 {
-                device = UInt64(status.st_dev)
-                inode = UInt64(status.st_ino)
-            } else {
-                device = nil
-                inode = nil
-            }
+            stamp = FileStamp.current(of: url)
         }
 
-        func matches(_ other: FileIdentity) -> Bool {
+        init(_ url: URL, validatedStamp: FileStamp?) {
+            canonicalPath = url.standardizedFileURL.resolvingSymlinksInPath().path
+            stamp = validatedStamp
+        }
+
+        /// Zwei Pfade bezeichnen dasselbe Ziel, wenn ihr kanonischer Pfad
+        /// gleich ist ODER beide vorhandenen Dateien dieselbe Inode besitzen.
+        /// Diese Ziel-Deduplizierung ist bewusst etwas anderes als die Frage,
+        /// ob eine Datei seit der Prüfung unverändert blieb: Dort darf derselbe
+        /// Pfad niemals eine neue Inode legitimieren.
+        func resolvesToSameTarget(as other: FileIdentity) -> Bool {
             if canonicalPath == other.canonicalPath { return true }
-            return device != nil && device == other.device && inode != nil && inode == other.inode
+            guard let stamp, let otherStamp = other.stamp else { return false }
+            return stamp.hasSameFileIdentity(as: otherStamp)
         }
     }
 

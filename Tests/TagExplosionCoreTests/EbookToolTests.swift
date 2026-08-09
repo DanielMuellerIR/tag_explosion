@@ -120,6 +120,37 @@ struct EbookToolTests {
         #expect(try Data(contentsOf: url) == bytesBefore)
     }
 
+    @Test("Felder und Cover können nicht aus zwei EPUB-Fassungen gemischt werden")
+    func ebookSnapshotRejectsReplacementBetweenFieldAndCoverRead() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let replacement = try Fixtures.workingCopy("book3.epub")
+        let replacementBytes = try Data(contentsOf: replacement)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            _ = try EbookTool.readSnapshot(
+                url: url, includeCover: true,
+                betweenReads: {
+                    _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+                })
+        }
+        #expect(try Data(contentsOf: url) == replacementBytes)
+    }
+
+    @Test("E-Book-No-op bestätigt keinen inzwischen ersetzten Pfad")
+    func ebookNoopRejectsStaleSnapshot() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let snapshot = try EbookTool.readSnapshot(url: url, includeCover: true)
+        let replacement = try Fixtures.workingCopy("book2.epub")
+        _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            try EbookTool.write(
+                url: url, fields: snapshot.value.fields,
+                original: snapshot.value.fields, coverUpdate: .unchanged,
+                expecting: snapshot.stamp)
+        }
+    }
+
     // MARK: - EPUB 3
 
     @Test("EPUB 3: bekannte Felder lesen")
@@ -199,6 +230,26 @@ struct EbookToolTests {
         #expect(xml.components(separatedBy: "id=\"cover-tagx-2\"").count == 2)
         #expect(xml.components(separatedBy: "href=\"cover-tagx.png\"").count == 2)
         #expect(xml.components(separatedBy: "href=\"cover-tagx-2.jpg\"").count == 2)
+    }
+
+    @Test("EPUB: Neue Cover-ID weicht jeder OPF-ID außerhalb des Manifests aus")
+    func epubCoverIdAvoidsIdsOutsideManifest() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        try EbookTool.removeCover(url: url)
+        try rewriteOpf(in: url, path: "OEBPS/content.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:creator opf:role=\"aut\">Erika Beispiel</dc:creator>",
+                with: "<dc:creator id=\"cover-tagx\" opf:role=\"aut\">Erika Beispiel</dc:creator>")
+        }
+
+        let replacement = try Fixtures.coverData("cover.png")
+        try EbookTool.writeCover(url: url, data: replacement)
+
+        let xml = try opfContents(of: url, path: "OEBPS/content.opf")
+        #expect(xml.components(separatedBy: "id=\"cover-tagx\"").count - 1 == 1)
+        #expect(xml.contains("id=\"cover-tagx-2\""))
+        #expect(xml.contains("content=\"cover-tagx-2\""))
+        #expect(try EbookTool.readCover(url: url)?.data == replacement)
     }
 
     // MARK: - PDF (exiftool)

@@ -8,6 +8,38 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.20.1] — 2026-08-10
+
+Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-09.
+
+### Geändert
+
+- Audio-, Bild- und E-Book-Leser verwenden denselben Schnappschussvertrag:
+  Inhalt und Datei-Stempel werden vor und nach allen zusammengehörigen Reads
+  geprüft. Bei E-Books gehören Felder und Cover zu einem gemeinsamen Stand;
+  auch ein vermeintlicher No-op wird vor der Erfolgsmeldung erneut geprüft.
+- Die Dokumentation beschreibt jetzt korrekt, dass auch exiftool ausschließlich
+  eine Geschwisterkopie innerhalb von `AtomicFileRewrite` verändert. Ein
+  zweiter Hardlink bleibt beim atomaren Austausch bewusst auf der alten
+  Fassung; behoben wurde die zuvor unerkannte Ersetzung am selben Pfad.
+
+### Behoben
+
+- Archivimporte erfassen Zielpfad, Dateiidentität und Stempel gemeinsam in der
+  Vorprüfung und tragen genau diesen Stand bis zum Read, No-op oder atomaren
+  Austausch. Eine neue Inode gilt niemals allein wegen desselben Pfads als die
+  zuvor geprüfte Datei.
+- `tagx exif set` und `tagx ebook set` reichen den gelesenen Stempel bis in den
+  atomaren Schreibweg weiter. Fremde Änderungen nach dem Lesen werden weder
+  überschrieben noch fälschlich als „No changes" bestätigt.
+- E-Book-Backups können Felder und Cover nicht mehr aus zwei nacheinander am
+  selben Pfad gesehenen Dateifassungen mischen.
+- EPUB-Cover-IDs werden gegen alle IDs des OPF-Dokuments gewählt, nicht nur
+  gegen Manifest-IDs.
+- Der Installer entfernt ein bei der Endprüfung abgelehntes Bundle auch bei
+  einer Erstinstallation. Bei Updates bleibt die gute alte Fassung erhalten,
+  falls schon das Zurückholen fehlschlägt.
+
 ## [0.20.0] — 2026-08-07
 
 Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-06.

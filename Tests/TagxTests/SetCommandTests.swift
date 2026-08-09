@@ -48,6 +48,32 @@ struct SetCommandTests {
         #expect(mixed.stdout.contains("1 field(s) changed"))
     }
 
+    @Test("No-op-Vertrag lehnt eine Ersetzung nach dem Feldvergleich ab",
+          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
+    func noopSnapshotRejectsSamePathReplacementAfterComparison() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-set-noop-race-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("song.mp3")
+        let replacement = directory.appendingPathComponent("replacement.mp3")
+        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: file)
+        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: replacement)
+
+        // Genau derselbe Vertrag liegt im Set-Befehl um Read, Vergleich und
+        // No-op-Rückweg. Nach dem semantischen Vergleich wird der Pfad gezielt
+        // atomar auf eine andere Inode umgestellt.
+        let snapshot = try FileSnapshot.capture(at: file) {
+            try TagFile.read(at: file)
+        }
+        #expect(!snapshot.value.properties.isEmpty)
+        _ = try FileManager.default.replaceItemAt(file, withItemAt: replacement)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: file.path)) {
+            try snapshot.requireCurrent(at: file)
+        }
+    }
+
     /// Baut das CLI-Produkt über SwiftPM und startet genau das entstandene
     /// Binary (gleiches Muster wie in ExportCollisionTests).
     private func runTagx(arguments: [String]) throws

@@ -63,4 +63,44 @@ public struct FileStamp: Sendable, Equatable, Codable {
             throw TagError.fileChangedOnDisk(path: url.path)
         }
     }
+
+    /// Vergleicht ausschließlich die Dateisystem-Identität. Pfadgleichheit ist
+    /// ausdrücklich kein Ersatz dafür: Nach einem atomaren Austausch zeigt
+    /// derselbe Pfad auf eine andere Inode.
+    public func hasSameFileIdentity(as other: FileStamp) -> Bool {
+        device != nil && device == other.device && inode != nil && inode == other.inode
+    }
+}
+
+/// Ein gelesener Wert zusammen mit exakt dem Plattenstand, aus dem er stammt.
+/// `capture` prüft den Stempel vor und nach allen Leseoperationen; so können
+/// mehrere Backend-Aufrufe keinen Mischzustand aus zwei Dateifassungen bilden.
+public struct FileSnapshot<Value: Sendable>: Sendable {
+    public let value: Value
+    public let stamp: FileStamp
+
+    public init(value: Value, stamp: FileStamp) {
+        self.value = value
+        self.stamp = stamp
+    }
+
+    public static func capture(
+        at url: URL,
+        expecting expected: FileStamp? = nil,
+        read: () throws -> Value
+    ) throws -> FileSnapshot<Value> {
+        guard let stamp = expected ?? FileStamp.current(of: url) else {
+            throw TagError.cannotOpen(path: url.path)
+        }
+        try FileStamp.requireUnchanged(stamp, at: url)
+        let value = try read()
+        try FileStamp.requireUnchanged(stamp, at: url)
+        return FileSnapshot(value: value, stamp: stamp)
+    }
+
+    /// Erneute Prüfung direkt an einer Entscheidungsgrenze, insbesondere vor
+    /// einer No-op-Erfolgsmeldung oder bevor der Schreibweg beginnt.
+    public func requireCurrent(at url: URL) throws {
+        try FileStamp.requireUnchanged(stamp, at: url)
+    }
 }

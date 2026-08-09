@@ -98,4 +98,32 @@ struct ExifToolTests {
         #expect(readBack.title == "PNG-Titel")
         #expect(readBack.keywords == ["png", "test"])
     }
+
+    @Test("Ersetzung zwischen exiftool-Read und Stempelprüfung wird erkannt")
+    func replacementDuringSnapshotReadIsRejected() throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        let replacement = try Fixtures.workingCopy("cover.png")
+        let replacementBytes = try Data(contentsOf: replacement)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            _ = try ExifTool.readCoreFieldsSnapshot(url: url, afterRead: {
+                _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+            })
+        }
+        #expect(try Data(contentsOf: url) == replacementBytes)
+    }
+
+    @Test("Exif-No-op bestätigt keinen inzwischen ersetzten Pfad")
+    func exifNoopRejectsStaleSnapshot() throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
+        let replacement = try Fixtures.workingCopy("cover.jpg")
+        _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            try ExifTool.writeCoreFields(
+                url: url, fields: snapshot.value, original: snapshot.value,
+                expecting: snapshot.stamp)
+        }
+    }
 }
