@@ -19,6 +19,7 @@ cli_only=0
 release=0
 finder_layout=1
 build_dmg=1
+portable_taglib_root=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -32,6 +33,22 @@ for arg in "$@"; do
 done
 
 echo "== Tag Explosion $version ($config) =="
+
+# Ein Release darf die aktuelle Homebrew-TagLib nicht blind übernehmen: Auf
+# einem neueren Build-Mac kann deren eigenes LC_BUILD_VERSION neuer sein als
+# das von der App versprochene macOS 14. Die gepinnte, verifizierte Flasche wird
+# sowohl zum Übersetzen als auch zum Bündeln verwendet. Saubere SwiftPM-Builds
+# verhindern, dass Objekte aus einem früheren Homebrew-Build wiederverwendet
+# werden.
+if [ "$release" = "1" ]; then
+    portable_taglib_root="$("$here/scripts/prepare-portable-taglib.sh")"
+    PKG_CONFIG_PATH="$portable_taglib_root/lib/pkgconfig"
+    PKG_CONFIG_LIBDIR="$portable_taglib_root/lib/pkgconfig"
+    DYLD_LIBRARY_PATH="$portable_taglib_root/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+    export PKG_CONFIG_PATH PKG_CONFIG_LIBDIR DYLD_LIBRARY_PATH
+    swift package --package-path "$here" clean
+    swift package --package-path "$here/App" clean
+fi
 
 # Update-Feed: normale und Release-Builds nutzen immer den öffentlichen
 # GitHub-Pages-Feed; für einen echten Upgrade-Test kann per Umgebungsvariable
@@ -203,9 +220,9 @@ fi
 
 # ---- Distribution (--release) -----------------------------------------------
 # TagLib wird im Dev-Build dynamisch aus Homebrew geladen. Für die verteilbare
-# App: dylibs nach Contents/Frameworks bündeln (läuft dann ohne Homebrew) und
+# App: die oben gepinnte macOS-14-Fassung nach Contents/Frameworks bündeln und
 # Install-Namen umbiegen — Pflicht auch wegen Library Validation der Hardened
-# Runtime (fremd signierte Homebrew-dylibs würden beim Laden geblockt).
+# Runtime (fremd signierte dylibs würden beim Laden geblockt).
 : "${NOTARY_PROFILE:?NOTARY_PROFILE muss gesetzt sein (notarytool-Keychain-Profil)}"
 identity="$(security find-identity -v -p codesigning \
     | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')"
@@ -215,28 +232,30 @@ echo "== Signiere als: $identity =="
 bin="$app/Contents/MacOS/TagExplosion"
 # $fw (Contents/Frameworks) existiert bereits — Sparkle liegt schon dort.
 
-# 1) Direkt gelinkte Homebrew-dylibs einsammeln und im Binary umbiegen
-for dep in $(otool -L "$bin" | awk '$1 ~ /^\/opt\/homebrew\/.*\.dylib$/ {print $1}'); do
-    base="$(basename "$dep")"
-    cp -f "$dep" "$fw/$base"
+# 1) Die beiden gepinnten TagLib-dylibs ausdrücklich einsammeln. Dadurch hängt
+# der Release weder vom Homebrew-Stand noch vom Installationspfad dieses Macs ab.
+for base in libtag.2.dylib libtag_c.2.dylib; do
+    cp -f "$portable_taglib_root/lib/$base" "$fw/$base"
     chmod u+w "$fw/$base"
     install_name_tool -id "@executable_path/../Frameworks/$base" "$fw/$base"
+done
+
+# 2) Direkte und gegenseitige TagLib-Verweise auf die Bundle-Pfade umbiegen.
+for dep in $(otool -L "$bin" | awk '$1 ~ /\/libtag(_c)?\.[0-9]+\.dylib$/ {print $1}'); do
+    base="$(basename "$dep")"
     install_name_tool -change "$dep" "@executable_path/../Frameworks/$base" "$bin"
 done
-# 2) Querverweise der gebündelten dylibs untereinander umbiegen (z.B.
-#    libtag_c -> libtag, referenziert über den Cellar-Pfad)
 for lib in "$fw"/*.dylib; do
-    for sub in $(otool -L "$lib" | awk 'NR>1 && $1 ~ /^\/opt\/homebrew\/.*\.dylib$/ {print $1}'); do
+    for sub in $(otool -L "$lib" | awk 'NR>1 && $1 ~ /\/libtag(_c)?\.[0-9]+\.dylib$/ {print $1}'); do
         subbase="$(basename "$sub")"
-        if [ ! -f "$fw/$subbase" ]; then
-            cp -f "$sub" "$fw/$subbase"
-            chmod u+w "$fw/$subbase"
-            install_name_tool -id "@executable_path/../Frameworks/$subbase" "$fw/$subbase"
-        fi
         install_name_tool -change "$sub" "@executable_path/../Frameworks/$subbase" "$lib"
     done
 done
 echo "Gebündelte Bibliotheken:"; ls "$fw"
+
+# Letzter maschinenlesbarer Vertrag vor der Signatur: Jede ausführbare Datei
+# und Bibliothek im Bundle muss die in Info.plist genannte Mindestversion halten.
+"$here/scripts/verify-macos-minimums.sh" "$app"
 
 # Erst jetzt strippen: install_name_tool oben hat die Binärdatei noch verändert,
 # und strip muss vor dem Signieren laufen (siehe Erklärung bei

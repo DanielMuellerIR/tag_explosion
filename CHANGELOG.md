@@ -25,6 +25,11 @@ Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-09.
 
 ### Behoben
 
+- Der verteilbare macOS-Build bündelt eine gepinnte, prüfsummenverifizierte
+  TagLib mit Mindestziel macOS 14 und prüft alle Mach-O-Dateien im App-Bundle.
+  Ein Build auf einem neueren macOS kann dadurch nicht mehr unbemerkt eine nur
+  dort lauffähige Homebrew-Bibliothek in die als macOS 14+ ausgewiesene App
+  übernehmen.
 - Archivimporte erfassen Zielpfad, Dateiidentität und Stempel gemeinsam in der
   Vorprüfung und tragen genau diesen Stand bis zum Read, No-op oder atomaren
   Austausch. Eine neue Inode gilt niemals allein wegen desselben Pfads als die
