@@ -28,7 +28,29 @@ count=0
 if [ -f "$VERIFY_COUNT_FILE" ]; then count=$(cat "$VERIFY_COUNT_FILE"); fi
 count=$((count + 1))
 printf '%s\n' "$count" > "$VERIFY_COUNT_FILE"
+# Haltepunkt für den Nebenläufigkeitstest: Der Lauf bleibt mitten in der
+# Pruefung stehen, bis die Freigabedatei auftaucht.
+if [ "${BLOCK_SPCTL_CALL:-0}" -eq "$count" ]; then
+    while [ ! -f "${RELEASE_FILE:-/nonexistent}" ]; do sleep 0.05; done
+fi
 [ "${FAIL_SPCTL_CALL:-0}" -ne "$count" ]
+SH
+# Schickt auf Wunsch ein Signal im gefaehrlichsten Moment: nachdem der
+# abgelehnte Ersatz am Ziel entfernt wurde, aber bevor die gute alte Fassung
+# zurueckgeschoben ist.
+cat > "$fake_bin/rm" <<'SH'
+#!/usr/bin/env bash
+if [ -n "${SIGNAL_ON_RM_OF:-}" ]; then
+    for arg in "$@"; do
+        if [ "$arg" = "$SIGNAL_ON_RM_OF" ]; then
+            /bin/rm "$@"
+            kill -TERM "$PPID" 2>/dev/null
+            sleep 0.3
+            exit 0
+        fi
+    done
+fi
+exec /bin/rm "$@"
 SH
 cat > "$fake_bin/mv" <<'SH'
 #!/usr/bin/env bash
@@ -53,6 +75,9 @@ run_installer() {
         VERIFY_COUNT_FILE="$work/verify-count" \
         FAIL_SPCTL_CALL="${FAIL_SPCTL_CALL:-0}" \
         FAIL_ROLLBACK="${FAIL_ROLLBACK:-0}" \
+        BLOCK_SPCTL_CALL="${BLOCK_SPCTL_CALL:-0}" \
+        RELEASE_FILE="${RELEASE_FILE:-}" \
+        SIGNAL_ON_RM_OF="${SIGNAL_ON_RM_OF:-}" \
         "$root/scripts/install-verified-app.sh" "$source" "$destination"
 }
 
@@ -131,5 +156,64 @@ assert_text current "$collision_root/TagExplosion.app"
 collision_backup=$(find "$collision_root" -maxdepth 1 -name '.TagExplosion.app.old.*' -print)
 [ -n "$collision_backup" ]
 assert_text preserved "$collision_backup"
+
+# Zwei gleichzeitige Installationen auf dasselbe Ziel: Der zweite Lauf muss
+# abbrechen, ohne irgendetwas anzufassen — sonst könnte er dem ersten die App
+# unter den Händen wegräumen oder sein Bundle ins Ziel hineinverschachteln.
+concurrent_root="$work/concurrent"
+mkdir -p "$concurrent_root/TagExplosion.app"
+printf 'old\n' > "$concurrent_root/TagExplosion.app/payload"
+rm -f "$work/verify-count" "$work/release"
+BLOCK_SPCTL_CALL=1 RELEASE_FILE="$work/release" \
+    run_installer "$new_source" "$concurrent_root/TagExplosion.app" &
+first_installer=$!
+# Warten, bis der erste Lauf die Sperre hält und im Haltepunkt steht.
+for _ in $(seq 1 200); do
+    [ -d "$concurrent_root/.TagExplosion.app.lock" ] && break
+    sleep 0.05
+done
+[ -d "$concurrent_root/.TagExplosion.app.lock" ] || {
+    echo "FEHLER: erster Lauf hat keine Sperre angelegt" >&2
+    exit 1
+}
+second_output="$work/second.log"
+if run_installer "$new_source" "$concurrent_root/TagExplosion.app" \
+    > "$second_output" 2>&1; then
+    echo "FEHLER: zweite gleichzeitige Installation meldete Erfolg" >&2
+    exit 1
+fi
+grep -q "andere Installation" "$second_output" || {
+    echo "FEHLER: zweiter Lauf brach aus einem anderen Grund ab:" >&2
+    cat "$second_output" >&2
+    exit 1
+}
+# Der erste Lauf muss unbeschadet zu Ende laufen können.
+touch "$work/release"
+wait "$first_installer"
+assert_text new "$concurrent_root/TagExplosion.app"
+[ -z "$(find "$concurrent_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# Ein Signal mitten im Rollback — zwischen "Ersatz entfernt" und "gute Fassung
+# zurück" — darf die Installation nicht ohne App am Ziel zurücklassen.
+signal_root="$work/signal"
+mkdir -p "$signal_root/TagExplosion.app"
+printf 'old\n' > "$signal_root/TagExplosion.app/payload"
+rm -f "$work/verify-count"
+if FAIL_SPCTL_CALL=2 SIGNAL_ON_RM_OF="$signal_root/TagExplosion.app" \
+    run_installer "$new_source" "$signal_root/TagExplosion.app"; then
+    echo "FEHLER: abgelehntes Update meldete trotz Signal Erfolg" >&2
+    exit 1
+fi
+assert_text old "$signal_root/TagExplosion.app"
+
+# Eine verwaiste Sperre (abgestürzter Lauf) darf spätere Installationen nicht
+# dauerhaft blockieren.
+stale_root="$work/stale"
+mkdir -p "$stale_root/.TagExplosion.app.lock"
+printf '999999\n' > "$stale_root/.TagExplosion.app.lock/pid"
+rm -f "$work/verify-count"
+run_installer "$new_source" "$stale_root/TagExplosion.app"
+assert_text new "$stale_root/TagExplosion.app"
+[ -z "$(find "$stale_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
 echo "Installer-Rollback-Tests: OK"

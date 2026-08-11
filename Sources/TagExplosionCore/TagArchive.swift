@@ -240,14 +240,23 @@ public enum TagArchiveIO {
     /// zu raten.
     ///
     /// `approvedTargets` muss unverändert die Ausgabe von `validatedTargets`
-    /// sein, die dem Menschen zur Freigabe angezeigt wurde. Sie wird hier
-    /// wörtlich mit den frisch aufgelösten Zielen verglichen.
+    /// sein — die Liste, mit der der Aufrufer gearbeitet hat (angezeigte
+    /// Freigabe in CLI/App, Ermittlung betroffener offener Editoren). Sie wird
+    /// hier wörtlich mit den frisch aufgelösten Zielen verglichen. Auch ein
+    /// Import ganz ohne externe Ziele sollte sie mitgeben: Sonst kann ein
+    /// zwischenzeitlich umgebogener Symlink auf eine andere, nie geprüfte
+    /// Datei zeigen und der Import schriebe sie trotzdem.
+    ///
+    /// `allowExternalTargets` bleibt davon unabhängig: Ziele außerhalb des
+    /// Archivordners brauchen weiterhin eine ausdrückliche Freigabe.
     public static func apply(_ archive: TagArchive, relativeTo baseDirectory: URL,
-                             dryRun: Bool, approvedTargets: [URL]? = nil) throws
+                             dryRun: Bool, approvedTargets: [URL]? = nil,
+                             allowExternalTargets: Bool = false) throws
     -> TagArchiveReport {
         try apply(
             archive, relativeTo: baseDirectory, dryRun: dryRun,
-            approvedTargets: approvedTargets, afterValidation: {},
+            approvedTargets: approvedTargets,
+            allowExternalTargets: allowExternalTargets, afterValidation: {},
             beforeNoopReturn: { _ in })
     }
 
@@ -259,6 +268,7 @@ public enum TagArchiveIO {
         relativeTo baseDirectory: URL,
         dryRun: Bool,
         approvedTargets: [URL]? = nil,
+        allowExternalTargets: Bool = false,
         afterValidation: () throws -> Void,
         beforeNoopReturn: (URL) throws -> Void = { _ in }
     ) throws -> TagArchiveReport {
@@ -269,7 +279,7 @@ public enum TagArchiveIO {
         try validate(archive)
         let validated = try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
-            allowExternalTargets: approvedTargets != nil
+            allowExternalTargets: allowExternalTargets
         )
         let targets = validated.map(\.url)
         if let approvedTargets {
@@ -491,7 +501,7 @@ public enum TagArchiveIO {
                         detail: "image rating must be between -1 (unset) and 5")
                 }
             case .ebook:
-                guard entry.ebook != nil else {
+                guard let ebook = entry.ebook else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "ebook")
                 }
@@ -502,6 +512,26 @@ public enum TagArchiveIO {
                 guard (entry.artworks?.count ?? 0) <= 1 else {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "ebook entries may contain at most one cover")
+                }
+                // Ein Serienindex ohne Serie hat in keinem Format einen
+                // Speicherort; das Archiv würde ihn beim Import stillschweigend
+                // verlieren und trotzdem Erfolg melden.
+                guard ebook.series.isEmpty == false || ebook.seriesIndex.isEmpty else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path,
+                        detail: "ebook series index requires a series name")
+                }
+                // Cover werden vor dem ersten Schreibzugriff an ihrer Signatur
+                // geprüft — sonst landete beliebiger Inhalt als angebliches
+                // Bild im E-Book.
+                if let cover = entry.artworks?.first {
+                    do {
+                        try EbookTool.requireSupportedCover(cover.data)
+                    } catch {
+                        throw TagArchiveError.inconsistentEntry(
+                            path: entry.path,
+                            detail: "ebook cover must be a JPEG or PNG image")
+                    }
                 }
             }
         }

@@ -30,8 +30,15 @@ struct EbookShow: ParsableCommand {
 
     func run() throws {
         let url = try resolveFile(file)
-        let core = try EbookTool.readCoreFields(url: url)
-        let cover = try? EbookTool.readCover(url: url)
+        // Felder und Cover sind zwei Backend-Aufrufe. Nur gemeinsam unter einem
+        // Dateistempel gelesen beschreiben sie garantiert dieselbe Fassung —
+        // sonst könnte die Ausgabe einen Zustand melden, den es nie gab.
+        // Ein Cover-Lesefehler wird weitergereicht: "kein Cover" ist eine
+        // Aussage über die Datei, kein Platzhalter für einen Fehler.
+        let snapshot = try EbookTool.readSnapshot(
+            url: url, includeCover: EbookTool.supportsCover(url: url))
+        let core = snapshot.value.fields
+        let cover = snapshot.value.cover
         if json {
             try printJSON(Report(file: url.path, core: core,
                                  coverMimeType: cover?.resolvedMimeType,
@@ -101,6 +108,13 @@ struct EbookSet: ParsableCommand {
            fields.series != original.series || fields.seriesIndex != original.seriesIndex {
             throw ValidationError("This format cannot store a series (PDF).")
         }
+        // Ein Index ohne Serie hätte keinen Speicherort — vor Sicherung und
+        // Schreibweg ablehnen statt hinterher "OK" zu melden.
+        do {
+            try EbookTool.requireStorableSeries(fields, original: original)
+        } catch TagError.seriesIndexWithoutSeries {
+            throw ValidationError("A series index needs a series name (--series).")
+        }
 
         var coverUpdate = EbookCoverUpdate.unchanged
         if let cover {
@@ -109,6 +123,12 @@ struct EbookSet: ParsableCommand {
             }
             let coverURL = try resolveFile(cover)
             let data = try Data(contentsOf: coverURL)
+            // Nur echte JPEG-/PNG-Daten (Signaturprüfung, nicht Endung).
+            do {
+                try EbookTool.requireSupportedCover(data)
+            } catch TagError.unsupportedCoverData {
+                throw ValidationError("Cover must be a JPEG or PNG image: \(coverURL.path)")
+            }
             // Auch das Lesen der externen Cover-Datei öffnet ein Zeitfenster.
             // Vor Vergleich/Schreiben muss das E-Book noch der Ausgangsfassung
             // entsprechen. Identische Coverdaten bleiben ein echter No-op.

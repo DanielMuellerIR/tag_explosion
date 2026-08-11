@@ -284,10 +284,19 @@ struct Cover: ParsableCommand {
             safeMode.apply()
             let url = try resolveFile(file)
             let imageURL = try resolveFile(image)
+            // Ausgangsstand der Zieldatei, bevor irgendetwas anderes gelesen
+            // wird. Der Stempel wandert bis in den atomaren Austausch: Wird die
+            // Datei zwischen Sicherung und rename ersetzt (oder ein Symlink
+            // umgebogen), bricht das Schreiben ab, statt eine fremde, nicht
+            // gesicherte Fassung zu überschreiben.
+            guard let stamp = FileStamp.current(of: url) else {
+                throw TagError.cannotOpen(path: url.path)
+            }
             let imageData = try Data(contentsOf: imageURL)
             let artwork = Artwork(data: imageData, pictureType: "Front Cover")
+            try FileStamp.requireUnchanged(stamp, at: url)
             try TrashBackup.shared.backUp(url)
-            try TagFile.write(artworks: [artwork], to: url)
+            try TagFile.write(artworks: [artwork], to: url, expecting: stamp)
             print("OK \(url.lastPathComponent): cover set (\(imageData.count) bytes)")
         }
     }
@@ -302,8 +311,13 @@ struct Cover: ParsableCommand {
         func run() throws {
             safeMode.apply()
             let url = try resolveFile(file)
+            // Gleiche Absicherung wie bei `cover set`: Gesichert und
+            // geschrieben werden muss dieselbe Dateifassung.
+            guard let stamp = FileStamp.current(of: url) else {
+                throw TagError.cannotOpen(path: url.path)
+            }
             try TrashBackup.shared.backUp(url)
-            try TagFile.write(artworks: [], to: url)
+            try TagFile.write(artworks: [], to: url, expecting: stamp)
             print("OK \(url.lastPathComponent): images removed")
         }
     }

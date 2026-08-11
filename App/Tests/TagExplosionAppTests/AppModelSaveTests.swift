@@ -125,6 +125,72 @@ struct AppModelSaveTests {
         #expect(model.pendingExternalImport == nil)
     }
 
+    @Test("Ein während des Dialogs umgebogenes Archivziel wird nicht geschrieben",
+          .enabled(if: AudioFixture.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
+    func retargetedImportDuringConflictDialogIsRejected() async throws {
+        // Zwischen der geprüften Zielliste und dem eigentlichen Schreiben liegt
+        // der Save/Discard-Dialog. Wird das Ziel in diesem Fenster auf eine
+        // ANDERE geöffnete Datei umgebogen, darf der Import sie weder ändern
+        // noch ihren ungespeicherten Puffer per Neuladen verwerfen — auch wenn
+        // gar kein Ziel außerhalb des Archivordners im Spiel ist.
+        let source = try AudioFixture.workingCopy()
+        let dir = source.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let victim = dir.appendingPathComponent("opfer.mp3")
+        try FileManager.default.copyItem(at: source, to: victim)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [source], to: json, includeCovers: false)
+        let victimBytes = try Data(contentsOf: victim)
+
+        let model = AppModel()
+        let target = dirtyAudioEntry(url: source, changedTitle: "Puffer des Archivziels")
+        let openVictim = dirtyAudioEntry(url: victim, changedTitle: "Puffer des Opfers")
+        model.entries = [target, openVictim]
+
+        await model.importArchive(from: json)
+        let conflict = try #require(model.pendingConflict)
+        #expect(conflict.affectedEntryCount == 1)
+
+        // Der Austausch passiert genau jetzt: Dialog offen, noch nichts geschrieben.
+        try FileManager.default.removeItem(at: source)
+        try FileManager.default.createSymbolicLink(at: source, withDestinationURL: victim)
+
+        await model.resolvePendingConflict(.discard)
+
+        #expect(model.alertMessage?.contains("Import fehlgeschlagen") == true)
+        #expect(try Data(contentsOf: victim) == victimBytes)
+        // Der nie im Dialog berücksichtigte Puffer lebt weiter.
+        #expect(openVictim.firstValue("TITLE") == "Puffer des Opfers")
+        #expect(openVictim.isDirty)
+    }
+
+    @Test("Dasselbe Cover erneut auszuwählen ist keine Änderung")
+    func identicalEbookCoverIsNotDirty() {
+        // Ein Schreibvorgang für gleiche Bytes wäre ein reiner Nachteil: neue
+        // Dateiidentität, neue Änderungszeit, unnötige Sicherung, verwaiste
+        // Hardlinks — und inhaltlich passiert nichts.
+        let cover = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02, 0x03, 0x04,
+                          0x05, 0x06, 0x07, 0x08])
+        var fields = EbookCoreFields()
+        fields.title = "Testbuch"
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/cover-noop.epub"),
+                              loaded: .ebook(fields, cover: cover))
+        #expect(!entry.isDirty)
+
+        entry.setEbookCover(cover)
+        #expect(entry.ebookCoverReplacement == nil)
+        #expect(!entry.isDirty)
+        #expect(entry.beginSaving() == nil)
+
+        // Ein wirklich anderes Bild bleibt selbstverständlich eine Änderung.
+        let other = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                          0x01, 0x02, 0x03, 0x04])
+        entry.setEbookCover(other)
+        #expect(entry.ebookCoverReplacement == other)
+        #expect(entry.isDirty)
+    }
+
     @Test("Entfernen respektiert Abbrechen, Verwerfen und doppelte Anfragen")
     func removeCancelDiscardAndReentrancy() async {
         let entry = dirtyAudioEntry(

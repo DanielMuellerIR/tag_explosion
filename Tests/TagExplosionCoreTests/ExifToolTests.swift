@@ -86,6 +86,27 @@ struct ExifToolTests {
         #expect(!jpgTags.values.contains { $0.hasPrefix("(Binary data") })
     }
 
+    @Test("Roh-Text-Tags sind auch über eine Verknüpfung auffindbar")
+    func readRawStringTagsKeyedByGivenPath() throws {
+        // exiftool bekommt den aufgelösten Pfad und meldet ihn als SourceFile
+        // zurück. Fragt der Aufrufer mit SEINER URL nach — bei einem Symlink
+        // also mit dem Verknüpfungspfad —, muss er sein Ergebnis trotzdem
+        // finden; sonst bliebe `exif set --copy` über Verknüpfungen wirkungslos
+        // und meldete "No changes".
+        let jpg = try Fixtures.workingCopy("cover.jpg")
+        let original = try ExifTool.readCoreFields(url: jpg)
+        var edited = original
+        edited.description = "Über eine Verknüpfung gelesen"
+        try ExifTool.writeCoreFields(url: jpg, fields: edited, original: original)
+
+        let link = jpg.deletingLastPathComponent().appendingPathComponent("verknuepfung.jpg")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: jpg)
+
+        let raw = try ExifTool.readRawStringTags(urls: [link])
+        let tags = try #require(raw[link.path])
+        #expect(tags.contains { $0.value == "Über eine Verknüpfung gelesen" })
+    }
+
     @Test("PNG: XMP-Kernfelder funktionieren")
     func pngRoundtrip() throws {
         let url = try Fixtures.workingCopy("cover.png")

@@ -11,6 +11,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Umlauten in Reports oder exiftool-Schreibfehlern: Surrogate-Escapes, MWG-Modul.
 - [gui-selbsttests.md](gui-selbsttests.md) — Bei GUI-/AX-Tests der App:
   was funktioniert (Maus, AX-Setzen), was nicht (synthetische Tastatur).
+- [epub-opf-struktur.md](epub-opf-struktur.md) — Beim Schreiben von
+  EPUB-Metadaten: Der `unique-identifier` des Pakets hängt meist am ISBN-Knoten;
+  Identifier, refines und neue XML-IDs müssen konsistent nachgeführt werden.
 - [ebook-meta-calibre-quirks.md](ebook-meta-calibre-quirks.md) — Beim
   E-Book-Backend mobi/azw3/fb2: azw3 verliert Serien, Datums-/Index-Semantik,
   nicht sicher löschbare Cover und LC_ALL=C.

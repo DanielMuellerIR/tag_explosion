@@ -6,9 +6,6 @@ import UniformTypeIdentifiers
 
 struct EbookEditorView: View {
     @Bindable var entry: FileEntry
-    /// Aktuelles Cover aus der Datei (nil = keins oder lädt noch).
-    @State private var currentCover: NSImage?
-    @State private var coverLoaded = false
 
     private var supportsCover: Bool { EbookTool.supportsCover(url: entry.url) }
     private var supportsSeries: Bool { EbookTool.supportsSeries(url: entry.url) }
@@ -28,15 +25,6 @@ struct EbookEditorView: View {
             .frame(maxWidth: .infinity)
         }
         .background(.background)
-        .task(id: entry.url) {
-            await loadCover()
-        }
-        // Nach dem Speichern (Puffer leer) das Cover neu aus der Datei lesen
-        .onChange(of: entry.ebookCoverReplacement) { _, newValue in
-            if newValue == nil {
-                Task { await loadCover() }
-            }
-        }
     }
 
     // MARK: - Kopf: Cover + Dateiinfo
@@ -83,7 +71,7 @@ struct EbookEditorView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else if coverLoaded {
+            } else {
                 VStack(spacing: 6) {
                     Image(systemName: "book.closed")
                         .font(.system(size: 32))
@@ -91,8 +79,6 @@ struct EbookEditorView: View {
                         .font(.caption)
                 }
                 .foregroundStyle(.tertiary)
-            } else {
-                ProgressView()
             }
         }
         .frame(width: 180, height: 240)
@@ -102,21 +88,12 @@ struct EbookEditorView: View {
         .help("Bilddatei hierher ziehen, um das Cover zu ersetzen")
     }
 
-    /// Ersatz-Cover (ungespeichert) vor dem Datei-Cover anzeigen.
+    /// Ersatz-Cover (ungespeichert) vor dem Datei-Cover anzeigen. Beide Stände
+    /// liegen im Modell — das Cover wurde beim Öffnen gemeinsam mit den Feldern
+    /// gelesen, der Editor braucht dafür keinen eigenen Dateizugriff.
     private var displayedCover: NSImage? {
         if let data = entry.ebookCoverReplacement { return NSImage(data: data) }
-        return currentCover
-    }
-
-    private func loadCover() async {
-        coverLoaded = false
-        currentCover = nil
-        let url = entry.url
-        let artwork = await Task.detached(priority: .userInitiated) {
-            try? EbookTool.readCover(url: url)
-        }.value
-        currentCover = artwork.flatMap { NSImage(data: $0.data) }
-        coverLoaded = true
+        return entry.ebookOriginalCover.flatMap { NSImage(data: $0) }
     }
 
     private func presentCoverPanel() {
@@ -128,14 +105,14 @@ struct EbookEditorView: View {
         panel.message = String(localized: "Neues Cover auswählen (JPEG oder PNG)")
         if panel.runModal() == .OK, let url = panel.url,
            let data = try? Data(contentsOf: url) {
-            entry.ebookCoverReplacement = data
+            entry.setEbookCover(data)
         }
     }
 
     private func handleCoverDrop(_ providers: [NSItemProvider]) -> Bool {
         // E-Book-Cover bleiben auf JPEG/PNG beschränkt (EPUB-Reader-Support).
         CoverDrop.load(providers, acceptedMimeTypes: ["image/jpeg", "image/png"]) {
-            entry.ebookCoverReplacement = $0
+            entry.setEbookCover($0)
         }
     }
 

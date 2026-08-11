@@ -104,8 +104,20 @@ public enum ExifTool {
     /// Kopier-Quellen fürs Batch-Umkopieren: je Datei (Schlüssel = Pfad) ein
     /// Wörterbuch "Gruppe:Tag" → Textwert. Binärwerte werden ausgelassen —
     /// als Quelle für Textfelder taugen nur String-Werte (Typkompatibilität).
+    ///
+    /// Die Schlüssel des Ergebnisses sind die Pfade der ÜBERGEBENEN URLs.
+    /// exiftool bekommt den aufgelösten Pfad (Symlinks folgen) und meldet ihn
+    /// als `SourceFile` zurück; ohne die Rückabbildung fände ein Aufrufer, der
+    /// die Datei über eine Verknüpfung angegeben hat, seinen eigenen Eintrag
+    /// nicht wieder.
     public static func readRawStringTags(urls: [URL]) throws -> [String: [String: String]] {
         guard !urls.isEmpty else { return [:] }
+        // Mehrere Eingaben können auf dieselbe Datei zeigen (Verknüpfung +
+        // Original). Alle bekommen dasselbe Tag-Wörterbuch.
+        var inputsByToolPath: [String: [String]] = [:]
+        for url in urls {
+            inputsByToolPath[MediaInfoReader.toolArgument(for: url), default: []].append(url.path)
+        }
         let exe = try locateExecutable()
         let data = try MediaInfoReader.run(
             exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map { MediaInfoReader.toolArgument(for: $0) })
@@ -121,7 +133,12 @@ public enum ExifTool {
                 if value.isEmpty || value.hasPrefix("(Binary data") { continue }
                 tags[key] = value
             }
-            result[source] = tags
+            // Meldet exiftool wider Erwarten einen unbekannten Pfad, bleibt er
+            // als Schlüssel erhalten, statt das Ergebnis stillschweigend zu
+            // verlieren.
+            for path in inputsByToolPath[source] ?? [source] {
+                result[path] = tags
+            }
         }
         return result
     }

@@ -117,7 +117,7 @@ enum EpubFile {
             setList(metadata, "subject", fields.subjects)
         }
         if fields.isbn != original.isbn {
-            writeIsbn(fields.isbn, in: metadata)
+            writeIsbn(fields.isbn, in: metadata, package: root)
         }
         if fields.series != original.series || fields.seriesIndex != original.seriesIndex {
             writeSeries(fields, in: metadata)
@@ -403,19 +403,51 @@ enum EpubFile {
         return ""
     }
 
-    private static func writeIsbn(_ isbn: String, in metadata: XMLElement) {
+    /// `package` ist das Wurzelelement der OPF. Sein Attribut
+    /// `unique-identifier` nennt die id des Identifiers, der das Buch
+    /// eindeutig macht — sehr oft ist das genau der ISBN-Knoten. Ein OPF, in
+    /// dem dieser Verweis ins Leere zeigt, ist kein gültiges EPUB mehr.
+    private static func writeIsbn(_ isbn: String, in metadata: XMLElement, package: XMLElement) {
+        let packageId = attribute(package, "unique-identifier")
         // Bestehende ISBN-Identifier entfernen (andere Identifier wie die
         // Paket-UUID bleiben unangetastet), dann ggf. neu anlegen.
+        var removedIds: [String] = []
+        var packageIdentifierWasIsbn = false
         for identifier in elements(named: "identifier", in: metadata) {
             let value = (identifier.stringValue ?? "").lowercased()
-            if attribute(identifier, "scheme")?.uppercased() == "ISBN"
-                || value.hasPrefix("urn:isbn:") || value.hasPrefix("isbn:") {
-                identifier.detach()
+            guard attribute(identifier, "scheme")?.uppercased() == "ISBN"
+                || value.hasPrefix("urn:isbn:") || value.hasPrefix("isbn:") else { continue }
+            if let id = attribute(identifier, "id") {
+                if id == packageId { packageIdentifierWasIsbn = true } else { removedIds.append(id) }
             }
+            identifier.detach()
         }
-        guard !isbn.isEmpty else { return }
-        let element = dcElement("identifier", value: "urn:isbn:\(isbn)", in: metadata)
-        metadata.addChild(element)
+        // Verfeinerungen (z.B. identifier-type) eines entfernten Identifiers
+        // zeigten sonst auf einen nicht mehr vorhandenen Knoten.
+        detachRefinements(of: removedIds, in: metadata)
+
+        if !isbn.isEmpty {
+            let element = dcElement("identifier", value: "urn:isbn:\(isbn)", in: metadata)
+            // War die alte ISBN der Paket-Identifier, übernimmt die neue seine
+            // id: Der Paketverweis und vorhandene refines ("identifier-type:
+            // ISBN") bleiben damit richtig.
+            if packageIdentifierWasIsbn, let packageId {
+                setAttribute(element, "id", packageId)
+            }
+            metadata.addChild(element)
+            return
+        }
+
+        guard packageIdentifierWasIsbn, let packageId else { return }
+        // ISBN gelöscht, obwohl sie das Buch identifizierte: Der Verweis
+        // braucht ein Ziel. Eine neutrale UUID unter derselben id erhält die
+        // Gültigkeit; die alte identifier-type-Verfeinerung beschrieb die ISBN
+        // und passt nicht mehr.
+        detachRefinements(of: [packageId], in: metadata)
+        let replacement = dcElement(
+            "identifier", value: "urn:uuid:\(UUID().uuidString.lowercased())", in: metadata)
+        setAttribute(replacement, "id", packageId)
+        metadata.addChild(replacement)
     }
 
     private static func writeSeries(_ fields: EbookCoreFields, in metadata: XMLElement) {

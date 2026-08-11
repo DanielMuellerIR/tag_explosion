@@ -525,6 +525,107 @@ struct EbookToolTests {
         #expect(try EbookTool.readCoreFields(url: url).title == original.title)
     }
 
+    // MARK: - Struktur-Invarianten der OPF
+
+    @Test("EPUB: Geänderte ISBN bleibt der Paket-Identifier",
+          arguments: [("book2.epub", "OEBPS/content.opf"), ("book3.epub", "OEBPS/package.opf")])
+    func epubIsbnChangeKeepsPackageIdentifier(fixture: String, opfPath: String) throws {
+        // Beide Fixtures verwenden den ISBN-Knoten als <package
+        // unique-identifier="uid">. Wird er beim Schreiben ersetzt, muss der
+        // Verweis mitwandern — sonst entsteht ein strukturell ungültiges EPUB,
+        // das der reine Feld-Roundtrip nicht bemerkt.
+        let url = try Fixtures.workingCopy(fixture)
+        let original = try EbookTool.readCoreFields(url: url)
+        var changed = original
+        changed.isbn = "9780306406157X"
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        #expect(try EbookTool.readCoreFields(url: url).isbn == "9780306406157X")
+        #expect(try packageIdentifierValue(of: url, opfPath: opfPath)
+                == "urn:isbn:9780306406157X")
+    }
+
+    @Test("EPUB: Gelöschte ISBN hinterlässt keinen verwaisten Paket-Identifier",
+          arguments: [("book2.epub", "OEBPS/content.opf"), ("book3.epub", "OEBPS/package.opf")])
+    func epubIsbnDeletionKeepsPackageIdentifier(fixture: String, opfPath: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
+        let original = try EbookTool.readCoreFields(url: url)
+        var cleared = original
+        cleared.isbn = ""
+        try EbookTool.writeCoreFields(url: url, fields: cleared, original: original)
+
+        #expect(try EbookTool.readCoreFields(url: url).isbn == "")
+        // Der Verweis muss weiterhin auflösen — jetzt auf einen neutralen
+        // UUID-Identifier, nicht mehr auf eine ISBN.
+        let value = try packageIdentifierValue(of: url, opfPath: opfPath)
+        #expect(value.hasPrefix("urn:uuid:"))
+    }
+
+    // MARK: - Abgelehnte Zustände
+
+    @Test("Serienindex ohne Serie wird vor jedem Schreibvorgang abgelehnt")
+    func ebookRejectsSeriesIndexWithoutSeries() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let before = try Data(contentsOf: url)
+        let original = try EbookTool.readCoreFields(url: url)
+        var indexOnly = original
+        indexOnly.series = ""
+        indexOnly.seriesIndex = "5"
+
+        #expect(throws: TagError.seriesIndexWithoutSeries) {
+            try EbookTool.write(url: url, fields: indexOnly, original: original,
+                                coverUpdate: .unchanged)
+        }
+        #expect(try Data(contentsOf: url) == before)
+
+        // Eine bereits vorhandene, nicht angefasste Kombination darf das
+        // Bearbeiten anderer Felder nicht blockieren.
+        var titleOnly = indexOnly
+        titleOnly.title = "Anderer Titel"
+        try EbookTool.write(url: url, fields: titleOnly, original: indexOnly,
+                            coverUpdate: .unchanged)
+        #expect(try EbookTool.readCoreFields(url: url).title == "Anderer Titel")
+    }
+
+    @Test("Cover ohne gültige Bildsignatur wird abgelehnt")
+    func ebookRejectsUnsupportedCoverData() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let before = try Data(contentsOf: url)
+        let original = try EbookTool.readCoreFields(url: url)
+
+        for junk in [Data("Das hier ist ein Text, kein Bild.".utf8), Data()] {
+            #expect(throws: TagError.unsupportedCoverData) {
+                try EbookTool.write(url: url, fields: original, original: original,
+                                    coverUpdate: .set(junk))
+            }
+        }
+        #expect(try Data(contentsOf: url) == before)
+        // Das echte Cover ist unverändert geblieben.
+        #expect(try EbookTool.readCover(url: url)?.data == Fixtures.coverData("cover.jpg"))
+
+        // Ein gültiges PNG geht weiterhin durch.
+        let png = try Fixtures.coverData("cover.png")
+        try EbookTool.write(url: url, fields: original, original: original,
+                            coverUpdate: .set(png))
+        #expect(try EbookTool.readCover(url: url)?.data == png)
+    }
+
+    /// Prüft die EPUB-Grundregel und liefert den Wert des Paket-Identifiers:
+    /// `<package unique-identifier="…">` muss auf einen vorhandenen
+    /// `dc:identifier` mit genau dieser id zeigen.
+    private func packageIdentifierValue(of url: URL, opfPath: String) throws -> String {
+        let document = try XMLDocument(xmlString: try opfContents(of: url, path: opfPath))
+        let package = try #require(document.rootElement())
+        let uid = try #require(package.attribute(forName: "unique-identifier")?.stringValue)
+        let metadata = try #require(package.elements(forName: "metadata").first)
+        let identifiers = (metadata.children ?? [])
+            .compactMap { $0 as? XMLElement }
+            .filter { ($0.name ?? "").split(separator: ":").last.map(String.init) == "identifier" }
+        let match = try #require(
+            identifiers.first { $0.attribute(forName: "id")?.stringValue == uid })
+        return match.stringValue ?? ""
+    }
+
     /// Schreibt die OPF-Datei eines Test-EPUBs als rohen XML-Text um — zum
     /// Einschleusen von Metadaten, die die Fixtures nicht enthalten.
     private func rewriteOpf(in url: URL, path: String,

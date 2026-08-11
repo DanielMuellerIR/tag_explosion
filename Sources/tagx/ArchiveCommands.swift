@@ -51,11 +51,12 @@ struct Import: ParsableCommand {
         let jsonURL = try resolveFile(file)
         let archive = try TagArchiveIO.load(jsonURL)
         let base = jsonURL.deletingLastPathComponent()
-        var approvedTargets: [URL]?
+        // Die Zielliste wird immer vorab aufgelöst und anschließend an `apply`
+        // weitergereicht: Nur so fällt auf, wenn zwischen Prüfung und
+        // Schreibweg ein Symlink auf eine andere Datei umgebogen wird.
+        let targets = try TagArchiveIO.validatedTargets(
+            archive, relativeTo: base, allowExternalTargets: allowExternalTargets)
         if allowExternalTargets {
-            let targets = try TagArchiveIO.validatedTargets(
-                archive, relativeTo: base, allowExternalTargets: true)
-            approvedTargets = targets
             FileHandle.standardError.write(Data("Resolved import targets:\n".utf8))
             for target in targets {
                 FileHandle.standardError.write(Data("  \(target.path)\n".utf8))
@@ -63,7 +64,7 @@ struct Import: ParsableCommand {
         }
         let report = try TagArchiveIO.apply(
             archive, relativeTo: base, dryRun: dryRun,
-            approvedTargets: approvedTargets)
+            approvedTargets: targets, allowExternalTargets: allowExternalTargets)
 
         let verb = dryRun ? "WOULD CHANGE" : "CHANGED"
         for path in report.applied { print("\(verb) \(path)") }

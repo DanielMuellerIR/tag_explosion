@@ -8,6 +8,53 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.20.2] — 2026-08-11
+
+Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-11.
+
+### Geändert
+
+- `tagx ebook show` liest Felder und Cover unter einem gemeinsamen Dateistempel
+  und meldet einen Cover-Lesefehler als Fehler, statt ihn als „kein Cover"
+  auszugeben. `tagx exif show --all` sichert Kernfelder und Metadatengruppen
+  ebenso gemeinsam ab.
+- Ein Serienindex ohne Serienname wird abgelehnt, statt einen Schreibvorgang
+  auszulösen, bei dem der Index nirgends landet. Coverdaten müssen an ihrer
+  Dateisignatur als JPEG oder PNG erkennbar sein — CLI, App und Archivimport
+  prüfen das vor der Sicherungskopie.
+- Dasselbe Cover in der App erneut auszuwählen ist keine Änderung mehr: Die
+  Datei behält Identität und Änderungszeit, es entsteht keine Sicherung. Dafür
+  hält die App das gelesene Cover jetzt im Modell — der Editor braucht keinen
+  eigenen Dateizugriff mehr.
+
+### Behoben
+
+- `tagx cover set` und `tagx cover remove` reichen den gelesenen Dateistempel
+  bis in den atomaren Austausch weiter. Eine zwischen Sicherung und Schreiben
+  untergeschobene Datei wird nicht mehr überschrieben.
+- Der Archivimport der App gibt die geprüfte Zielliste auch dann verbindlich
+  mit, wenn kein Ziel außerhalb des Archivordners liegt. Ein während des
+  Save/Discard-Dialogs umgebogener Symlink kann dadurch keine nie angezeigte
+  Datei mehr ändern und keinen fremden Editor-Puffer verwerfen.
+- Eine geänderte oder gelöschte ISBN lässt den `unique-identifier` des EPUB
+  nicht mehr ins Leere zeigen (siehe
+  [knowledge/epub-opf-struktur.md](knowledge/epub-opf-struktur.md)).
+- `tagx exif set --copy` findet die Roh-Tags einer über eine Verknüpfung
+  angegebenen Datei wieder; vorher blieb der Kopierwunsch wirkungslos und der
+  Befehl meldete „No changes".
+- Die Mindestversionsprüfung des Release-Builds schlägt jetzt geschlossen fehl:
+  Ein Fehler von `vtool`, eine fehlende Angabe oder ein zu neuer zweiter
+  Architektur-Slice werden nicht mehr übersprungen.
+- Der Release-Build erkennt TagLib-Ladepfade auch in Build-Verzeichnissen mit
+  Leerzeichen und prüft nach dem Umbiegen, dass jede TagLib-Referenz ins Bundle
+  zeigt. Vorher konnte ein formal erfolgreicher Release auf fremden Macs nicht
+  starten.
+- Zwei gleichzeitige Installationen auf dasselbe Ziel werden über eine Sperre
+  serialisiert; der zweite Lauf bricht ab, ohne etwas zu verändern. Während des
+  Rollbacks werden Abbruchsignale ignoriert statt zugelassen.
+- Die Shell-Tests der Auslieferungsskripte laufen in der CI. Neu dabei:
+  Regressionen für die Mindestversionsprüfung und für die TagLib-Ladepfade.
+
 ## [0.20.1] — 2026-08-10
 
 Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-09.

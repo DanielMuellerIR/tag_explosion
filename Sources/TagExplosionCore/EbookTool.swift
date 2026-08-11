@@ -181,6 +181,9 @@ public enum EbookTool {
         coverUpdate: EbookCoverUpdate,
         expecting stamp: FileStamp? = nil
     ) throws {
+        try requireStorableSeries(fields, original: original)
+        if case .set(let data) = coverUpdate { try requireSupportedCover(data) }
+
         let hasCoverChange: Bool
         switch coverUpdate {
         case .unchanged: hasCoverChange = false
@@ -222,9 +225,23 @@ public enum EbookTool {
                 _ = try readCoreFields(url: temp)
                 switch coverUpdate {
                 case .unchanged: break
-                case .set:
-                    guard try readCover(url: temp) != nil else {
+                case .set(let data):
+                    // "Irgendein Cover lesbar" reicht als Beleg nicht: Nur die
+                    // gewünschten Bytes beweisen, dass genau dieses Bild als
+                    // Cover in der Datei steht. EPUB legt sie unverändert ab;
+                    // die externen Backends codieren sie um, dort muss das
+                    // Ergebnis wenigstens ein erkennbares Bild sein.
+                    guard let written = try readCover(url: temp) else {
                         throw TagError.saveFailed(path: temp.path)
+                    }
+                    if backend(for: temp) == .epub {
+                        guard written.data == data else {
+                            throw TagError.saveFailed(path: temp.path)
+                        }
+                    } else {
+                        guard Artwork.sniffMimeType(from: written.data) != nil else {
+                            throw TagError.saveFailed(path: temp.path)
+                        }
                     }
                 case .remove:
                     guard try readCover(url: temp) == nil else {
@@ -233,6 +250,33 @@ public enum EbookTool {
                 }
             }
         }
+    }
+
+    /// Coverdaten, die kein JPEG oder PNG sind, dürfen gar nicht erst in den
+    /// Schreibweg. Geprüft wird die Dateisignatur, nicht die Endung: Ohne diese
+    /// Prüfung landete beliebiger Inhalt (z.B. Text) als angeblich gültiges
+    /// Bild im E-Book, und der Aufrufer bekäme dafür eine Erfolgsmeldung.
+    /// Öffentlich, damit CLI und App schon VOR der Sicherungskopie ablehnen
+    /// können.
+    public static func requireSupportedCover(_ data: Data) throws {
+        switch Artwork.sniffMimeType(from: data) {
+        case "image/jpeg", "image/png": return
+        default: throw TagError.unsupportedCoverData
+        }
+    }
+
+    /// Ein Serienindex braucht eine Serie, an der er hängt — sonst hat er in
+    /// keinem der Formate einen Speicherort. Geprüft wird nur eine wirklich
+    /// gewünschte Änderung: Steht die Kombination schon so in der Datei (etwa
+    /// ein fremdes EPUB mit `calibre:series_index` ohne Serie), darf sie das
+    /// Bearbeiten anderer Felder nicht blockieren.
+    public static func requireStorableSeries(
+        _ fields: EbookCoreFields, original: EbookCoreFields
+    ) throws {
+        let seriesChanged = fields.series != original.series
+            || fields.seriesIndex != original.seriesIndex
+        guard seriesChanged, fields.series.isEmpty, !fields.seriesIndex.isEmpty else { return }
+        throw TagError.seriesIndexWithoutSeries
     }
 
     /// Führt einen Schritt auf der Geschwisterkopie aus und stellt dessen
@@ -254,7 +298,8 @@ public enum EbookTool {
                 throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
                                               freeBytes: freeBytes)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
-            case .propertiesRejected, .toolNotFound, .toolFailed: throw error
+            case .propertiesRejected, .toolNotFound, .toolFailed,
+                 .unsupportedCoverData, .seriesIndexWithoutSeries: throw error
             }
         }
     }

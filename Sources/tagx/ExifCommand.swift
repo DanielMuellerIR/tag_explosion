@@ -26,10 +26,28 @@ struct ExifShow: ParsableCommand {
         var groups: [MetadataGroup]?
     }
 
+    /// Beide exiftool-Aufrufe als ein Lesewert, damit `FileSnapshot` sie
+    /// gemeinsam gegen den Dateistempel absichern kann.
+    private struct Reading: Sendable {
+        let core: ImageCoreFields
+        let groups: [MetadataGroup]?
+    }
+
     func run() throws {
         let url = try resolveFile(file)
-        let core = try ExifTool.readCoreFields(url: url)
-        let groups = all ? try ExifTool.readAllGroups(url: url) : nil
+        // Kernfelder und Gruppen kommen aus zwei getrennten exiftool-Läufen.
+        // Der gemeinsame Schnappschuss prüft den Dateistempel vor und nach
+        // beiden Läufen; die Prüfung direkt vor der Ausgabe schließt das
+        // letzte Zeitfenster. Sonst könnte `core` aus der alten und `groups`
+        // aus einer neuen Fassung stammen.
+        let snapshot = try FileSnapshot.capture(at: url) {
+            let core = try ExifTool.readCoreFields(url: url)
+            let groups = all ? try ExifTool.readAllGroups(url: url) : nil
+            return Reading(core: core, groups: groups)
+        }
+        try snapshot.requireCurrent(at: url)
+        let core = snapshot.value.core
+        let groups = snapshot.value.groups
         if json {
             try printJSON(Report(file: url.path, core: core, groups: groups))
             return

@@ -426,13 +426,14 @@ struct TagArchiveTests {
         #expect(throws: TagArchiveError.approvedTargetListChanged) {
             try TagArchiveIO.apply(
                 archive, relativeTo: base, dryRun: false,
-                approvedTargets: [base.appendingPathComponent("anderes-ziel.mp3")])
+                approvedTargets: [base.appendingPathComponent("anderes-ziel.mp3")],
+                allowExternalTargets: true)
         }
         #expect(try Data(contentsOf: external) == bytesBefore)
 
         let report = try TagArchiveIO.apply(
             archive, relativeTo: base, dryRun: false,
-            approvedTargets: targets)
+            approvedTargets: targets, allowExternalTargets: true)
         #expect(report.applied == ["../sample.mp3"])
         #expect(try TagFile.read(at: external).firstValue(for: "TITLE")
                 == "Explizit freigegeben")
@@ -468,9 +469,81 @@ struct TagArchiveTests {
 
         #expect(throws: TagArchiveError.approvedTargetListChanged) {
             try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false,
+                                   approvedTargets: approved,
+                                   allowExternalTargets: true)
+        }
+        #expect(try Data(contentsOf: victim) == victimBytes)
+
+        // Ohne die Freigabe für externe Ziele fällt derselbe Austausch schon
+        // eine Stufe früher auf: Das neue Ziel liegt außerhalb des Archivordners.
+        #expect(throws: TagArchiveError.externalTargetRequiresApproval(
+            path: "entry.mp3", resolvedPath: MediaFormats.canonicalFileURL(victim).path
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false,
                                    approvedTargets: approved)
         }
         #expect(try Data(contentsOf: victim) == victimBytes)
+    }
+
+    @Test("Ein umgebogener interner Symlink stoppt den Import auch ohne externe Ziele")
+    func internalRetargetingIsRejectedWithApprovedTargets() throws {
+        // Zwischen Prüfung und Schreibweg liegt in der App der Save/Discard-
+        // Dialog. Wird das Ziel in diesem Fenster auf eine ANDERE Datei im
+        // selben Ordner umgebogen, fällt das nur auf, wenn die geprüfte
+        // Zielliste mitgegeben wird — externe Ziele sind hier keine im Spiel.
+        let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        let entry = dir.appendingPathComponent("sample.mp3")
+        let other = dir.appendingPathComponent("sample.flac")
+        let otherBytes = try Data(contentsOf: other)
+        let archive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Nur für das geprüfte Ziel"]]),
+        ])
+        let approved = try TagArchiveIO.validatedTargets(archive, relativeTo: dir)
+
+        try FileManager.default.removeItem(at: entry)
+        try FileManager.default.createSymbolicLink(at: entry, withDestinationURL: other)
+
+        #expect(throws: TagArchiveError.approvedTargetListChanged) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false,
+                                   approvedTargets: approved)
+        }
+        #expect(try Data(contentsOf: other) == otherBytes)
+    }
+
+    @Test("Ein E-Book-Serienindex ohne Serie wird vor jeder Mutation abgelehnt")
+    func archiveRejectsSeriesIndexWithoutSeries() throws {
+        var fields = EbookCoreFields()
+        fields.seriesIndex = "2"
+        let archive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
+            .init(path: "book2.epub", kind: .ebook, ebook: fields),
+        ])
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "book2.epub", detail: "ebook series index requires a series name"
+        )) {
+            try TagArchiveIO.validate(archive)
+        }
+
+        fields.series = "Reihe"
+        let valid = TagArchive(created: "2026-08-11T00:00:00Z", files: [
+            .init(path: "book2.epub", kind: .ebook, ebook: fields),
+        ])
+        #expect(throws: Never.self) { try TagArchiveIO.validate(valid) }
+    }
+
+    @Test("Ein E-Book-Cover ohne Bildsignatur wird vor jeder Mutation abgelehnt")
+    func archiveRejectsUnsupportedCover() throws {
+        let junk = Artwork(data: Data("kein Bild, nur Text".utf8), mimeType: "image/jpeg",
+                           pictureType: "Front Cover")
+        let archive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
+            .init(path: "book2.epub", kind: .ebook, artworks: [junk],
+                  ebook: EbookCoreFields()),
+        ])
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "book2.epub", detail: "ebook cover must be a JPEG or PNG image"
+        )) {
+            try TagArchiveIO.validate(archive)
+        }
     }
 
     @Test("Bild-Bewertungen außerhalb von -1…5 werden vor jeder Mutation abgelehnt")

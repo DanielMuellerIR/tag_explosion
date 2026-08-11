@@ -39,3 +39,12 @@ jobs:
           set -euo pipefail
           swift build
           swift test
+
+      # Shell-Tests der Auslieferungsskripte. SwiftPM findet sie nicht; ohne
+      # diesen Schritt könnten sie unbemerkt brechen, während die CI grün bleibt.
+      - name: Skript-Tests (Installer, Mindestversion, TagLib-Ladepfade)
+        run: |
+          set -euo pipefail
+          Tests/install-verified-app-tests.sh
+          Tests/verify-macos-minimums-tests.sh
+          Tests/taglib-refs-tests.sh

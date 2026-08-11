@@ -120,6 +120,14 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Die Datei hat sich seit dem Öffnen auf der Platte verändert; ein
     /// Speichern würde fremde Änderungen überschreiben.
     case fileChangedOnDisk(path: String)
+    /// Die angebotenen Coverdaten sind kein Bild, das ein E-Book tragen kann.
+    /// Erkannt wird das an der Dateisignatur (Magic Bytes), nicht an der
+    /// Endung — ein Textschnipsel darf nicht als JPEG deklariert werden.
+    case unsupportedCoverData
+    /// Ein Serienindex ohne Serie hat in keinem Format einen Speicherort.
+    /// Ohne diese Ablehnung meldete das Schreiben Erfolg, obwohl der Index
+    /// nirgends landet.
+    case seriesIndexWithoutSeries
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -144,6 +152,10 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "Safety copy failed, nothing was written: \(path) (\(reason))"
         case .fileChangedOnDisk(let path):
             return "File changed on disk since it was opened: \(path)"
+        case .unsupportedCoverData:
+            return "Cover data is not a supported image (JPEG or PNG expected)"
+        case .seriesIndexWithoutSeries:
+            return "A series index cannot be stored without a series name"
         }
     }
 }

@@ -241,15 +241,21 @@ for base in libtag.2.dylib libtag_c.2.dylib; do
 done
 
 # 2) Direkte und gegenseitige TagLib-Verweise auf die Bundle-Pfade umbiegen.
-for dep in $(otool -L "$bin" | awk '$1 ~ /\/libtag(_c)?\.[0-9]+\.dylib$/ {print $1}'); do
-    base="$(basename "$dep")"
-    install_name_tool -change "$dep" "@executable_path/../Frameworks/$base" "$bin"
-done
+# Das Auslesen und Prüfen der Ladepfade liegt in einer eigenen, einzeln
+# getesteten Datei (Tests/taglib-refs-tests.sh).
+. "$here/scripts/taglib-refs.sh"
+
+rewrite_taglib_refs "$bin"
 for lib in "$fw"/*.dylib; do
-    for sub in $(otool -L "$lib" | awk 'NR>1 && $1 ~ /\/libtag(_c)?\.[0-9]+\.dylib$/ {print $1}'); do
-        subbase="$(basename "$sub")"
-        install_name_tool -change "$sub" "@executable_path/../Frameworks/$subbase" "$lib"
-    done
+    rewrite_taglib_refs "$lib"
+done
+
+# Die App lädt TagLib über den C-Shim, libtag_c wiederum libtag: Beide Verweise
+# müssen existieren und ins Bundle zeigen.
+verify_taglib_refs "$bin" 1
+verify_taglib_refs "$fw/libtag_c.2.dylib" 1
+for lib in "$fw"/*.dylib; do
+    verify_taglib_refs "$lib" 0
 done
 echo "Gebündelte Bibliotheken:"; ls "$fw"
 

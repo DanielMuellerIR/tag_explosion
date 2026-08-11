@@ -44,8 +44,15 @@ final class FileEntry: Identifiable {
     /// Original und Bearbeitungspuffer für E-Books (nur bei kind == .ebook).
     private(set) var ebookOriginal = EbookCoreFields()
     var ebookFields = EbookCoreFields()
+    /// Cover, wie es beim Lesen in der Datei stand (nil = keins). Nur damit
+    /// lässt sich erkennen, ob ein ausgewähltes Cover überhaupt eine Änderung
+    /// ist — ein Schreibvorgang mit identischen Bytes tauscht die Datei sonst
+    /// ohne jeden inhaltlichen Grund aus.
+    private(set) var ebookOriginalCover: Data?
     /// Neues Cover, das beim Speichern geschrieben wird (nil = unverändert).
-    var ebookCoverReplacement: Data?
+    /// Über `setEbookCover(_:)` setzen, nicht direkt: Nur so werden gleiche
+    /// Bytes als "keine Änderung" erkannt.
+    private(set) var ebookCoverReplacement: Data?
 
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
@@ -87,10 +94,11 @@ final class FileEntry: Identifiable {
             self.kind = .image
             self.imageOriginal = fields
             self.imageFields = fields
-        case .ebook(let fields):
+        case .ebook(let fields, let cover):
             self.kind = .ebook
             self.ebookOriginal = fields
             self.ebookFields = fields
+            self.ebookOriginalCover = cover
         }
     }
 
@@ -142,11 +150,22 @@ final class FileEntry: Identifiable {
     }
 
     /// E-Book-Pendant zu `acceptNewOriginal`.
-    func acceptNewEbookOriginal(_ fields: EbookCoreFields) {
+    func acceptNewEbookOriginal(_ fields: EbookCoreFields, cover: Data?) {
         ebookOriginal = fields
         ebookFields = fields
+        ebookOriginalCover = cover
         ebookCoverReplacement = nil
         lastError = nil
+    }
+
+    /// Ein ausgewähltes Cover zählt nur als Änderung, wenn es sich von dem in
+    /// der Datei unterscheidet. Dieselbe Bilddatei noch einmal auszuwählen ist
+    /// inhaltlich ein Nichts-Tun und darf keinen Schreibvorgang auslösen: Der
+    /// atomare Austausch gäbe der Datei eine neue Identität, änderte die
+    /// Änderungszeit, legte eine Sicherung an und ließe vorhandene Hardlinks
+    /// auf dem alten Stand zurück.
+    func setEbookCover(_ data: Data) {
+        ebookCoverReplacement = data == ebookOriginalCover ? nil : data
     }
 
     /// Frisch gelesenen Platten-Zustand als neues Original übernehmen.
@@ -159,7 +178,7 @@ final class FileEntry: Identifiable {
         switch loaded {
         case .audio(let data): acceptNewOriginal(data)
         case .image(let fields): acceptNewImageOriginal(fields)
-        case .ebook(let fields): acceptNewEbookOriginal(fields)
+        case .ebook(let fields, let cover): acceptNewEbookOriginal(fields, cover: cover)
         }
     }
 
@@ -214,8 +233,9 @@ final class FileEntry: Identifiable {
         case (.image(let savedFields, _), .image(let fields)):
             imageOriginal = fields
             if imageFields == savedFields { imageFields = fields }
-        case (.ebook(let savedFields, _, let savedCover), .ebook(let fields)):
+        case (.ebook(let savedFields, _, let savedCover), .ebook(let fields, let cover)):
             ebookOriginal = fields
+            ebookOriginalCover = cover
             if ebookFields == savedFields { ebookFields = fields }
             // Ein gleiches Ersatz-Cover wurde geschrieben und ist daher nicht
             // mehr dirty. Ein inzwischen ausgewähltes anderes Cover bleibt.
@@ -286,7 +306,10 @@ final class FileEntry: Identifiable {
 enum LoadedData: Sendable {
     case audio(TagData)
     case image(ImageCoreFields)
-    case ebook(EbookCoreFields)
+    /// E-Books tragen ihr Cover mit: Felder und Cover stammen aus einem
+    /// gemeinsamen Lesevorgang, und nur mit dem Original-Cover im Speicher
+    /// lässt sich ein gleich gebliebenes Cover als Nichts-Tun erkennen.
+    case ebook(EbookCoreFields, cover: Data?)
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -531,7 +554,13 @@ final class AppModel {
                 return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))
             }
         case .image: return .image(try ExifTool.readCoreFields(url: url))
-        case .ebook: return .ebook(try EbookTool.readCoreFields(url: url))
+        case .ebook:
+            // Felder und Cover in einem Schnappschuss: Der Editor zeigt damit
+            // garantiert das Cover derselben Dateifassung, und ein erneut
+            // ausgewähltes gleiches Cover ist als Nichts-Tun erkennbar.
+            let contents = try EbookTool.readSnapshot(
+                url: url, includeCover: EbookTool.supportsCover(url: url)).value
+            return .ebook(contents.fields, cover: contents.cover?.data)
         }
     }
 
@@ -877,7 +906,14 @@ final class AppModel {
                 let external = TagArchiveIO.externalTargets(targets, relativeTo: base)
                 return (archive, base, targets, external)
             }.value
-            let approvedTargets = prepared.3.isEmpty ? nil : prepared.2
+            // Die geprüfte Zielliste geht IMMER an `apply` — auch wenn kein
+            // Ziel außerhalb des Archivordners liegt und deshalb kein
+            // Freigabedialog nötig war. Genau diese Liste hat der Konflikt-
+            // dialog verwendet, um betroffene offene Editoren zu bestimmen;
+            // ein während des Dialogs umgebogener Symlink darf nicht auf eine
+            // nie berücksichtigte Datei zeigen.
+            let approvedTargets = prepared.2
+            let allowExternal = !prepared.3.isEmpty
             await requestExternalApprovalOrScheduleImport(
                 archive: prepared.0,
                 relativeTo: prepared.1,
@@ -887,7 +923,8 @@ final class AppModel {
                 try await Task.detached(priority: .userInitiated) {
                     try TagArchiveIO.apply(
                         archive, relativeTo: base, dryRun: false,
-                        approvedTargets: approvedTargets)
+                        approvedTargets: approvedTargets,
+                        allowExternalTargets: allowExternal)
                 }.value
             }
         } catch {
@@ -974,13 +1011,20 @@ final class AppModel {
         let openedTargets = entries.filter {
             targetSet.contains(MediaFormats.canonicalFileURL($0.url))
         }
+        // Feste Zuordnung Archiveintrag → geprüftes Ziel. `validatedTargets`
+        // liefert die Ziele in der Reihenfolge der Archiveinträge, und deren
+        // Pfade sind eindeutig (Archiv-Schemaprüfung).
+        let targetsByArchivePath = Dictionary(
+            uniqueKeysWithValues: zip(archive.files.map(\.path), targets))
         await requestDestructiveAction(
             title: String(localized: "Ungespeicherte Änderungen"),
             message: String(localized:
                 "Vor dem Import müssen die Änderungen betroffener Dateien gespeichert oder verworfen werden."),
             entries: openedTargets,
             perform: { [weak self] in
-                await self?.applyPreparedImport(archive: archive, relativeTo: base, apply: apply)
+                await self?.applyPreparedImport(
+                    archive: archive, relativeTo: base,
+                    targetsByArchivePath: targetsByArchivePath, apply: apply)
             }
         )
     }
@@ -988,14 +1032,19 @@ final class AppModel {
     private func applyPreparedImport(
         archive: TagArchive,
         relativeTo base: URL,
+        targetsByArchivePath: [String: URL],
         apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
     ) async {
         do {
             let report = try await apply(archive, base)
 
-            // Geänderte, geladene Einträge neu von der Platte lesen.
-            let changedPaths = Set(report.applied.map {
-                MediaFormats.canonicalFileURL(TagArchiveIO.resolve(path: $0, in: base))
+            // Geänderte, geladene Einträge neu von der Platte lesen. Die Pfade
+            // werden NICHT erneut aufgelöst: Ein nach der Prüfung umgebogener
+            // Symlink zeigte sonst auf eine andere Datei, deren offener
+            // Editor-Puffer beim Neuladen verlorenginge. `apply` schreibt
+            // ausschließlich in die hier hinterlegten, freigegebenen Ziele.
+            let changedPaths = Set(report.applied.compactMap {
+                targetsByArchivePath[$0].map(MediaFormats.canonicalFileURL)
             })
             for entry in entries where changedPaths.contains(MediaFormats.canonicalFileURL(entry.url)) {
                 await reload(entry: entry)
@@ -1165,6 +1214,11 @@ final class AppModel {
         // zusätzlich bis in den atomaren Austausch (expecting:) und wird dort
         // unmittelbar vor dem rename ein letztes Mal geprüft.
         try FileStamp.requireUnchanged(stamp, at: url)
+        // Unbrauchbare Coverdaten schon vor der Sicherung ablehnen: Der
+        // Schreibweg würde sie sonst als angebliches Bild in die Datei legen.
+        if case .ebook(_, _, let cover) = snapshot, let cover {
+            try EbookTool.requireSupportedCover(cover)
+        }
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(url)
