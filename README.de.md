@@ -9,7 +9,8 @@
 <p align="center">
   <strong>Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten —
   Audio-Tags, Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in
-  einem schnellen Editor im Apple-Stil, mit skriptfähiger CLI.</strong>
+  einem schnellen Editor im Apple-Stil, mit skriptfähiger CLI. Zeigt außerdem
+  E-Rechnungen an (ZUGFeRD/Factur-X, XRechnung, Peppol), rein lesend.</strong>
 </p>
 
 <p align="center">
@@ -35,6 +36,15 @@
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
   werden mobi/azw3/fb2 über dessen CLI `ebook-meta` bearbeitet.
+- **E-Rechnungen (nur Anzeige)** — erkennt Standard und Profil aus der
+  Spezifikationskennung (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM bis EXTENDED),
+  XRechnung, Peppol BIS und reine EN 16931, in beiden Syntaxen (UN/CEFACT CII
+  und OASIS UBL, Rechnung und Gutschrift). Jedes befüllte Feld erscheint mit
+  seiner EN-16931-Feldbezeichnung (BT-/BG-Nummer und Name); Felder ohne
+  Zuordnung bleiben mit ihrem Rohpfad sichtbar, häufige Codes werden
+  entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
+  Funktioniert für eigenständige XML-Dateien und für PDFs mit eingebetteter
+  Rechnung — die bekommen einen zusätzlichen Tab „E-Rechnung“.
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
@@ -52,7 +62,7 @@
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
-  `tagx ebook`.
+  `tagx ebook`, `tagx invoice`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
 die CLI spricht Englisch.
@@ -134,6 +144,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
+| E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
@@ -177,6 +188,7 @@ tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
+tagx invoice rechnung.pdf                      # E-Rechnung: Profil + alle Felder (BT-Nummern)
 tagx set song.mp3 -t ARTIST="X" --no-backup    # ohne Sicherungskopie im Papierkorb
 ```
 
@@ -228,7 +240,10 @@ Bundle umgebogen und die Dateien neu signiert. Ebenfalls gelinkt
 sind Sparkle (MIT), ZIPFoundation (MIT) und swift-argument-parser (Apache-2.0).
 mediainfo (BSD-2), exiftool (Artistic/GPL) und Calibres `ebook-meta` (GPL)
 werden weder gebündelt noch gelinkt, sondern nur als externe Programme
-aufgerufen. Vollständige Lizenztexte und die Begründung:
+aufgerufen. Die Feldbezeichnungen der E-Rechnungs-Anzeige folgen dem
+semantischen Modell der EN 16931 und den UNTDID-/UN-ECE-Codelisten; es wird
+kein Text aus den Normdokumenten wiedergegeben, die Kurzbezeichnungen sind
+eigene Formulierungen. Vollständige Lizenztexte und die Begründung:
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Die Demo-Dateien und Cover in den Screenshots sind vollständig für diese

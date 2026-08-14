@@ -49,6 +49,25 @@ unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
   neu signiert; der Framework-Code selbst bleibt unverändert. Die MIT-Lizenz
   erlaubt das ausdrücklich, der Copyright-Vermerk bleibt erhalten.
 
+## Datenquellen der E-Rechnungs-Anzeige
+
+Die E-Rechnungs-Anzeige (`Sources/EInvoiceCore/`) ist vollständig eigener
+MIT-Code ohne zusätzliche Abhängigkeiten. Sie stützt sich auf öffentlich
+dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
+
+- Die Feldnummern (BT-/BG-Nummern) und XML-Pfade folgen dem **semantischen
+  Datenmodell der EN 16931** und seinen Syntax-Bindings für UN/CEFACT CII und
+  OASIS UBL. Aus den Normdokumenten (Copyright CEN/DIN) wird kein Text
+  wiedergegeben; die deutschen Kurzbezeichnungen der Felder sind eigene
+  Formulierungen.
+- Die entschlüsselten Codewerte stammen aus den öffentlichen
+  **UNTDID-Codelisten** (Dokumententyp 1001, Zahlungsart 4461,
+  USt-Kategorie 5305) und den **Maßeinheiten der UN/ECE Recommendation 20/21**,
+  jeweils als kurze faktische Auszüge mit eigenen deutschen Bezeichnungen.
+- „ZUGFeRD“, „Factur-X“, „XRechnung“ und „Peppol“ werden ausschließlich
+  beschreibend zur Angabe der gelesenen Formate genannt. Die App behauptet
+  keine Konformität und validiert nicht — sie zeigt an.
+
 ## Icon
 
 Das App-Icon wurde mit MiniMax `image-01` erzeugt. Die Rechte an generierten

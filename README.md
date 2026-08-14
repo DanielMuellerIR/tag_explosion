@@ -9,7 +9,8 @@
 <p align="center">
   <strong>Native macOS app for viewing and editing media metadata — audio tags,
   image metadata (EXIF/IPTC/XMP), video tags, and e-book metadata in one fast,
-  Apple-style editor, with a scriptable CLI companion.</strong>
+  Apple-style editor, with a scriptable CLI companion. Also inspects
+  e-invoices (ZUGFeRD/Factur-X, XRechnung, Peppol), read-only.</strong>
 </p>
 
 <p align="center">
@@ -35,6 +36,15 @@
   series, description, cover, ISBN, publisher, language, date, tags). EPUB is
   handled natively, PDF via exiftool; with Calibre installed, mobi/azw3/fb2
   are edited through its `ebook-meta` CLI.
+- **E-invoices (read-only)** — detects the standard and profile from the
+  specification identifier (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM through
+  EXTENDED), XRechnung, Peppol BIS and plain EN 16931, in both syntaxes
+  (UN/CEFACT CII and OASIS UBL, invoices and credit notes). Every populated
+  field is shown with its EN 16931 business term (BT/BG number and label);
+  unmapped fields stay visible with their raw path, and common codes are
+  decoded (document type, VAT category, payment means, units). Works on
+  standalone XML files and on PDFs with an embedded invoice, which get an
+  extra "E-Invoice" tab.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
@@ -51,7 +61,7 @@
   installs updates after you confirm.
 - **CLI `tagx`** — everything scriptable with JSON output and exit codes:
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
-  `tagx ebook`.
+  `tagx ebook`, `tagx invoice`.
 
 The app's user interface is available in English and German (it follows the
 system language); the CLI speaks English.
@@ -128,6 +138,7 @@ These run on every push (see `.github/workflows/tests.yml`).
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonized) |
 | Video | mp4, m4v, mkv, webm (editable) · mov, avi (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
+| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms |
 
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*
@@ -170,6 +181,7 @@ tagx ebook set book.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
+tagx invoice invoice.pdf                       # e-invoice profile + all fields (BT terms)
 tagx set song.mp3 -t ARTIST="X" --no-backup    # skip the safety copy in the trash
 ```
 
@@ -220,7 +232,10 @@ framework folder and re-signs the files. Sparkle (MIT),
 ZIPFoundation (MIT), and swift-argument-parser (Apache-2.0) are linked as
 well. mediainfo (BSD-2), exiftool (Artistic/GPL), and Calibre's `ebook-meta`
 (GPL) are neither bundled nor linked — they are only invoked as external
-programs. Full licence texts and the reasoning:
+programs. The e-invoice field labels follow the semantic model of EN 16931
+and the UNTDID/UN/ECE code lists; no text from the standard documents is
+reproduced, the short labels are written in the project's own wording. Full
+licence texts and the reasoning:
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 The demo files and cover art in the screenshots are entirely generated for
