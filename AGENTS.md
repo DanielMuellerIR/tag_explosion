@@ -5,8 +5,10 @@
 - **Typ:** macOS-App (SwiftUI) + portabler Swift-Core + CLI
 - **Zweck:** Medien-Metadaten anzeigen (alles, was mediainfo kann) und editieren
   (alles, was kid3 kann: Tags + Cover für mp3, m4a/m4b, flac, ogg, opus, wav, aiff …),
-  Apple-like und schnell. Dazu Bilder (EXIF/IPTC/XMP via exiftool), Video und
-  E-Books (EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre-CLI).
+  Apple-like und schnell. Dazu Bilder (EXIF/IPTC/XMP via exiftool), Video,
+  E-Books (EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre-CLI) und
+  E-Rechnungen (ZUGFeRD/Factur-X/XRechnung/Peppol, CII + UBL — nur Anzeige:
+  Profil aus BT-24 plus alle Felder mit EN-16931-Bezeichnungen).
 - **Plattform:** macOS (App); Core/CLI Linux-portabel gehalten. Open Source, MIT.
 
 ## Architektur
@@ -15,6 +17,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 
 - `Sources/CTagShim/` — eigener C++-Shim (MIT) über System-TagLib (Homebrew/apt,
   LGPL/MPL) mit C-Schnittstelle. **Einziger** TagLib-Berührungspunkt.
+- `Sources/EInvoiceCore/` — E-Rechnungs-Leser (nur Anzeige), ohne
+  TagLib-/ZIP-Abhängigkeit; PDF-Extraktion via CoreGraphics ist der einzige
+  Apple-only-Teil. Fallen: [knowledge/e-rechnung-anzeige.md](knowledge/e-rechnung-anzeige.md).
 - `Sources/TagExplosionCore/` — portables Swift: Datenmodell, Tag-IO über Shim,
   MediaInfo-JSON-Wrapper (Prozessaufruf). Kein AppKit/SwiftUI hier.
 - `Sources/tagx/` — CLI (maschinenlesbare Ausgabe, Exit-Codes) für Headless-Betrieb

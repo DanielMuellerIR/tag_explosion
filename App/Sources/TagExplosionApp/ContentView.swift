@@ -23,6 +23,9 @@ struct ContentView: View {
                 case .ebook:
                     EbookEditorView(entry: entry)
                         .id(entry.url)
+                case .invoice:
+                    InvoiceView(entry: entry)
+                        .id(entry.url)
                 }
             } else if model.selectedEntries.count > 1 {
                 let selected = model.selectedEntries
@@ -35,6 +38,14 @@ struct ContentView: View {
                 } else if selected.allSatisfy({ $0.kind == .ebook }) {
                     EbookBatchEditorView(entries: selected)
                         .id(model.selection)
+                } else if selected.allSatisfy({ $0.kind == .invoice }) {
+                    // Rechnungen sind reine Anzeige — eine Stapelbearbeitung
+                    // gibt es nicht, also einzeln auswählen.
+                    ContentUnavailableView(
+                        "E-Rechnungen einzeln auswählen",
+                        systemImage: "doc.text.magnifyingglass",
+                        description: Text("E-Rechnungen werden nur angezeigt und einzeln geöffnet.")
+                    )
                 } else {
                     ContentUnavailableView(
                         "Gemischte Auswahl",
@@ -320,6 +331,10 @@ struct DropPlaceholder: View {
     private static let imageDisplay = imageExtensions.sorted()
     private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
     private static let ebookDisplay = ebookExtensions.sorted()
+    /// pdf zusätzlich zeigen: ZUGFeRD-/Factur-X-Rechnungen stecken in PDFs
+    /// (geöffnet werden sie über die E-Book-Schiene, der Rechnungsteil
+    /// erscheint dort als eigener Tab).
+    private static let invoiceDisplay = MediaFormats.invoice.union(["pdf"]).sorted()
     /// Hinweis auf die nur-mit-Calibre-Formate, falls Calibre fehlt.
     private static let ebookTagFormats: LocalizedStringKey = EbookTool.calibreAvailable
         ? "EPUB-OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)"
@@ -334,7 +349,7 @@ struct DropPlaceholder: View {
             VStack(spacing: 8) {
                 Text("Tag Explosion")
                     .font(.title2.bold())
-                Text("Audio-, Bild-, Video- und E-Book-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
+                Text("Audio-, Bild-, Video-, E-Book- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
@@ -352,6 +367,9 @@ struct DropPlaceholder: View {
                 FormatColumn(title: "E-Books", systemImage: "book",
                              formats: Self.ebookDisplay,
                              tagFormats: Self.ebookTagFormats)
+                FormatColumn(title: "E-Rechnungen", systemImage: "doc.text.magnifyingglass",
+                             formats: Self.invoiceDisplay,
+                             tagFormats: "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)")
             }
         }
         .padding(32)

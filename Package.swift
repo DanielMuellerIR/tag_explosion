@@ -10,6 +10,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "TagExplosionCore", targets: ["TagExplosionCore"]),
+        // Eigenständig nutzbar (kein TagLib nötig); die App bindet es direkt.
+        .library(name: "EInvoiceCore", targets: ["EInvoiceCore"]),
         .executable(name: "tagx", targets: ["tagx"]),
     ],
     dependencies: [
@@ -31,11 +33,18 @@ let package = Package(
             name: "CTagShim",
             dependencies: ["CTagLib"]
         ),
+        // E-Rechnungs-Leser (nur Anzeige): ZUGFeRD/Factur-X/XRechnung/Peppol.
+        // Bewusst ohne TagLib-/ZIP-Abhängigkeit; die PDF-Extraktion nutzt
+        // CoreGraphics und ist per #if auf Apple-Plattformen begrenzt.
+        .target(
+            name: "EInvoiceCore"
+        ),
         // Portabler Kern: Datenmodell, Tag-IO, MediaInfo-Wrapper. Kein AppKit/SwiftUI.
         .target(
             name: "TagExplosionCore",
             dependencies: [
                 "CTagShim",
+                "EInvoiceCore",
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
             ]
         ),
@@ -49,7 +58,7 @@ let package = Package(
         ),
         .testTarget(
             name: "TagExplosionCoreTests",
-            dependencies: ["TagExplosionCore"],
+            dependencies: ["TagExplosionCore", "EInvoiceCore"],
             // Fixture-Generator liegt daneben; Tests rufen ihn bei Bedarf auf.
             exclude: ["Fixtures"]
         ),

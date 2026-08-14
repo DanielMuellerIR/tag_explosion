@@ -1,6 +1,7 @@
 // Zentrales App-Modell: geladene Dateien, Auswahl, Laden/Speichern.
 // UI-State läuft auf dem MainActor; Datei-IO in Hintergrund-Tasks.
 import AppKit
+import EInvoiceCore
 import Observation
 import SwiftUI
 import TagExplosionCore
@@ -54,6 +55,10 @@ final class FileEntry: Identifiable {
     /// Bytes als "keine Änderung" erkannt.
     private(set) var ebookCoverReplacement: Data?
 
+    /// Geparste E-Rechnung (nur bei kind == .invoice). Kein Bearbeitungs-
+    /// puffer: Rechnungen sind reine Anzeige.
+    private(set) var invoiceDocument: EInvoiceDocument?
+
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
     /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
@@ -99,6 +104,9 @@ final class FileEntry: Identifiable {
             self.ebookOriginal = fields
             self.ebookFields = fields
             self.ebookOriginalCover = cover
+        case .invoice(let document):
+            self.kind = .invoice
+            self.invoiceDocument = document
         }
     }
 
@@ -121,6 +129,9 @@ final class FileEntry: Identifiable {
             return imageFields != imageOriginal
         case .ebook:
             return ebookFields != ebookOriginal || ebookCoverReplacement != nil
+        case .invoice:
+            // Reine Anzeige — es gibt nichts zu ändern und nichts zu speichern.
+            return false
         }
     }
 
@@ -179,6 +190,9 @@ final class FileEntry: Identifiable {
         case .audio(let data): acceptNewOriginal(data)
         case .image(let fields): acceptNewImageOriginal(fields)
         case .ebook(let fields, let cover): acceptNewEbookOriginal(fields, cover: cover)
+        case .invoice(let document):
+            invoiceDocument = document
+            lastError = nil
         }
     }
 
@@ -195,6 +209,10 @@ final class FileEntry: Identifiable {
         case .ebook:
             return .ebook(fields: ebookFields, original: ebookOriginal,
                           cover: ebookCoverReplacement)
+        case .invoice:
+            // Nicht erreichbar: isDirty ist für Rechnungen immer false.
+            isSaving = false
+            return nil
         }
     }
 
@@ -284,6 +302,7 @@ final class FileEntry: Identifiable {
         case .audio: title = firstValue("TITLE")
         case .image: title = imageFields.title
         case .ebook: title = ebookFields.title
+        case .invoice: title = invoiceDocument?.summary.invoiceNumber ?? ""
         }
         return title.isEmpty ? url.lastPathComponent : title
     }
@@ -298,11 +317,16 @@ final class FileEntry: Identifiable {
             return imageFields.keywords.joined(separator: ", ")
         case .ebook:
             return ebookFields.authors.joined(separator: ", ")
+        case .invoice:
+            guard let summary = invoiceDocument?.summary else { return "" }
+            return [summary.sellerName ?? "", summary.issueDate ?? ""]
+                .filter { !$0.isEmpty }
+                .joined(separator: " · ")
         }
     }
 }
 
-/// Frisch gelesener Datei-Zustand (Audio, Bild oder E-Book).
+/// Frisch gelesener Datei-Zustand (Audio, Bild, E-Book oder E-Rechnung).
 enum LoadedData: Sendable {
     case audio(TagData)
     case image(ImageCoreFields)
@@ -310,6 +334,8 @@ enum LoadedData: Sendable {
     /// gemeinsamen Lesevorgang, und nur mit dem Original-Cover im Speicher
     /// lässt sich ein gleich gebliebenes Cover als Nichts-Tun erkennen.
     case ebook(EbookCoreFields, cover: Data?)
+    /// E-Rechnung (XML) — reine Anzeige, es gibt keinen Bearbeitungspuffer.
+    case invoice(EInvoiceDocument)
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -436,7 +462,7 @@ final class AppModel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen")
+        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen")
         if panel.runModal() == .OK {
             Task { await self.open(urls: panel.urls) }
         }
@@ -561,6 +587,9 @@ final class AppModel {
             let contents = try EbookTool.readSnapshot(
                 url: url, includeCover: EbookTool.supportsCover(url: url)).value
             return .ebook(contents.fields, cover: contents.cover?.data)
+        case .invoice:
+            // E-Rechnung (XML): vollständig parsen — reine Anzeige.
+            return .invoice(try EInvoiceReader.read(url: url))
         }
     }
 

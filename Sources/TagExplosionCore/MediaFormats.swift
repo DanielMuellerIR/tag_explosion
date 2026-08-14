@@ -1,5 +1,6 @@
 // Zentrale Format-/Endungslisten des Cores. App und CLI leiten ihre
 // Dateierkennung hieraus ab, damit nichts auseinanderdriftet.
+import EInvoiceCore
 import Foundation
 
 public enum MediaFormats {
@@ -33,12 +34,18 @@ public enum MediaFormats {
         return extensions
     }()
 
+    /// E-Rechnungs-Endungen (nur Anzeige). PDFs mit eingebetteter Rechnung
+    /// laufen weiter als E-Book — dort ergänzt die Anzeige den Rechnungsteil.
+    public static let invoice: Set<String> = ["xml"]
+
     /// Grobe Medienart — bestimmt Lese-/Schreibweg. Video läuft über den
     /// TagLib-Weg wie Audio (PropertyMap).
     public enum Kind: String, Sendable, Codable {
         case audio
         case image
         case ebook
+        /// E-Rechnung (XML) — reine Anzeige, kein Schreibweg.
+        case invoice
     }
 
     public static func kind(of url: URL) -> Kind? {
@@ -47,7 +54,19 @@ public enum MediaFormats {
         if image.contains(ext) { return .image }
         if ebook.contains(ext) { return .ebook }
         if video.contains(ext) { return .audio }
+        // XML nur annehmen, wenn der Inhalt tatsächlich eine E-Rechnung ist —
+        // sonst zöge ein Ordner-Drop beliebige Fremd-XMLs in die Liste.
+        if invoice.contains(ext), isInvoiceXML(url) { return .invoice }
         return nil
+    }
+
+    /// Schneller Inhaltstest: Wurzelelement/Namensräume stehen am Dateianfang,
+    /// mehr als 8 KB muss dafür niemand lesen.
+    private static func isInvoiceXML(_ url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let head = try? handle.read(upToCount: 8192) else { return false }
+        return EInvoiceReader.sniffXML(head)
     }
 
     /// Liefert die Identität, unter der die App dieselbe Datei wiedererkennt.

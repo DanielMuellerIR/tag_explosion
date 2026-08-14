@@ -17,3 +17,7 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [ebook-meta-calibre-quirks.md](ebook-meta-calibre-quirks.md) — Beim
   E-Book-Backend mobi/azw3/fb2: azw3 verliert Serien, Datums-/Index-Semantik,
   nicht sicher löschbare Cover und LC_ALL=C.
+- [e-rechnung-anzeige.md](e-rechnung-anzeige.md) — Bei Arbeit an EInvoiceCore,
+  `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
+  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion,
+  XMP-Präfix-Falle.

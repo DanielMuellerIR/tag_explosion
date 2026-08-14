@@ -21,6 +21,7 @@ let package = Package(
             name: "TagExplosionApp",
             dependencies: [
                 .product(name: "TagExplosionCore", package: "TagExplosion"),
+                .product(name: "EInvoiceCore", package: "TagExplosion"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             resources: [.process("Resources")],

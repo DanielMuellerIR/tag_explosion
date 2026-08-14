@@ -148,6 +148,10 @@ public enum TagArchiveIO {
                     // ein späterer Import ein vorhandenes Cover löschen.
                     entry.artworks = snapshot.value.cover.map { [$0] } ?? []
                 }
+            case .invoice:
+                // E-Rechnungen sind reine Anzeige — es gibt keine editierbaren
+                // Tags, die ein Archiv sichern oder wiederherstellen könnte.
+                continue
             }
             entries.append(entry)
         }
@@ -450,6 +454,11 @@ public enum TagArchiveIO {
                     coverUpdate: coverUpdate, expecting: snapshot.stamp)
             }
             return true
+        case .invoice:
+            // Export erzeugt solche Einträge nie (build überspringt sie);
+            // ein handgebautes Archiv mit Rechnungseintrag ist fehlerhaft.
+            throw TagArchiveError.inconsistentEntry(
+                path: entry.path, detail: "invoices are display-only and cannot be archived")
         }
     }
 
@@ -533,6 +542,12 @@ public enum TagArchiveIO {
                             detail: "ebook cover must be a JPEG or PNG image")
                     }
                 }
+            case .invoice:
+                // Der Export erzeugt solche Einträge nie; ein Archiv, das
+                // welche enthält, ist von Hand gebaut und fehlerhaft.
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path,
+                    detail: "invoices are display-only and cannot be archived")
             }
         }
     }

@@ -8,6 +8,33 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.0] — 2026-08-14
+
+### Hinzugefügt
+
+- **E-Rechnungen anzeigen** (nur Lesen): ZUGFeRD, Factur-X, XRechnung und
+  Peppol BIS in beiden Syntaxen (UN/CEFACT CII und OASIS UBL, Rechnung und
+  Gutschrift). Erkannt werden Standard und Profil aus der
+  Spezifikationskennung (BT-24, z.B. MINIMUM bis EXTENDED, XRechnung-Version);
+  angezeigt wird jedes befüllte Feld mit seiner EN-16931-Feldbezeichnung
+  (BT-/BG-Nummer und deutschem Namen). Felder ohne Zuordnung (z.B.
+  EXTENDED-Zusatzfelder) bleiben mit Rohpfad sichtbar — es geht nichts
+  verloren. Häufige Codes werden entschlüsselt (Rechnungstyp, USt-Kategorie,
+  Zahlungsart, Mengeneinheiten, CII-Datumsformat als ISO-Lesehilfe).
+- Neues portables Modul `EInvoiceCore` (ohne TagLib-Abhängigkeit) mit
+  namensraum-kanonisierendem XML-Baum und den Pfad-Tabellen der
+  EN-16931-Syntax-Bindings; PDF-Extraktion (eingebettete Dateien + Factur-X-
+  XMP-Deklaration) über CoreGraphics.
+- App: `.xml`-Dateien werden angenommen, wenn sie tatsächlich eine
+  E-Rechnung enthalten (Inhalts-Schnelltest statt Endungs-Vertrauen); die
+  Ansicht ist filterbar (Wert, Element, BT-Nummer, Feldname) und auf
+  EN-16931-Felder einschränkbar. PDFs mit eingebetteter Rechnung bekommen im
+  E-Book-Editor den zusätzlichen Tab „E-Rechnung“.
+- CLI: `tagx invoice` (Text und `--json`, `--terms-only`) für XML- und
+  PDF-Rechnungen.
+- ZUGFeRD 1.0 (vor EN 16931) wird erkannt und vollständig roh angezeigt,
+  bewusst ohne BT-Zuordnung.
+
 ## [0.20.2] — 2026-08-11
 
 Alle Punkte dieser Version stammen aus dem Code-Review vom 2026-08-11.

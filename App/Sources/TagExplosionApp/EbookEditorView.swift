@@ -1,16 +1,62 @@
 // E-Book-Editor: Cover + Kernfelder (Umfang wie Calibres Metadaten-Dialog).
 // EPUB nativ, PDF via exiftool (ohne Serie/Cover), mobi/azw3/fb2 via Calibre.
+// PDFs mit eingebetteter E-Rechnung (ZUGFeRD/Factur-X) bekommen zusätzlich
+// einen Rechnungs-Tab.
+import EInvoiceCore
 import SwiftUI
 import TagExplosionCore
 import UniformTypeIdentifiers
 
 struct EbookEditorView: View {
     @Bindable var entry: FileEntry
+    @State private var tab: Tab = .metadata
+    /// Trägt dieses PDF eine E-Rechnung? (nil = Prüfung läuft noch)
+    @State private var hasInvoice: Bool?
+
+    enum Tab: Hashable {
+        case metadata
+        case invoice
+    }
 
     private var supportsCover: Bool { EbookTool.supportsCover(url: entry.url) }
     private var supportsSeries: Bool { EbookTool.supportsSeries(url: entry.url) }
 
     var body: some View {
+        VStack(spacing: 0) {
+            if hasInvoice == true {
+                Picker("", selection: $tab) {
+                    Text("Metadaten").tag(Tab.metadata)
+                    Text("E-Rechnung").tag(Tab.invoice)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 260)
+                .padding(.vertical, 8)
+
+                Divider()
+            }
+
+            switch tab {
+            case .metadata:
+                metadataTab
+            case .invoice:
+                InvoiceTab(url: entry.url)
+            }
+        }
+        // Die Prüfung liest das PDF im Hintergrund; nur PDFs kommen infrage.
+        .task(id: entry.url) {
+            guard entry.url.pathExtension.lowercased() == "pdf" else {
+                hasInvoice = false
+                return
+            }
+            let target = entry.url
+            hasInvoice = await Task.detached(priority: .utility) {
+                EInvoiceReader.containsInvoice(url: target)
+            }.value
+        }
+    }
+
+    private var metadataTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header

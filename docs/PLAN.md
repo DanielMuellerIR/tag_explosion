@@ -315,3 +315,4 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.16.0  | Abgesicherter Modus: Papierkorb-Kopie vor jeder Änderung, atomarer Audio-/Video-Schreibweg mit Prüfung, Erkennung fremder Änderungen, Freiplatz-Prüfung, Integritäts-Tests und Test-CI — ✅ |
 | 0.16.1  | Datei aus dem Finder öffnen wieder möglich (beim Start mit Datei legte SwiftUI kein Fenster an) — ✅ |
 | 0.17.0  | Verteilung: `install.sh` (notarisiert nach /Applications) und `release.sh` (notarisiertes DMG), public-safe Notary-Profil je Mac, vollständige Third-Party-Lizenzen, READMEs mit Icon und Sicherheitsabschnitt, AVI-Read-only-Fallback repariert — ✅ |
+| 0.21.0  | E-Rechnungs-Anzeige (nur Lesen): ZUGFeRD/Factur-X/XRechnung/Peppol in CII + UBL, Profil aus BT-24, alle Felder mit EN-16931-Bezeichnungen (BT/BG), eigenes Modul `EInvoiceCore`, `tagx invoice`, App-Ansicht + PDF-Tab — ✅ (0.18–0.20 siehe CHANGELOG) |
