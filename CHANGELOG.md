@@ -10,7 +10,7 @@ jeder Entscheidung steht im jeweiligen Commit.
 
 ## [0.21.1] — 2026-08-15
 
-Einundzwanzig Funde des Nacht-Code-Reviews vom 2026-08-15 behoben.
+Einundzwanzig Funde des Code-Reviews vom 2026-08-15 behoben.
 
 ### Behoben
 
