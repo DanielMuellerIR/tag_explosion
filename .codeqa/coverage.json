@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 799882
+    "tokens_spent": 836103
   },
   "campaign_history": [],
   "scope": {
@@ -271,7 +271,21 @@
       "risk": "high",
       "priority": 9,
       "reason": "Gemeinsame Datei- und Verzeichniserkennung steuert App, CLI und Archive; Fehlklassifikation wirkt breit.",
-      "state": "pending"
+      "state": "completed",
+      "last_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T15:11:00+02:00",
+        "observed_head": "5d005183853cd58ac4d73b4f78cff6a3b31abc41",
+        "content_sha256": "a8eaf77f51912b836be81fba5ae37ced7bfc6f8daabadc0f5ee802d5b6359156",
+        "file_count": 2,
+        "review": "full",
+        "outcome": "reviewed-clean",
+        "summary": "Formatmengen, reguläre-Datei-Grenze, kanonische Symlink-Deduplizierung, rekursive Erweiterung und Finder-artige Sortierung sind lokal konsistent; die uneindeutige Rechnungs-Vorerkennung ist als eigener priorisierter Core-Querschnittsfund erfasst.",
+        "tests": [
+          "swift test --filter MediaFormatsTests|mediaFormatsAcceptsOnlyInvoiceXML|sniffAcceptsUTF16: 3 Tests in 2 Suites bestanden",
+          "Vollständige unveränderte Suite am aktuellen Produktstand: 130 Tests in 13 Suites bestanden"
+        ]
+      }
     },
     {
       "id": "process-reporting",
@@ -422,6 +436,19 @@
           "tagx exif set mit GPS 91,181: Exit 64 und bytegleiche Datei"
         ]
       }
+    },
+    {
+      "id": "invoice-sniff-consistency",
+      "summary": "Die Medienerkennung liest nur 8 KiB, und EInvoiceReader.sniffXML kürzt selbst vollständige Daten erneut auf 8 KiB. Gültige Rechnungen mit langem XML-Vorspann werden deshalb übersehen; CII wird umgekehrt allein am lokalen Wurzelnamen ohne bestätigten Namensraum als Rechnung eingestuft. Eine gemeinsame schnelle und parserkonsistente Erkennung herstellen.",
+      "evidence": [
+        "Sources/TagExplosionCore/MediaFormats.swift",
+        "Sources/EInvoiceCore/EInvoiceReader.swift",
+        "Tests/TagExplosionCoreTests/EInvoiceTests.swift"
+      ],
+      "priority": 9,
+      "state": "pending",
+      "noted_at": "2026-08-15T15:10:46+02:00",
+      "campaign_id": "20260815T135107310106+0200"
     }
   ]
 }

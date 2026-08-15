@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.14] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Die zentrale Medienerkennung wurde vollständig auf Formatzuordnung,
+  reguläre Dateien, rekursive Ordnerauflösung, Symlink-Deduplizierung und
+  stabile Sortierung geprüft. Die abweichende XML-Rechnungserkennung ist als
+  eigener priorisierter Querschnittsfund festgehalten.
+
 ## [0.21.13] — 2026-08-15
 
 ### Geprüft
