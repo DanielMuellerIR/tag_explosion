@@ -173,7 +173,11 @@ struct Set: ParsableCommand {
             guard let eq = assignment.firstIndex(of: "=") else {
                 throw ValidationError("Invalid assignment (expected KEY=VALUE): \(assignment)")
             }
-            let key = String(assignment[..<eq]).uppercased()
+            let rawKey = String(assignment[..<eq])
+            guard !rawKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw ValidationError("Invalid assignment (the key must not be empty): \(assignment)")
+            }
+            let key = rawKey.uppercased()
             let value = String(assignment[assignment.index(after: eq)...])
             // Bestehende Werte des Keys entfernen; nicht-leerer Wert wird neu gesetzt.
             properties.removeAll { $0.key == key }
@@ -187,8 +191,15 @@ struct Set: ParsableCommand {
             guard let eq = assignment.firstIndex(of: "=") else {
                 throw ValidationError("Invalid copy assignment (expected TARGET=SOURCE): \(assignment)")
             }
-            let target = String(assignment[..<eq]).uppercased()
-            let source = String(assignment[assignment.index(after: eq)...]).uppercased()
+            let rawTarget = String(assignment[..<eq])
+            let rawSource = String(assignment[assignment.index(after: eq)...])
+            guard !rawTarget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !rawSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw ValidationError(
+                    "Invalid copy assignment (target and source must not be empty): \(assignment)")
+            }
+            let target = rawTarget.uppercased()
+            let source = rawSource.uppercased()
             let values = properties.filter { $0.key == source }.map(\.value)
             guard !values.isEmpty else {
                 FileHandle.standardError.write(
@@ -255,19 +266,35 @@ struct Cover: ParsableCommand {
             }
             let outDir = output.map { URL(fileURLWithPath: $0) }
                 ?? url.deletingLastPathComponent()
-            for (i, art) in data.artworks.enumerated() {
+            let exports = data.artworks.enumerated().map { i, art in
                 let ext: String
                 switch art.resolvedMimeType {
                 case "image/png": ext = "png"
                 case "image/gif": ext = "gif"
                 case "image/webp": ext = "webp"
-                default: ext = "jpg"
+                case "image/bmp": ext = "bmp"
+                case "image/jpeg": ext = "jpg"
+                default: ext = "bin"
                 }
                 let base = url.deletingPathExtension().lastPathComponent
                 let suffix = data.artworks.count > 1 ? "-\(i + 1)" : ""
                 let target = outDir.appendingPathComponent("\(base)-cover\(suffix).\(ext)")
-                try art.data.write(to: target)
-                print(target.path)
+                return (art: art, target: target)
+            }
+            // Erst alle Kollisionen prüfen, damit ein späteres Cover nicht nach
+            // bereits geschriebenen Vorgängern zum Teil-Export führt.
+            for export in exports where FileManager.default.fileExists(atPath: export.target.path) {
+                throw ValidationError("Output file already exists: \(export.target.path)")
+            }
+            for export in exports {
+                do {
+                    // Die exklusive Schreiboption schließt auch das Rennen
+                    // zwischen Vorprüfung und tatsächlichem Anlegen der Datei.
+                    try export.art.data.write(to: export.target, options: .withoutOverwriting)
+                } catch where FileManager.default.fileExists(atPath: export.target.path) {
+                    throw ValidationError("Output file already exists: \(export.target.path)")
+                }
+                print(export.target.path)
             }
         }
     }
@@ -293,6 +320,9 @@ struct Cover: ParsableCommand {
                 throw TagError.cannotOpen(path: url.path)
             }
             let imageData = try Data(contentsOf: imageURL)
+            guard Artwork.sniffMimeType(from: imageData) != nil else {
+                throw ValidationError("Unsupported cover image: \(imageURL.path)")
+            }
             let artwork = Artwork(data: imageData, pictureType: "Front Cover")
             try FileStamp.requireUnchanged(stamp, at: url)
             try TrashBackup.shared.backUp(url)

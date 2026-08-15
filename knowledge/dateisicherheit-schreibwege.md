@@ -57,6 +57,17 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   exiftool und `ebook-meta` bekommen Pfade daher immer über
   `MediaInfoReader.toolArgument(for:)` — absolut, damit eine Datei namens
   `-etwas.jpg` nicht als Option ankommt.
+- **Auch ein Export ist ein Schreibweg.** `tagx cover export` prüft sämtliche
+  Zielnamen vor dem ersten Schreiben und legt jede Datei zusätzlich mit
+  `Data.WritingOptions.withoutOverwriting` exklusiv an. Eine bloße
+  `fileExists`-Prüfung genügt nicht, weil zwischen Prüfung und Schreiben eine
+  andere Datei entstehen kann. Unbekannte Covertypen bekommen `.bin` statt
+  einer irreführenden `.jpg`-Endung.
+- **CLI-Eingaben vor Sicherung und Mutation prüfen.** Ein leerer Tag-Schlüssel
+  wird von TagLib tatsächlich gespeichert; beliebige Bytes lassen sich dort
+  ebenfalls als Cover einbetten. `tagx set` lehnt deshalb leere Schlüssel ab,
+  und `tagx cover set` prüft die Magic Bytes mit `Artwork.sniffMimeType`, bevor
+  die Papierkorb-Sicherung beginnt.
 
 ## Wenn ein neuer Schreibweg entsteht
 

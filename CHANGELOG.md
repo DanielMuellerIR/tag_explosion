@@ -8,6 +8,21 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.11] — 2026-08-15
+
+### Behoben
+
+- CLI: `tagx set` lehnt leere Tag-Schlüssel sowie leere Quellen oder Ziele
+  beim Kopieren vor jeder Dateiänderung ab. TagLib hatte einen leeren Schlüssel
+  zuvor tatsächlich gespeichert.
+- CLI: `tagx cover set` prüft die Bildsignatur, bevor eine Sicherung oder
+  Änderung beginnt; beliebige Nicht-Bilddaten werden nicht mehr eingebettet.
+- CLI: Der Cover-Export überschreibt keine vorhandenen Dateien mehr. Alle
+  Zielkollisionen werden vorab geprüft und die Ausgaben zusätzlich exklusiv
+  angelegt.
+- CLI: BMP-Cover erhalten `.bmp`; unbekannte Typen werden als `.bin` statt
+  fälschlich als JPEG exportiert.
+
 ## [0.21.10] — 2026-08-15
 
 ### Geprüft
