@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.22] — 2026-08-15
+
+### Behoben
+
+- Cover-Drop: Bei mehreren abgelegten Dateien werden die Provider jetzt in
+  Reihenfolge bis zum ersten gültigen und für den Editor erlaubten Bild
+  geprüft. Eine kaputte erste Datei oder ein für E-Books unzulässiges GIF
+  verdeckt kein folgendes JPEG oder PNG mehr.
+- Das gemeinsame asynchrone Drop-Handling erfüllt die Swift-6-
+  Nebenläufigkeitsregeln; der App-Release-Build ist dadurch frei von
+  Swift-Warnungen.
+- Der Cover-Export verwendet für BMP-Daten `.bmp` und für unbekannte Daten
+  `.bin`, statt beide fälschlich als JPEG zu benennen.
+
 ## [0.21.21] — 2026-08-15
 
 ### Geprüft

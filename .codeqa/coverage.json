@@ -376,12 +376,19 @@
         "App/Sources/TagExplosionApp/EbookBatchEditorView.swift",
         "App/Sources/TagExplosionApp/CoverWell.swift",
         "App/Sources/TagExplosionApp/SharedFormControls.swift",
-        "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings"
+        "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings",
+        "App/Tests/TagExplosionAppTests/CoverDropTests.swift"
       ],
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T15:55:50+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "developer-tools",
