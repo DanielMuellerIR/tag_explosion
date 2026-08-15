@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.2] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Der vollständige Dateisicherheitskern (atomarer Austausch,
+  Dateistempel, Papierkorb-Sicherung und Platzprüfung) wurde samt direkten
+  Grenzen und Integritätstests korrektheitsorientiert geprüft. Es bestand
+  kein Änderungsbedarf.
+
 ## [0.21.1] — 2026-08-15
 
 Einundzwanzig Funde des Code-Reviews vom 2026-08-15 behoben.

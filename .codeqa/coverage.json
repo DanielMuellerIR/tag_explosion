@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "project": "tag_explosion",
+  "campaign": {
+    "id": "20260815T135107310106+0200",
+    "token_budget": 2000000,
+    "status": "active",
+    "started_at": "2026-08-15T13:51:07+02:00"
+  },
+  "campaign_history": [],
+  "scope": {
+    "paths": [
+      "Sources",
+      "App/Sources",
+      "Tests",
+      "App/Tests",
+      "scripts",
+      "build.sh",
+      "install.sh",
+      "release.sh",
+      "Package.swift",
+      "App/Package.swift",
+      ".github/workflows"
+    ],
+    "exclusions": [
+      {
+        "path": "Tests/TagExplosionCoreTests/Fixtures/generated",
+        "reason": "Durch generate_fixtures.sh erzeugte binäre Medien-Fixtures; kein eigener Quellcode"
+      }
+    ]
+  },
+  "areas": [
+    {
+      "id": "core-file-safety",
+      "paths": [
+        "Sources/TagExplosionCore/AtomicFileRewrite.swift",
+        "Sources/TagExplosionCore/TrashBackup.swift",
+        "Sources/TagExplosionCore/FileStamp.swift",
+        "Tests/TagExplosionCoreTests/FileIntegrityTests.swift",
+        "Tests/TagExplosionCoreTests/TrashBackupTests.swift"
+      ],
+      "risk": "critical",
+      "priority": 1,
+      "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T13:51:24+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
+    },
+    {
+      "id": "app-save-coordination",
+      "paths": [
+        "App/Sources/TagExplosionApp/AppModel.swift",
+        "App/Tests/TagExplosionAppTests/AppModelSaveTests.swift"
+      ],
+      "risk": "critical",
+      "priority": 2,
+      "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
+      "state": "pending"
+    },
+    {
+      "id": "archive-import",
+      "paths": [
+        "Sources/TagExplosionCore/TagArchive.swift",
+        "Sources/tagx/ArchiveCommands.swift",
+        "App/Sources/TagExplosionApp/ArchiveButtons.swift",
+        "Tests/TagExplosionCoreTests/TagArchiveTests.swift",
+        "Tests/TagxTests/ExportCollisionTests.swift"
+      ],
+      "risk": "critical",
+      "priority": 3,
+      "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
+      "state": "pending"
+    },
+    {
+      "id": "taglib-io",
+      "paths": [
+        "Sources/CTagLib",
+        "Sources/CTagShim",
+        "Sources/TagExplosionCore/Model.swift",
+        "Sources/TagExplosionCore/TagFile.swift",
+        "Tests/TagExplosionCoreTests/RoundtripTests.swift",
+        "scripts/taglib-refs.sh",
+        "Tests/taglib-refs-tests.sh"
+      ],
+      "risk": "critical",
+      "priority": 4,
+      "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
+      "state": "pending"
+    },
+    {
+      "id": "distribution-install",
+      "paths": [
+        "build.sh",
+        "install.sh",
+        "release.sh",
+        "scripts/install-verified-app.sh",
+        "scripts/notary-profile.sh",
+        "scripts/prepare-portable-taglib.sh",
+        "scripts/verify-macos-minimums.sh",
+        "Tests/install-verified-app-tests.sh",
+        "Tests/verify-macos-minimums-tests.sh",
+        "Package.swift",
+        "App/Package.swift",
+        ".github/workflows"
+      ],
+      "risk": "critical",
+      "priority": 5,
+      "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
+      "state": "pending"
+    },
+    {
+      "id": "ebook-writing",
+      "paths": [
+        "Sources/TagExplosionCore/EbookTool.swift",
+        "Sources/TagExplosionCore/EpubFile.swift",
+        "Sources/tagx/EbookCommand.swift",
+        "Tests/TagExplosionCoreTests/EbookToolTests.swift"
+      ],
+      "risk": "high",
+      "priority": 6,
+      "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
+      "state": "pending"
+    },
+    {
+      "id": "image-writing",
+      "paths": [
+        "Sources/TagExplosionCore/ExifTool.swift",
+        "Sources/tagx/ExifCommand.swift",
+        "Tests/TagExplosionCoreTests/ExifToolTests.swift"
+      ],
+      "risk": "high",
+      "priority": 7,
+      "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
+      "state": "pending"
+    },
+    {
+      "id": "cli-tag-commands",
+      "paths": [
+        "Sources/tagx/Tagx.swift",
+        "Tests/TagxTests/SetCommandTests.swift",
+        "Tests/TagxTests/TestFixtures.swift"
+      ],
+      "risk": "high",
+      "priority": 8,
+      "reason": "Maschinenlesbare CLI, Exit-Codes und Mutationsoptionen sind die headless Bediengrenze aller Hauptfunktionen.",
+      "state": "pending"
+    },
+    {
+      "id": "media-discovery",
+      "paths": [
+        "Sources/TagExplosionCore/MediaFormats.swift",
+        "Tests/TagExplosionCoreTests/MediaFormatsTests.swift"
+      ],
+      "risk": "high",
+      "priority": 9,
+      "reason": "Gemeinsame Datei- und Verzeichniserkennung steuert App, CLI und Archive; Fehlklassifikation wirkt breit.",
+      "state": "pending"
+    },
+    {
+      "id": "process-reporting",
+      "paths": [
+        "Sources/TagExplosionCore/MediaInfoReader.swift",
+        "Tests/TagExplosionCoreTests/MediaInfoReaderProcessTests.swift",
+        "App/Sources/TagExplosionApp/MediaInfoTab.swift"
+      ],
+      "risk": "medium",
+      "priority": 10,
+      "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
+      "state": "pending"
+    },
+    {
+      "id": "einvoice-reading",
+      "paths": [
+        "Sources/EInvoiceCore",
+        "Sources/tagx/InvoiceCommand.swift",
+        "App/Sources/TagExplosionApp/InvoiceView.swift",
+        "Tests/TagExplosionCoreTests/EInvoiceTests.swift",
+        "Tests/TagxTests/InvoiceCommandTests.swift"
+      ],
+      "risk": "high",
+      "priority": 11,
+      "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
+      "state": "pending"
+    },
+    {
+      "id": "app-shell-lifecycle",
+      "paths": [
+        "App/Sources/TagExplosionApp/ContentView.swift",
+        "App/Sources/TagExplosionApp/TagExplosionApp.swift",
+        "App/Sources/TagExplosionApp/WindowCloseAccessor.swift",
+        "App/Sources/TagExplosionApp/BrewToolInstallOffer.swift",
+        "App/Tests/TagExplosionAppTests/BrewToolInstallerTests.swift"
+      ],
+      "risk": "high",
+      "priority": 12,
+      "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
+      "state": "pending"
+    },
+    {
+      "id": "app-editors",
+      "paths": [
+        "App/Sources/TagExplosionApp/EditorView.swift",
+        "App/Sources/TagExplosionApp/BatchEditorView.swift",
+        "App/Sources/TagExplosionApp/ImageEditorView.swift",
+        "App/Sources/TagExplosionApp/ImageBatchEditorView.swift",
+        "App/Sources/TagExplosionApp/EbookEditorView.swift",
+        "App/Sources/TagExplosionApp/EbookBatchEditorView.swift",
+        "App/Sources/TagExplosionApp/CoverWell.swift",
+        "App/Sources/TagExplosionApp/SharedFormControls.swift",
+        "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings"
+      ],
+      "risk": "medium",
+      "priority": 13,
+      "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
+      "state": "pending"
+    },
+    {
+      "id": "developer-tools",
+      "paths": [
+        "scripts/dev-screenshot.sh",
+        "scripts/dev-uitest.swift",
+        "scripts/gen-social-preview.py",
+        "scripts/generate-dmg-background.swift",
+        "scripts/icon-from-image.swift",
+        "scripts/make-icon.swift",
+        "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh"
+      ],
+      "risk": "low",
+      "priority": 14,
+      "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
+      "state": "pending"
+    }
+  ],
+  "architecture": {
+    "campaign_id": "20260815T135107310106+0200",
+    "recorded_at": "2026-08-15T13:51:07+02:00",
+    "observed_head": "114b81efc4da1e08f9d1d331774f7839bb452bed",
+    "summary": "Core-Dienste bleiben von SwiftUI/AppKit getrennt und CLI/App nutzen dieselben Modelle; AppModel.swift bündelt jedoch Laden, Speichern, Konflikte, Archivimporte und Lebenszyklus auf 1331 Zeilen.",
+    "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell (MVVM-artig) und CLI-Adaptern",
+    "fit": "gespannt",
+    "recommendation": "Paradigma beibehalten. AppModel-Verantwortungen nur bereichsweise an belegten Änderungsgrenzen entkoppeln; ein Paradigmenwechsel lohnt den Migrations- und Regressionstestaufwand derzeit nicht."
+  }
+}
