@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.3] — 2026-08-15
+
+### Behoben
+
+- App: Solange die Entscheidung über eine extern geänderte Datei offen ist,
+  werden konkurrierende destruktive Aktionen wie App-Terminierung, Import
+  oder Entfernen abgewiesen. Dadurch können nicht mehr zwei Konfliktdialoge
+  gleichzeitig denselben Editor-Puffer behandeln.
+
 ## [0.21.2] — 2026-08-15
 
 ### Geprüft

@@ -435,6 +435,7 @@ final class AppModel {
 
     var isDestructiveActionLocked: Bool {
         pendingConflict != nil || pendingExternalImport != nil
+            || pendingStaleWrite != nil || claimedStaleWrite != nil
             || isPreparingDestructiveAction || isResolvingConflict
     }
 

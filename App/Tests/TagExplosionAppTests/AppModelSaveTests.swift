@@ -519,6 +519,38 @@ struct AppModelSaveTests {
         #expect(!entry.isDirty)
     }
 
+    @Test("Ein offener Dateikonflikt blockiert eine konkurrierende Terminierung")
+    func staleWriteBlocksConcurrentTermination() async {
+        // Der Konflikt wegen einer extern geänderten Datei hat einen eigenen
+        // Alert. Eine gleichzeitig gestartete Terminierungsfrage würde einen
+        // zweiten Save/Discard/Cancel-Alert aufbauen; beide Entscheidungen
+        // könnten dann denselben Editor-Puffer in verschiedener Reihenfolge
+        // behandeln. Die Terminierung muss stattdessen sauber abgebrochen
+        // werden, bis der erste Konflikt entschieden ist.
+        let entry = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-termination.mp3"),
+            changedTitle: "Lokaler Puffer")
+        let model = AppModel()
+        model.entries = [entry]
+
+        await model.save(entry: entry, staleCandidate: entry) { _ in
+            throw TagError.fileChangedOnDisk(path: entry.url.path)
+        }
+        #expect(model.pendingStaleWrite?.fileName == "stale-termination.mp3")
+
+        var reply: TerminationDecision?
+        await model.requestTermination { reply = $0 }
+
+        if case .terminateCancel = reply {
+            #expect(Bool(true))
+        } else {
+            Issue.record("Die konkurrierende Terminierung wurde nicht abgebrochen")
+        }
+        #expect(model.pendingConflict == nil)
+        #expect(model.pendingStaleWrite?.fileName == "stale-termination.mp3")
+        #expect(entry.isDirty)
+    }
+
     @Test("Mehrere Konflikte im Batch bekommen nacheinander je eigene Frage")
     func multipleStaleConflictsAreQueuedPerFile() async {
         // Zwei Dateien melden im selben Batch eine fremde Änderung. Ein

@@ -5,7 +5,8 @@
     "id": "20260815T135107310106+0200",
     "token_budget": 2000000,
     "status": "active",
-    "started_at": "2026-08-15T13:51:07+02:00"
+    "started_at": "2026-08-15T13:51:07+02:00",
+    "tokens_spent": 128124
   },
   "campaign_history": [],
   "scope": {
@@ -42,12 +43,19 @@
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T13:51:24+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T13:55:21+02:00",
+        "observed_head": "0623b9e11f8aab1b4ad05e1a0a4346706b7b80fd",
+        "content_sha256": "f6577f8a21a15b59b47f6d31cdac7ffed6c0289b0f41cc3de925166930b5f20c",
+        "file_count": 5,
+        "review": "full",
+        "outcome": "reviewed-clean",
+        "summary": "Atomarer Austausch, Dateistempel, APFS/HFS+-Platzprüfung und Papierkorb-Sicherung samt direkten Schreibgrenzen vollständig geprüft; keine belastbar bessere kleine Änderung gefunden.",
+        "tests": [
+          "swift test --filter 'FileIntegrityTests|TrashBackupTests': 22 Tests in 2 Suites bestanden"
+        ]
       }
     },
     {
@@ -59,7 +67,13 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T13:55:32+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "archive-import",
