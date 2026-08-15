@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.5] — 2026-08-15
+
+### Behoben
+
+- TagLib-Shim: Der Versionsstring wird einmalig als unveränderlicher
+  C++-`static` initialisiert. Parallele Abfragen schreiben nicht mehr
+  unkoordiniert in dasselbe Zeichenarray.
+
 ## [0.21.4] — 2026-08-15
 
 ### Behoben

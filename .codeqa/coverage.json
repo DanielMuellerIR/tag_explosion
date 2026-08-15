@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 191760
+    "tokens_spent": 256356
   },
   "campaign_history": [],
   "scope": {
@@ -95,12 +95,20 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T13:59:40+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T14:04:50+02:00",
+        "observed_head": "fafdd1165b1741467c2e51f1bcd329ad8cc1761f",
+        "content_sha256": "7f1c900cb434f1ad48d0836119a4fcc511394315e80dac94661384715f1ec6a1",
+        "file_count": 5,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Leere Audio-Wertlisten werden als unrepräsentierbarer Archivzustand vollständig vor der Import-Schleife abgelehnt; frühere Batch-Dateien bleiben unangetastet.",
+        "tests": [
+          "Vor-Fix-Gegenprobe emptyAudioPropertyValuesDoNotChangeEarlierEntries: erwartungsgemäß rot; beide Dateien wurden gemeldet/geändert",
+          "swift test: 118 Tests in 13 Suites bestanden"
+        ]
       }
     },
     {
@@ -117,7 +125,13 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T14:04:59+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "distribution-install",
@@ -284,6 +298,19 @@
       "priority": 9,
       "state": "pending",
       "noted_at": "2026-08-15T14:03:47+02:00",
+      "campaign_id": "20260815T135107310106+0200"
+    },
+    {
+      "id": "shell-test-temp-roots",
+      "summary": "Drei Shell-Testtreiber verwenden $TMPDIR ungeprüft als mktemp-Elternpfad; ein gesetztes, aber fehlendes TMPDIR lässt die Suite vor dem eigentlichen Test scheitern. Kontrollierten vorhandenen Temp-Elternpfad gemeinsam einführen.",
+      "evidence": [
+        "Tests/taglib-refs-tests.sh",
+        "Tests/install-verified-app-tests.sh",
+        "Tests/verify-macos-minimums-tests.sh"
+      ],
+      "priority": 10,
+      "state": "pending",
+      "noted_at": "2026-08-15T14:09:11+02:00",
       "campaign_id": "20260815T135107310106+0200"
     }
   ]

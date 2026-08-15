@@ -8,7 +8,6 @@
 #include <tvariant.h>
 #include <taglib.h>
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -205,11 +204,15 @@ int tx_get_audio_properties(tx_file* f, tx_audio_properties* out) {
 // ---- Sonstiges ----------------------------------------------------------------
 
 const char* tx_taglib_version(void) {
-    // TagLib liefert die Version als Makros; zusammensetzen und statisch halten.
-    static char version[32];
-    std::snprintf(version, sizeof(version), "%d.%d.%d",
-                  TAGLIB_MAJOR_VERSION, TAGLIB_MINOR_VERSION, TAGLIB_PATCH_VERSION);
-    return version;
+    // TagLib liefert die Version als Makros. Der unveränderliche lokale
+    // `static` wird seit C++11 genau einmal und threadsicher initialisiert.
+    // Ein bei jedem Aufruf neu beschriebenes char-Array wäre bei parallelen
+    // Abfragen ein Datenrennen, obwohl sich der Versionswert nie ändert.
+    static const std::string version =
+        std::to_string(TAGLIB_MAJOR_VERSION) + "." +
+        std::to_string(TAGLIB_MINOR_VERSION) + "." +
+        std::to_string(TAGLIB_PATCH_VERSION);
+    return version.c_str();
 }
 
 } // extern "C"

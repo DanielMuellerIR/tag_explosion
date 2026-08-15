@@ -53,6 +53,28 @@ let videoFormats = ["sample.mp4", "sample.m4v", "sample.mkv"]
 @Suite("Tag-Roundtrip", .serialized)
 struct RoundtripTests {
 
+    @Test("Parallele TagLib-Versionsabfragen sind threadsicher")
+    func concurrentTagLibVersionReads() async {
+        let versions = await withTaskGroup(of: String.self, returning: [String].self) { group in
+            for _ in 0..<64 {
+                group.addTask {
+                    var version = ""
+                    // Ein einzelner kurzer C-Aufruf überlappt auf schnellen
+                    // Rechnern nicht zuverlässig. Viele Abfragen pro Task
+                    // üben die gemeinsame C-Grenze tatsächlich parallel aus.
+                    for _ in 0..<10_000 { version = TagFile.tagLibVersion }
+                    return version
+                }
+            }
+            var values: [String] = []
+            for await value in group { values.append(value) }
+            return values
+        }
+
+        #expect(Set(versions).count == 1)
+        #expect(versions.first?.isEmpty == false)
+    }
+
     @Test("Parallele Audio-Öffnungen initialisieren TagLib threadsicher")
     func concurrentAudioOpens() async throws {
         let urls = try (0..<64).map { _ in
