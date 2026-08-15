@@ -179,7 +179,7 @@ enum PDFEmbeddedInvoice {
         var namespaces = inheritedNamespaces
         for (prefix, uri) in node.namespaceDeclarations { namespaces[prefix] = uri }
 
-        let isInvoiceNamespace = node.namespaceURI.contains("pdfa:CrossIndustryDocument")
+        let isInvoiceNamespace = isInvoiceDeclarationNamespace(node.namespaceURI)
         if isInvoiceNamespace {
             let local = node.name.components(separatedBy: ":").last ?? node.name
             apply(local: local, value: node.text, to: &declaration)
@@ -192,7 +192,7 @@ enum PDFEmbeddedInvoice {
             guard let colon = attribute.name.firstIndex(of: ":") else { continue }
             let prefix = String(attribute.name[..<colon])
             guard let uri = namespaces[prefix],
-                  uri.contains("pdfa:CrossIndustryDocument") else { continue }
+                  isInvoiceDeclarationNamespace(uri) else { continue }
             let local = String(attribute.name[attribute.name.index(after: colon)...])
             apply(local: local, value: attribute.value, to: &declaration)
         }
@@ -200,6 +200,17 @@ enum PDFEmbeddedInvoice {
             collectDeclaration(node: child, inheritedNamespaces: namespaces,
                                into: &declaration)
         }
+    }
+
+    /// Nur die veröffentlichten Factur-X-/ZUGFeRD-Namensraumfamilien
+    /// akzeptieren. Eine bloße Teilzeichenfolge würde fremde XMP-Schemata als
+    /// Rechnungsdeklaration deuten und könnte sogar die Anhangsauswahl lenken.
+    private static func isInvoiceDeclarationNamespace(_ uri: String) -> Bool {
+        [
+            "urn:factur-x:pdfa:CrossIndustryDocument:",
+            "urn:zugferd:pdfa:CrossIndustryDocument:",
+            "urn:ferd:pdfa:CrossIndustryDocument:",
+        ].contains(where: uri.hasPrefix)
     }
 
     private static func apply(local: String, value: String,

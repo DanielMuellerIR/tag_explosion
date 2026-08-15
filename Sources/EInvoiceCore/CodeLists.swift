@@ -130,6 +130,13 @@ enum CodeLists {
         let y = value.prefix(4)
         let m = value.dropFirst(4).prefix(2)
         let d = value.suffix(2)
+        guard let year = Int(y), let month = Int(m), let day = Int(d),
+              (1...12).contains(month) else { return nil }
+        let isLeapYear = year.isMultiple(of: 400)
+            || (year.isMultiple(of: 4) && !year.isMultiple(of: 100))
+        let daysPerMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30,
+                            31, 31, 30, 31, 30, 31]
+        guard (1...daysPerMonth[month - 1]).contains(day) else { return nil }
         return "\(y)-\(m)-\(d)"
     }
 }

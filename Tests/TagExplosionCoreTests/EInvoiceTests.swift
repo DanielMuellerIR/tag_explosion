@@ -325,6 +325,11 @@ struct EInvoiceTests {
         #expect(xr23ext.profile == "XRechnung 2.3 (mit Extension)")
         #expect(resolved("urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0")
             .standard == "Peppol BIS")
+        // Bloße Namensähnlichkeit darf einen fremden Bezeichner nicht als
+        // bekannten Standard ausgeben.
+        #expect(resolved("urn:example:xrechnung_demo").standard == "EN 16931-basiert?")
+        #expect(resolved("urn:example:peppol.eu:not-billing").standard
+            == "EN 16931-basiert?")
         // Unbekannte URN bleibt sichtbar statt geraten.
         #expect(resolved("urn:example:foo").profile == "urn:example:foo")
     }
@@ -382,6 +387,18 @@ struct EInvoiceTests {
         #expect(summary.sellerName == "Verkäufer GmbH")
         #expect(summary.payableAmount == "115.62")
         #expect(summary.currency == "EUR")
+    }
+
+    @Test("CII-Datumshilfe erzeugt nur für wirkliche Kalendertage ISO-Daten")
+    func ciiDateNoteRejectsImpossibleCalendarDate() throws {
+        let invalidDateXML = Self.ciiXML.replacingOccurrences(
+            of: "20260814", with: "20260231")
+        let doc = try EInvoiceReader.document(
+            fromXML: Data(invalidDateXML.utf8), source: .xmlFile)
+
+        #expect(field(doc, term: "BT-2")?.value == "20260231")
+        #expect(field(doc, term: "BT-2")?.valueNote == nil)
+        #expect(doc.summary.issueDate == "20260231")
     }
 
     // MARK: - UBL
@@ -509,13 +526,14 @@ struct EInvoiceTests {
             #expect(doc.pdfDeclaration?.documentFileName == "factur-x.xml")
             #expect(doc.pdfDeclaration?.conformanceLevel == "EN 16931")
 
-            // Ein fremdes Schema, das zufällig als "fx" gebunden ist, darf
-            // KEINE Deklaration vortäuschen.
+            // Ein fremdes Schema darf auch dann KEINE Deklaration vortäuschen,
+            // wenn seine URI den auffälligen Mittelteil des echten Namensraums
+            // absichtlich übernimmt.
             let foreignNamespace = """
             <x:xmpmeta xmlns:x="adobe:ns:meta/">
               <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
                 <rdf:Description rdf:about=""
-                  xmlns:fx="http://example.org/anderes-schema#"
+                  xmlns:fx="urn:example:pdfa:CrossIndustryDocument:fake#"
                   fx:Version="99" fx:ConformanceLevel="FAKE"/>
               </rdf:RDF>
             </x:xmpmeta>
@@ -529,42 +547,81 @@ struct EInvoiceTests {
         }
     }
 
-    /// Baut ein minimales, gültiges PDF — optional mit eingebetteter Datei
+    @Test("PDF: XMP-Dateiname gewinnt; ohne Deklaration bleibt die Anhangsreihenfolge")
+    func pdfCandidateOrderFollowsDeclarationAndPDF() throws {
+        try withTempDirectory { dir in
+            let declaredXML = Self.ciiXML.replacingOccurrences(of: "R-1", with: "R-XMP")
+            let declaredXMP = Self.invoiceXMP(fileName: "declared.xml")
+            let declaredURL = dir.appendingPathComponent("declared.pdf")
+            try Self.makePDF(embeddings: [
+                (Data(Self.ciiXML.utf8), "factur-x.xml"),
+                (Data(declaredXML.utf8), "declared.xml"),
+            ], xmp: declaredXMP).write(to: declaredURL)
+
+            let declared = try EInvoiceReader.read(url: declaredURL)
+            #expect(declared.source == .pdfEmbedded(fileName: "declared.xml"))
+            #expect(declared.summary.invoiceNumber == "R-XMP")
+
+            let firstXML = Self.ciiXML.replacingOccurrences(of: "R-1", with: "R-FIRST")
+            let secondXML = Self.ciiXML.replacingOccurrences(of: "R-1", with: "R-SECOND")
+            let orderedURL = dir.appendingPathComponent("ordered.pdf")
+            try Self.makePDF(embeddings: [
+                (Data(firstXML.utf8), "zuerst.xml"),
+                (Data(secondXML.utf8), "alphabetisch-frueher.xml"),
+            ], xmp: Self.foreignXMP).write(to: orderedURL)
+
+            let ordered = try EInvoiceReader.read(url: orderedURL)
+            #expect(ordered.source == .pdfEmbedded(fileName: "zuerst.xml"))
+            #expect(ordered.summary.invoiceNumber == "R-FIRST")
+        }
+    }
+
+    /// Baut ein minimales, gültiges PDF — optional mit eingebetteten Dateien
     /// (Namensbaum + AF-Array wie bei ZUGFeRD) und Factur-X-XMP-Deklaration
     /// (überschreibbar, um Präfix-/Namensraum-Varianten zu testen).
     /// Handgeschrieben statt Bibliothek: Der Test soll genau die Strukturen
     /// erzeugen, die der Leser abläuft.
     private static func makePDF(embedding payload: Data?, fileName: String?,
                                 xmp customXMP: String? = nil) -> Data {
-        var objects: [String] = []
-        let xmp = customXMP ?? """
-        <x:xmpmeta xmlns:x="adobe:ns:meta/">
-          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-            <rdf:Description rdf:about=""
-              xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#">
-              <fx:DocumentType>INVOICE</fx:DocumentType>
-              <fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>
-              <fx:Version>1.0</fx:Version>
-              <fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>
-            </rdf:Description>
-          </rdf:RDF>
-        </x:xmpmeta>
-        """
-
+        let embeddings: [(Data, String)]
         if let payload, let fileName {
+            embeddings = [(payload, fileName)]
+        } else {
+            embeddings = []
+        }
+        return makePDF(embeddings: embeddings, xmp: customXMP)
+    }
+
+    private static func makePDF(embeddings: [(payload: Data, fileName: String)],
+                                xmp customXMP: String? = nil) -> Data {
+        var objects: [String] = []
+        let xmp = customXMP ?? invoiceXMP(fileName: "factur-x.xml")
+
+        if !embeddings.isEmpty {
+            let filespecIDs = embeddings.indices.map { 5 + $0 * 2 }
+            let names = zip(embeddings, filespecIDs).map {
+                "(\($0.0.fileName)) \($0.1) 0 R"
+            }.joined(separator: " ")
+            let af = filespecIDs.map { "\($0) 0 R" }.joined(separator: " ")
+            let metadataID = 4 + embeddings.count * 2
             objects.append("""
-            << /Type /Catalog /Pages 2 0 R /Metadata 6 0 R \
-            /Names << /EmbeddedFiles << /Names [ (\(fileName)) 5 0 R ] >> >> \
-            /AF [ 5 0 R ] >>
+            << /Type /Catalog /Pages 2 0 R /Metadata \(metadataID) 0 R \
+            /Names << /EmbeddedFiles << /Names [ \(names) ] >> >> \
+            /AF [ \(af) ] >>
             """)
             objects.append("<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
             objects.append("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>")
-            objects.append("<< /Type /EmbeddedFile /Length \(payload.count) >>\nstream\n"
-                + String(decoding: payload, as: UTF8.self) + "\nendstream")
-            objects.append("""
-            << /Type /Filespec /F (\(fileName)) /UF (\(fileName)) \
-            /AFRelationship /Alternative /EF << /F 4 0 R /UF 4 0 R >> >>
-            """)
+
+            for embedding in embeddings {
+                let streamID = objects.count + 1
+                objects.append("<< /Type /EmbeddedFile /Length \(embedding.payload.count) >>\nstream\n"
+                    + String(decoding: embedding.payload, as: UTF8.self) + "\nendstream")
+                objects.append("""
+                << /Type /Filespec /F (\(embedding.fileName)) /UF (\(embedding.fileName)) \
+                /AFRelationship /Alternative /EF << /F \(streamID) 0 R \
+                /UF \(streamID) 0 R >> >>
+                """)
+            }
             objects.append("<< /Type /Metadata /Subtype /XML /Length \(xmp.utf8.count) >>\nstream\n"
                 + xmp + "\nendstream")
         } else {
@@ -589,4 +646,29 @@ struct EInvoiceTests {
         pdf += "startxref\n\(xrefOffset)\n%%EOF\n"
         return Data(pdf.utf8)
     }
+
+    private static func invoiceXMP(fileName: String) -> String {
+        """
+        <x:xmpmeta xmlns:x="adobe:ns:meta/">
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+            <rdf:Description rdf:about=""
+              xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#">
+              <fx:DocumentType>INVOICE</fx:DocumentType>
+              <fx:DocumentFileName>\(fileName)</fx:DocumentFileName>
+              <fx:Version>1.0</fx:Version>
+              <fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>
+            </rdf:Description>
+          </rdf:RDF>
+        </x:xmpmeta>
+        """
+    }
+
+    private static let foreignXMP = """
+    <x:xmpmeta xmlns:x="adobe:ns:meta/">
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+        <rdf:Description rdf:about="" xmlns:other="urn:example:metadata"
+          other:DocumentFileName="zuerst.xml"/>
+      </rdf:RDF>
+    </x:xmpmeta>
+    """
 }

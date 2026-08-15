@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.20] — 2026-08-15
+
+### Behoben
+
+- E-Rechnungen: Die Profilauflösung verlangt jetzt die bekannten
+  XRechnung-, Peppol-, Factur-X- oder ZUGFeRD-URN-Stämme. Ähnlich benannte
+  fremde Kennungen werden nicht mehr als bekannter Standard ausgegeben.
+- Bei mehreren Rechnungs-XMLs in einem PDF gewinnt der in XMP deklarierte
+  Dateiname. Ohne Deklaration bleibt die PDF-Anhangsreihenfolge erhalten,
+  statt unbekannte Dateinamen alphabetisch umzudeuten.
+- Nur veröffentlichte Factur-X-/ZUGFeRD-XMP-Namensräume dürfen die
+  Rechnungsdeklaration und damit die Anhangsauswahl bestimmen.
+- CII-Datumswerte im Format 102 erhalten nur dann eine ISO-Lesehilfe, wenn
+  Jahr, Monat und Tag einen wirklichen Kalendertag bilden. Der Rohwert bleibt
+  bei ungültigen Angaben unverändert sichtbar.
+
 ## [0.21.19] — 2026-08-15
 
 ### Behoben

@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 951494
+    "tokens_spent": 1056501
   },
   "campaign_history": [],
   "scope": {
@@ -296,12 +296,19 @@
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T15:25:26+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T15:40:59+02:00",
+        "observed_head": "cbbdc3a1b266da77e34efd8dc2aeb7d21a29a602",
+        "content_sha256": "41745258c2d647c00dfeb49ee13acbb90907373bd4d34cbd4e4db6fe20882bd4",
+        "file_count": 3,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Track-eigene und verschachtelte JSON-Reihenfolge strukturell rekonstruiert; kaputtes oder strukturell falsches JSON wird gemeldet; Uppercase-Surrogates sowie MacRoman/Latin1-Rohbytes werden belastbarer dekodiert; SwiftUI verwirft abgebrochene Altberichte nach Dateiwechsel.",
+        "tests": [
+          "Fünf Fehlerfälle zuerst reproduziert; MediaInfoReaderProcessTests 5/5, vollständige Root-Suite 136 Tests in 13 Suites und App-Suite 27 Tests in 3 Suites bestanden; Diff-Prüfung und CodeQA-Validierung grün."
+        ]
       }
     },
     {
@@ -316,7 +323,13 @@
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T15:41:07+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "app-shell-lifecycle",

@@ -54,13 +54,16 @@ Rechnungsansicht der App.
   `AF`-Array): einziger Apple-only-Teil von EInvoiceCore, gekapselt in
   `PDFEmbeddedInvoice.swift` (`#if canImport(CoreGraphics)`).
   `CGPDFStreamCopyData` dekomprimiert Flate selbst. Bevorzugte eingebettete
-  Dateinamen: `factur-x.xml`, `zugferd-invoice.xml`, `ZUGFeRD-invoice.xml`,
-  `xrechnung.xml` — sonst erstes eingebettetes XML, das der Schnelltest
-  als Rechnung erkennt.
-- **XMP-Attributform:** Attribut-Namensräume sind mit XMLParser nicht
-  auflösbar; die Deklaration akzeptiert Attribute nur mit den
-  konventionellen Präfixen (`fx:`, `zf:`, …), Elemente dagegen präzise über
-  ihre Namensraum-URI (`…pdfa:CrossIndustryDocument…`).
+  Dateinamen: zuerst der in XMP deklarierte `DocumentFileName`, danach
+  `factur-x.xml`, `zugferd-invoice.xml` und `xrechnung.xml`; sonst das erste
+  eingebettete Rechnungs-XML in PDF-Reihenfolge.
+- **XMP-Attributform:** XMLParser liefert Attribut-Namensräume nicht direkt.
+  `XMLTree` sammelt deshalb die Präfixdeklarationen am jeweiligen Element;
+  die Auswertung löst das tatsächlich verwendete Präfix darüber zur
+  veröffentlichten Factur-X-/ZUGFeRD-URI-Familie auf. Eine bloße
+  `pdfa:CrossIndustryDocument`-Teilzeichenfolge genügt nicht, weil fremde
+  XMP-Metadaten sonst eine Rechnung deklarieren und deren Anhang lenken
+  könnten. Elemente tragen ihre URI direkt.
 - **ZUGFeRD 1.0** (`rsm:CrossIndustryDocument`, vor EN 16931) wird erkannt
   und roh angezeigt, aber bewusst ohne BT-Zuordnung — sinngemäßes Mapping
   wäre potenziell falsch.

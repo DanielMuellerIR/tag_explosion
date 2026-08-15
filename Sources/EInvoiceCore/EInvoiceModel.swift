@@ -157,7 +157,12 @@ extension EInvoiceProfile {
         // --- XRechnung (deutsche CIUS; KoSIT). URN-Stämme:
         // urn:xoev-de:kosit:standard:xrechnung_2.x (bis 2.3)
         // urn:xeinkauf.de:kosit:xrechnung_3.x (ab 3.0)
-        if lower.contains("xrechnung") {
+        let xrechnungMarkers = [
+            "urn:xeinkauf.de:kosit:xrechnung_",
+            "urn:xoev-de:kosit:standard:xrechnung_",
+            "urn:xoev-de:kosit:extension:xrechnung_",
+        ]
+        if xrechnungMarkers.contains(where: lower.contains) {
             let version = urn.components(separatedBy: "xrechnung_").last
                 .map { $0.components(separatedBy: CharacterSet(charactersIn: "#:")).first ?? $0 }
             let extended = lower.contains("kosit:extension")
@@ -167,17 +172,17 @@ extension EInvoiceProfile {
         }
 
         // --- Peppol BIS Billing
-        if lower.contains("peppol.eu") {
+        if lower.contains("urn:fdc:peppol.eu:2017:poacc:billing:") {
             return make("Peppol BIS", "Peppol BIS Billing 3.0")
         }
 
         // --- Factur-X / ZUGFeRD 2.1+ (gemeinsamer Standard, URN-Stamm factur-x.eu)
-        if lower.contains("factur-x.eu") {
+        if lower.contains("urn:factur-x.eu:") {
             return make("Factur-X / ZUGFeRD", facturXProfileName(from: lower))
         }
 
         // --- ZUGFeRD 2.0 (eigener URN-Stamm zugferd.de:2p0)
-        if lower.contains("zugferd.de:2p0") {
+        if lower.contains("urn:zugferd.de:2p0:") {
             return make("ZUGFeRD 2.0", facturXProfileName(from: lower))
         }
 

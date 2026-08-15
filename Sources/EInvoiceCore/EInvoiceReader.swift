@@ -93,20 +93,29 @@ public enum EInvoiceReader {
     static func readPDF(url: URL) throws -> EInvoiceDocument {
         #if canImport(CoreGraphics)
         let extraction = try PDFEmbeddedInvoice.extract(url: url)
-        // Bevorzugt die standardisierten Dateinamen, sonst das erste
-        // eingebettete XML, das der Inhaltstest als Rechnung erkennt.
-        let preferredNames = ["factur-x.xml", "zugferd-invoice.xml",
-                              "ZUGFeRD-invoice.xml", "xrechnung.xml"]
-        let candidates = extraction.files.sorted { a, b in
-            let ai = preferredNames.firstIndex { $0.caseInsensitiveCompare(a.name) == .orderedSame }
-            let bi = preferredNames.firstIndex { $0.caseInsensitiveCompare(b.name) == .orderedSame }
-            switch (ai, bi) {
-            case let (a?, b?): return a < b
-            case (_?, nil): return true
-            case (nil, _?): return false
-            default: return a.name < b.name
+        // Die XMP-Deklaration benennt die maßgebliche Rechnungsdatei und hat
+        // deshalb Vorrang. Danach folgen standardisierte Namen; sonst bleibt
+        // die Reihenfolge des PDF-Namensbaums bzw. AF-Arrays erhalten.
+        let declaredName = extraction.declaration?.documentFileName?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferredNames = ["factur-x.xml", "zugferd-invoice.xml", "xrechnung.xml"]
+        func candidateRank(_ name: String) -> Int {
+            if let declaredName, !declaredName.isEmpty,
+               declaredName.caseInsensitiveCompare(name) == .orderedSame {
+                return 0
             }
+            if let index = preferredNames.firstIndex(where: {
+                $0.caseInsensitiveCompare(name) == .orderedSame
+            }) {
+                return index + 1
+            }
+            return preferredNames.count + 1
         }
+        let candidates = extraction.files.enumerated().sorted { a, b in
+            let aRank = candidateRank(a.element.name)
+            let bRank = candidateRank(b.element.name)
+            return aRank == bRank ? a.offset < b.offset : aRank < bRank
+        }.map(\.element)
         for candidate in candidates where sniffXML(candidate.data) {
             var doc = try document(fromXML: candidate.data,
                                    source: .pdfEmbedded(fileName: candidate.name))
