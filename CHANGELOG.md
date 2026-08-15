@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.19] — 2026-08-15
+
+### Behoben
+
+- MediaInfo: Jeder Track und sein verschachtelter Zusatzblock behalten jetzt
+  ihre eigene Feldreihenfolge. Zuvor übernahm jeder weitere Track unbemerkt
+  die Reihenfolge des ersten.
+- Kaputtes oder strukturell falsches MediaInfo-JSON wird als Fehler gemeldet,
+  statt wie ein erfolgreicher Bericht ohne Tracks auszusehen.
+- Großgeschriebene Surrogate-Escapes und MacRoman-Rohbytes aus alten Tags
+  werden repariert, ohne dabei häufige Latin-1-Zeichen falsch umzudeuten.
+- Ein langsamer alter MediaInfo-Aufruf kann nach einem Dateiwechsel nicht mehr
+  den Bericht der nun ausgewählten Datei im SwiftUI-Tab überschreiben.
+
 ## [0.21.18] — 2026-08-15
 
 ### Geprüft

@@ -6,11 +6,21 @@
   werden als Lone-Surrogates escaped (`\udcfc` = Byte 0xFC = „ü", à la Python
   surrogateescape). JSON-Parser verlieren/verweigern das →
   `MediaInfoReader.repairSurrogateEscapes` ersetzt die Escapes im Bytestrom
-  durch die Latin1-Deutung, danach normal parsen.
+  unabhängig von der Großschreibung der Hexziffern durch die Latin1-Deutung.
+  Für übrige ungültige Rohbytes folgt nach UTF-8 der MacRoman-/Latin1-Vergleich:
+  C1-Bytes sprechen für MacRoman, sonst hat das häufigere Latin1 Vorrang.
 - JSON-Objekt-Reihenfolge geht durch `JSONSerialization` verloren → Original-
-  Reihenfolge der Keys aus dem JSON-Text rekonstruieren (Anzeige-Stabilität).
+  Reihenfolge je Track und verschachteltem `extra`-Objekt mit dem kleinen
+  strukturtreuen Lexer aus dem JSON-Text rekonstruieren. Eine globale Suche
+  übernimmt ab dem zweiten Track fälschlich die Reihenfolge des ersten.
+- Kaputtes oder strukturell falsches MediaInfo-JSON ist ein Fehler, kein
+  erfolgreicher Bericht mit null Tracks. stdout und stderr externer Werkzeuge
+  immer gleichzeitig leeren, damit keine volle Pipe den Prozess blockiert.
 - `mediainfo <datei>` (Textform) ist die beste Roh-Ansicht für Menschen —
   beides einsammeln (JSON strukturiert + Text zum Kopieren).
+- `MediaInfoTab` liest in einem abgetrennten Hintergrund-Task. Nach dessen
+  Ergebnis muss der SwiftUI-Task erneut auf Abbruch geprüft werden; sonst kann
+  ein alter langsamer Report nach einem Dateiwechsel den neuen Tab ersetzen.
 
 ## exiftool (13.55)
 

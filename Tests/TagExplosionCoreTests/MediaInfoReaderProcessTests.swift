@@ -7,6 +7,55 @@ import Testing
 @Suite("MediaInfoReader Prozess")
 struct MediaInfoReaderProcessTests {
 
+    @Test("Jeder Track behält seine eigene Feldreihenfolge")
+    func preservesOrderPerTrack() throws {
+        let json = #"""
+        {
+          "media": {
+            "track": [
+              {"@type":"General", "First":"1", "Second":"2"},
+              {"@type":"Audio", "Second":"3", "First":"4",
+               "extra":{"Zeta":"z", "Alpha":"a"}}
+            ]
+          }
+        }
+        """#
+
+        let tracks = try MediaInfoReader.parseTracks(jsonData: Data(json.utf8))
+
+        #expect(tracks.count == 2)
+        #expect(tracks[0].fields.map(\.key) == ["First", "Second"])
+        #expect(tracks[1].fields.map(\.key) == [
+            "Second", "First", "extra.Zeta", "extra.Alpha",
+        ])
+    }
+
+    @Test("Unlesbares MediaInfo-JSON wird nicht als leerer Erfolg gemeldet")
+    func invalidJSONThrows() {
+        #expect(throws: (any Error).self) {
+            _ = try MediaInfoReader.parseTracks(jsonData: Data("kein JSON".utf8))
+        }
+        #expect(throws: (any Error).self) {
+            _ = try MediaInfoReader.parseTracks(jsonData: Data(#"{"media":{}}"#.utf8))
+        }
+    }
+
+    @Test("Surrogate-Escapes werden unabhängig von der Hex-Schreibweise repariert")
+    func repairsUppercaseSurrogateEscape() {
+        let raw = Data(#"{"value":"B\uDCFCro"}"#.utf8)
+        let repaired = MediaInfoReader.repairSurrogateEscapes(in: raw)
+        #expect(String(decoding: repaired, as: UTF8.self) == #"{"value":"Büro"}"#)
+    }
+
+    @Test("MacRoman-Steuerbereich und häufiges Latin-1 bleiben unterscheidbar")
+    func decodesMacRomanBeforeLatin1() {
+        // 0x8A ist in MacRoman „ä“, in Latin-1 dagegen ein Steuerzeichen.
+        #expect(MediaInfoReader.decodeLossy(Data([0x8A])) == "ä")
+        // 0xFC ist dagegen das häufige Latin-1-„ü“; MacRoman würde daraus
+        // ein Cedille-Zeichen machen und darf hier nicht blind gewinnen.
+        #expect(MediaInfoReader.decodeLossy(Data([0xFC])) == "ü")
+    }
+
     // Swift Testing akzeptiert Zeitgrenzen bewusst nur in Minuten. Eine Minute
     // ist hier ein harter Hänger-Schutz; der lokale Hilfsprozess braucht sonst
     // nur Millisekunden.

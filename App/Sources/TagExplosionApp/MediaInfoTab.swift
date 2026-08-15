@@ -30,10 +30,19 @@ struct MediaInfoTab: View {
             errorText = nil
             let target = url
             do {
-                report = try await Task.detached(priority: .userInitiated) {
+                let loaded = try await Task.detached(priority: .userInitiated) {
                     try MediaInfoReader.read(url: target)
                 }.value
+                // `.task(id:)` bricht den alten View-Task beim Dateiwechsel
+                // ab, ein `Task.detached` läuft jedoch eigenständig weiter.
+                // Nach dem Await deshalb vor jeder State-Zuweisung prüfen,
+                // damit ein später alter Report nicht die neue Datei ersetzt.
+                try Task.checkCancellation()
+                report = loaded
+            } catch is CancellationError {
+                return
             } catch {
+                guard !Task.isCancelled else { return }
                 errorText = error.localizedDescription
             }
         }
