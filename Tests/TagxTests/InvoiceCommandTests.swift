@@ -67,17 +67,17 @@ struct InvoiceCommandTests {
     // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
 
     private func runTagx(arguments: [String]) throws
-    -> (status: Int32, stdout: String, stderr: String) {
+    -> CapturedProcessResult {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runProcess(
+        let binPath = try runCapturedProcess(
             executable: "/usr/bin/env",
             arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
             currentDirectory: root
         )
         let binaryDirectory = binPath.stdout
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runProcess(
+        return try runCapturedProcess(
             executable: URL(fileURLWithPath: binaryDirectory)
                 .appendingPathComponent("tagx").path,
             arguments: arguments,
@@ -85,22 +85,4 @@ struct InvoiceCommandTests {
         )
     }
 
-    private func runProcess(executable: String, arguments: [String], currentDirectory: URL) throws
-    -> (status: Int32, stdout: String, stderr: String) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        process.currentDirectoryURL = currentDirectory
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        try process.run()
-        let out = stdout.fileHandleForReading.readDataToEndOfFile()
-        let err = stderr.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return (process.terminationStatus,
-                String(decoding: out, as: UTF8.self),
-                String(decoding: err, as: UTF8.self))
-    }
 }

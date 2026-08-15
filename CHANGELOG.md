@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.12] — 2026-08-15
+
+### Behoben
+
+- Tests: Drei CLI-Prozesshelfer sind in einer gemeinsamen Implementierung
+  zusammengeführt, die Standard- und Fehlerausgabe gleichzeitig leert. Große
+  Ausgaben können das Kind dadurch nicht mehr an einer vollen zweiten Pipe
+  blockieren; eine Regression prüft je 1 MiB auf beiden Kanälen.
+
 ## [0.21.11] — 2026-08-15
 
 ### Behoben

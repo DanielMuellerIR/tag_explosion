@@ -10,6 +10,75 @@
 // App-Tests).
 import Foundation
 
+/// Ergebnis eines echten Unterprozesses in den CLI-Regressionen.
+struct CapturedProcessResult: Sendable {
+    let status: Int32
+    let stdout: String
+    let stderr: String
+}
+
+/// Thread-sicherer Übergabepuffer zwischen den beiden Pipe-Lesern und dem
+/// aufrufenden Testthread.
+private final class CapturedData: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Data()
+
+    func store(_ data: Data) {
+        lock.lock()
+        value = data
+        lock.unlock()
+    }
+
+    func load() -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+}
+
+/// Startet einen Prozess und leert stdout und stderr gleichzeitig.
+///
+/// Nacheinander gelesene Pipes können sich verklemmen: Das Kind wartet dann
+/// auf Platz in stderr, während der Elternprozess noch auf EOF in stdout
+/// wartet. Zwei Leser verhindern diesen klassischen Pipe-Deadlock.
+func runCapturedProcess(
+    executable: String,
+    arguments: [String],
+    currentDirectory: URL
+) throws -> CapturedProcessResult {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: executable)
+    process.arguments = arguments
+    process.currentDirectoryURL = currentDirectory
+    let stdout = Pipe()
+    let stderr = Pipe()
+    process.standardOutput = stdout
+    process.standardError = stderr
+    try process.run()
+
+    let outputData = CapturedData()
+    let errorData = CapturedData()
+    let readers = DispatchGroup()
+    readers.enter()
+    DispatchQueue.global(qos: .userInitiated).async {
+        outputData.store(stdout.fileHandleForReading.readDataToEndOfFile())
+        readers.leave()
+    }
+    readers.enter()
+    DispatchQueue.global(qos: .userInitiated).async {
+        errorData.store(stderr.fileHandleForReading.readDataToEndOfFile())
+        readers.leave()
+    }
+
+    process.waitUntilExit()
+    readers.wait()
+    return CapturedProcessResult(
+        status: process.terminationStatus,
+        stdout: String(decoding: outputData.load(), as: UTF8.self),
+        stderr: String(decoding: errorData.load(), as: UTF8.self)
+    )
+}
+
 enum TagxFixtures {
 
     /// Wurzel des Repos, von dieser Datei aus gerechnet.

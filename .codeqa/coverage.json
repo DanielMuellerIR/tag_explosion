@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 661792
+    "tokens_spent": 753240
   },
   "campaign_history": [],
   "scope": {
@@ -246,12 +246,21 @@
       "risk": "high",
       "priority": 8,
       "reason": "Maschinenlesbare CLI, Exit-Codes und Mutationsoptionen sind die headless Bediengrenze aller Hauptfunktionen.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T14:49:49+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T14:59:17+02:00",
+        "observed_head": "4a6c8e21480e58fa67e08acaf8782a80ba077caf",
+        "content_sha256": "23fe8d285eb813bc3a318bf0dce75f2531637f4e5fc0a49fb2d9821751977acd",
+        "file_count": 3,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "CLI-Zuweisungen lehnen leere Schlüssel sowie leere Kopierseiten ab; Cover-Import prüft Bildsignaturen vor Sicherung und Mutation; Cover-Export prüft alle Zielkollisionen vorab, legt Dateien exklusiv an und verwendet sichere Endungen für BMP und unbekannte Typen.",
+        "tests": [
+          "Vier Vor-Fix-Regressionen scheiterten mit acht Befunden: leerer Schlüssel und Nicht-Bild-Cover mutierten Dateien, Export überschrieb ein Ziel und BMP wurde als JPG benannt",
+          "swift test: 129 Tests in 13 Suites bestanden",
+          "swift test --package-path App: 27 Tests in 3 Suites bestanden"
+        ]
       }
     },
     {
@@ -359,9 +368,10 @@
         "Tests/TagxTests/InvoiceCommandTests.swift"
       ],
       "priority": 9,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-08-15T14:03:47+02:00",
-      "campaign_id": "20260815T135107310106+0200"
+      "campaign_id": "20260815T135107310106+0200",
+      "started_at": "2026-08-15T15:01:52+02:00"
     },
     {
       "id": "shell-test-temp-roots",
