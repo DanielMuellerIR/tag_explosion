@@ -1277,6 +1277,9 @@ final class AppModel {
         // Datei legen, und ein Serienindex ohne Serie scheiterte erst NACH
         // der Papierkorb-Kopie — jeder solche Versuch legte eine unnötige
         // Sicherung der unveränderten Datei an.
+        if case .image(let fields, let original) = snapshot {
+            try ExifTool.requireValidCoreFields(fields, original: original)
+        }
         if case .ebook(let fields, let original, let cover) = snapshot {
             try EbookTool.requireStorableSeries(fields, original: original)
             if let cover { try EbookTool.requireSupportedCover(cover) }

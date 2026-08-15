@@ -35,6 +35,55 @@ struct ExifToolTests {
         #expect(Double(readBack.gpsLongitude) ?? 0 > 6.9 && Double(readBack.gpsLongitude) ?? 0 < 7)
     }
 
+    @Test("Ungültige Bewertung und GPS-Werte werden vor exiftool abgelehnt")
+    func invalidCoreFieldsAreRejected() throws {
+        let invalidValues: [(rating: Int, latitude: String, longitude: String)] = [
+            (99, "", ""),
+            (-1, "91", "0"),
+            (-1, "0", "181"),
+            (-1, "keine Zahl", "0"),
+            (-1, "50", ""),
+        ]
+        for invalid in invalidValues {
+            let url = try Fixtures.workingCopy("cover.jpg")
+            let original = try ExifTool.readCoreFields(url: url)
+            let bytesBefore = try Data(contentsOf: url)
+            var changed = original
+            changed.rating = invalid.rating
+            changed.gpsLatitude = invalid.latitude
+            changed.gpsLongitude = invalid.longitude
+
+            #expect(throws: (any Error).self) {
+                try ExifTool.writeCoreFields(url: url, fields: changed, original: original)
+            }
+            #expect(try Data(contentsOf: url) == bytesBefore)
+        }
+    }
+
+    @Test("GPS-Grenzwerte sind gültig und unveränderte Fremdwerte blockieren andere Felder nicht")
+    func validBoundariesAndUnchangedForeignValues() throws {
+        for (latitude, longitude) in [
+            ("-90", "-180"), ("0", "0"), ("90", "180"), ("", ""),
+        ] {
+            var fields = ImageCoreFields()
+            fields.gpsLatitude = latitude
+            fields.gpsLongitude = longitude
+            #expect(throws: Never.self) {
+                try ExifTool.requireValidCoreFields(fields)
+            }
+        }
+
+        var foreign = ImageCoreFields()
+        foreign.rating = 99
+        foreign.gpsLatitude = "91"
+        foreign.gpsLongitude = "181"
+        var titleChange = foreign
+        titleChange.title = "Nur dieses Feld ändert sich"
+        #expect(throws: Never.self) {
+            try ExifTool.requireValidCoreFields(titleChange, original: foreign)
+        }
+    }
+
     @Test("Feld löschen (leerer Wert)")
     func deleteField() throws {
         let url = try Fixtures.workingCopy("cover.jpg")

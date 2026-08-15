@@ -117,6 +117,8 @@ struct ExifSet: ParsableCommand {
             if rating.isEmpty {
                 fields.rating = -1
             } else {
+                // Die CLI nutzt bewusst den leeren Optionswert zum Löschen;
+                // -1 ist nur die interne Darstellung im Core-Modell.
                 guard let parsed = Int(rating), (0...5).contains(parsed) else {
                     throw ValidationError("Rating must be an integer from 0 to 5; use an explicit empty value to delete it.")
                 }
@@ -169,6 +171,11 @@ struct ExifSet: ParsableCommand {
                 default: break
                 }
             }
+        }
+        do {
+            try ExifTool.requireValidCoreFields(fields, original: original)
+        } catch let error as ImageMetadataValidationError {
+            throw ValidationError(error.localizedDescription)
         }
         guard fields != original else {
             try snapshot.requireCurrent(at: url)

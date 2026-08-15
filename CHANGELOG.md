@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.9] — 2026-08-15
+
+### Behoben
+
+- Bildmetadaten: Eine gemeinsame Core-Regel lehnt Bewertungen außerhalb
+  von -1…5, unvollständige GPS-Paare, nichtnumerische Koordinaten sowie Breiten
+  außerhalb -90…90° und Längen außerhalb -180…180° ab. Core, CLI, App und
+  Archivimport wenden sie vor Werkzeuglauf, Sicherung oder Batch-Mutation an.
+- Bereits vorhandene fachfremde Werte blockieren das Bearbeiten anderer Felder
+  nicht; erst eine Änderung des betroffenen Felds wird geprüft.
+
 ## [0.21.8] — 2026-08-15
 
 ### Geprüft

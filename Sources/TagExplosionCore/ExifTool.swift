@@ -48,6 +48,28 @@ public struct ImageCoreFields: Sendable, Codable, Equatable {
     }
 }
 
+/// Fachliche Wertebereichsfehler der editierbaren Bildfelder. Der gemeinsame
+/// Typ hält Core, CLI, App und Archivimport auf derselben Regel.
+public enum ImageMetadataValidationError: Error, LocalizedError, Sendable, Equatable {
+    case ratingOutOfRange(Int)
+    case incompleteGPS
+    case invalidLatitude(String)
+    case invalidLongitude(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .ratingOutOfRange:
+            return "image rating must be between -1 (unset) and 5"
+        case .incompleteGPS:
+            return "image GPS requires both latitude and longitude, or neither"
+        case .invalidLatitude:
+            return "image GPS latitude must be a finite decimal number between -90 and 90"
+        case .invalidLongitude:
+            return "image GPS longitude must be a finite decimal number between -180 and 180"
+        }
+    }
+}
+
 public enum ExifTool {
 
     public static let executableCandidates: [String] = [
@@ -198,6 +220,40 @@ public enum ExifTool {
 
     // MARK: - Schreiben
 
+    /// Prüft die Fachwerte, bevor App/CLI eine Sicherung oder ein Batch eine
+    /// erste Mutation anlegt. Mit `original` werden bereits vorhandene
+    /// Fremdwerte toleriert, solange dieser Schreibvorgang sie nicht ändert.
+    public static func requireValidCoreFields(
+        _ fields: ImageCoreFields,
+        original: ImageCoreFields? = nil
+    ) throws {
+        let ratingChanged = original.map { $0.rating != fields.rating } ?? true
+        if ratingChanged {
+            guard (-1...5).contains(fields.rating) else {
+                throw ImageMetadataValidationError.ratingOutOfRange(fields.rating)
+            }
+        }
+
+        let gpsChanged = original.map {
+            $0.gpsLatitude != fields.gpsLatitude || $0.gpsLongitude != fields.gpsLongitude
+        } ?? true
+        guard gpsChanged else { return }
+        let latitudeEmpty = fields.gpsLatitude.isEmpty
+        let longitudeEmpty = fields.gpsLongitude.isEmpty
+        if latitudeEmpty && longitudeEmpty { return }
+        guard !latitudeEmpty && !longitudeEmpty else {
+            throw ImageMetadataValidationError.incompleteGPS
+        }
+        guard let latitude = Double(fields.gpsLatitude), latitude.isFinite,
+              (-90...90).contains(latitude) else {
+            throw ImageMetadataValidationError.invalidLatitude(fields.gpsLatitude)
+        }
+        guard let longitude = Double(fields.gpsLongitude), longitude.isFinite,
+              (-180...180).contains(longitude) else {
+            throw ImageMetadataValidationError.invalidLongitude(fields.gpsLongitude)
+        }
+    }
+
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
     /// Leerer String löscht das jeweilige Feld.
     ///
@@ -210,6 +266,7 @@ public enum ExifTool {
         url: URL, fields: ImageCoreFields, original: ImageCoreFields,
         expecting stamp: FileStamp? = nil
     ) throws {
+        try requireValidCoreFields(fields, original: original)
         var args: [String] = []
 
         func assign(_ tag: String, _ new: String, _ old: String) {

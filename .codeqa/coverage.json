@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 516792
+    "tokens_spent": 561126
   },
   "campaign_history": [],
   "scope": {
@@ -220,12 +220,20 @@
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T14:31:39+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T14:37:18+02:00",
+        "observed_head": "1a26af8967e9c1fe51b2c74464c201bcb1ddad08",
+        "content_sha256": "0ed01b379750e85feb3e4b9721930c8a172d645b19956e59599e28e85f774b18",
+        "file_count": 3,
+        "review": "full",
+        "outcome": "reviewed-clean",
+        "summary": "Feldabbildung, exiftool-Argumente, Roh-Tag-Rückabbildung, atomarer Austausch und Dateistempelvertrag sind lokal konsistent. Die nachgewiesene, über Core/CLI/App/Archiv verteilte Wertebereichsprüfung ist separat als priorisiertes Theme image-field-validation erfasst.",
+        "tests": [
+          "swift test --filter ExifTool: 8 Tests in 1 Suite bestanden",
+          "Reale exiftool-Probe: Werte 91/181 und Rating 99 werden tatsächlich gespeichert; Querschnittsthema belegt"
+        ]
       }
     },
     {
@@ -373,9 +381,10 @@
         "Tests/TagExplosionCoreTests/ExifToolTests.swift"
       ],
       "priority": 7,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-08-15T14:36:17+02:00",
-      "campaign_id": "20260815T135107310106+0200"
+      "campaign_id": "20260815T135107310106+0200",
+      "started_at": "2026-08-15T14:37:18+02:00"
     }
   ]
 }

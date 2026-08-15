@@ -607,6 +607,23 @@ struct TagArchiveTests {
         }
     }
 
+    @Test("Ungültige Bild-GPS-Werte werden vor jeder Archivmutation abgelehnt")
+    func invalidImageGPSIsRejected() throws {
+        for (latitude, longitude) in [
+            ("91", "0"), ("0", "181"), ("keine Zahl", "0"), ("50", ""),
+        ] {
+            var fields = ImageCoreFields()
+            fields.gpsLatitude = latitude
+            fields.gpsLongitude = longitude
+            let archive = TagArchive(created: "2026-08-15T00:00:00Z", files: [
+                .init(path: "cover.jpg", kind: .image, image: fields),
+            ])
+            #expect(throws: TagArchiveError.self) {
+                try TagArchiveIO.validate(archive)
+            }
+        }
+    }
+
     @Test("Ein Export, den der eigene Import ablehnen würde, entsteht gar nicht erst")
     func exportRejectsAnArchiveTheImportCouldNotLoad() throws {
         // exiftool übernimmt beim Lesen jede Zahl als Bewertung, der Import

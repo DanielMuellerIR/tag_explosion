@@ -23,5 +23,9 @@
   pro Eintrag.
 - GPS bequem: `-GPSLatitude*=50.9` (mit Stern) setzt Wert UND Ref-Tag aus dem
   Vorzeichen. Löschen: alle vier Tags (`GPSLatitude/Longitude` + `…Ref`) leeren.
+- exiftool prüft die fachlichen Wertebereiche nicht: Es speichert etwa Breite
+  91°, Länge 181° und Bewertung 99 mit Exit-Code 0. Deshalb validiert
+  `ExifTool.requireValidCoreFields` Bewertung und GPS zentral; CLI, App und
+  Archivimport rufen dieselbe Regel vor Sicherung oder Batch-Mutation auf.
 - `-overwrite_original` verhindert `_original`-Duplikate; `-n` für numerische
   Werte (GPS dezimal), sonst kommen formatierte Strings.

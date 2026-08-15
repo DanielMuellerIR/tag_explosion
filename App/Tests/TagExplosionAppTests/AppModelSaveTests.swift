@@ -266,6 +266,32 @@ struct AppModelSaveTests {
         #expect(entry.isDirty)
     }
 
+    @Test("Ungültige Bild-GPS-Werte scheitern vor jeder Datei-Mutation")
+    func invalidImageGPSFailsBeforeAnyMutation() async throws {
+        guard let directory = AudioFixture.directory else { return }
+        let source = directory.appendingPathComponent("cover.jpg")
+        guard FileManager.default.fileExists(atPath: source.path) else { return }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-image-guard-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent("cover.jpg")
+        try FileManager.default.copyItem(at: source, to: copy)
+
+        let (loaded, stamp) = try AppModel.readStamped(url: copy, kind: .image)
+        let entry = FileEntry(url: copy, loaded: loaded, stamp: stamp)
+        entry.imageFields.gpsLatitude = "91"
+        entry.imageFields.gpsLongitude = "181"
+        #expect(entry.isDirty)
+        let bytesBefore = try Data(contentsOf: copy)
+
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == false)
+        #expect(entry.lastError != nil)
+        #expect(try Data(contentsOf: copy) == bytesBefore)
+        #expect(entry.isDirty)
+    }
+
     @Test("Entfernen respektiert Abbrechen, Verwerfen und doppelte Anfragen")
     func removeCancelDiscardAndReentrancy() async {
         let entry = dirtyAudioEntry(

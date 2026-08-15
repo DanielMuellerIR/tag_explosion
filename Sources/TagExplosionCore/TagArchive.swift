@@ -513,14 +513,14 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "image entries may only contain image data")
                 }
-                // Dieselben Wertebereiche wie die CLI: 0–5 gesetzt, -1 gelöscht.
-                // Andere negative Werte würde das Backend sonst still als
-                // Löschanforderung interpretieren (z.B. -2), Werte über 5 als
-                // unsinniges Rating schreiben.
-                guard (-1...5).contains(image.rating) else {
+                // Dieselben Wertebereiche wie Core, CLI und App. exiftool
+                // akzeptiert auch fachlich unmögliche GPS-Koordinaten und
+                // Bewertungen, deshalb vor der ersten Batch-Mutation prüfen.
+                do {
+                    try ExifTool.requireValidCoreFields(image)
+                } catch let error as ImageMetadataValidationError {
                     throw TagArchiveError.inconsistentEntry(
-                        path: entry.path,
-                        detail: "image rating must be between -1 (unset) and 5")
+                        path: entry.path, detail: error.localizedDescription)
                 }
             case .ebook:
                 guard entry.ebook != nil else {
