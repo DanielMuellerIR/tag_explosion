@@ -4,9 +4,11 @@
   "campaign": {
     "id": "20260815T135107310106+0200",
     "token_budget": 2000000,
-    "status": "active",
+    "status": "complete",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 1304139
+    "tokens_spent": 1401465,
+    "finished_at": "2026-08-15T16:15:31+02:00",
+    "finish_reason": "all-current"
   },
   "campaign_history": [],
   "scope": {
@@ -166,17 +168,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:24:44+02:00",
-        "observed_head": "19b5a709fd2150f26b9439351f15a5ad15a50a65",
-        "content_sha256": "61282d720881e5aa34ad28e3a670265b2c8856ba3c861471fee6118afa5c55c7",
+        "completed_at": "2026-08-15T16:11:55+02:00",
+        "observed_head": "15afeac9b072ce727621d4ffd9fd7c570b2addd4",
+        "content_sha256": "df245eecb4b7eca7751693ae1e4c74ed4dd957980e0e9f8d6fac0d42c9b4e6b3",
         "file_count": 16,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der Theme-Diff ändert keine Auslieferungsskripte: Zwei Installer-/Minimum-Testtreiber verwenden den gemeinsamen validierten Tempordner-Helfer; dessen Regression ist in der bestehenden macOS-CI-Reihenfolge ergänzt und dem Bereich dauerhaft zugeordnet.",
+        "summary": "macOS-CI um den parallelen Icon-/Fehlercode-Test ergänzt und die geänderte Workflow-Grenze samt allen aufgerufenen Shell-Testtreibern revalidiert.",
         "tests": [
-          "Tests/shell-test-support-tests.sh: gültiges und fehlendes TMPDIR bestanden",
-          "Tests/build-plist-tests.sh: echter Release-App-Build und Property-List-Prüfung bestanden",
-          "Installer-Rollback- und Mindestversions-Tests bestanden unter absichtlich fehlendem TMPDIR"
+          "Workflow-YAML lesbar; Shell-Temp-, echter Release-/Plist-, Installer-Rollback-, Mindestversions-, TagLib-Ladepfad- und Icon-Generator-Test vollständig grün; Diff-Prüfung und CodeQA-Validierung grün."
         ]
       }
     },
@@ -412,12 +412,19 @@
       "risk": "low",
       "priority": 14,
       "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T16:03:39+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T16:10:53+02:00",
+        "observed_head": "15afeac9b072ce727621d4ffd9fd7c570b2addd4",
+        "content_sha256": "8ddb7885f0b0b80e5272da2cd5b293d9184768c5686e4c1961dcc6e24473f234",
+        "file_count": 8,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Icon-Generatoren verwenden eindeutige Tempordner und propagieren Ausgabe-/iconutil-Fehler; paralleler headless Regressionstest ergänzt und in macOS-CI aufgenommen; Screenshot-Selbsttest prüft Aktivierung, Fenster, Prozessstatus, PNG-Inhalt und Terminierung ehrlich.",
+        "tests": [
+          "Falschen Exit 0 beider Icon-Generatoren zuerst reproduziert; neuer Parallel-/Fehlercode-Test grün; alle Swift-/Shell-/Python-Werkzeuge syntax- bzw. typgeprüft; DMG 1200x840, Social Preview 1280x640 und 19 reale Fixtures erzeugt, Fixture-Zweitlauf byteidentisch; Workflow-YAML, Diff und CodeQA-Validierung grün. Sichtbarer Screenshot-Lauf nach GUI-Regel nicht gestartet."
+        ]
       }
     }
   ],

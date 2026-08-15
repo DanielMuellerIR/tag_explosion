@@ -8,6 +8,19 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.24] — 2026-08-15
+
+### Geprüft
+
+- Die CodeQA-Kampagne ist mit allen 14 Bereichen und vier
+  Querschnittsthemen abgeschlossen. Zwölf Bereiche wurden verbessert; zwei
+  Bereiche waren nach vollständiger Prüfung bereits sauber.
+- Der Abschlusslauf bestand mit 138 Core-/CLI-Tests in 13 Suites, 30
+  App-Tests in vier Suites und einem App-Release-Build ohne Swift-Warnung.
+- Die Schichtentrennung zwischen portablem Core, CLI und App bleibt passend.
+  Als belegte spätere Teilungsgrenze bleibt `AppModel.swift`, das Laden,
+  Speichern, Konflikte, Archivimporte und App-Lebenszyklus bündelt.
+
 ## [0.21.23] — 2026-08-15
 
 ### Behoben
