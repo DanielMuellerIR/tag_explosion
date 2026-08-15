@@ -127,7 +127,10 @@ cat > "$app/Contents/Info.plist" <<PLIST
     <!-- Sparkle prüft automatisch auf Updates, installiert aber erst nach
          Zustimmung. Archiv und Feed werden mit dem projektspezifischen
          Ed25519-Schlüssel geprüft; CFBundleVersion muss dafür monoton steigen. -->
-    <key>SUFeedURL</key><string>${sparkle_feed_url}</string>
+    <!-- Der konkrete Feed wird nach dem Heredoc mit plutil eingesetzt. So
+         bleiben XML-Sonderzeichen in gueltigen URLs mit Query-Parametern
+         korrekt kodiert. -->
+    <key>SUFeedURL</key><string></string>
     <key>SUPublicEDKey</key><string>Cpy6kemyP4778hptrUs0+guZgU3dXFzvNh7bE1xnRME=</string>
     <key>SUEnableAutomaticChecks</key><true/>
     <key>SUAutomaticallyUpdate</key><false/>
@@ -188,6 +191,12 @@ ${icon_key}
 </dict>
 </plist>
 PLIST
+
+# Nicht per Textersetzung in XML schreiben: Ein gueltiger Testfeed darf Query-
+# Parameter enthalten. plutil übernimmt deren XML-Kodierung und prüft danach
+# zugleich, dass das erzeugte Bundle eine lesbare Property List besitzt.
+plutil -replace SUFeedURL -string "$sparkle_feed_url" "$app/Contents/Info.plist"
+plutil -lint "$app/Contents/Info.plist" >/dev/null
 
 # Debug-Symbole aus der eigenen Binärdatei entfernen, BEVOR signiert wird (strip
 # macht eine vorhandene Signatur ungültig). `swift build -c release` legt eine

@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.6] — 2026-08-15
+
+### Behoben
+
+- Build: Ein per `SPARKLE_FEED_URL` gesetzter Testfeed wird mit `plutil`
+  statt als unkodierter XML-Text in die `Info.plist` geschrieben. Gültige
+  URLs mit Query-Parametern erzeugen dadurch kein unlesbares App-Bundle mehr.
+- Der macOS-CI-Test baut ein echtes lokales App-Bundle mit einer solchen URL
+  und prüft sowohl die Property List als auch den unveränderten Feedwert.
+
 ## [0.21.5] — 2026-08-15
 
 ### Behoben

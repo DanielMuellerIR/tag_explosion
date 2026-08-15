@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 256356
+    "tokens_spent": 317033
   },
   "campaign_history": [],
   "scope": {
@@ -125,12 +125,21 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T14:04:59+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T14:10:51+02:00",
+        "observed_head": "a1aa69079f7a1fe10458c9f2922cbf28cfdc6ef8",
+        "content_sha256": "5c0d11003e8cb6c7f20fd4d302d2eb9c9f9c9963f3d2c0e8793055610eb48443",
+        "file_count": 9,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "tx_taglib_version nutzt nun einen einmalig threadsicher initialisierten unveränderlichen std::string statt bei jedem parallelen Aufruf dasselbe statische char-Array zu beschreiben.",
+        "tests": [
+          "swift test --sanitize=thread --filter concurrentTagLibVersionReads: 1 Test bestanden; Vorzustand blieb trotz quelltextlich belegtem Datenrennen ebenfalls grün",
+          "swift test: 119 Tests in 13 Suites bestanden",
+          "Tests/taglib-refs-tests.sh: bestanden"
+        ]
       }
     },
     {
@@ -147,12 +156,19 @@
         "Tests/verify-macos-minimums-tests.sh",
         "Package.swift",
         "App/Package.swift",
-        ".github/workflows"
+        ".github/workflows",
+        "Tests/build-plist-tests.sh"
       ],
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T14:13:13+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "ebook-writing",
