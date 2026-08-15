@@ -35,7 +35,7 @@ Feld-Roundtrip-Test bemerkt den Schaden deshalb nicht.
   verwaisten `refines`-Verweise zurückbleiben.
 
 Dieselbe Sorgfalt gilt für jeden Knoten, auf den aus dem OPF heraus verwiesen
-wird — die beiden anderen Schreibwege verhalten sich dabei aber unterschiedlich:
+wird — die weiteren Schreibwege verhalten sich dabei aber unterschiedlich:
 
 - `replaceAuthors` **entfernt** die Verfeinerungen der gelöschten
   Autoren-Knoten (`detachRefinements`) und legt die neuen Creator **ohne**
@@ -44,6 +44,16 @@ wird — die beiden anderen Schreibwege verhalten sich dabei aber unterschiedlic
   neuen Serien-Knoten eine XML-ID, die über das **ganze** Dokument eindeutig
   ist (`allIds`), nicht nur unter den Geschwistern — auch `dc:creator`,
   `dc:identifier` oder ein Manifest-Eintrag kann die Wunsch-ID schon tragen.
+- `setList` entfernt beim Ersetzen mehrwertiger Felder wie `dc:subject` auch
+  deren Verfeinerungen. Sonst blieben etwa Normvokabular-Angaben mit
+  `refines="#alte-id"` ohne Ziel zurück.
+
+Einwertig dargestellte Felder können im OPF trotzdem mehrfach vorkommen. Eine
+Änderung des ersten `dc:title` darf deshalb weitere Titel, etwa einen per
+`title-type` markierten Untertitel, nicht löschen. `setSingle` ändert bei einem
+nichtleeren neuen Wert nur den ersten Knoten und erhält die übrigen samt ihren
+Verfeinerungen. Wird das dargestellte Feld ausdrücklich geleert, entfernt es
+alle zugehörigen Knoten und ihre Verfeinerungen gemeinsam.
 
 ## Prüfung
 

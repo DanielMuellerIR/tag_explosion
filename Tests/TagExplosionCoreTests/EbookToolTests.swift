@@ -182,6 +182,31 @@ struct EbookToolTests {
         #expect(cover.resolvedMimeType == "image/png")
     }
 
+    @Test("EPUB 3: Prozentkodierte Cover-Pfade werden aufgelöst")
+    func epub3CoverResolvesPercentEncodedHref() throws {
+        // Manifest-hrefs sind URLs. Leerzeichen stehen dort als %20, während
+        // der ZIP-Eintrag den dekodierten Dateinamen trägt.
+        let url = try Fixtures.workingCopy("book3.epub")
+        let expected = try Fixtures.coverData("cover.png")
+        do {
+            let archive = try Archive(url: url, accessMode: .update)
+            let old = try #require(archive["OEBPS/cover.png"])
+            try archive.remove(old)
+            try archive.addEntry(
+                with: "OEBPS/cover image.png", type: .file,
+                uncompressedSize: Int64(expected.count), compressionMethod: .deflate
+            ) { position, size in
+                expected.subdata(in: Int(position)..<(Int(position) + size))
+            }
+        }
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(of: "href=\"cover.png\"",
+                                     with: "href=\"cover%20image.png\"")
+        }
+
+        #expect(try EbookTool.readCover(url: url)?.data == expected)
+    }
+
     @Test("EPUB: mimetype bleibt erster, unkomprimierter Eintrag")
     func epubMimetypeStaysFirst() throws {
         let url = try Fixtures.workingCopy("book2.epub")
@@ -430,6 +455,67 @@ struct EbookToolTests {
         let xml = try opfContents(of: url, path: "OEBPS/package.opf")
         #expect(xml.contains("Eddie Editor"))
         #expect(xml.contains("refines=\"#ed1\""))
+    }
+
+    @Test("EPUB 3: Eine Titeländerung erhält weitere Titel samt Verfeinerungen")
+    func epub3TitleChangeKeepsAlternateTitles() throws {
+        // Das öffentliche Titelfeld bildet nur den ersten dc:title ab. Ein
+        // Untertitel ist fremder, nicht dargestellter Zustand und darf bei
+        // einer Änderung des Haupttitels nicht verschwinden.
+        let url = try Fixtures.workingCopy("book3.epub")
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:title>Testbuch Drei</dc:title>",
+                with: "<dc:title id=\"main-title\">Testbuch Drei</dc:title>"
+                    + "<meta refines=\"#main-title\" property=\"title-type\">main</meta>"
+                    + "<dc:title id=\"subtitle\">Bleibender Untertitel</dc:title>"
+                    + "<meta refines=\"#subtitle\" property=\"title-type\">subtitle</meta>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        var changed = original
+        changed.title = "Neuer Haupttitel"
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        let xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(xml.contains("Neuer Haupttitel"))
+        #expect(xml.contains("Bleibender Untertitel"))
+        #expect(xml.contains("refines=\"#subtitle\""))
+        #expect(try EbookTool.readCoreFields(url: url).title == "Neuer Haupttitel")
+
+        // Beim ausdrücklichen Löschen verschwinden dagegen alle Titel. Dann
+        // müssen auch deren Verfeinerungen mit entfernt werden.
+        let beforeClear = try EbookTool.readCoreFields(url: url)
+        var cleared = beforeClear
+        cleared.title = ""
+        try EbookTool.writeCoreFields(url: url, fields: cleared, original: beforeClear)
+        let clearedXML = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(!clearedXML.contains("main-title"))
+        #expect(!clearedXML.contains("subtitle"))
+        #expect(try EbookTool.readCoreFields(url: url).title.isEmpty)
+    }
+
+    @Test("EPUB 3: Ersetzte Schlagwörter hinterlassen keine Verfeinerungen")
+    func epub3SubjectChangeRemovesRefinements() throws {
+        // dc:subject kann per refines um Normvokabular und Code ergänzt sein.
+        // Wird das Schlagwort ersetzt, darf diese Verfeinerung nicht auf eine
+        // inzwischen entfernte XML-ID zeigen.
+        let url = try Fixtures.workingCopy("book3.epub")
+        try rewriteOpf(in: url, path: "OEBPS/package.opf") { xml in
+            xml.replacingOccurrences(
+                of: "<dc:identifier id=\"uid\">urn:isbn:9780306406157</dc:identifier>",
+                with: "<dc:subject id=\"subject-old\">Alte Klassifikation</dc:subject>"
+                    + "<meta refines=\"#subject-old\" property=\"authority\">BISAC</meta>"
+                    + "<dc:identifier id=\"uid\">urn:isbn:9780306406157</dc:identifier>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        var changed = original
+        changed.subjects = ["Neues Schlagwort"]
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: original)
+
+        let xml = try opfContents(of: url, path: "OEBPS/package.opf")
+        #expect(!xml.contains("subject-old"))
+        #expect(!xml.contains("BISAC"))
+        #expect(try EbookTool.readCoreFields(url: url).subjects == ["Neues Schlagwort"])
     }
 
     @Test("EPUB 3: Serienänderung und -löschung erhalten fremde Sammlungen")

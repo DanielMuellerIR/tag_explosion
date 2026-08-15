@@ -8,6 +8,19 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.7] — 2026-08-15
+
+### Behoben
+
+- EPUB: Eine Änderung des dargestellten Haupttitels erhält weitere Titel wie
+  Untertitel samt ihren OPF-Verfeinerungen. Beim ausdrücklichen Löschen werden
+  Zielknoten und Verfeinerungen dagegen gemeinsam entfernt.
+- EPUB: Ersetzte Schlagwörter hinterlassen keine `refines`-Verweise auf
+  entfernte XML-IDs mehr.
+- EPUB: Prozentkodierte Manifest-URLs werden vor dem Zugriff auf den
+  zugehörigen ZIP-Eintrag dekodiert; Coverdateien mit Leerzeichen im Namen
+  lassen sich dadurch lesen und ersetzen.
+
 ## [0.21.6] — 2026-08-15
 
 ### Behoben

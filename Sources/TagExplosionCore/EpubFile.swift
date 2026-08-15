@@ -362,11 +362,17 @@ enum EpubFile {
 
     /// href relativ zum OPF-Verzeichnis in einen Archiv-Pfad auflösen.
     private static func resolve(href: String, relativeTo opfPath: String) -> String {
+        // Manifest-hrefs sind URLs, ZIPFoundation adressiert dagegen den
+        // dekodierten Eintragsnamen. Query und Fragment gehören ebenfalls
+        // nicht zum Pfad im Archiv.
+        let suffix = href.firstIndex { $0 == "?" || $0 == "#" } ?? href.endIndex
+        let encodedPath = String(href[..<suffix])
+        let hrefPath = encodedPath.removingPercentEncoding ?? encodedPath
         let dir = (opfPath as NSString).deletingLastPathComponent
-        guard !dir.isEmpty else { return href }
+        guard !dir.isEmpty else { return hrefPath }
         // Einfache Normalisierung reicht: EPUB-hrefs sind relative POSIX-Pfade.
         var parts = dir.split(separator: "/").map(String.init)
-        for component in href.split(separator: "/").map(String.init) {
+        for component in hrefPath.split(separator: "/").map(String.init) {
             if component == ".." { _ = parts.popLast() } else if component != "." { parts.append(component) }
         }
         return parts.joined(separator: "/")
@@ -577,12 +583,12 @@ enum EpubFile {
         guard changed else { return }
         let existing = elements(named: name, in: metadata)
         if value.isEmpty {
+            detachRefinements(of: existing.compactMap { attribute($0, "id") }, in: metadata)
             existing.forEach { $0.detach() }
             return
         }
         if let first = existing.first {
             first.stringValue = value
-            existing.dropFirst().forEach { $0.detach() }
         } else {
             metadata.addChild(dcElement(name, value: value, in: metadata))
         }
@@ -590,7 +596,11 @@ enum EpubFile {
 
     /// Ersetzt alle Werte eines mehrwertigen dc-Elements (creator/subject).
     private static func setList(_ metadata: XMLElement, _ name: String, _ values: [String]) {
-        elements(named: name, in: metadata).forEach { $0.detach() }
+        let existing = elements(named: name, in: metadata)
+        // Verfeinerungen der ersetzten Werte dürfen nicht als Verweise auf
+        // nicht mehr vorhandene XML-IDs stehen bleiben.
+        detachRefinements(of: existing.compactMap { attribute($0, "id") }, in: metadata)
+        existing.forEach { $0.detach() }
         for value in values where !value.isEmpty {
             metadata.addChild(dcElement(name, value: value, in: metadata))
         }
