@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.10] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Die gemeinsame Bildfeldvalidierung wurde an ihren Grenzen in
+  App-Speicherung, Archivimport und Bild-Schreibweg erneut geprüft. Die
+  gezielten Regressionen sowie die vollständigen Suiten mit 125 Core-/CLI-
+  und 27 App-Tests bestätigen, dass alle drei Bereiche aktuell bleiben.
+
 ## [0.21.9] — 2026-08-15
 
 ### Behoben

@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 561126
+    "tokens_spent": 661792
   },
   "campaign_history": [],
   "scope": {
@@ -70,16 +70,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T13:59:31+02:00",
-        "observed_head": "eaddf586b51d30223e9ddfeeaeb840c75edfd290",
-        "content_sha256": "59079f971229defe4d1ca49e83598306849dc16f5f1f1a2b0f6ec8b2a36c61a3",
+        "completed_at": "2026-08-15T14:46:17+02:00",
+        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
+        "content_sha256": "5c6c7f11a85e8aa97747a2f956ba5b34df93b9e80f2a045a0ad2519b500c30f6",
         "file_count": 2,
-        "review": "full",
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Offene beziehungsweise bereits beanspruchte Dateikonflikte sperren nun konkurrierende destruktive Aktionen; damit können nicht mehr zwei Alerts denselben Editor-Puffer gegensätzlich behandeln.",
+        "summary": "Der Theme-Diff validiert Bildfelder im produktiven AppModel.write unmittelbar vor TrashBackup; der bestehende Snapshot-, Konflikt- und Save-Zustand bleibt unverändert.",
         "tests": [
-          "Vor-Fix-Gegenprobe staleWriteBlocksConcurrentTermination: erwartungsgemäß rot mit zweitem PendingDirtyConflict",
-          "swift test --package-path App: 26 Tests in 3 Suites bestanden"
+          "swift test --package-path App --filter invalidImageGPSFailsBeforeAnyMutation: 1 Test bestanden",
+          "Vollständige App-Suite im Theme-Schritt: 27 Tests in 3 Suites bestanden"
         ]
       }
     },
@@ -98,16 +98,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:04:50+02:00",
-        "observed_head": "fafdd1165b1741467c2e51f1bcd329ad8cc1761f",
-        "content_sha256": "7f1c900cb434f1ad48d0836119a4fcc511394315e80dac94661384715f1ec6a1",
+        "completed_at": "2026-08-15T14:46:33+02:00",
+        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
+        "content_sha256": "ea7cf806398e526d437d0542c5acff8a9fe809d534819f4b1d0fc710c9a5039f",
         "file_count": 5,
-        "review": "full",
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Leere Audio-Wertlisten werden als unrepräsentierbarer Archivzustand vollständig vor der Import-Schleife abgelehnt; frühere Batch-Dateien bleiben unangetastet.",
+        "summary": "Der Archiv-Schemavertrag verwendet nun dieselbe Bildfeldvalidierung wie die Schreibwege und lehnt unmögliche GPS-Werte zusammen mit Ratings vor der ersten Batch-Mutation ab.",
         "tests": [
-          "Vor-Fix-Gegenprobe emptyAudioPropertyValuesDoNotChangeEarlierEntries: erwartungsgemäß rot; beide Dateien wurden gemeldet/geändert",
-          "swift test: 118 Tests in 13 Suites bestanden"
+          "swift test --filter invalidImageGPSIsRejected|imageRatingOutsideRangeIsRejected: 2 Tests bestanden",
+          "Vollständige Core-/CLI-Suite im Theme-Schritt: 125 Tests in 13 Suites bestanden"
         ]
       }
     },
@@ -223,16 +223,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:37:18+02:00",
-        "observed_head": "1a26af8967e9c1fe51b2c74464c201bcb1ddad08",
-        "content_sha256": "0ed01b379750e85feb3e4b9721930c8a172d645b19956e59599e28e85f774b18",
+        "completed_at": "2026-08-15T14:48:52+02:00",
+        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
+        "content_sha256": "829b0670c86375c1665a33d389f54dd9626606c2a9f6f36698814fe7db1a1fd0",
         "file_count": 3,
-        "review": "full",
-        "outcome": "reviewed-clean",
-        "summary": "Feldabbildung, exiftool-Argumente, Roh-Tag-Rückabbildung, atomarer Austausch und Dateistempelvertrag sind lokal konsistent. Die nachgewiesene, über Core/CLI/App/Archiv verteilte Wertebereichsprüfung ist separat als priorisiertes Theme image-field-validation erfasst.",
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "Der Theme-Diff zentralisiert die fachlichen Rating- und GPS-Grenzen in ExifTool.requireValidCoreFields; Core-Schreiber und CLI prüfen sie vor exiftool, während unveränderte fremde Altwerte und die explizite CLI-Löschsyntax erhalten bleiben.",
         "tests": [
-          "swift test --filter ExifTool: 8 Tests in 1 Suite bestanden",
-          "Reale exiftool-Probe: Werte 91/181 und Rating 99 werden tatsächlich gespeichert; Querschnittsthema belegt"
+          "swift test --filter invalidCoreFieldsAreRejected|validBoundariesAndUnchangedForeignValues|invalidRatingDoesNotDeleteExistingRating: 3 Tests in 2 Suites bestanden",
+          "Vollständige Suite im Theme-Schritt: 125 Tests in 13 Suites; reale CLI-Probe lehnt GPS 91/181 mit Exit 64 und bytegleicher Datei ab"
         ]
       }
     },
@@ -381,10 +381,22 @@
         "Tests/TagExplosionCoreTests/ExifToolTests.swift"
       ],
       "priority": 7,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-08-15T14:36:17+02:00",
       "campaign_id": "20260815T135107310106+0200",
-      "started_at": "2026-08-15T14:37:18+02:00"
+      "started_at": "2026-08-15T14:37:18+02:00",
+      "completed": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T14:45:41+02:00",
+        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
+        "summary": "Eine gemeinsame ExifTool.requireValidCoreFields-Regel prüft Rating, vollständige GPS-Paare, endliche Dezimalwerte und geografische Grenzen. Core-Schreibweg, CLI, App und Archivvalidierung rufen sie vor Werkzeuglauf, Sicherung oder Batch-Mutation auf; unveränderte fremde Altwerte bleiben bearbeitbar.",
+        "tests": [
+          "Vorzustand: Core-, Archiv- und App-Regressionen scheiterten; exiftool speicherte 91/181 und Rating 99 mit Erfolg",
+          "swift test: 125 Tests in 13 Suites bestanden",
+          "swift test --package-path App: 27 Tests in 3 Suites bestanden",
+          "tagx exif set mit GPS 91,181: Exit 64 und bytegleiche Datei"
+        ]
+      }
     }
   ]
 }
