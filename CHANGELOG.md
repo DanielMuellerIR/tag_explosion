@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.8] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Der Bild-Metadatenweg über exiftool wurde vollständig auf
+  Feldabbildung, Prozessargumente, atomaren Austausch, Dateistempel und
+  CLI-Sicherung geprüft. Die bereichsübergreifend uneinheitliche Prüfung von
+  Bewertung und GPS ist als eigenes priorisiertes Querschnittsthema erfasst.
+
 ## [0.21.7] — 2026-08-15
 
 ### Behoben

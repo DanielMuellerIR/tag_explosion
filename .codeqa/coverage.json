@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 403538
+    "tokens_spent": 516792
   },
   "campaign_history": [],
   "scope": {
@@ -192,12 +192,22 @@
       "risk": "high",
       "priority": 6,
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T14:21:26+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T14:31:30+02:00",
+        "observed_head": "d0c430746ffc6df511376b3b2302cb2f337109ba",
+        "content_sha256": "bb98935e17a68f411ba6a67bab874005acadcf968813158ac436a3eeca35be9e",
+        "file_count": 4,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "EPUB-Schreiben erhält bei einer Haupttiteländerung weitere Titel samt Verfeinerungen, entfernt beim Löschen oder Ersetzen die refines-Verweise gelöschter XML-IDs und löst URL-kodierte Manifest-Pfade vor dem ZIP-Zugriff auf.",
+        "tests": [
+          "Vorzustand: drei gezielte Tests belegten gelöschten Untertitel, verwaiste subject-refines und nicht aufgelöstes Cover-href",
+          "Gezielte EPUB-Regressionen: 3 Tests bestanden",
+          "swift test: 122 Tests in 13 Suites bestanden",
+          "swift test --package-path App: 26 Tests in 3 Suites bestanden"
+        ]
       }
     },
     {
@@ -210,7 +220,13 @@
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T14:31:39+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "cli-tag-commands",
@@ -344,6 +360,21 @@
       "priority": 10,
       "state": "pending",
       "noted_at": "2026-08-15T14:09:11+02:00",
+      "campaign_id": "20260815T135107310106+0200"
+    },
+    {
+      "id": "image-field-validation",
+      "summary": "ImageCoreFields verspricht Bewertung -1…5 und Dezimal-GPS, doch exiftool speichert auch Bewertung 99 sowie Breite 91 und Länge 181 mit Exit-Code 0. CLI, App und Archiv prüfen unterschiedliche Teilmengen. Eine gemeinsame Core-Validierung soll alle Eingänge vor Papierkorb-Sicherung oder Batch-Mutation konsistent ablehnen.",
+      "evidence": [
+        "Sources/TagExplosionCore/ExifTool.swift",
+        "Sources/tagx/ExifCommand.swift",
+        "App/Sources/TagExplosionApp/AppModel.swift",
+        "Sources/TagExplosionCore/TagArchive.swift",
+        "Tests/TagExplosionCoreTests/ExifToolTests.swift"
+      ],
+      "priority": 7,
+      "state": "pending",
+      "noted_at": "2026-08-15T14:36:17+02:00",
       "campaign_id": "20260815T135107310106+0200"
     }
   ]
