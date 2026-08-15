@@ -295,6 +295,32 @@ struct TagArchiveTests {
         #expect(try TagFile.read(at: mp3) == before)
     }
 
+    @Test("Leere Audio-Wertlisten werden vor jeder Mutation abgelehnt")
+    func emptyAudioPropertyValuesDoNotChangeEarlierEntries() throws {
+        // Eine leere Wertliste ist kein darstellbarer PropertyMap-Zustand:
+        // `propertyList` erzeugt daraus kein Tag, der nächste Vergleich sähe
+        // aber weiterhin `["TITLE": []]` und meldete die Datei wieder als
+        // geändert. Die vollständige Archivprüfung muss das erkennen, bevor
+        // ein früherer, gültiger Eintrag im selben Batch geschrieben wird.
+        let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        let first = dir.appendingPathComponent("sample.mp3")
+        let bytesBefore = try Data(contentsOf: first)
+        let archive = TagArchive(created: "2026-08-15T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio,
+                  properties: ["TITLE": ["Darf nicht geschrieben werden"]]),
+            .init(path: "sample.flac", kind: .audio,
+                  properties: ["TITLE": []]),
+        ])
+
+        #expect(throws: TagArchiveError.inconsistentEntry(
+            path: "sample.flac",
+            detail: "audio property TITLE has no values"
+        )) {
+            try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        }
+        #expect(try Data(contentsOf: first) == bytesBefore)
+    }
+
     @Test("Symlink-Ziele im Archiv werden vor der ersten Mutation dedupliziert")
     func symlinkArchiveTargetsDoNotMutateFirstEntry() throws {
         let dir = try makeFolder(["sample.mp3"])

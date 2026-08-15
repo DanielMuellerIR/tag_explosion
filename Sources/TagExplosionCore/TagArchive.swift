@@ -483,9 +483,22 @@ public enum TagArchiveIO {
 
             switch entry.kind {
             case .audio:
-                guard entry.properties != nil else {
+                guard let properties = entry.properties else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "properties")
+                }
+                // Eine vollständige PropertyMap stellt ein fehlendes Feld dar,
+                // indem der Schlüssel gar nicht vorkommt. Eine vorhandene,
+                // aber leere Wertliste kann `propertyList` nicht schreiben und
+                // würde deshalb bei jedem späteren Import erneut als Änderung
+                // erscheinen. Solche Archive vor der ersten Batch-Mutation
+                // ablehnen statt einen unerreichbaren Soll-Zustand zu dulden.
+                if let emptyKey = properties.keys.sorted().first(
+                    where: { properties[$0]?.isEmpty == true }
+                ) {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path,
+                        detail: "audio property \(emptyKey) has no values")
                 }
                 guard entry.image == nil, entry.ebook == nil else {
                     throw TagArchiveError.inconsistentEntry(

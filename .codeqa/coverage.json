@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 128124
+    "tokens_spent": 191760
   },
   "campaign_history": [],
   "scope": {
@@ -67,12 +67,20 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T13:55:32+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T13:59:31+02:00",
+        "observed_head": "eaddf586b51d30223e9ddfeeaeb840c75edfd290",
+        "content_sha256": "59079f971229defe4d1ca49e83598306849dc16f5f1f1a2b0f6ec8b2a36c61a3",
+        "file_count": 2,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Offene beziehungsweise bereits beanspruchte Dateikonflikte sperren nun konkurrierende destruktive Aktionen; damit können nicht mehr zwei Alerts denselben Editor-Puffer gegensätzlich behandeln.",
+        "tests": [
+          "Vor-Fix-Gegenprobe staleWriteBlocksConcurrentTermination: erwartungsgemäß rot mit zweitem PendingDirtyConflict",
+          "swift test --package-path App: 26 Tests in 3 Suites bestanden"
+        ]
       }
     },
     {
@@ -87,7 +95,13 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T13:59:40+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     },
     {
       "id": "taglib-io",
@@ -257,5 +271,20 @@
     "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell (MVVM-artig) und CLI-Adaptern",
     "fit": "gespannt",
     "recommendation": "Paradigma beibehalten. AppModel-Verantwortungen nur bereichsweise an belegten Änderungsgrenzen entkoppeln; ein Paradigmenwechsel lohnt den Migrations- und Regressionstestaufwand derzeit nicht."
-  }
+  },
+  "themes": [
+    {
+      "id": "test-process-pipes",
+      "summary": "CLI-Testhilfen in drei Testdateien lesen stdout und stderr nacheinander; bei großer Ausgabe kann das Kind an der jeweils anderen vollen Pipe hängen. Gemeinsame nebenläufige Prozessausgabe-Hilfe prüfen und konsolidieren.",
+      "evidence": [
+        "Tests/TagxTests/ExportCollisionTests.swift",
+        "Tests/TagxTests/SetCommandTests.swift",
+        "Tests/TagxTests/InvoiceCommandTests.swift"
+      ],
+      "priority": 9,
+      "state": "pending",
+      "noted_at": "2026-08-15T14:03:47+02:00",
+      "campaign_id": "20260815T135107310106+0200"
+    }
+  ]
 }

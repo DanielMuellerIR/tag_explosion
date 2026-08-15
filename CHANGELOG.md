@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.4] — 2026-08-15
+
+### Behoben
+
+- Archivimport: Audio-PropertyMaps mit vorhandenen, aber leeren Wertlisten
+  werden als unerreichbarer Soll-Zustand vor der ersten Batch-Mutation
+  abgelehnt. Zuvor änderte der Import bereits frühere Dateien und meldete den
+  unrepräsentierbaren Eintrag bei jedem weiteren Lauf erneut als geändert.
+
 ## [0.21.3] — 2026-08-15
 
 ### Behoben
