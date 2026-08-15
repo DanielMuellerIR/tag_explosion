@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.13] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Archiv-/Kollisions- und CLI-Tagregressionen wurden nach der
+  Konsolidierung ihrer Prozessausgabe erneut an den Aufrufgrenzen geprüft.
+  Drei beziehungsweise sieben gezielte Tests sowie die vollständige Suite mit
+  130 Tests bestätigen den unveränderten Fachvertrag.
+
 ## [0.21.12] — 2026-08-15
 
 ### Behoben

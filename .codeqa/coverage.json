@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 753240
+    "tokens_spent": 799882
   },
   "campaign_history": [],
   "scope": {
@@ -98,16 +98,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:46:33+02:00",
-        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
-        "content_sha256": "ea7cf806398e526d437d0542c5acff8a9fe809d534819f4b1d0fc710c9a5039f",
+        "completed_at": "2026-08-15T15:05:41+02:00",
+        "observed_head": "2caf809a492b825db55919cd759928e0da35b40d",
+        "content_sha256": "9ec6243c15d54aeeea466f44793fe9c238d56f7a73e3a7849eead845a436b276",
         "file_count": 5,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der Archiv-Schemavertrag verwendet nun dieselbe Bildfeldvalidierung wie die Schreibwege und lehnt unmögliche GPS-Werte zusammen mit Ratings vor der ersten Batch-Mutation ab.",
+        "summary": "Der Theme-Diff ersetzt nur den lokalen Prozessfänger der Archiv-/Kollisions-CLI-Regressionen; Status und stderr-Vertrag bleiben identisch, während beide Pipes nun gleichzeitig geleert werden.",
         "tests": [
-          "swift test --filter invalidImageGPSIsRejected|imageRatingOutsideRangeIsRejected: 2 Tests bestanden",
-          "Vollständige Core-/CLI-Suite im Theme-Schritt: 125 Tests in 13 Suites bestanden"
+          "swift test --filter ExportCollisionTests: 3 Tests in 1 Suite bestanden",
+          "Vollständige Suite im Theme-Schritt: 130 Tests in 13 Suites bestanden"
         ]
       }
     },
@@ -249,17 +249,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:59:17+02:00",
-        "observed_head": "4a6c8e21480e58fa67e08acaf8782a80ba077caf",
-        "content_sha256": "23fe8d285eb813bc3a318bf0dce75f2531637f4e5fc0a49fb2d9821751977acd",
+        "completed_at": "2026-08-15T15:06:02+02:00",
+        "observed_head": "2caf809a492b825db55919cd759928e0da35b40d",
+        "content_sha256": "48346c7c74be308f41972fb626d5beafa348ca8c5868d4b8aad3b461aaff340b",
         "file_count": 3,
-        "review": "full",
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "CLI-Zuweisungen lehnen leere Schlüssel sowie leere Kopierseiten ab; Cover-Import prüft Bildsignaturen vor Sicherung und Mutation; Cover-Export prüft alle Zielkollisionen vorab, legt Dateien exklusiv an und verwendet sichere Endungen für BMP und unbekannte Typen.",
+        "summary": "Der CLI-Befehlscode bleibt unverändert; seine sieben Prozess- und Dateiregressionen nutzen nun den gemeinsamen, nebenläufigen Ausgabefänger und prüfen dessen Zwei-Pipe-Grenze direkt.",
         "tests": [
-          "Vier Vor-Fix-Regressionen scheiterten mit acht Befunden: leerer Schlüssel und Nicht-Bild-Cover mutierten Dateien, Export überschrieb ein Ziel und BMP wurde als JPG benannt",
-          "swift test: 129 Tests in 13 Suites bestanden",
-          "swift test --package-path App: 27 Tests in 3 Suites bestanden"
+          "swift test --filter SetCommandTests: 7 Tests in 1 Suite bestanden",
+          "Vollständige Suite im Theme-Schritt: 130 Tests in 13 Suites bestanden"
         ]
       }
     },
@@ -368,10 +367,20 @@
         "Tests/TagxTests/InvoiceCommandTests.swift"
       ],
       "priority": 9,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-08-15T14:03:47+02:00",
       "campaign_id": "20260815T135107310106+0200",
-      "started_at": "2026-08-15T15:01:52+02:00"
+      "started_at": "2026-08-15T15:01:52+02:00",
+      "completed": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T15:04:58+02:00",
+        "observed_head": "2caf809a492b825db55919cd759928e0da35b40d",
+        "summary": "Die drei nacheinander lesenden CLI-Testhelfer verwenden nun runCapturedProcess: Zwei nebenläufige Leser leeren stdout und stderr, ein synchronisierter Puffer liefert beide Ausgaben nach Prozessende vollständig zurück.",
+        "tests": [
+          "Gezielter Stresstest schreibt je 1 MiB auf stdout und stderr und bestand vollständig",
+          "swift test: 130 Tests in 13 Suites bestanden"
+        ]
+      }
     },
     {
       "id": "shell-test-temp-roots",
