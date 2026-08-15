@@ -4,79 +4,65 @@
 // sichtbar: Die Anzeige verliert nie Inhalte, auch nicht bei
 // EXTENDED-Zusatzfeldern oder exotischen Profilen.
 import Foundation
+#if canImport(FoundationXML)
+import FoundationXML // Linux: XMLParser liegt in einem eigenen Modul
+#endif
 
 public enum EInvoiceReader {
 
-    /// Schneller Inhaltstest ohne vollständiges Parsen: Ist das eine
-    /// E-Rechnung? Es genügt, den Anfang der Datei zu prüfen — das
-    /// Wurzelelement mit seinen Namensraum-Deklarationen steht dort immer.
-    /// Geprüft wird das ERSTE Start-Element (Prolog, Kommentare und DOCTYPE
-    /// werden übersprungen) — ein bloßes "CrossIndustryInvoice" in einem
-    /// Kommentar oder Textwert eines Fremd-XML zählt nicht als Treffer.
+    /// Schneller Inhaltstest ohne Baumaufbau: Ist das eine E-Rechnung?
+    /// XMLParser läuft nur bis zum ersten Start-Element und liefert dessen
+    /// aufgelösten Namensraum. Dadurch dürfen Prolog und Kommentare beliebig
+    /// lang sein, während gleichnamige Elemente in fremden Namensräumen nicht
+    /// als Rechnung zählen.
     public static func sniffXML(_ data: Data) -> Bool {
-        guard let head = decodeHead(data) else { return false }
-        guard let rootName = firstStartElementName(in: head) else { return false }
-        let local = rootName.components(separatedBy: ":").last ?? rootName
-        switch local {
-        case "CrossIndustryInvoice": return true                       // CII
-        case "CrossIndustryDocument": return true                      // ZUGFeRD 1.0
-        case "Invoice":
-            return head.contains("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2")
-        case "CreditNote":
-            return head.contains("urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2")
-        default: return false
+        sniffXML(using: XMLParser(data: data))
+    }
+
+    /// Datei-Variante für Ordner-Scans: XMLParser liest den Stream nur bis zur
+    /// Wurzel, statt die gesamte möglicherweise große Fremd-XML zu laden.
+    public static func sniffXML(url: URL) -> Bool {
+        guard let stream = InputStream(url: url) else { return false }
+        defer { stream.close() }
+        return sniffXML(using: XMLParser(stream: stream))
+    }
+
+    private static func sniffXML(using parser: XMLParser) -> Bool {
+        let sniffer = InvoiceRootSniffer()
+        parser.delegate = sniffer
+        parser.shouldProcessNamespaces = true
+        parser.shouldResolveExternalEntities = false
+        _ = parser.parse() // Der Delegate bricht absichtlich an der Wurzel ab.
+        guard let root = sniffer.root else { return false }
+        switch (root.localName, root.namespaceURI) {
+        case ("CrossIndustryInvoice", let uri)
+            where uri.hasPrefix(
+                "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:"):
+            return true
+        case ("CrossIndustryDocument", let uri)
+            where uri.hasPrefix("urn:ferd:CrossIndustryDocument"):
+            return true
+        case ("Invoice", "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"):
+            return true
+        case ("CreditNote", "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"):
+            return true
+        default:
+            return false
         }
     }
 
-    /// Dateianfang als Text — UTF-8 und (per BOM oder Nullbyte-Muster
-    /// erkanntes) UTF-16 werden unterstützt. Ein angeschnittenes letztes
-    /// Zeichen ist unkritisch: Der Inhaltstest braucht nur den Anfang.
-    private static func decodeHead(_ data: Data) -> String? {
-        var head = data.prefix(8192)
-        // UTF-16 (mit BOM oder am Nullbyte im ersten Zeichen erkennbar):
-        // XML beginnt mit "<" oder Whitespace, also liegt in einem der ersten
-        // beiden Bytes einer UTF-16-Datei immer ein Nullbyte.
-        let bytes = [UInt8](head.prefix(2))
-        if bytes == [0xFF, 0xFE] || bytes == [0xFE, 0xFF]
-            || bytes.first == 0x00 || (bytes.count == 2 && bytes[1] == 0x00) {
-            if head.count % 2 != 0 { head = head.dropLast() }  // halbe Code-Unit
-            let bigEndian = bytes == [0xFE, 0xFF] || bytes.first == 0x00
-            return String(data: head, encoding: bigEndian ? .utf16BigEndian : .utf16LittleEndian)
-        }
-        return String(decoding: head, as: UTF8.self)
-    }
+    /// Merkt nur das erste Start-Element und stoppt den Parser sofort. Das ist
+    /// deutlich billiger als ein vollständiger XML-Baum, nutzt aber dieselbe
+    /// standardkonforme Namensraumauflösung.
+    private final class InvoiceRootSniffer: NSObject, XMLParserDelegate {
+        var root: (localName: String, namespaceURI: String)?
 
-    /// Name des ersten Start-Elements; Prolog (`<?…?>`), Kommentare
-    /// (`<!--…-->`) und DOCTYPE (`<!…>`) davor werden übersprungen.
-    private static func firstStartElementName(in head: String) -> String? {
-        var rest = Substring(head)
-        while let lt = rest.firstIndex(of: "<") {
-            let afterLT = rest.index(after: lt)
-            guard afterLT < rest.endIndex else { return nil }
-            switch rest[afterLT] {
-            case "?":  // XML-Deklaration / Processing Instruction
-                guard let end = rest.range(of: "?>", range: afterLT..<rest.endIndex)
-                else { return nil }
-                rest = rest[end.upperBound...]
-            case "!":  // Kommentar oder DOCTYPE — Kommentare können ">" enthalten
-                if rest[afterLT...].hasPrefix("!--") {
-                    guard let end = rest.range(of: "-->", range: afterLT..<rest.endIndex)
-                    else { return nil }
-                    rest = rest[end.upperBound...]
-                } else {
-                    guard let end = rest[afterLT...].firstIndex(of: ">") else { return nil }
-                    rest = rest[rest.index(after: end)...]
-                }
-            case "/":  // schließendes Tag vor jedem Start-Element: kaputtes XML
-                return nil
-            default:   // Start-Element: Name endet an Whitespace, "/" oder ">"
-                let name = rest[afterLT...].prefix {
-                    !$0.isWhitespace && $0 != "/" && $0 != ">"
-                }
-                return name.isEmpty ? nil : String(name)
-            }
+        func parser(_ parser: XMLParser, didStartElement elementName: String,
+                    namespaceURI: String?, qualifiedName qName: String?,
+                    attributes attributeDict: [String: String]) {
+            root = (elementName, namespaceURI ?? "")
+            parser.abortParsing()
         }
-        return nil
     }
 
     /// Datei-Einstieg: XML direkt lesen, PDF über die eingebettete Datei.
@@ -95,8 +81,7 @@ public enum EInvoiceReader {
     public static func containsInvoice(url: URL) -> Bool {
         switch url.pathExtension.lowercased() {
         case "xml":
-            guard let data = try? Data(contentsOf: url) else { return false }
-            return sniffXML(data)
+            return sniffXML(url: url)
         case "pdf":
             return (try? readPDF(url: url)) != nil
         default:

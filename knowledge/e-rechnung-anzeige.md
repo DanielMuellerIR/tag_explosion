@@ -27,9 +27,12 @@ Rechnungsansicht der App.
   EN 16931" nicht von „reine EN 16931" unterscheidbar. Die PDF-Herkunft
   sieht man an der XMP-Deklaration (`fx:ConformanceLevel`).
 - **Inhalts-Schnelltest** statt Endungs-Vertrauen: `.xml` wird nur als
-  Rechnung angenommen, wenn die ersten 8 KB das Wurzelelement bzw. die
-  UBL-Namensräume enthalten (`MediaFormats.kind`). Sonst zöge ein
-  Ordner-Drop beliebige Fremd-XMLs in die App.
+  Rechnung angenommen, wenn das erste Start-Element einen bekannten lokalen
+  Namen **und** den passenden Rechnungs-Namensraum trägt
+  (`EInvoiceReader.sniffXML`). Der SAX-Parser liest einen Dateistream nur bis
+  zu diesem Element; dadurch bleiben auch mehr als 8 KiB Prolog oder Kommentare
+  zulässig, ohne große Fremd-XMLs vollständig in den Speicher zu laden. Sonst
+  zöge ein Ordner-Drop beliebige Fremd-XMLs in die App.
 
 ## Fallen
 

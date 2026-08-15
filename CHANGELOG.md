@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.15] — 2026-08-15
+
+### Behoben
+
+- E-Rechnungen: Die schnelle XML-Erkennung liest als Stream bis zum ersten
+  Start-Element und prüft dort Wurzelname und aufgelösten Namensraum. Gültige
+  Rechnungen mit mehr als 8 KiB Prolog oder Kommentaren werden nicht mehr
+  übersehen; gleichnamige Fremd-XMLs gelten nicht mehr als Rechnung.
+- Medienerkennung, direkte XML-Prüfung und PDF-Anhangssuche verwenden damit
+  dieselbe parserbasierte Regel, ohne große XML-Dateien für einen Ordner-Scan
+  vollständig in den Speicher zu laden.
+
 ## [0.21.14] — 2026-08-15
 
 ### Geprüft

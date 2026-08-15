@@ -446,9 +446,10 @@
         "Tests/TagExplosionCoreTests/EInvoiceTests.swift"
       ],
       "priority": 9,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-08-15T15:10:46+02:00",
-      "campaign_id": "20260815T135107310106+0200"
+      "campaign_id": "20260815T135107310106+0200",
+      "started_at": "2026-08-15T15:11:35+02:00"
     }
   ]
 }

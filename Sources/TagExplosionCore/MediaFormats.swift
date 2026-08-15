@@ -68,13 +68,10 @@ public enum MediaFormats {
         return nil
     }
 
-    /// Schneller Inhaltstest: Wurzelelement/Namensräume stehen am Dateianfang,
-    /// mehr als 8 KB muss dafür niemand lesen.
+    /// Schneller Inhaltstest: Der Rechnungs-Core liest den XML-Stream nur bis
+    /// zum ersten Start-Element und prüft dessen aufgelösten Namensraum.
     private static func isInvoiceXML(_ url: URL) -> Bool {
-        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
-        defer { try? handle.close() }
-        guard let head = try? handle.read(upToCount: 8192) else { return false }
-        return EInvoiceReader.sniffXML(head)
+        EInvoiceReader.sniffXML(url: url)
     }
 
     /// Liefert die Identität, unter der die App dieselbe Datei wiedererkennt.

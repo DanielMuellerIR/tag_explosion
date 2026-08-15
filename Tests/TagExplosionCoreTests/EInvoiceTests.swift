@@ -234,6 +234,40 @@ struct EInvoiceTests {
         #expect(EInvoiceReader.sniffXML(Data(commented.utf8)))
     }
 
+    @Test("Rechnungserkennung liest bis zum Wurzelelement statt nur 8 KiB")
+    func sniffReadsPastLongPreamble() throws {
+        let body = Self.ciiXML.replacingOccurrences(
+            of: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", with: "")
+        let xml = "<!-- \(String(repeating: "Vorspann", count: 1_500)) -->\n" + body
+        #expect(Data(xml.utf8).count > 8_192)
+        #expect(EInvoiceReader.sniffXML(Data(xml.utf8)))
+
+        try withTempDirectory { dir in
+            let url = dir.appendingPathComponent("langer-vorspann.xml")
+            try Data(xml.utf8).write(to: url)
+            #expect(MediaFormats.kind(of: url) == .invoice)
+            #expect(MediaFormats.expandMediaFiles([dir]) == [
+                MediaFormats.canonicalFileURL(url),
+            ])
+        }
+    }
+
+    @Test("CII-Wurzelname braucht den passenden Rechnungs-Namensraum")
+    func sniffRequiresInvoiceNamespace() throws {
+        let foreign = """
+        <?xml version="1.0"?>
+        <a:CrossIndustryInvoice xmlns:a="urn:example:CrossIndustryInvoice:not-standard"/>
+        """
+        #expect(!EInvoiceReader.sniffXML(Data(foreign.utf8)))
+
+        try withTempDirectory { dir in
+            let url = dir.appendingPathComponent("nur-gleicher-name.xml")
+            try Data(foreign.utf8).write(to: url)
+            #expect(MediaFormats.kind(of: url) == nil)
+            #expect(MediaFormats.expandMediaFiles([dir]).isEmpty)
+        }
+    }
+
     @Test("UTF-16-Rechnungen (mit und ohne BOM) werden erkannt")
     func sniffAcceptsUTF16() throws {
         let xml = Self.ciiXML.replacingOccurrences(of: "encoding=\"UTF-8\"",
