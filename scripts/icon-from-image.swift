@@ -84,9 +84,16 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
 }
 
 let fm = FileManager.default
-let iconset = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("AppIcon.iconset")
-try? fm.removeItem(at: iconset)
-try! fm.createDirectory(at: iconset, withIntermediateDirectories: true)
+let temporaryRoot = fm.temporaryDirectory.appendingPathComponent(
+    "tag-explosion-icon-\(UUID().uuidString)", isDirectory: true)
+let iconset = temporaryRoot.appendingPathComponent("AppIcon.iconset", isDirectory: true)
+do {
+    try fm.createDirectory(at: iconset, withIntermediateDirectories: true)
+} catch {
+    FileHandle.standardError.write(Data("Tempordner nicht anlegbar: \(error)\n".utf8))
+    exit(1)
+}
+defer { try? fm.removeItem(at: temporaryRoot) }
 
 for (name, px) in [("icon_16x16", 16), ("icon_16x16@2x", 32), ("icon_32x32", 32),
                    ("icon_32x32@2x", 64), ("icon_128x128", 128), ("icon_128x128@2x", 256),
@@ -97,10 +104,25 @@ for (name, px) in [("icon_16x16", 16), ("icon_16x16@2x", 32), ("icon_32x32", 32)
         .write(to: iconset.appendingPathComponent("\(name).png"))
 }
 
-try? fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
+do {
+    try fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
+} catch {
+    FileHandle.standardError.write(Data("Ausgabeordner nicht anlegbar: \(error)\n".utf8))
+    exit(1)
+}
 let task = Process()
 task.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
 task.arguments = ["-c", "icns", iconset.path, "-o", "\(outDir)/AppIcon.icns"]
-try! task.run()
+do {
+    try task.run()
+} catch {
+    FileHandle.standardError.write(Data("iconutil konnte nicht starten: \(error)\n".utf8))
+    exit(1)
+}
 task.waitUntilExit()
-print(task.terminationStatus == 0 ? "OK \(outDir)/AppIcon.icns" : "FEHLER iconutil")
+guard task.terminationStatus == 0 else {
+    FileHandle.standardError.write(
+        Data("iconutil endete mit Status \(task.terminationStatus)\n".utf8))
+    exit(1)
+}
+print("OK \(outDir)/AppIcon.icns")

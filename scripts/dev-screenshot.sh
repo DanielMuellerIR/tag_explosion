@@ -32,11 +32,17 @@ guard let running = NSRunningApplication
     .runningApplications(withBundleIdentifier: "io.github.danielmuellerir.tagexplosion").first
 else { print("App läuft nicht"); exit(1) }
 
-running.activate()
+func fail(_ message: String) -> Never {
+    _ = running.terminate()
+    FileHandle.standardError.write(Data("FEHLER: \(message)\n".utf8))
+    exit(1)
+}
+
+guard running.activate() else { fail("App konnte nicht aktiviert werden") }
 Thread.sleep(forTimeInterval: 1.0)
 
 guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
-else { exit(1) }
+else { fail("Fensterliste konnte nicht gelesen werden") }
 
 var best: (bounds: CGRect, area: CGFloat) = (.zero, 0)
 for w in list where (w[kCGWindowOwnerName as String] as? String ?? "") == appName {
@@ -46,16 +52,43 @@ for w in list where (w[kCGWindowOwnerName as String] as? String ?? "") == appNam
         width: b["Width"] as? CGFloat ?? 0, height: b["Height"] as? CGFloat ?? 0)
     if rect.width * rect.height > best.area { best = (rect, rect.width * rect.height) }
 }
-guard best.area > 0 else { print("Kein Fenster gefunden"); exit(1) }
+guard best.area > 0 else { fail("Kein Fenster gefunden") }
 
 let r = best.bounds
+let target = URL(fileURLWithPath: out)
+do {
+    try FileManager.default.createDirectory(
+        at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+} catch {
+    fail("Ausgabeordner kann nicht angelegt werden: \(error.localizedDescription)")
+}
 let task = Process()
 task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
 task.arguments = ["-o", "-x", "-R\(r.origin.x),\(r.origin.y),\(r.width),\(r.height)", out]
-try? task.run()
+do {
+    try task.run()
+} catch {
+    fail("screencapture konnte nicht starten: \(error.localizedDescription)")
+}
 task.waitUntilExit()
+guard task.terminationStatus == 0 else {
+    fail("screencapture endete mit Status \(task.terminationStatus)")
+}
+do {
+    let attributes = try FileManager.default.attributesOfItem(atPath: target.path)
+    guard let bytes = attributes[.size] as? NSNumber, bytes.intValue > 0 else {
+        fail("Screenshot ist leer: \(target.path)")
+    }
+} catch {
+    fail("Screenshot kann nicht geprüft werden: \(error.localizedDescription)")
+}
 
 // Sofort beenden — Signal "fertig mit dem Bildschirm"
-running.terminate()
+guard running.terminate() else { fail("App-Terminierung konnte nicht angefordert werden") }
+let deadline = Date().addingTimeInterval(5)
+while !running.isTerminated, Date() < deadline {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+}
+guard running.isTerminated else { fail("App beendete sich nicht innerhalb von 5 Sekunden") }
 print("OK \(out)")
 SW

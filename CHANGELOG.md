@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.23] — 2026-08-15
+
+### Behoben
+
+- Die beiden Icon-Generatoren verwenden je Lauf einen eigenen Tempordner und
+  können parallel ausgeführt werden, ohne sich gegenseitig das Iconset zu
+  löschen.
+- Ein nicht anlegbarer Ausgabeordner oder ein fehlgeschlagener `iconutil`-
+  Aufruf liefert jetzt einen Fehlercode, statt trotz „FEHLER“-Text erfolgreich
+  zu enden. Ein headless Regressionstest läuft auch in der macOS-CI.
+- Der Screenshot-Selbsttest meldet nur noch Erfolg, wenn App-Aktivierung,
+  Fensterermittlung, `screencapture`, eine nichtleere PNG-Datei und die
+  abschließende App-Terminierung tatsächlich erfolgreich waren.
+
 ## [0.21.22] — 2026-08-15
 
 ### Behoben

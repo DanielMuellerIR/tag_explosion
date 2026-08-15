@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 1224828
+    "tokens_spent": 1304139
   },
   "campaign_history": [],
   "scope": {
@@ -382,12 +382,19 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T15:55:50+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T16:03:32+02:00",
+        "observed_head": "e2aa537f74f7c1ec54713fbfa062abc28cd2c7d7",
+        "content_sha256": "11338cedc9d9bb45a37b7ed252df465f16f40486e0ef5279bc69c1ca7c6ae5aa",
+        "file_count": 10,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Gemeinsamer Cover-Drop prüft Provider sequenziell bis zum ersten gültigen und erlaubten Bild; Swift-6-Sendable-Grenze gekapselt; Cover-Export benennt BMP und unbekannte Daten korrekt; alle Einzel-/Batch-Editoren und 186 Lokalisierungseinträge vollständig geprüft.",
+        "tests": [
+          "Mehrfach-Drop-Fehler zuerst mit einem Issue reproduziert; CoverDrop 3/3, vollständige Root-Suite 138 Tests in 13 Suites und App-Suite 30 Tests in 4 Suites bestanden; App-Release-Build ohne Swift-Warnung, String-Catalog ohne fehlende Übersetzung oder Platzhalterabweichung, Diff-Prüfung und CodeQA-Validierung grün."
+        ]
       }
     },
     {
@@ -399,12 +406,19 @@
         "scripts/generate-dmg-background.swift",
         "scripts/icon-from-image.swift",
         "scripts/make-icon.swift",
-        "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh"
+        "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh",
+        "Tests/icon-generator-tests.sh"
       ],
       "risk": "low",
       "priority": 14,
       "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "started_at": "2026-08-15T16:03:39+02:00",
+        "required_review": "full",
+        "status_at_start": "pending"
+      }
     }
   ],
   "architecture": {
