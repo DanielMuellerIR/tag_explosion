@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 1056501
+    "tokens_spent": 1224828
   },
   "campaign_history": [],
   "scope": {
@@ -323,12 +323,19 @@
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "started_at": "2026-08-15T15:41:07+02:00",
-        "required_review": "full",
-        "status_at_start": "pending"
+        "completed_at": "2026-08-15T15:50:56+02:00",
+        "observed_head": "20ceb7b5e73795a678af7e413814bd3f78cdffcd",
+        "content_sha256": "f2f5cf7fe20ae1266ed97c8d110c185e029662baa4680ef20a88dbe8682b337b",
+        "file_count": 12,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Profilfamilien an belastbare URN-Stämme gebunden; PDF-Auswahl folgt zuerst XMP-DocumentFileName und sonst stabiler Anhangsreihenfolge; täuschend ähnliche XMP-Namensräume werden abgelehnt; CII-Datumshilfe prüft wirkliche Kalendertage.",
+        "tests": [
+          "Vier Fehlerfälle zuerst mit insgesamt neun Issues reproduziert; EInvoice 16 Tests und InvoiceCommand 2 Tests gezielt grün, vollständige Root-Suite 138 Tests in 13 Suites sowie App-Suite 27 Tests in 3 Suites bestanden; Diff-Prüfung und CodeQA-Validierung grün."
+        ]
       }
     },
     {
@@ -343,7 +350,20 @@
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "pending"
+      "state": "completed",
+      "last_run": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T15:55:14+02:00",
+        "observed_head": "20ceb7b5e73795a678af7e413814bd3f78cdffcd",
+        "content_sha256": "8c763a9efb8960dc3c4e7098067bf6ac1cb7f760c0598e2511cb054f5faae45d",
+        "file_count": 5,
+        "review": "full",
+        "outcome": "reviewed-clean",
+        "summary": "App-Szene, Finder-/Drop-Öffnen, Fenster- und Quit-Delegates, Konfliktdialoggrenzen, Einstellungen sowie Homebrew-Angebot und Prozesslauf vollständig geprüft; keine belastbare Bereichsabweichung gefunden. Die Release-Warnungen liegen ausschließlich im nachfolgenden Editorbereich.",
+        "tests": [
+          "BrewToolInstaller 5/5, vollständige App-Suite 27 Tests in 3 Suites und App-Release-Build bestanden; der große stderr-Regressionstest bestätigt den Pipe-Weg; Diff-Prüfung und CodeQA-Validierung grün."
+        ]
+      }
     },
     {
       "id": "app-editors",
