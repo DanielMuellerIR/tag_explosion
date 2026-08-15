@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 836103
+    "tokens_spent": 902473
   },
   "campaign_history": [],
   "scope": {
@@ -274,16 +274,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:11:00+02:00",
-        "observed_head": "5d005183853cd58ac4d73b4f78cff6a3b31abc41",
-        "content_sha256": "a8eaf77f51912b836be81fba5ae37ced7bfc6f8daabadc0f5ee802d5b6359156",
+        "completed_at": "2026-08-15T15:17:59+02:00",
+        "observed_head": "cea778a6076af7166d88fbe3e6557db4a7b2d0c6",
+        "content_sha256": "e33c13dbc24c8b292e8eb4df4e63d885d66ad3fd7cac1c88c1a7345e5dc59031",
         "file_count": 2,
-        "review": "full",
-        "outcome": "reviewed-clean",
-        "summary": "Formatmengen, reguläre-Datei-Grenze, kanonische Symlink-Deduplizierung, rekursive Erweiterung und Finder-artige Sortierung sind lokal konsistent; die uneindeutige Rechnungs-Vorerkennung ist als eigener priorisierter Core-Querschnittsfund erfasst.",
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "MediaFormats delegiert XML-Klassifikation nun an den streamingfähigen, namensraumtreuen Rechnungs-Sniff; reguläre-Datei-Filter, Kanonisierung, Deduplizierung und Sortierung bleiben unverändert.",
         "tests": [
-          "swift test --filter MediaFormatsTests|mediaFormatsAcceptsOnlyInvoiceXML|sniffAcceptsUTF16: 3 Tests in 2 Suites bestanden",
-          "Vollständige unveränderte Suite am aktuellen Produktstand: 130 Tests in 13 Suites bestanden"
+          "swift test --filter MediaFormatsTests|sniffReadsPastLongPreamble|sniffRequiresInvoiceNamespace|mediaFormatsAcceptsOnlyInvoiceXML: 4 Tests in 2 Suites bestanden",
+          "Vollständige Theme-Suite: 132 Tests in 13 Suites; App: 27 Tests in 3 Suites"
         ]
       }
     },
@@ -446,10 +446,21 @@
         "Tests/TagExplosionCoreTests/EInvoiceTests.swift"
       ],
       "priority": 9,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-08-15T15:10:46+02:00",
       "campaign_id": "20260815T135107310106+0200",
-      "started_at": "2026-08-15T15:11:35+02:00"
+      "started_at": "2026-08-15T15:11:35+02:00",
+      "completed": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T15:17:37+02:00",
+        "observed_head": "cea778a6076af7166d88fbe3e6557db4a7b2d0c6",
+        "summary": "EInvoiceReader prüft Daten und Dateistreams nun mit einem gemeinsamen XMLParser-Delegate bis zum ersten Start-Element. Offizielle CII-/ZUGFeRD-/UBL-Namensräume sind zwingend; MediaFormats verwendet dieselbe streamingfähige Regel.",
+        "tests": [
+          "Vor-Fix: 2 Regressionen mit 6 Abweichungen bei langem Vorspann und fremdem CII-Namensraum",
+          "Gezielte Erkennung: 6 Tests in 1 Suite bestanden",
+          "swift test: 132 Tests in 13 Suites; App: 27 Tests in 3 Suites bestanden"
+        ]
+      }
     }
   ]
 }

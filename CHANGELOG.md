@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.16] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: Medienerkennung und Ordnerfilterung wurden nach der neuen
+  XML-Streaming-Erkennung erneut geprüft. Vier gezielte Tests bestätigen
+  lange XML-Vorspänne, fremde Namensräume, reguläre Dateien und unveränderte
+  kanonische Deduplizierung.
+
 ## [0.21.15] — 2026-08-15
 
 ### Behoben
