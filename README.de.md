@@ -65,7 +65,10 @@
   `tagx ebook`, `tagx invoice`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
-die CLI spricht Englisch.
+die CLI spricht Englisch. Eine Ausnahme: Die E-Rechnungs-Anzeige beschriftet
+Felder in App und CLI mit den offiziellen deutschen
+EN-16931-Feldbezeichnungen (wie in der XRechnung-Spezifikation); die
+BT-/BG-Nummern daneben sind sprachunabhängig.
 
 ![Batch-Bearbeitung eines Albums](docs/screenshots/de/batch.png)
 *Batch-Bearbeitung: eine Änderung wirkt auf alle ausgewählten Dateien; die

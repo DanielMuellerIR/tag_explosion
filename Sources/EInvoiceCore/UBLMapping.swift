@@ -44,10 +44,11 @@ enum UBLMapping {
         map["\(root)/cac:ContractDocumentReference/cbc:ID"] = "BT-12"
         map["\(root)/cac:ProjectReference/cbc:ID"] = "BT-11"
 
-        // Rechnungsbegründende Unterlagen (BG-24) — cbc:ID löst der dynamische
-        // Teil auf (BT-18 bei DocumentTypeCode 130, sonst BT-122).
+        // Rechnungsbegründende Unterlagen (BG-24) — Container und cbc:ID löst
+        // der dynamische Teil auf: DocumentTypeCode 130 macht die Referenz zur
+        // Kennung des Rechnungsgegenstands (BT-18), keine BG-24-Unterlage.
         let addDoc = "\(root)/cac:AdditionalDocumentReference"
-        map[addDoc] = "BG-24"
+        map[addDoc] = ""  // Platzhalter, dynamisch
         map["\(addDoc)/cbc:DocumentTypeCode"] = ""  // Platzhalter, dynamisch
         map["\(addDoc)/cbc:DocumentDescription"] = "BT-123"
         map["\(addDoc)/cac:Attachment/cbc:EmbeddedDocumentBinaryObject"] = "BT-125"
@@ -230,6 +231,22 @@ enum UBLMapping {
         return term?.isEmpty == true ? nil : term
     }
 
+    /// Attribute mit eigener BT-Nummer: Maßeinheiten der Mengen liegen als
+    /// `unitCode`-Attribut vor (BT-129 → BT-130, BT-149 → BT-150), und der
+    /// Text zur Zahlungsart (BT-82) als `name`-Attribut am Zahlungsart-Code.
+    static func attributeTerms(for term: String?,
+                               node: XMLTreeNode) -> [(attribute: String, term: String)] {
+        func has(_ name: String) -> Bool {
+            node.attributes.contains { $0.name == name && !$0.value.isEmpty }
+        }
+        switch term {
+        case "BT-129" where has("unitCode"): return [("unitCode", "BT-130")]
+        case "BT-149" where has("unitCode"): return [("unitCode", "BT-150")]
+        case "BT-81" where has("name"): return [("name", "BT-82")]
+        default: return []
+        }
+    }
+
     private static func dynamicTerm(path: String, node: XMLTreeNode,
                                     ancestors: [XMLTreeNode],
                                     invoiceCurrency: String?) -> String? {
@@ -261,8 +278,14 @@ enum UBLMapping {
             return nil
         }
 
-        // Kennung einer Zusatz-Unterlage: DocumentTypeCode 130 macht sie zur
-        // Kennung des Rechnungsgegenstands (BT-18), sonst BT-122.
+        // Zusatz-Unterlagen: DocumentTypeCode 130 macht die Referenz zur
+        // Kennung des Rechnungsgegenstands (BT-18) — dann ist auch der
+        // Container KEINE rechnungsbegründende Unterlage (BG-24).
+        if path == "\(root)/cac:AdditionalDocumentReference",
+           node.name == "cac:AdditionalDocumentReference" {
+            let typeCode = XMLTree.firstNode(in: node, path: ["cbc:DocumentTypeCode"])?.text
+            return typeCode == "130" ? nil : "BG-24"
+        }
         if path == "\(root)/cac:AdditionalDocumentReference/cbc:ID" {
             let typeCode = ancestors.last.flatMap {
                 XMLTree.firstNode(in: $0, path: ["cbc:DocumentTypeCode"])?.text
@@ -277,8 +300,12 @@ enum UBLMapping {
         if let containerIndex = ancestors.lastIndex(where: { $0.name == "cac:AllowanceCharge" })
             ?? (node.name == "cac:AllowanceCharge" ? ancestors.count : nil) {
             let container = containerIndex == ancestors.count ? node : ancestors[containerIndex]
-            let isCharge = XMLTree.firstNode(in: container, path: ["cbc:ChargeIndicator"])?
-                .text.lowercased() == "true"
+            // XML Schema erlaubt für Boolean neben true/false auch 1/0. Ein
+            // unbekannter oder fehlender Indikator bekommt bewusst KEINE
+            // Zuordnung — sonst würde ein Zuschlag als Nachlass beschriftet.
+            guard let isCharge = XMLTree.booleanText(
+                XMLTree.firstNode(in: container, path: ["cbc:ChargeIndicator"])?.text)
+            else { return nil }
             let isLine = path.contains("cac:InvoiceLine/")
             switch node.name {
             case "cac:AllowanceCharge":

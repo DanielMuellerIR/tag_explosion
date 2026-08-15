@@ -64,7 +64,10 @@
   `tagx ebook`, `tagx invoice`.
 
 The app's user interface is available in English and German (it follows the
-system language); the CLI speaks English.
+system language); the CLI speaks English. One exception: the e-invoice view
+labels fields with the official German EN 16931 business-term names (as used
+by the German XRechnung specification) in both app and CLI — the BT/BG
+numbers next to them are language-independent.
 
 ![Batch editing an album](docs/screenshots/en/batch.png)
 *Batch editing: one change applies to all selected files; the copy menus fill

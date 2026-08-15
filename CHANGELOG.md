@@ -8,6 +8,58 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.1] — 2026-08-15
+
+Einundzwanzig Funde des Nacht-Code-Reviews vom 2026-08-15 behoben.
+
+### Behoben
+
+- E-Rechnung: Attribute mit eigener EN-16931-Zuordnung werden jetzt als
+  solche ausgewiesen — `unitCode` an Mengen (BT-130/BT-150) und das
+  `name`-Attribut am UBL-Zahlungsart-Code (BT-82) erscheinen in App, CLI und
+  JSON (`attributeTerms`) mit BT-Nummer und Namen.
+- E-Rechnung: `ChargeIndicator` akzeptiert die XML-Schema-Booleans `1`/`0`;
+  unbekannte Werte bekommen bewusst keine Nachlass-/Zuschlag-Zuordnung mehr
+  (vorher wurde ein Zuschlag mit Wert `1` als Nachlass beschriftet).
+- E-Rechnung (UBL): Eine `AdditionalDocumentReference` mit Typcode 130
+  (Rechnungsgegenstand, BT-18) wird nicht mehr fälschlich als
+  rechnungsbegründende Unterlage (BG-24) gruppiert.
+- E-Rechnung: Der Inhalts-Schnelltest prüft jetzt das erste Start-Element
+  statt beliebiger Teilstrings (ein Kommentar macht Fremd-XML nicht mehr zur
+  Rechnung) und versteht UTF-16.
+- E-Rechnung (PDF): Die XMP-Deklaration wird über den aufgelösten
+  Attribut-Namensraum erkannt statt über konventionelle Präfixe; die
+  Extraktion eingebetteter Dateien filtert Nicht-XML-Anhänge vor dem
+  Entpacken und begrenzt Anzahl und Gesamtgröße.
+- App: Ein Rechnungs-PDF öffnet auch ohne exiftool (als reine
+  Rechnungs-Anzeige); der E-Book-Editor extrahiert und parst ein
+  Rechnungs-PDF nur noch einmal statt doppelt.
+- App: Eine Cover-Auswahl während eines laufenden Speicherns geht nicht mehr
+  verloren; ein Serienindex ohne Serie wird vor der Papierkorb-Sicherung
+  abgelehnt statt danach.
+- Archiv: `validate` lehnt v1-Archive mit Serienindex-ohne-Serie oder
+  Nicht-JPEG/PNG-Covern (z.B. GIF aus bestehenden EPUBs) nicht mehr ab —
+  die engeren Regeln gelten erst am tatsächlichen Schreibweg.
+- CLI: `tagx invoice --json --terms-only` filtert jetzt auch die
+  JSON-Ausgabe; `tagx export` zählt E-Rechnungen nicht mehr als archivierte
+  Dateien und lehnt reine Rechnungs-Eingaben ab.
+- Installer: Die Sperre schreibt PID **und** Prozessstartzeit (eine
+  wiederverwendete PID blockiert Updates nicht mehr), Übernahme verwaister
+  Sperren läuft atomar über Umbenennen, das Initialisierungsfenster hat eine
+  Wartefrist, und freigegeben wird nur die eigene Sperre. Die Tests warten
+  auf die vollständig initialisierte Sperre und decken PID-Wiederverwendung
+  und das Initialisierungsfenster ab.
+- App-Lokalisierung: Die neuen Oberflächentexte der E-Rechnungs-Anzeige sind
+  im String Catalog mit englischen Übersetzungen hinterlegt; die READMEs
+  präzisieren, dass die EN-16931-Feldnamen (deutsche Benennungen) in App und
+  CLI sprachunabhängig gleich bleiben. Die Drittanbieter-Hinweise nennen die
+  Herkunft der Feldnamen jetzt widerspruchsfrei (Benennungen wie in der
+  deutschen EN 16931/XRechnung-Spezifikation der KoSIT).
+- Test-Attrappe für `install_name_tool` protokolliert Argumente einzeln
+  (Argumentgrenzen-Regression war vorher unsichtbar);
+  `knowledge/epub-opf-struktur.md` beschreibt Autoren- und Serien-Schreibweg
+  jetzt zutreffend getrennt.
+
 ## [0.21.0] — 2026-08-14
 
 ### Hinzugefügt

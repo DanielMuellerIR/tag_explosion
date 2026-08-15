@@ -40,45 +40,9 @@ struct InvoiceView: View {
     }
 }
 
-/// Tab-Inhalt für PDFs: lädt die eingebettete Rechnung selbst (wie der
-/// Technik-Tab über mediainfo) — der E-Book-Editor bleibt davon unberührt.
-struct InvoiceTab: View {
-    let url: URL
-
-    @State private var document: EInvoiceDocument?
-    @State private var errorText: String?
-
-    var body: some View {
-        Group {
-            if let document {
-                InvoiceContentView(document: document)
-            } else if let errorText {
-                ContentUnavailableView(
-                    "Keine E-Rechnung",
-                    systemImage: "doc.questionmark",
-                    description: Text(errorText)
-                )
-            } else {
-                ProgressView("Lese Rechnung …")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .task(id: url) {
-            document = nil
-            errorText = nil
-            let target = url
-            do {
-                document = try await Task.detached(priority: .userInitiated) {
-                    try EInvoiceReader.read(url: target)
-                }.value
-            } catch {
-                errorText = error.localizedDescription
-            }
-        }
-    }
-}
-
-/// Gemeinsamer Anzeigekern: Profilkopf, Filter, Feldliste.
+/// Gemeinsamer Anzeigekern: Profilkopf, Filter, Feldliste. Der E-Book-Editor
+/// nutzt ihn für sein Rechnungs-Tab mit dem dort bereits gelesenen Dokument —
+/// das PDF wird dafür nicht ein zweites Mal extrahiert und geparst.
 struct InvoiceContentView: View {
     let document: EInvoiceDocument
 
@@ -136,7 +100,9 @@ struct InvoiceContentView: View {
         .padding(12)
     }
 
-    private func headerRow(_ label: String, _ value: String) -> some View {
+    /// `label` ist ein LocalizedStringKey, damit die festen Beschriftungen
+    /// ("Spezifikation (BT-24)" …) über den String Catalog übersetzt werden.
+    private func headerRow(_ label: LocalizedStringKey, _ value: String) -> some View {
         GridRow {
             Text(label)
                 .foregroundStyle(.secondary)
@@ -179,7 +145,9 @@ struct InvoiceContentView: View {
 
     private var visibleFields: [EInvoiceField] {
         document.fields.filter { field in
-            if termsOnly && field.term == nil { return false }
+            // Auch eine Zuordnung an einem Attribut (z.B. unitCode → BT-130)
+            // zählt als EN-16931-Feld.
+            if termsOnly && field.term == nil && field.attributeTerms.isEmpty { return false }
             guard !filter.isEmpty else { return true }
             return field.value.localizedCaseInsensitiveContains(filter)
                 || field.element.localizedCaseInsensitiveContains(filter)
@@ -187,6 +155,10 @@ struct InvoiceContentView: View {
                 || (field.termName?.localizedCaseInsensitiveContains(filter) ?? false)
                 || field.attributes.contains {
                     $0.value.localizedCaseInsensitiveContains(filter)
+                }
+                || field.attributeTerms.contains {
+                    $0.term.localizedCaseInsensitiveContains(filter)
+                        || ($0.termName?.localizedCaseInsensitiveContains(filter) ?? false)
                 }
         }
     }
@@ -226,11 +198,17 @@ private struct InvoiceFieldRow: View {
                         .textSelection(.enabled)
                 }
                 ForEach(displayAttributes, id: \.name) { attribute in
-                    Text("\(attribute.name)=\(attribute.value)")
+                    // Attribute mit eigener BT-Nummer (z.B. unitCode → BT-130)
+                    // zeigen die Zuordnung im Chip; der volle Name steht im
+                    // Tooltip.
+                    let match = field.attributeTerms.first { $0.attribute == attribute.name }
+                    Text("\(attribute.name)=\(attribute.value)"
+                         + (match.map { " · \($0.term)" } ?? ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
                         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 3))
+                        .help(match?.termName ?? "")
                 }
                 if let note = field.valueNote {
                     Text(note)

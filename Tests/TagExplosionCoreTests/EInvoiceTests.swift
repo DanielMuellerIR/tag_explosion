@@ -37,6 +37,12 @@ struct EInvoiceTests {
         <b:IncludedSupplyChainTradeLineItem>
           <b:AssociatedDocumentLineDocument><b:LineID>1</b:LineID></b:AssociatedDocumentLineDocument>
           <b:SpecifiedTradeProduct><b:Name>Testartikel</b:Name></b:SpecifiedTradeProduct>
+          <b:SpecifiedLineTradeAgreement>
+            <b:NetPriceProductTradePrice>
+              <b:ChargeAmount>49.50</b:ChargeAmount>
+              <b:BasisQuantity unitCode="HUR">1</b:BasisQuantity>
+            </b:NetPriceProductTradePrice>
+          </b:SpecifiedLineTradeAgreement>
           <b:SpecifiedLineTradeDelivery>
             <b:BilledQuantity unitCode="HUR">2</b:BilledQuantity>
           </b:SpecifiedLineTradeDelivery>
@@ -64,14 +70,18 @@ struct EInvoiceTests {
         <b:ApplicableHeaderTradeSettlement>
           <b:InvoiceCurrencyCode>EUR</b:InvoiceCurrencyCode>
           <b:SpecifiedTradeAllowanceCharge>
-            <b:ChargeIndicator><c:Indicator>false</c:Indicator></b:ChargeIndicator>
+            <b:ChargeIndicator><c:Indicator>0</c:Indicator></b:ChargeIndicator>
             <b:ActualAmount>5.00</b:ActualAmount>
             <b:Reason>Treuerabatt</b:Reason>
           </b:SpecifiedTradeAllowanceCharge>
           <b:SpecifiedTradeAllowanceCharge>
-            <b:ChargeIndicator><c:Indicator>true</c:Indicator></b:ChargeIndicator>
+            <b:ChargeIndicator><c:Indicator>1</c:Indicator></b:ChargeIndicator>
             <b:ActualAmount>3.00</b:ActualAmount>
             <b:Reason>Versand</b:Reason>
+          </b:SpecifiedTradeAllowanceCharge>
+          <b:SpecifiedTradeAllowanceCharge>
+            <b:ChargeIndicator><c:Indicator>vielleicht</c:Indicator></b:ChargeIndicator>
+            <b:ActualAmount>7.00</b:ActualAmount>
           </b:SpecifiedTradeAllowanceCharge>
           <b:SpecifiedTradeSettlementHeaderMonetarySummation>
             <b:TaxTotalAmount currencyID="EUR">18.62</b:TaxTotalAmount>
@@ -115,6 +125,27 @@ struct EInvoiceTests {
           </cac:PartyLegalEntity>
         </cac:Party>
       </cac:AccountingCustomerParty>
+      <cac:AdditionalDocumentReference>
+        <cbc:ID>OBJ-1</cbc:ID>
+        <cbc:DocumentTypeCode>130</cbc:DocumentTypeCode>
+      </cac:AdditionalDocumentReference>
+      <cac:AdditionalDocumentReference>
+        <cbc:ID>BELEG-1</cbc:ID>
+        <cbc:DocumentDescription>Stundenzettel</cbc:DocumentDescription>
+      </cac:AdditionalDocumentReference>
+      <cac:PaymentMeans>
+        <cbc:PaymentMeansCode name="Überweisung">30</cbc:PaymentMeansCode>
+      </cac:PaymentMeans>
+      <cac:AllowanceCharge>
+        <cbc:ChargeIndicator>1</cbc:ChargeIndicator>
+        <cbc:AllowanceChargeReason>Versand</cbc:AllowanceChargeReason>
+        <cbc:Amount currencyID="EUR">3.00</cbc:Amount>
+      </cac:AllowanceCharge>
+      <cac:AllowanceCharge>
+        <cbc:ChargeIndicator>0</cbc:ChargeIndicator>
+        <cbc:AllowanceChargeReason>Treuerabatt</cbc:AllowanceChargeReason>
+        <cbc:Amount currencyID="EUR">5.00</cbc:Amount>
+      </cac:AllowanceCharge>
       <cac:TaxTotal>
         <cbc:TaxAmount currencyID="EUR">19.00</cbc:TaxAmount>
       </cac:TaxTotal>
@@ -126,7 +157,10 @@ struct EInvoiceTests {
         <cbc:InvoicedQuantity unitCode="C62">1</cbc:InvoicedQuantity>
         <cbc:LineExtensionAmount currencyID="EUR">100.00</cbc:LineExtensionAmount>
         <cac:Item><cbc:Name>Dienstleistung</cbc:Name></cac:Item>
-        <cac:Price><cbc:PriceAmount currencyID="EUR">100.00</cbc:PriceAmount></cac:Price>
+        <cac:Price>
+          <cbc:PriceAmount currencyID="EUR">100.00</cbc:PriceAmount>
+          <cbc:BaseQuantity unitCode="C62">1</cbc:BaseQuantity>
+        </cac:Price>
       </cac:InvoiceLine>
     </Invoice>
     """
@@ -181,6 +215,39 @@ struct EInvoiceTests {
         #expect(throws: EInvoiceError.notAnInvoice) {
             try EInvoiceReader.document(fromXML: Data(plist.utf8), source: .xmlFile)
         }
+    }
+
+    @Test("Ein Kommentar mit 'CrossIndustryInvoice' macht Fremd-XML nicht zur Rechnung")
+    func sniffIgnoresCommentsAndDoctype() {
+        let foreign = """
+        <?xml version="1.0"?>
+        <!-- exportiert aus CrossIndustryInvoice-Konverter -->
+        <!DOCTYPE settings>
+        <settings><entry>CrossIndustryInvoice</entry></settings>
+        """
+        #expect(!EInvoiceReader.sniffXML(Data(foreign.utf8)))
+
+        // Dieselben übersprungenen Konstrukte VOR einer echten Rechnung
+        // dürfen die Erkennung nicht verhindern.
+        let commented = "<!-- Vorspann -->\n" + Self.ciiXML.replacingOccurrences(
+            of: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", with: "")
+        #expect(EInvoiceReader.sniffXML(Data(commented.utf8)))
+    }
+
+    @Test("UTF-16-Rechnungen (mit und ohne BOM) werden erkannt")
+    func sniffAcceptsUTF16() throws {
+        let xml = Self.ciiXML.replacingOccurrences(of: "encoding=\"UTF-8\"",
+                                                   with: "encoding=\"UTF-16\"")
+        var littleEndianWithBOM = Data([0xFF, 0xFE])
+        littleEndianWithBOM.append(contentsOf: xml.utf16.flatMap {
+            [UInt8($0 & 0xFF), UInt8($0 >> 8)]
+        })
+        #expect(EInvoiceReader.sniffXML(littleEndianWithBOM))
+
+        let bigEndianWithoutBOM = Data(xml.utf16.flatMap {
+            [UInt8($0 >> 8), UInt8($0 & 0xFF)]
+        })
+        #expect(EInvoiceReader.sniffXML(bigEndianWithoutBOM))
     }
 
     @Test("MediaFormats nimmt nur Rechnungs-XML an; Ordner-Drop filtert Fremd-XML")
@@ -246,12 +313,20 @@ struct EInvoiceTests {
         // Steuernummer (FC) und USt-IdNr. (VA) auseinanderhalten
         #expect(field(doc, term: "BT-32")?.value == "1/23/456")
         #expect(field(doc, term: "BT-31")?.value == "DE999999999")
-        // Menge samt Einheit
+        // Menge samt Einheit — das unitCode-Attribut trägt seine eigene
+        // BT-Nummer (BT-130 an BT-129, BT-150 an BT-149).
         #expect(field(doc, term: "BT-129")?.value == "2")
         #expect(field(doc, term: "BT-129")?.attributes
             == [XMLTreeAttribute(name: "unitCode", value: "HUR")])
         #expect(field(doc, term: "BT-129")?.valueNote == "Stunde(n)")
-        // Positions-Nachlass vs. Dokument-Nachlass vs. Dokument-Zuschlag
+        #expect(field(doc, term: "BT-129")?.attributeTerms
+            == [EInvoiceAttributeTerm(attribute: "unitCode", term: "BT-130",
+                                      termName: EN16931.name(for: "BT-130"))])
+        #expect(field(doc, term: "BT-149")?.attributeTerms
+            == [EInvoiceAttributeTerm(attribute: "unitCode", term: "BT-150",
+                                      termName: EN16931.name(for: "BT-150"))])
+        // Positions-Nachlass vs. Dokument-Nachlass vs. Dokument-Zuschlag —
+        // die Indikatoren nutzen die XML-Schema-Booleans 0/1.
         #expect(field(doc, term: "BT-136")?.value == "1.00")
         #expect(field(doc, term: "BT-92")?.value == "5.00")
         #expect(field(doc, term: "BT-97")?.value == "Treuerabatt")
@@ -259,6 +334,10 @@ struct EInvoiceTests {
         #expect(field(doc, term: "BT-104")?.value == "Versand")
         #expect(field(doc, term: "BG-20")?.element == "ram:SpecifiedTradeAllowanceCharge")
         #expect(field(doc, term: "BG-21")?.element == "ram:SpecifiedTradeAllowanceCharge")
+        // Ein unbekannter Indikator ("vielleicht") bekommt KEINE Zuordnung —
+        // sein Betrag darf weder als Nachlass noch als Zuschlag erscheinen.
+        let unknownIndicatorAmount = doc.fields.first { $0.value == "7.00" }
+        #expect(unknownIndicatorAmount?.term == nil)
         // Steuersumme: EUR = BT-110, Fremdwährung = BT-111
         #expect(field(doc, term: "BT-110")?.value == "18.62")
         #expect(field(doc, term: "BT-111")?.value == "17.90")
@@ -293,6 +372,33 @@ struct EInvoiceTests {
         #expect(field(doc, term: "BT-129")?.valueNote == "Stück (Einheit)")
         #expect(field(doc, term: "BT-153")?.value == "Dienstleistung")
         #expect(field(doc, term: "BT-146")?.value == "100.00")
+        // Attribute mit eigener BT-Nummer: Einheiten und der Text zur
+        // Zahlungsart (name-Attribut am Zahlungsart-Code).
+        #expect(field(doc, term: "BT-129")?.attributeTerms
+            == [EInvoiceAttributeTerm(attribute: "unitCode", term: "BT-130",
+                                      termName: EN16931.name(for: "BT-130"))])
+        #expect(field(doc, term: "BT-149")?.attributeTerms
+            == [EInvoiceAttributeTerm(attribute: "unitCode", term: "BT-150",
+                                      termName: EN16931.name(for: "BT-150"))])
+        #expect(field(doc, term: "BT-81")?.attributeTerms
+            == [EInvoiceAttributeTerm(attribute: "name", term: "BT-82",
+                                      termName: EN16931.name(for: "BT-82"))])
+        // Nachlass/Zuschlag mit den XML-Schema-Booleans 1/0.
+        #expect(field(doc, term: "BG-21")?.element == "cac:AllowanceCharge")
+        #expect(field(doc, term: "BT-104")?.value == "Versand")
+        #expect(field(doc, term: "BG-20")?.element == "cac:AllowanceCharge")
+        #expect(field(doc, term: "BT-97")?.value == "Treuerabatt")
+        // Zusatz-Unterlagen: Typcode 130 = Rechnungsgegenstand (BT-18, kein
+        // BG-24); ohne Typcode = rechnungsbegründende Unterlage (BG-24/BT-122).
+        #expect(field(doc, term: "BT-18")?.value == "OBJ-1")
+        #expect(field(doc, term: "BT-122")?.value == "BELEG-1")
+        #expect(field(doc, term: "BT-123")?.value == "Stundenzettel")
+        let bg24Containers = doc.fields.filter { $0.term == "BG-24" }
+        #expect(bg24Containers.count == 1)
+        let objectContainer = doc.fields.first {
+            $0.element == "cac:AdditionalDocumentReference" && $0.term == nil
+        }
+        #expect(objectContainer != nil)
     }
 
     @Test("UBL-Gutschrift: CreditNote-Pfade werden auf Invoice-Terme normalisiert")
@@ -346,13 +452,58 @@ struct EInvoiceTests {
         }
     }
 
+    @Test("XMP-Deklaration: Namensraum entscheidet, nicht das Präfix")
+    func pdfDeclarationResolvesAttributeNamespaces() throws {
+        try withTempDirectory { dir in
+            // Kurzform (Werte als Attribute) mit frei gewähltem Präfix "inv":
+            // muss erkannt werden, weil der Namensraum der Factur-X-URI ist.
+            let customPrefix = """
+            <x:xmpmeta xmlns:x="adobe:ns:meta/">
+              <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about=""
+                  xmlns:inv="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"
+                  inv:DocumentFileName="factur-x.xml"
+                  inv:ConformanceLevel="EN 16931"/>
+              </rdf:RDF>
+            </x:xmpmeta>
+            """
+            let customURL = dir.appendingPathComponent("custom-prefix.pdf")
+            try Self.makePDF(embedding: Data(Self.ciiXML.utf8),
+                             fileName: "factur-x.xml", xmp: customPrefix)
+                .write(to: customURL)
+            let doc = try EInvoiceReader.read(url: customURL)
+            #expect(doc.pdfDeclaration?.documentFileName == "factur-x.xml")
+            #expect(doc.pdfDeclaration?.conformanceLevel == "EN 16931")
+
+            // Ein fremdes Schema, das zufällig als "fx" gebunden ist, darf
+            // KEINE Deklaration vortäuschen.
+            let foreignNamespace = """
+            <x:xmpmeta xmlns:x="adobe:ns:meta/">
+              <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about=""
+                  xmlns:fx="http://example.org/anderes-schema#"
+                  fx:Version="99" fx:ConformanceLevel="FAKE"/>
+              </rdf:RDF>
+            </x:xmpmeta>
+            """
+            let foreignURL = dir.appendingPathComponent("foreign-prefix.pdf")
+            try Self.makePDF(embedding: Data(Self.ciiXML.utf8),
+                             fileName: "factur-x.xml", xmp: foreignNamespace)
+                .write(to: foreignURL)
+            let foreignDoc = try EInvoiceReader.read(url: foreignURL)
+            #expect(foreignDoc.pdfDeclaration == nil)
+        }
+    }
+
     /// Baut ein minimales, gültiges PDF — optional mit eingebetteter Datei
-    /// (Namensbaum + AF-Array wie bei ZUGFeRD) und Factur-X-XMP-Deklaration.
+    /// (Namensbaum + AF-Array wie bei ZUGFeRD) und Factur-X-XMP-Deklaration
+    /// (überschreibbar, um Präfix-/Namensraum-Varianten zu testen).
     /// Handgeschrieben statt Bibliothek: Der Test soll genau die Strukturen
     /// erzeugen, die der Leser abläuft.
-    private static func makePDF(embedding payload: Data?, fileName: String?) -> Data {
+    private static func makePDF(embedding payload: Data?, fileName: String?,
+                                xmp customXMP: String? = nil) -> Data {
         var objects: [String] = []
-        let xmp = """
+        let xmp = customXMP ?? """
         <x:xmpmeta xmlns:x="adobe:ns:meta/">
           <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
             <rdf:Description rdf:about=""

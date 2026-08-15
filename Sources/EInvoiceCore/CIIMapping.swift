@@ -266,6 +266,19 @@ enum CIIMapping {
         return fixed[path]
     }
 
+    /// Attribute mit eigener BT-Nummer: Die Maßeinheit einer Menge liegt in
+    /// CII nicht als Element vor, sondern als `unitCode`-Attribut am
+    /// Mengen-Element (BT-129 → BT-130, BT-149 → BT-150).
+    static func attributeTerms(for term: String?,
+                               node: XMLTreeNode) -> [(attribute: String, term: String)] {
+        let hasUnit = node.attributes.contains { $0.name == "unitCode" && !$0.value.isEmpty }
+        switch term {
+        case "BT-129" where hasUnit: return [("unitCode", "BT-130")]
+        case "BT-149" where hasUnit: return [("unitCode", "BT-150")]
+        default: return []
+        }
+    }
+
     private static func dynamicTerm(path: String, node: XMLTreeNode,
                                     ancestors: [XMLTreeNode],
                                     invoiceCurrency: String?) -> String? {
@@ -302,9 +315,13 @@ enum CIIMapping {
             ?? (node.name == "ram:SpecifiedTradeAllowanceCharge" ? ancestors.count : nil) {
             // Preis-Nachlässe (AppliedTradeAllowanceCharge) sind fest gemappt.
             let container = containerIndex == ancestors.count ? node : ancestors[containerIndex]
-            let isCharge = XMLTree.firstNode(in: container,
-                                             path: ["ram:ChargeIndicator", "udt:Indicator"])?
-                .text.lowercased() == "true"
+            // XML Schema erlaubt für Boolean neben true/false auch 1/0. Ein
+            // unbekannter oder fehlender Indikator bekommt bewusst KEINE
+            // Zuordnung — sonst würde ein Zuschlag als Nachlass beschriftet.
+            guard let isCharge = XMLTree.booleanText(
+                XMLTree.firstNode(in: container,
+                                  path: ["ram:ChargeIndicator", "udt:Indicator"])?.text)
+            else { return nil }
             let isLine = path.contains("ram:IncludedSupplyChainTradeLineItem/")
             if node.name == "ram:SpecifiedTradeAllowanceCharge" {
                 return isLine ? (isCharge ? "BG-28" : "BG-27")

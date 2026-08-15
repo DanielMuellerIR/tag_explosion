@@ -23,7 +23,16 @@ struct Invoice: ParsableCommand {
         for path in files {
             let url = try resolveFile(path)
             do {
-                documents.append((url.path, try EInvoiceReader.read(url: url)))
+                var document = try EInvoiceReader.read(url: url)
+                // --terms-only wirkt VOR beiden Ausgabezweigen: Auch die
+                // JSON-Ausgabe enthält dann nur Felder mit EN-16931-Zuordnung
+                // (am Element oder an einem Attribut).
+                if termsOnly {
+                    document.fields = document.fields.filter {
+                        $0.term != nil || !$0.attributeTerms.isEmpty
+                    }
+                }
+                documents.append((url.path, document))
             } catch let error as EInvoiceError {
                 throw ValidationError("\(url.lastPathComponent): \(error.localizedDescription)")
             }
@@ -78,8 +87,8 @@ struct Invoice: ParsableCommand {
         print("---")
 
         // Felder: Einrückung nach Baumtiefe, rechts die Feldbezeichnung.
+        // (--terms-only ist bereits in run() angewendet.)
         for field in document.fields {
-            if termsOnly && field.term == nil { continue }
             let indent = String(repeating: "  ", count: field.level)
             var line = indent + field.element
             if !field.value.isEmpty {
@@ -88,8 +97,18 @@ struct Invoice: ParsableCommand {
             let attributes = field.attributes
                 .filter { $0.name != "xsi:schemaLocation" }
             if !attributes.isEmpty {
-                let list = attributes.map { "\($0.name)=\($0.value)" }
-                    .joined(separator: ", ")
+                // Attribute mit eigener BT-Nummer (z.B. unitCode → BT-130)
+                // zeigen ihre Zuordnung direkt hinter dem Wert.
+                let list = attributes.map { attribute in
+                    var part = "\(attribute.name)=\(attribute.value)"
+                    if let match = field.attributeTerms.first(
+                        where: { $0.attribute == attribute.name }) {
+                        part += " [\(match.term)"
+                        if let name = match.termName { part += " \(name)" }
+                        part += "]"
+                    }
+                    return part
+                }.joined(separator: ", ")
                 line += " (\(list))"
             }
             if let term = field.term {

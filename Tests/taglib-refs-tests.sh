@@ -22,11 +22,13 @@ fi
 cat "$OTOOL_FIXTURE"
 SH
 
-# install_name_tool-Attrappe: schreibt jeden Aufruf zeilenweise mit, damit der
-# Test die uebergebenen Pfade exakt vergleichen kann.
+# install_name_tool-Attrappe: protokolliert Argumentanzahl und jedes Argument
+# einzeln (Tab-getrennt). "$*" wuerde Argumentgrenzen verwischen — ein
+# unquotierter Pfad mit Leerzeichen ergaebe dieselbe Zeile wie die korrekt
+# uebergebenen Argumente, und genau diese Regression soll Test 1 fangen.
 cat > "$fake_bin/install_name_tool" <<'SH'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >> "$INSTALL_NAME_LOG"
+{ printf '%s' "$#"; printf '\t%s' "$@"; printf '\n'; } >> "$INSTALL_NAME_LOG"
 SH
 chmod +x "$fake_bin"/*
 
@@ -50,7 +52,9 @@ cat > "$OTOOL_FIXTURE" <<EOF
 EOF
 : > "$INSTALL_NAME_LOG"
 rewrite_taglib_refs "/pfad/zur/TagExplosion" || fail "rewrite schlug fehl"
-expected="-change $spaced @executable_path/../Frameworks/libtag_c.2.dylib /pfad/zur/TagExplosion"
+# Genau vier Argumente, jedes einzeln — der Pfad mit Leerzeichen als EIN Argument.
+expected=$(printf '%s\t%s\t%s\t%s\t%s' 4 "-change" "$spaced" \
+    "@executable_path/../Frameworks/libtag_c.2.dylib" "/pfad/zur/TagExplosion")
 [ "$(cat "$INSTALL_NAME_LOG")" = "$expected" ] \
     || fail "Ladepfad mit Leerzeichen wurde nicht als Ganzes umgebogen: $(cat "$INSTALL_NAME_LOG")"
 

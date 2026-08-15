@@ -10,13 +10,73 @@ public enum EInvoiceReader {
     /// Schneller Inhaltstest ohne vollständiges Parsen: Ist das eine
     /// E-Rechnung? Es genügt, den Anfang der Datei zu prüfen — das
     /// Wurzelelement mit seinen Namensraum-Deklarationen steht dort immer.
+    /// Geprüft wird das ERSTE Start-Element (Prolog, Kommentare und DOCTYPE
+    /// werden übersprungen) — ein bloßes "CrossIndustryInvoice" in einem
+    /// Kommentar oder Textwert eines Fremd-XML zählt nicht als Treffer.
     public static func sniffXML(_ data: Data) -> Bool {
-        let head = String(decoding: data.prefix(8192), as: UTF8.self)
-        if head.contains("CrossIndustryInvoice") { return true }       // CII
-        if head.contains("CrossIndustryDocument") { return true }      // ZUGFeRD 1.0
-        if head.contains("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2") { return true }
-        if head.contains("urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2") { return true }
-        return false
+        guard let head = decodeHead(data) else { return false }
+        guard let rootName = firstStartElementName(in: head) else { return false }
+        let local = rootName.components(separatedBy: ":").last ?? rootName
+        switch local {
+        case "CrossIndustryInvoice": return true                       // CII
+        case "CrossIndustryDocument": return true                      // ZUGFeRD 1.0
+        case "Invoice":
+            return head.contains("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2")
+        case "CreditNote":
+            return head.contains("urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2")
+        default: return false
+        }
+    }
+
+    /// Dateianfang als Text — UTF-8 und (per BOM oder Nullbyte-Muster
+    /// erkanntes) UTF-16 werden unterstützt. Ein angeschnittenes letztes
+    /// Zeichen ist unkritisch: Der Inhaltstest braucht nur den Anfang.
+    private static func decodeHead(_ data: Data) -> String? {
+        var head = data.prefix(8192)
+        // UTF-16 (mit BOM oder am Nullbyte im ersten Zeichen erkennbar):
+        // XML beginnt mit "<" oder Whitespace, also liegt in einem der ersten
+        // beiden Bytes einer UTF-16-Datei immer ein Nullbyte.
+        let bytes = [UInt8](head.prefix(2))
+        if bytes == [0xFF, 0xFE] || bytes == [0xFE, 0xFF]
+            || bytes.first == 0x00 || (bytes.count == 2 && bytes[1] == 0x00) {
+            if head.count % 2 != 0 { head = head.dropLast() }  // halbe Code-Unit
+            let bigEndian = bytes == [0xFE, 0xFF] || bytes.first == 0x00
+            return String(data: head, encoding: bigEndian ? .utf16BigEndian : .utf16LittleEndian)
+        }
+        return String(decoding: head, as: UTF8.self)
+    }
+
+    /// Name des ersten Start-Elements; Prolog (`<?…?>`), Kommentare
+    /// (`<!--…-->`) und DOCTYPE (`<!…>`) davor werden übersprungen.
+    private static func firstStartElementName(in head: String) -> String? {
+        var rest = Substring(head)
+        while let lt = rest.firstIndex(of: "<") {
+            let afterLT = rest.index(after: lt)
+            guard afterLT < rest.endIndex else { return nil }
+            switch rest[afterLT] {
+            case "?":  // XML-Deklaration / Processing Instruction
+                guard let end = rest.range(of: "?>", range: afterLT..<rest.endIndex)
+                else { return nil }
+                rest = rest[end.upperBound...]
+            case "!":  // Kommentar oder DOCTYPE — Kommentare können ">" enthalten
+                if rest[afterLT...].hasPrefix("!--") {
+                    guard let end = rest.range(of: "-->", range: afterLT..<rest.endIndex)
+                    else { return nil }
+                    rest = rest[end.upperBound...]
+                } else {
+                    guard let end = rest[afterLT...].firstIndex(of: ">") else { return nil }
+                    rest = rest[rest.index(after: end)...]
+                }
+            case "/":  // schließendes Tag vor jedem Start-Element: kaputtes XML
+                return nil
+            default:   // Start-Element: Name endet an Whitespace, "/" oder ">"
+                let name = rest[afterLT...].prefix {
+                    !$0.isWhitespace && $0 != "/" && $0 != ">"
+                }
+                return name.isEmpty ? nil : String(name)
+            }
+        }
+        return nil
     }
 
     /// Datei-Einstieg: XML direkt lesen, PDF über die eingebettete Datei.
@@ -139,11 +199,27 @@ public enum EInvoiceReader {
             // die Lesehilfe entschlüsselt den Einheiten-Code.
             ?? unitAttribute.flatMap { CodeLists.unitCode[$0] }
 
+        // Manche Business Terms liegen als Attribut am Element (z.B. die
+        // Maßeinheit einer Menge) — sie bekommen ihre eigene Zuordnung.
+        let rawAttributeTerms: [(attribute: String, term: String)]
+        switch syntax {
+        case .cii:
+            rawAttributeTerms = CIIMapping.attributeTerms(for: term, node: node)
+        case .ublInvoice, .ublCreditNote:
+            rawAttributeTerms = UBLMapping.attributeTerms(for: term, node: node)
+        case .ciiZUGFeRD1:
+            rawAttributeTerms = []
+        }
+
         fields.append(EInvoiceField(
             level: level, element: node.name, path: path, value: node.text,
             attributes: node.attributes, term: term,
             termName: term.flatMap { EN16931.name(for: $0) },
-            valueNote: valueNote))
+            valueNote: valueNote,
+            attributeTerms: rawAttributeTerms.map {
+                EInvoiceAttributeTerm(attribute: $0.attribute, term: $0.term,
+                                      termName: EN16931.name(for: $0.term))
+            }))
 
         for child in node.children {
             walk(node: child, path: "\(path)/\(child.name)", level: level + 1,

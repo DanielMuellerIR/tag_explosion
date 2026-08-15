@@ -34,10 +34,16 @@ Feld-Roundtrip-Test bemerkt den Schaden deshalb nicht.
 - entfernt die Verfeinerungen aller übrigen gelöschten Identifier, damit keine
   verwaisten `refines`-Verweise zurückbleiben.
 
-Dieselbe Regel gilt sinngemäß für jeden Knoten, auf den aus dem OPF heraus
-verwiesen wird — deshalb tragen auch `replaceAuthors` und `writeSeries` ihre
-Verfeinerungen mit (`detachRefinements`) und vergeben neue XML-IDs eindeutig
-über das **ganze** Dokument (`allIds`), nicht nur unter den Geschwistern.
+Dieselbe Sorgfalt gilt für jeden Knoten, auf den aus dem OPF heraus verwiesen
+wird — die beiden anderen Schreibwege verhalten sich dabei aber unterschiedlich:
+
+- `replaceAuthors` **entfernt** die Verfeinerungen der gelöschten
+  Autoren-Knoten (`detachRefinements`) und legt die neuen Creator **ohne**
+  XML-IDs an — es gibt danach nichts, worauf ein `refines` zeigen könnte.
+- `writeSeries` entfernt die alten Serien-Verfeinerungen und vergibt für den
+  neuen Serien-Knoten eine XML-ID, die über das **ganze** Dokument eindeutig
+  ist (`allIds`), nicht nur unter den Geschwistern — auch `dc:creator`,
+  `dc:identifier` oder ein Manifest-Eintrag kann die Wunsch-ID schon tragen.
 
 ## Prüfung
 

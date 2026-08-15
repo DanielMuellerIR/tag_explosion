@@ -46,6 +46,25 @@ public struct EInvoicePDFDeclaration: Sendable, Codable, Equatable {
     }
 }
 
+/// EN-16931-Zuordnung eines XML-Attributs. Einige Business Terms liegen in
+/// beiden Syntaxen nicht als eigenes Element vor, sondern als Attribut am
+/// Trägerelement — z.B. `unitCode` an der Menge (BT-130/BT-150) oder
+/// `@name` am UBL-Zahlungsart-Code (BT-82).
+public struct EInvoiceAttributeTerm: Sendable, Codable, Equatable {
+    /// Attributname am Element, z.B. "unitCode".
+    public var attribute: String
+    /// EN-16931-Feldbezeichnung, z.B. "BT-130".
+    public var term: String
+    /// Deutscher Name des Business Terms, falls bekannt.
+    public var termName: String?
+
+    public init(attribute: String, term: String, termName: String?) {
+        self.attribute = attribute
+        self.term = term
+        self.termName = termName
+    }
+}
+
 /// Ein angezeigtes Feld: ein XML-Element in Dokumentreihenfolge mit optionaler
 /// EN-16931-Zuordnung. Gruppen-Elemente (ohne eigenen Text) erscheinen mit
 /// leerem `value` — sie tragen die BG-Zuordnung und die Baumstruktur.
@@ -66,6 +85,9 @@ public struct EInvoiceField: Sendable, Codable, Equatable {
     public var termName: String?
     /// Entschlüsselung bekannter Codewerte (z.B. TypeCode 380 → "Rechnung").
     public var valueNote: String?
+    /// Attribute dieses Elements mit eigener EN-16931-Zuordnung
+    /// (z.B. unitCode → BT-130); leer, wenn keines zugeordnet ist.
+    public var attributeTerms: [EInvoiceAttributeTerm] = []
 }
 
 /// Kurzfassung für Listen-/Titelanzeigen.

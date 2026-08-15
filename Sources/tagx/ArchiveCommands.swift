@@ -19,9 +19,15 @@ struct Export: ParsableCommand {
         for url in urls where !FileManager.default.fileExists(atPath: url.path) {
             throw ValidationError("File not found: \(url.path)")
         }
-        let files = MediaFormats.expandMediaFiles(urls)
+        // Nur archivierbare Medienarten zählen und exportieren — sonst
+        // meldete "OK n file(s)" auch Dateien, die das Archiv überspringt
+        // (E-Rechnungen sind reine Anzeige).
+        let files = MediaFormats.expandMediaFiles(urls).filter {
+            MediaFormats.kind(of: $0).map(MediaFormats.isArchivable) == true
+        }
         guard !files.isEmpty else {
-            throw ValidationError("No supported media files found.")
+            throw ValidationError(
+                "No archivable media files found (e-invoices are display-only).")
         }
         let jsonURL = URL(fileURLWithPath: output)
         do {

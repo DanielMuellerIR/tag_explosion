@@ -28,6 +28,10 @@ public struct XMLTreeNode: Sendable {
     /// Getrimmter Textinhalt (leer bei reinen Gruppen-Elementen).
     public var text: String
     public var children: [XMLTreeNode]
+    /// An DIESEM Element deklarierte Namensräume (Präfix → URI). Nötig, um
+    /// Attribut-Präfixe aufzulösen: XMLParser liefert Attribute nur mit ihrem
+    /// qualifizierten Namen, nicht mit ihrem Namensraum.
+    public var namespaceDeclarations: [String: String] = [:]
 }
 
 public enum XMLTreeError: Error, LocalizedError {
@@ -77,12 +81,27 @@ public enum XMLTree {
         let parser = XMLParser(data: data)
         parser.delegate = builder
         parser.shouldProcessNamespaces = true
+        // Präfix-Deklarationen mitschneiden (didStartMappingPrefix), damit
+        // Attribut-Namensräume auflösbar sind — Attribute kommen vom Parser
+        // nur mit qualifiziertem Namen.
+        parser.shouldReportNamespacePrefixes = true
         guard parser.parse(), let root = builder.root else {
             let reason = parser.parserError?.localizedDescription
                 ?? builder.abortReason ?? "unbekannter Parserfehler"
             throw XMLTreeError.parseFailed(reason)
         }
         return root
+    }
+
+    /// XML-Schema-Boolean lesen: erlaubt sind "true"/"1" und "false"/"0"
+    /// (xs:boolean). Alles andere ist nil — Aufrufer entscheiden dann bewusst,
+    /// statt einen unbekannten Wert still als false zu behandeln.
+    public static func booleanText(_ text: String?) -> Bool? {
+        switch text?.lowercased() {
+        case "true", "1": return true
+        case "false", "0": return false
+        default: return nil
+        }
     }
 
     /// Kind-Element entlang eines Pfads aus kanonischen Namen suchen
@@ -105,6 +124,14 @@ private final class TreeBuilder: NSObject, XMLParserDelegate {
     var abortReason: String?
     private var stack: [XMLTreeNode] = []
     private var textBuffer = ""
+    /// Zwischen didStartMappingPrefix und didStartElement gesammelte
+    /// Deklarationen — sie gehören zum als Nächstes startenden Element.
+    private var pendingNamespaces: [String: String] = [:]
+
+    func parser(_ parser: XMLParser, didStartMappingPrefix prefix: String,
+                toURI namespaceURI: String) {
+        pendingNamespaces[prefix] = namespaceURI
+    }
 
     func parser(_ parser: XMLParser, didStartElement elementName: String,
                 namespaceURI: String?, qualifiedName qName: String?,
@@ -124,7 +151,9 @@ private final class TreeBuilder: NSObject, XMLParserDelegate {
             .sorted { $0.key < $1.key }
             .map { XMLTreeAttribute(name: $0.key, value: $0.value) }
         stack.append(XMLTreeNode(name: name, namespaceURI: namespaceURI ?? "",
-                                 attributes: attributes, text: "", children: []))
+                                 attributes: attributes, text: "", children: [],
+                                 namespaceDeclarations: pendingNamespaces))
+        pendingNamespaces = [:]
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {

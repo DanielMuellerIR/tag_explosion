@@ -510,7 +510,7 @@ public enum TagArchiveIO {
                         detail: "image rating must be between -1 (unset) and 5")
                 }
             case .ebook:
-                guard let ebook = entry.ebook else {
+                guard entry.ebook != nil else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "ebook")
                 }
@@ -522,24 +522,26 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "ebook entries may contain at most one cover")
                 }
-                // Ein Serienindex ohne Serie hat in keinem Format einen
-                // Speicherort; das Archiv würde ihn beim Import stillschweigend
-                // verlieren und trotzdem Erfolg melden.
-                guard ebook.series.isEmpty == false || ebook.seriesIndex.isEmpty else {
-                    throw TagArchiveError.inconsistentEntry(
-                        path: entry.path,
-                        detail: "ebook series index requires a series name")
-                }
+                // Ein Serienindex ohne Serie wird hier bewusst NICHT abgelehnt:
+                // Bestehende EPUBs können genau diesen Zustand tragen
+                // (calibre:series_index ohne Serie), Export muss ihn sichern
+                // können und ältere v1-Archive enthalten ihn bereits. Ob er
+                // sich in ein ZIEL schreiben lässt, entscheidet erst der
+                // Schreibweg (EbookTool.requireStorableSeries) — dort wird ein
+                // solcher Eintrag als Fehler gemeldet, nie still verloren.
+                //
                 // Cover werden vor dem ersten Schreibzugriff an ihrer Signatur
                 // geprüft — sonst landete beliebiger Inhalt als angebliches
-                // Bild im E-Book.
+                // Bild im E-Book. Zugelassen ist jedes erkennbare Bildformat:
+                // EPUBs können z.B. gültige GIF-Cover enthalten, die Export
+                // und ältere v1-Archive erhalten müssen. Die engere
+                // JPEG/PNG-Regel gilt nur beim tatsächlichen Cover-SETZEN
+                // (EbookTool.requireSupportedCover im Schreibweg).
                 if let cover = entry.artworks?.first {
-                    do {
-                        try EbookTool.requireSupportedCover(cover.data)
-                    } catch {
+                    guard Artwork.sniffMimeType(from: cover.data) != nil else {
                         throw TagArchiveError.inconsistentEntry(
                             path: entry.path,
-                            detail: "ebook cover must be a JPEG or PNG image")
+                            detail: "ebook cover data is not a recognizable image")
                     }
                 }
             case .invoice:

@@ -175,8 +175,14 @@ final class FileEntry: Identifiable {
     /// atomare Austausch gäbe der Datei eine neue Identität, änderte die
     /// Änderungszeit, legte eine Sicherung an und ließe vorhandene Hardlinks
     /// auf dem alten Stand zurück.
+    /// Während eines laufenden Speicherns wird bewusst NICHT normalisiert:
+    /// `ebookOriginalCover` ist dann veraltet (das Read-back ersetzt es gleich
+    /// durch das gerade geschriebene Cover). Eine Auswahl des alten Originals
+    /// würde sonst zu nil normalisiert und ginge nach dem Save verloren —
+    /// `acceptSaved` gleicht die Auswahl stattdessen mit dem wirklich
+    /// geschriebenen Cover ab.
     func setEbookCover(_ data: Data) {
-        ebookCoverReplacement = data == ebookOriginalCover ? nil : data
+        ebookCoverReplacement = (!isSaving && data == ebookOriginalCover) ? nil : data
     }
 
     /// Frisch gelesenen Platten-Zustand als neues Original übernehmen.
@@ -584,9 +590,22 @@ final class AppModel {
             // Felder und Cover in einem Schnappschuss: Der Editor zeigt damit
             // garantiert das Cover derselben Dateifassung, und ein erneut
             // ausgewähltes gleiches Cover ist als Nichts-Tun erkennbar.
-            let contents = try EbookTool.readSnapshot(
-                url: url, includeCover: EbookTool.supportsCover(url: url)).value
-            return .ebook(contents.fields, cover: contents.cover?.data)
+            do {
+                let contents = try EbookTool.readSnapshot(
+                    url: url, includeCover: EbookTool.supportsCover(url: url)).value
+                return .ebook(contents.fields, cover: contents.cover?.data)
+            } catch let error as TagError {
+                // PDF-Metadaten brauchen exiftool — die E-Rechnungs-Anzeige
+                // nicht (CoreGraphics + eigener Leser). Fehlt das Werkzeug,
+                // soll ein Rechnungs-PDF trotzdem aufgehen: als reiner
+                // Anzeige-Eintrag mit der eingebetteten Rechnung.
+                if case .toolNotFound = error,
+                   url.pathExtension.lowercased() == "pdf",
+                   let document = try? EInvoiceReader.read(url: url) {
+                    return .invoice(document)
+                }
+                throw error
+            }
         case .invoice:
             // E-Rechnung (XML): vollständig parsen — reine Anzeige.
             return .invoice(try EInvoiceReader.read(url: url))
@@ -912,8 +931,17 @@ final class AppModel {
     // MARK: - Export/Import (JSON)
 
     /// Exportiert die Tags der Einträge als selbständige JSON-Datei.
+    /// E-Rechnungen sind reine Anzeige und werden nicht mitgezählt — sonst
+    /// entstünde ein Archiv, das weniger Dateien enthält als versprochen.
     func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
-        let files = exportEntries.map(\.url)
+        let files = exportEntries
+            .filter { MediaFormats.isArchivable($0.kind) }
+            .map(\.url)
+        guard !files.isEmpty else {
+            alertMessage = String(localized:
+                "Nichts zu exportieren: E-Rechnungen sind reine Anzeige und tragen keine editierbaren Tags.")
+            return
+        }
         do {
             try await Task.detached(priority: .userInitiated) {
                 try TagArchiveIO.export(files: files, to: url, includeCovers: true)
@@ -1243,10 +1271,14 @@ final class AppModel {
         // zusätzlich bis in den atomaren Austausch (expecting:) und wird dort
         // unmittelbar vor dem rename ein letztes Mal geprüft.
         try FileStamp.requireUnchanged(stamp, at: url)
-        // Unbrauchbare Coverdaten schon vor der Sicherung ablehnen: Der
-        // Schreibweg würde sie sonst als angebliches Bild in die Datei legen.
-        if case .ebook(_, _, let cover) = snapshot, let cover {
-            try EbookTool.requireSupportedCover(cover)
+        // Unbrauchbare Eingaben schon vor der Sicherung ablehnen: Der
+        // Schreibweg würde ein Nicht-Bild sonst als angebliches Cover in die
+        // Datei legen, und ein Serienindex ohne Serie scheiterte erst NACH
+        // der Papierkorb-Kopie — jeder solche Versuch legte eine unnötige
+        // Sicherung der unveränderten Datei an.
+        if case .ebook(let fields, let original, let cover) = snapshot {
+            try EbookTool.requireStorableSeries(fields, original: original)
+            if let cover { try EbookTool.requireSupportedCover(cover) }
         }
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.

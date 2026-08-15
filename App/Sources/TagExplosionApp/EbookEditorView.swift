@@ -10,8 +10,11 @@ import UniformTypeIdentifiers
 struct EbookEditorView: View {
     @Bindable var entry: FileEntry
     @State private var tab: Tab = .metadata
-    /// Trägt dieses PDF eine E-Rechnung? (nil = Prüfung läuft noch)
-    @State private var hasInvoice: Bool?
+    /// Eingebettete E-Rechnung dieses PDFs (nil = keine oder Prüfung läuft).
+    /// Das Dokument wird genau EINMAL im Hintergrund gelesen und danach für
+    /// Tab-Sichtbarkeit UND Tab-Inhalt verwendet — Extraktion und Parsen pro
+    /// angezeigtem PDF nicht doppelt.
+    @State private var invoiceDocument: EInvoiceDocument?
 
     enum Tab: Hashable {
         case metadata
@@ -23,7 +26,7 @@ struct EbookEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if hasInvoice == true {
+            if invoiceDocument != nil {
                 Picker("", selection: $tab) {
                     Text("Metadaten").tag(Tab.metadata)
                     Text("E-Rechnung").tag(Tab.invoice)
@@ -40,18 +43,19 @@ struct EbookEditorView: View {
             case .metadata:
                 metadataTab
             case .invoice:
-                InvoiceTab(url: entry.url)
+                if let invoiceDocument {
+                    InvoiceContentView(document: invoiceDocument)
+                }
             }
         }
         // Die Prüfung liest das PDF im Hintergrund; nur PDFs kommen infrage.
         .task(id: entry.url) {
-            guard entry.url.pathExtension.lowercased() == "pdf" else {
-                hasInvoice = false
-                return
-            }
+            invoiceDocument = nil
+            tab = .metadata
+            guard entry.url.pathExtension.lowercased() == "pdf" else { return }
             let target = entry.url
-            hasInvoice = await Task.detached(priority: .utility) {
-                EInvoiceReader.containsInvoice(url: target)
+            invoiceDocument = await Task.detached(priority: .utility) {
+                try? EInvoiceReader.read(url: target)
             }.value
         }
     }

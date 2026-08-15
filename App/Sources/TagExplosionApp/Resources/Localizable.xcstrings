@@ -221,6 +221,16 @@
         }
       }
     },
+    "Audio-, Bild-, Video-, E-Book- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop audio, image, video, e-book, and e-invoice files or folders here\nto view and edit metadata."
+          }
+        }
+      }
+    },
     "Aufnahmedatum": {
       "localizations": {
         "en": {
@@ -481,6 +491,16 @@
         }
       }
     },
+    "Die Datei enthält keine lesbare E-Rechnung.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file does not contain a readable e-invoice."
+          }
+        }
+      }
+    },
     "Diese Datei ist schreibgeschützt — Änderungen können nicht gespeichert werden.": {
       "localizations": {
         "en": {
@@ -507,6 +527,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "E-books"
+          }
+        }
+      }
+    },
+    "E-Rechnung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-invoice"
+          }
+        }
+      }
+    },
+    "E-Rechnungen einzeln auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select e-invoices individually"
+          }
+        }
+      }
+    },
+    "E-Rechnungen werden nur angezeigt und einzeln geöffnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-invoices are display-only and open individually."
           }
         }
       }
@@ -541,12 +591,32 @@
         }
       }
     },
+    "Eckdaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key facts"
+          }
+        }
+      }
+    },
     "Eigenes Feld …": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Custom Field …"
+          }
+        }
+      }
+    },
+    "Eingebettet als": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedded as"
           }
         }
       }
@@ -651,6 +721,16 @@
         }
       }
     },
+    "Filtern (Wert, Element, BT-Nummer, Feldname) …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter (value, element, BT number, field name) …"
+          }
+        }
+      }
+    },
     "Filtern …": {
       "localizations": {
         "en": {
@@ -687,6 +767,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mixed selection"
+          }
+        }
+      }
+    },
+    "Geschäftsprozess (BT-23)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Business process (BT-23)"
           }
         }
       }
@@ -851,6 +941,16 @@
         }
       }
     },
+    "Keine E-Rechnung erkannt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No e-invoice detected"
+          }
+        }
+      }
+    },
     "Keine weiteren Felder": {
       "localizations": {
         "en": {
@@ -941,12 +1041,32 @@
         }
       }
     },
+    "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose media files (audio, image, video, e-book, e-invoice) or folders"
+          }
+        }
+      }
+    },
     "Mediendateien hierher ziehen\noder mit ⌘O öffnen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Drop media files here\nor open them with ⌘O"
+          }
+        }
+      }
+    },
+    "Metadaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata"
           }
         }
       }
@@ -1041,12 +1161,52 @@
         }
       }
     },
+    "Nichts zu exportieren: E-Rechnungen sind reine Anzeige und tragen keine editierbaren Tags.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to export: e-invoices are display-only and carry no editable tags."
+          }
+        }
+      }
+    },
+    "Nur EN-16931-Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EN 16931 fields only"
+          }
+        }
+      }
+    },
+    "Nur Felder und Gruppen mit BT-/BG-Zuordnung anzeigen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show only fields and groups with a BT/BG mapping"
+          }
+        }
+      }
+    },
     "Originale vor jeder Änderung in den Papierkorb kopieren": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Copy originals to the trash before every change"
+          }
+        }
+      }
+    },
+    "PDF-Deklaration (XMP)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF declaration (XMP)"
           }
         }
       }
@@ -1177,6 +1337,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Saving failed: %@"
+          }
+        }
+      }
+    },
+    "Speichert …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving …"
+          }
+        }
+      }
+    },
+    "Spezifikation (BT-24)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Specification (BT-24)"
           }
         }
       }
@@ -1341,6 +1521,16 @@
         }
       }
     },
+    "Version %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        }
+      }
+    },
     "Verwerfen": {
       "localizations": {
         "en": {
@@ -1467,6 +1657,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Take the value from another tag (per image, EXIF/IPTC/XMP)"
+          }
+        }
+      }
+    },
+    "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, display only)"
           }
         }
       }

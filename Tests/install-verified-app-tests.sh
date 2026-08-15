@@ -167,13 +167,17 @@ rm -f "$work/verify-count" "$work/release"
 BLOCK_SPCTL_CALL=1 RELEASE_FILE="$work/release" \
     run_installer "$new_source" "$concurrent_root/TagExplosion.app" &
 first_installer=$!
-# Warten, bis der erste Lauf die Sperre hält und im Haltepunkt steht.
+# Warten, bis der erste Lauf die Sperre VOLLSTÄNDIG hält (owner-Datei
+# veröffentlicht) und die blockierende spctl-Attrappe ihren Haltepunkt
+# erreicht hat. Nur auf das Sperr-Verzeichnis zu warten träfe genau das
+# Initialisierungsfenster zwischen mkdir und owner-Write.
 for _ in $(seq 1 200); do
-    [ -d "$concurrent_root/.TagExplosion.app.lock" ] && break
+    [ -f "$concurrent_root/.TagExplosion.app.lock/owner" ] \
+        && [ "$(cat "$work/verify-count" 2>/dev/null)" = "1" ] && break
     sleep 0.05
 done
-[ -d "$concurrent_root/.TagExplosion.app.lock" ] || {
-    echo "FEHLER: erster Lauf hat keine Sperre angelegt" >&2
+[ -f "$concurrent_root/.TagExplosion.app.lock/owner" ] || {
+    echo "FEHLER: erster Lauf hat keine vollständige Sperre angelegt" >&2
     exit 1
 }
 second_output="$work/second.log"
@@ -210,10 +214,30 @@ assert_text old "$signal_root/TagExplosion.app"
 # dauerhaft blockieren.
 stale_root="$work/stale"
 mkdir -p "$stale_root/.TagExplosion.app.lock"
-printf '999999\n' > "$stale_root/.TagExplosion.app.lock/pid"
+printf '999999|Mon Jan  1 00:00:00 2001\n' > "$stale_root/.TagExplosion.app.lock/owner"
 rm -f "$work/verify-count"
 run_installer "$new_source" "$stale_root/TagExplosion.app"
 assert_text new "$stale_root/TagExplosion.app"
 [ -z "$(find "$stale_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# Eine wiederverwendete PID (lebender Prozess, aber andere Startzeit) zählt
+# NICHT als aktiver Installer — sonst blockierte ein Absturz Updates für die
+# gesamte Laufzeit eines unbeteiligten Prozesses.
+reuse_root="$work/pid-reuse"
+mkdir -p "$reuse_root/.TagExplosion.app.lock"
+printf '%s|Mon Jan  1 00:00:00 2001\n' "$$" > "$reuse_root/.TagExplosion.app.lock/owner"
+rm -f "$work/verify-count"
+run_installer "$new_source" "$reuse_root/TagExplosion.app"
+assert_text new "$reuse_root/TagExplosion.app"
+[ -z "$(find "$reuse_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# Absturz genau zwischen mkdir und owner-Write: Die besitzerlose Sperre wird
+# nach der Wartefrist übernommen, statt für immer zu blockieren.
+headless_root="$work/headless-lock"
+mkdir -p "$headless_root/.TagExplosion.app.lock"
+rm -f "$work/verify-count"
+run_installer "$new_source" "$headless_root/TagExplosion.app"
+assert_text new "$headless_root/TagExplosion.app"
+[ -z "$(find "$headless_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
 echo "Installer-Rollback-Tests: OK"

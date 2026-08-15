@@ -57,9 +57,13 @@ dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
 
 - Die Feldnummern (BT-/BG-Nummern) und XML-Pfade folgen dem **semantischen
   Datenmodell der EN 16931** und seinen Syntax-Bindings für UN/CEFACT CII und
-  OASIS UBL. Aus den Normdokumenten (Copyright CEN/DIN) wird kein Text
-  wiedergegeben; die deutschen Kurzbezeichnungen der Felder sind eigene
-  Formulierungen.
+  OASIS UBL. Aus den Normdokumenten (Copyright CEN/DIN) werden keine
+  Textpassagen wiedergegeben. Die deutschen Feldnamen sind die kurzen
+  fachlichen Benennungen der Business Terms (z.B. „Rechnungsnummer" für
+  BT-1), wie sie auch die deutsche Fassung der EN 16931 und die
+  XRechnung-Spezifikation der KoSIT verwenden — übernommen als knappe
+  faktische Bezeichnungen der Felder, nicht als Beschreibungs- oder
+  Normtexte.
 - Die entschlüsselten Codewerte stammen aus den öffentlichen
   **UNTDID-Codelisten** (Dokumententyp 1001, Zahlungsart 4461,
   USt-Kategorie 5305) und den **Maßeinheiten der UN/ECE Recommendation 20/21**,

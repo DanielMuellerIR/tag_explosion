@@ -24,6 +24,13 @@ enum PDFEmbeddedInvoice {
         var declaration: EInvoicePDFDeclaration?
     }
 
+    /// Obergrenzen der Extraktion: Ein PDF mit vielen oder stark komprimierten
+    /// großen Anhängen darf die App beim Öffnen weder blockieren noch wegen
+    /// Speichermangels beenden. Eine echte Rechnungsdatei ist klein und liegt
+    /// unter den ersten Anhängen — die Grenzen sind großzügig gewählt.
+    static let maxEmbeddedFiles = 32
+    static let maxTotalBytes = 64 * 1024 * 1024
+
     static func extract(url: URL) throws -> Extraction {
         guard let document = CGPDFDocument(url as CFURL),
               let catalog = document.catalog else {
@@ -32,9 +39,21 @@ enum PDFEmbeddedInvoice {
 
         var files: [EmbeddedFile] = []
         var seenNames = Set<String>()
+        var totalBytes = 0
 
-        func add(name: String, data: Data) {
-            guard seenNames.insert(name).inserted else { return }
+        // Vorauswahl über den Filespec-Namen, BEVOR der Stream dekomprimiert
+        // wird: Nur XML-Kandidaten (Endung .xml oder ohne Endung) kommen als
+        // Rechnung infrage — andere Anhänge werden gar nicht erst entpackt.
+        func add(_ filespec: CGPDFDictionaryRef, fallbackName: String?) {
+            guard files.count < maxEmbeddedFiles, totalBytes < maxTotalBytes else { return }
+            let name = filespecName(filespec) ?? fallbackName ?? "eingebettete-datei"
+            let ext = (name as NSString).pathExtension.lowercased()
+            guard ext.isEmpty || ext == "xml" else { return }
+            guard !seenNames.contains(name) else { return }
+            guard let data = filespecData(filespec) else { return }
+            guard totalBytes + data.count <= maxTotalBytes else { return }
+            seenNames.insert(name)
+            totalBytes += data.count
             files.append(EmbeddedFile(name: name, data: data))
         }
 
@@ -44,9 +63,7 @@ enum PDFEmbeddedInvoice {
             var embedded: CGPDFDictionaryRef?
             if CGPDFDictionaryGetDictionary(names, "EmbeddedFiles", &embedded), let embedded {
                 walkNameTree(embedded, depth: 0) { name, filespec in
-                    if let file = readFilespec(filespec, fallbackName: name) {
-                        add(name: file.name, data: file.data)
-                    }
+                    add(filespec, fallbackName: name)
                 }
             }
         }
@@ -56,9 +73,8 @@ enum PDFEmbeddedInvoice {
         if CGPDFDictionaryGetArray(catalog, "AF", &af), let af {
             for i in 0..<CGPDFArrayGetCount(af) {
                 var filespec: CGPDFDictionaryRef?
-                if CGPDFArrayGetDictionary(af, i, &filespec), let filespec,
-                   let file = readFilespec(filespec, fallbackName: nil) {
-                    add(name: file.name, data: file.data)
+                if CGPDFArrayGetDictionary(af, i, &filespec), let filespec {
+                    add(filespec, fallbackName: nil)
                 }
             }
         }
@@ -102,20 +118,24 @@ enum PDFEmbeddedInvoice {
         }
     }
 
-    /// Filespec-Dictionary → Name + entpackte Daten. "UF" (Unicode) hat
-    /// Vorrang vor "F"; der Stream liegt unter EF/UF bzw. EF/F.
-    private static func readFilespec(_ filespec: CGPDFDictionaryRef,
-                                     fallbackName: String?) -> EmbeddedFile? {
-        var name = fallbackName
+    /// Name aus dem Filespec-Dictionary; "UF" (Unicode) hat Vorrang vor "F".
+    private static func filespecName(_ filespec: CGPDFDictionaryRef) -> String? {
         var nameRef: CGPDFStringRef?
         if CGPDFDictionaryGetString(filespec, "UF", &nameRef), let nameRef,
            let s = pdfString(nameRef) {
-            name = s
-        } else if CGPDFDictionaryGetString(filespec, "F", &nameRef), let nameRef,
-                  let s = pdfString(nameRef) {
-            name = s
+            return s
         }
+        if CGPDFDictionaryGetString(filespec, "F", &nameRef), let nameRef,
+           let s = pdfString(nameRef) {
+            return s
+        }
+        return nil
+    }
 
+    /// Entpackte Daten aus dem Filespec; der Stream liegt unter EF/UF bzw.
+    /// EF/F. Getrennt vom Namen, damit die Vorauswahl über den Namen laufen
+    /// kann, OHNE den Stream zu dekomprimieren.
+    private static func filespecData(_ filespec: CGPDFDictionaryRef) -> Data? {
         var ef: CGPDFDictionaryRef?
         guard CGPDFDictionaryGetDictionary(filespec, "EF", &ef), let ef else { return nil }
         var stream: CGPDFStreamRef?
@@ -125,8 +145,7 @@ enum PDFEmbeddedInvoice {
         guard let stream else { return nil }
         var format = CGPDFDataFormat.raw
         guard let cfData = CGPDFStreamCopyData(stream, &format) else { return nil }
-        return EmbeddedFile(name: name ?? "eingebettete-datei",
-                            data: cfData as Data)
+        return cfData as Data
     }
 
     private static func pdfString(_ ref: CGPDFStringRef) -> String? {
@@ -153,25 +172,33 @@ enum PDFEmbeddedInvoice {
     }
 
     private static func collectDeclaration(node: XMLTreeNode,
+                                           inheritedNamespaces: [String: String] = [:],
                                            into declaration: inout EInvoicePDFDeclaration) {
+        // Präfix→URI-Bindungen dieses Teilbaums: geerbte plus die am Element
+        // selbst deklarierten (innere Deklarationen überschreiben äußere).
+        var namespaces = inheritedNamespaces
+        for (prefix, uri) in node.namespaceDeclarations { namespaces[prefix] = uri }
+
         let isInvoiceNamespace = node.namespaceURI.contains("pdfa:CrossIndustryDocument")
         if isInvoiceNamespace {
             let local = node.name.components(separatedBy: ":").last ?? node.name
             apply(local: local, value: node.text, to: &declaration)
         }
-        // Kurzform: Werte als Attribute an rdf:Description. Attribut-
-        // Namensräume sind hier nicht auflösbar (XMLParser liefert nur den
-        // qualifizierten Namen), deshalb nur die konventionellen Präfixe der
-        // Rechnungs-Schemata akzeptieren — sonst könnte z.B. ein fremdes
-        // "Version"-Attribut aus einem anderen XMP-Schema hineinrutschen.
-        let knownPrefixes = ["fx:", "zf:", "zugferd:", "facturx:"]
-        for attribute in node.attributes
-        where knownPrefixes.contains(where: { attribute.name.hasPrefix($0) }) {
-            let local = attribute.name.components(separatedBy: ":").last ?? attribute.name
+        // Kurzform: Werte als Attribute an rdf:Description. Entscheidend ist
+        // der aufgelöste Namensraum des Attributs, nicht sein Präfix — ein
+        // Erzeuger darf das Präfix frei wählen, und umgekehrt darf ein
+        // fremdes, zufällig "fx" genanntes Schema keine Deklaration vortäuschen.
+        for attribute in node.attributes {
+            guard let colon = attribute.name.firstIndex(of: ":") else { continue }
+            let prefix = String(attribute.name[..<colon])
+            guard let uri = namespaces[prefix],
+                  uri.contains("pdfa:CrossIndustryDocument") else { continue }
+            let local = String(attribute.name[attribute.name.index(after: colon)...])
             apply(local: local, value: attribute.value, to: &declaration)
         }
         for child in node.children {
-            collectDeclaration(node: child, into: &declaration)
+            collectDeclaration(node: child, inheritedNamespaces: namespaces,
+                               into: &declaration)
         }
     }
 

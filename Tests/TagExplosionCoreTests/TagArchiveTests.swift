@@ -511,28 +511,35 @@ struct TagArchiveTests {
         #expect(try Data(contentsOf: other) == otherBytes)
     }
 
-    @Test("Ein E-Book-Serienindex ohne Serie wird vor jeder Mutation abgelehnt")
-    func archiveRejectsSeriesIndexWithoutSeries() throws {
+    @Test("Ein Serienindex ohne Serie bleibt archivierbar (v1-Kompatibilität)")
+    func archiveKeepsSeriesIndexWithoutSeries() throws {
+        // Bestehende EPUBs können diesen Zustand tragen (calibre:series_index
+        // ohne Serie); Export und ältere v1-Archive müssen ihn behalten
+        // dürfen. Ob er sich in ein Ziel schreiben lässt, entscheidet erst
+        // der Schreibweg (EbookTool.requireStorableSeries).
         var fields = EbookCoreFields()
         fields.seriesIndex = "2"
         let archive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
             .init(path: "book2.epub", kind: .ebook, ebook: fields),
         ])
-        #expect(throws: TagArchiveError.inconsistentEntry(
-            path: "book2.epub", detail: "ebook series index requires a series name"
-        )) {
-            try TagArchiveIO.validate(archive)
-        }
-
-        fields.series = "Reihe"
-        let valid = TagArchive(created: "2026-08-11T00:00:00Z", files: [
-            .init(path: "book2.epub", kind: .ebook, ebook: fields),
-        ])
-        #expect(throws: Never.self) { try TagArchiveIO.validate(valid) }
+        #expect(throws: Never.self) { try TagArchiveIO.validate(archive) }
     }
 
-    @Test("Ein E-Book-Cover ohne Bildsignatur wird vor jeder Mutation abgelehnt")
-    func archiveRejectsUnsupportedCover() throws {
+    @Test("Cover: erkennbare Bildformate bleiben gültig, Nicht-Bilder werden abgelehnt")
+    func archiveCoverRequiresRecognizableImage() throws {
+        // EPUBs können gültige GIF-Cover enthalten — sie müssen archivierbar
+        // bleiben (v1-Kompatibilität); die engere JPEG/PNG-Regel gilt nur
+        // beim tatsächlichen Cover-Setzen im Schreibweg.
+        var gifBytes: [UInt8] = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
+        gifBytes.append(contentsOf: Array(repeating: 0, count: 8))
+        let gif = Artwork(data: Data(gifBytes), mimeType: "image/gif",
+                          pictureType: "Front Cover")
+        let gifArchive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
+            .init(path: "book2.epub", kind: .ebook, artworks: [gif],
+                  ebook: EbookCoreFields()),
+        ])
+        #expect(throws: Never.self) { try TagArchiveIO.validate(gifArchive) }
+
         let junk = Artwork(data: Data("kein Bild, nur Text".utf8), mimeType: "image/jpeg",
                            pictureType: "Front Cover")
         let archive = TagArchive(created: "2026-08-11T00:00:00Z", files: [
@@ -540,7 +547,7 @@ struct TagArchiveTests {
                   ebook: EbookCoreFields()),
         ])
         #expect(throws: TagArchiveError.inconsistentEntry(
-            path: "book2.epub", detail: "ebook cover must be a JPEG or PNG image"
+            path: "book2.epub", detail: "ebook cover data is not a recognizable image"
         )) {
             try TagArchiveIO.validate(archive)
         }

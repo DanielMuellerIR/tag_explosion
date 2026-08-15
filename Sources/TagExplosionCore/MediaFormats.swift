@@ -48,6 +48,14 @@ public enum MediaFormats {
         case invoice
     }
 
+    /// Kann diese Medienart in ein Tag-Archiv (Export/Import)? E-Rechnungen
+    /// sind reine Anzeige — es gibt keine editierbaren Tags zu sichern.
+    /// Die Regel liegt zentral, damit App und CLI gleich filtern und ihre
+    /// Erfolgsmeldungen dieselben Dateien zählen wie das Archiv selbst.
+    public static func isArchivable(_ kind: Kind) -> Bool {
+        kind != .invoice
+    }
+
     public static func kind(of url: URL) -> Kind? {
         let ext = url.pathExtension.lowercased()
         if audio.contains(ext) { return .audio }

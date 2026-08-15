@@ -191,6 +191,81 @@ struct AppModelSaveTests {
         #expect(entry.isDirty)
     }
 
+    @Test("Cover-Auswahl während eines laufenden Saves geht nicht verloren")
+    func coverSelectionDuringSaveSurvives() async {
+        // Ablauf O→A speichern→währenddessen wieder O wählen: Während des
+        // Schreibens ist `ebookOriginalCover` veraltet (gleich wird A das neue
+        // Original). Eine Normalisierung gegen das alte Original würde die
+        // Auswahl O zu nil machen — nach dem Save zeigte die Oberfläche A als
+        // sauberen Stand, die Auswahl O wäre verloren.
+        let originalCover = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02, 0x03, 0x04,
+                                  0x05, 0x06, 0x07, 0x08])
+        let newCover = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                             0x01, 0x02, 0x03, 0x04])
+        var fields = EbookCoreFields()
+        fields.title = "Testbuch"
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/cover-race.epub"),
+                              loaded: .ebook(fields, cover: originalCover))
+        entry.setEbookCover(newCover)
+        #expect(entry.isDirty)
+
+        let model = AppModel()
+        let gate = SaveGate()
+        let savedFields = fields
+        let runningSave = Task { @MainActor in
+            await model.save(entry: entry) { _ in
+                await gate.markStarted()
+                await gate.waitForRelease()
+                return (.ebook(savedFields, cover: newCover), nil)
+            }
+        }
+        await gate.waitUntilStarted()
+
+        // Mitten im Save wählt die Person wieder das ursprüngliche Cover.
+        entry.setEbookCover(originalCover)
+
+        await gate.release()
+        _ = await runningSave.value
+
+        // Das gerade geschriebene Cover ist das neue Original; die spätere
+        // Auswahl des alten Originals bleibt als ungespeicherte Änderung.
+        #expect(entry.ebookOriginalCover == newCover)
+        #expect(entry.ebookCoverReplacement == originalCover)
+        #expect(entry.isDirty)
+    }
+
+    @Test("Serienindex ohne Serie scheitert vor jeder Datei-Mutation",
+          .enabled(if: AudioFixture.isAvailable, "Fixtures fehlen (ffmpeg?)"))
+    func invalidSeriesFailsBeforeAnyMutation() async throws {
+        // Der Produktions-Schreibweg muss die ungültige Kombination VOR
+        // Sicherung und Schreibzugriff ablehnen: Datei bleibt byte-identisch.
+        guard let directory = AudioFixture.directory else { return }
+        let source = directory.appendingPathComponent("book2.epub")
+        // Die EPUB-Fixture entsteht nur, wenn zip verfügbar war.
+        guard FileManager.default.fileExists(atPath: source.path) else { return }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-series-guard-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent("book2.epub")
+        try FileManager.default.copyItem(at: source, to: copy)
+
+        let (loaded, stamp) = try AppModel.readStamped(url: copy, kind: .ebook)
+        let entry = FileEntry(url: copy, loaded: loaded, stamp: stamp)
+        // Serie löschen, aber einen Index behalten: genau die Kombination,
+        // die kein Format speichern kann.
+        entry.ebookFields.series = ""
+        entry.ebookFields.seriesIndex = "7"
+        #expect(entry.isDirty)
+        let bytesBefore = try Data(contentsOf: copy)
+
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == false)
+        #expect(entry.lastError != nil)
+        #expect(try Data(contentsOf: copy) == bytesBefore)
+        #expect(entry.isDirty)
+    }
+
     @Test("Entfernen respektiert Abbrechen, Verwerfen und doppelte Anfragen")
     func removeCancelDiscardAndReentrancy() async {
         let entry = dirtyAudioEntry(

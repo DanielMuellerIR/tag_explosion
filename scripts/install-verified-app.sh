@@ -27,29 +27,77 @@ lock_held=0
 # "neues Ziel einsetzen" wieder ein Verzeichnis am Ziel an, verschöbe BSD-mv
 # das neue Bundle in dieses Verzeichnis hinein und meldete trotzdem Erfolg.
 # `mkdir` ist die atomare Sperre dafür: Es gelingt genau einem Lauf.
-acquire_lock() {
-    if mkdir "$lock" 2>/dev/null; then
-        lock_held=1
-        printf '%s\n' "$$" > "$lock/pid"
-        return 0
-    fi
-    # Ein Lock mit lebendem Prozess dahinter ist echt — dann arbeitet gerade
-    # wirklich jemand anderes an diesem Ziel.
-    if [ -f "$lock/pid" ] && kill -0 "$(cat "$lock/pid")" 2>/dev/null; then
-        echo "FEHLER: Eine andere Installation arbeitet bereits an $dest; nichts wurde verändert." >&2
-        exit 1
-    fi
-    # Sonst stammt er von einem abgebrochenen Lauf und darf einmalig
-    # übernommen werden — sonst blockierte ein Absturz jede weitere Installation.
+#
+# Der Besitzer steht als "PID|Prozessstartzeit" in $lock/owner. Die Startzeit
+# schützt vor wiederverwendeten PIDs: `kill -0` allein hielte nach einem
+# Absturz jeden fremden Prozess mit derselben PID für einen aktiven Installer.
+
+# Startzeit eines Prozesses (leer, wenn er nicht mehr existiert).
+proc_start_time() {
+    ps -o lstart= -p "$1" 2>/dev/null | head -n 1
+}
+
+# Versucht, die Sperre atomar zu erwerben, und veröffentlicht sofort den
+# Besitzer. Erst mit geschriebener owner-Datei gilt die Sperre als vollständig
+# initialisiert.
+claim_lock() {
+    mkdir "$lock" 2>/dev/null || return 1
+    lock_held=1
+    printf '%s|%s\n' "$$" "$(proc_start_time "$$")" > "$lock/owner"
+    return 0
+}
+
+# Entfernt eine fremde, tote Sperre atomar: Das Umbenennen gelingt genau einem
+# von mehreren Übernehmern; die Verlierer laufen anschließend gegen die frische
+# Sperre des Gewinners und brechen dort sauber ab.
+takeover_stale_lock() {
     echo "Hinweis: verwaiste Installer-Sperre wird entfernt: $lock" >&2
-    rm -rf -- "$lock"
-    if mkdir "$lock" 2>/dev/null; then
-        lock_held=1
-        printf '%s\n' "$$" > "$lock/pid"
-        return 0
+    if mv "$lock" "$lock.stale.$$" 2>/dev/null; then
+        rm -rf -- "$lock.stale.$$"
     fi
-    echo "FEHLER: Installer-Sperre nicht erhalten: $lock" >&2
-    exit 1
+}
+
+acquire_lock() {
+    claim_lock && return 0
+    # Die Sperre existiert. Kurz warten erlaubt einem gerade startenden
+    # Besitzer, seine owner-Datei zu schreiben (Fenster zwischen mkdir und
+    # owner-Write) — erst danach gilt eine besitzerlose Sperre als Leiche
+    # eines abgestürzten Laufs.
+    local waited=0 total=0 owner_pid owner_start
+    while :; do
+        total=$((total + 1))
+        if [ "$total" -gt 200 ]; then
+            echo "FEHLER: Installer-Sperre nicht erhalten: $lock" >&2
+            exit 1
+        fi
+        if [ -f "$lock/owner" ]; then
+            IFS='|' read -r owner_pid owner_start < "$lock/owner" || true
+            if [ -n "${owner_pid:-}" ] && kill -0 "$owner_pid" 2>/dev/null \
+               && [ "$(proc_start_time "$owner_pid")" = "$owner_start" ]; then
+                echo "FEHLER: Eine andere Installation arbeitet bereits an $dest; nichts wurde verändert." >&2
+                exit 1
+            fi
+            # Besitzer tot (oder PID inzwischen an einen anderen Prozess
+            # vergeben): einmalig übernehmen — sonst blockierte ein Absturz
+            # jede weitere Installation.
+            takeover_stale_lock
+            claim_lock && return 0
+            waited=0
+            continue
+        fi
+        waited=$((waited + 1))
+        if [ "$waited" -gt 40 ]; then
+            # Über zwei Sekunden ohne owner-Datei: Der Erzeuger ist zwischen
+            # mkdir und owner-Write gestorben.
+            takeover_stale_lock
+            claim_lock && return 0
+            waited=0
+            continue
+        fi
+        sleep 0.05
+        # Inzwischen ganz verschwunden? Dann regulär erwerben.
+        claim_lock && return 0
+    done
 }
 
 acquire_lock
@@ -58,9 +106,20 @@ acquire_lock
 # Prozess-ID später wiederverwendet, darf mv das neue Ziel nicht in dieses
 # Bundle hinein verschachteln. In diesem seltenen Fall vor jeder Mutation
 # abbrechen und beide bestehenden Stände unangetastet lassen.
+# Gibt die Sperre nur frei, wenn sie noch UNS gehört: Hätte ein Übernehmer sie
+# uns wider Erwarten weggenommen, löschte ein blindes rm die aktive Sperre des
+# anderen Laufs.
+release_lock() {
+    if [ "$lock_held" -eq 1 ] \
+       && [ "$(head -n 1 "$lock/owner" 2>/dev/null | cut -d'|' -f1)" = "$$" ]; then
+        rm -rf -- "$lock"
+    fi
+    lock_held=0
+}
+
 if [ -e "$new" ] || [ -e "$old" ]; then
     echo "FEHLER: Installer-Zwischenpfad existiert bereits; nichts wurde verändert: $old" >&2
-    rm -rf -- "$lock"
+    release_lock
     exit 1
 fi
 
@@ -107,7 +166,7 @@ cleanup() {
         rm -rf -- "$old"
     fi
     # Die Sperre zuletzt: Bis hierher darf kein zweiter Lauf an dieses Ziel.
-    if [ "$lock_held" -eq 1 ]; then rm -rf -- "$lock"; fi
+    release_lock
     exit "$status"
 }
 trap cleanup EXIT
