@@ -6,7 +6,7 @@
     "token_budget": 2000000,
     "status": "active",
     "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 902473
+    "tokens_spent": 951494
   },
   "campaign_history": [],
   "scope": {
@@ -128,17 +128,16 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:10:51+02:00",
-        "observed_head": "a1aa69079f7a1fe10458c9f2922cbf28cfdc6ef8",
-        "content_sha256": "5c0d11003e8cb6c7f20fd4d302d2eb9c9f9c9963f3d2c0e8793055610eb48443",
+        "completed_at": "2026-08-15T15:23:24+02:00",
+        "observed_head": "19b5a709fd2150f26b9439351f15a5ad15a50a65",
+        "content_sha256": "8c4b066dbea280ca30f2a44b68fdf46598a49c6252533fde1338dd199b2f05b6",
         "file_count": 9,
-        "review": "full",
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "tx_taglib_version nutzt nun einen einmalig threadsicher initialisierten unveränderlichen std::string statt bei jedem parallelen Aufruf dasselbe statische char-Array zu beschreiben.",
+        "summary": "Der TagLib-Produktionscode bleibt unverändert; sein Ladepfad-Test verwendet nun den geprüften gemeinsamen Tempordner-Helfer und läuft auch bei einem gesetzten, fehlenden TMPDIR vollständig durch.",
         "tests": [
-          "swift test --sanitize=thread --filter concurrentTagLibVersionReads: 1 Test bestanden; Vorzustand blieb trotz quelltextlich belegtem Datenrennen ebenfalls grün",
-          "swift test: 119 Tests in 13 Suites bestanden",
-          "Tests/taglib-refs-tests.sh: bestanden"
+          "TMPDIR=/tmp/tagx-codeqa-missing-parent-20260815 Tests/taglib-refs-tests.sh: TagLib-Ladepfad-Tests OK",
+          "bash -n für Testtreiber und Helfer bestanden"
         ]
       }
     },
@@ -167,19 +166,17 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:21:04+02:00",
-        "observed_head": "c675186bbbca4904e5932bd9eeb030f88aad9802",
-        "content_sha256": "497d415b876976b03555e8101ef6e4b91588acf076ee56f7b1481774cc260e35",
-        "file_count": 14,
-        "review": "full",
+        "completed_at": "2026-08-15T15:24:44+02:00",
+        "observed_head": "19b5a709fd2150f26b9439351f15a5ad15a50a65",
+        "content_sha256": "61282d720881e5aa34ad28e3a670265b2c8856ba3c861471fee6118afa5c55c7",
+        "file_count": 16,
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "build.sh setzt SUFeedURL nun mit plutil in die erzeugte Info.plist ein und validiert sie; gültige HTTPS-Testfeeds mit Query-Parametern können das Bundle nicht mehr durch unkodierte XML-Sonderzeichen unlesbar machen. Ein echter Bundle-Build deckt die Grenze in der macOS-CI ab.",
+        "summary": "Der Theme-Diff ändert keine Auslieferungsskripte: Zwei Installer-/Minimum-Testtreiber verwenden den gemeinsamen validierten Tempordner-Helfer; dessen Regression ist in der bestehenden macOS-CI-Reihenfolge ergänzt und dem Bereich dauerhaft zugeordnet.",
         "tests": [
-          "Vorzustand: build.sh mit SPARKLE_FEED_URL samt & meldete Erfolg, plutil -lint der erzeugten Info.plist scheiterte",
-          "Tests/build-plist-tests.sh: echter App-Build 0.21.6 und Plist-/Feedwertprüfung bestanden",
-          "swift test: 119 Tests in 13 Suites bestanden",
-          "swift test --package-path App: 26 Tests in 3 Suites bestanden",
-          "Installer-, Mindestversions- und TagLib-Ladepfad-Shelltests: bestanden"
+          "Tests/shell-test-support-tests.sh: gültiges und fehlendes TMPDIR bestanden",
+          "Tests/build-plist-tests.sh: echter Release-App-Build und Property-List-Prüfung bestanden",
+          "Installer-Rollback- und Mindestversions-Tests bestanden unter absichtlich fehlendem TMPDIR"
         ]
       }
     },
@@ -407,10 +404,21 @@
         "Tests/verify-macos-minimums-tests.sh"
       ],
       "priority": 10,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-08-15T14:09:11+02:00",
       "campaign_id": "20260815T135107310106+0200",
-      "started_at": "2026-08-15T15:20:02+02:00"
+      "started_at": "2026-08-15T15:20:02+02:00",
+      "completed": {
+        "campaign_id": "20260815T135107310106+0200",
+        "completed_at": "2026-08-15T15:22:55+02:00",
+        "observed_head": "19b5a709fd2150f26b9439351f15a5ad15a50a65",
+        "summary": "Drei Shell-Testtreiber beziehen ihr Arbeitsverzeichnis nun über tagx_make_test_workdir. Der Helfer respektiert ein vorhandenes beschreibbares TMPDIR und fällt bei fehlendem oder unbrauchbarem Elternordner auf /tmp zurück; eine eigene CI-Regression hält beide Pfade fest.",
+        "tests": [
+          "Vor-Fix: alle 3 Testtreiber scheiterten mit mktemp Exit 1 bei demselben fehlenden TMPDIR",
+          "Nach-Fix: Helper-Test sowie TagLib-, Installer- und Mindestversions-Test bestanden unter absichtlich fehlendem TMPDIR",
+          "bash -n für Helfer und alle 4 Testtreiber bestanden"
+        ]
+      }
     },
     {
       "id": "image-field-validation",

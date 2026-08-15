@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.18] — 2026-08-15
+
+### Geprüft
+
+- CodeQA: TagLib-Ladepfad- und Auslieferungstests wurden nach dem gemeinsamen
+  Tempordner-Helfer erneut geprüft. Ein echter Release-/Property-List-Build,
+  Installer-Rollback, Mindestversionen und die drei Testtreiber bestanden auch
+  mit einem gesetzten, nicht vorhandenen `TMPDIR`.
+
 ## [0.21.17] — 2026-08-15
 
 ### Behoben
