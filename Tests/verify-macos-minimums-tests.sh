@@ -6,7 +6,9 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-work=$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/tagx-minimums-tests.XXXXXX")
+# shellcheck source=./shell-test-support.sh
+. "$root/Tests/shell-test-support.sh"
+work=$(tagx_make_test_workdir tagx-minimums-tests)
 trap 'rm -rf -- "$work"' EXIT
 fake_bin="$work/bin"
 mkdir -p "$fake_bin"

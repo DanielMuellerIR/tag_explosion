@@ -157,7 +157,9 @@
         "Package.swift",
         "App/Package.swift",
         ".github/workflows",
-        "Tests/build-plist-tests.sh"
+        "Tests/build-plist-tests.sh",
+        "Tests/shell-test-support.sh",
+        "Tests/shell-test-support-tests.sh"
       ],
       "risk": "critical",
       "priority": 5,
@@ -405,9 +407,10 @@
         "Tests/verify-macos-minimums-tests.sh"
       ],
       "priority": 10,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-08-15T14:09:11+02:00",
-      "campaign_id": "20260815T135107310106+0200"
+      "campaign_id": "20260815T135107310106+0200",
+      "started_at": "2026-08-15T15:20:02+02:00"
     },
     {
       "id": "image-field-validation",

@@ -45,6 +45,7 @@ jobs:
       - name: Skript-Tests (Bundle, Installer, Mindestversion, TagLib-Ladepfade)
         run: |
           set -euo pipefail
+          Tests/shell-test-support-tests.sh
           Tests/build-plist-tests.sh
           Tests/install-verified-app-tests.sh
           Tests/verify-macos-minimums-tests.sh

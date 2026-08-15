@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.17] — 2026-08-15
+
+### Behoben
+
+- Tests: TagLib-, Installer- und Mindestversions-Regressionen wählen ihren
+  Arbeitsordner über einen gemeinsamen Helfer. Ein gesetztes, aber nicht mehr
+  vorhandenes oder nicht beschreibbares `TMPDIR` fällt kontrolliert auf
+  `/tmp` zurück, statt die Suite vor dem eigentlichen Test abzubrechen.
+- Ein eigener Shell-Test hält sowohl ein gültiges benutzerdefiniertes
+  `TMPDIR` als auch den Rückfall bei einem fehlenden Elternordner fest und
+  läuft in der macOS-CI mit.
+
 ## [0.21.16] — 2026-08-15
 
 ### Geprüft
