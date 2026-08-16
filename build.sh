@@ -292,12 +292,36 @@ done
 codesign --force --options runtime --timestamp --sign "$identity" "$app"
 codesign --verify --strict --verbose=2 "$app"
 
+# notarytool liest das Keychain-Profil gelegentlich falsch-negativ ("No
+# Keychain password item found", obwohl das Profil da ist — belegt u.a.
+# 2026-08-16: dieselbe Sitzung hatte Sekunden zuvor die App mit genau diesem
+# Profil eingereicht). Der Falsch-Negativ-Fall scheitert sofort und lokal;
+# NUR er wird kurz wiederholt. Jeder andere Fehler (echte Ablehnung,
+# Netzproblem) schlägt unverändert beim ersten Versuch durch.
+notarize_submit() {
+    local target=$1 attempt status output
+    for attempt in 1 2 3 4 5; do
+        status=0
+        output=$(xcrun notarytool submit "$target" \
+            --keychain-profile "$NOTARY_PROFILE" --wait 2>&1) || status=$?
+        printf '%s\n' "$output"
+        [ "$status" -eq 0 ] && return 0
+        case $output in
+            *"No Keychain password item found"*)
+                echo "Hinweis: Keychain-Falsch-Negativ (Versuch $attempt/5) — neuer Versuch in 3 s." >&2
+                sleep 3 ;;
+            *) return "$status" ;;
+        esac
+    done
+    return "$status"
+}
+
 # 4) App notarisieren + Ticket anheften. Das ZIP ist nur der Upload-Container
 #    für notarytool; verteilt wird das DMG aus Schritt 5.
 zip="$here/TagExplosion-$version.zip"
 ditto -c -k --keepParent "$app" "$zip"
 echo "== Notarisierung der App eingereicht (dauert 1-10 min) =="
-xcrun notarytool submit "$zip" --keychain-profile "$NOTARY_PROFILE" --wait
+notarize_submit "$zip"
 rm -f "$zip"
 xcrun stapler staple "$app"
 xcrun stapler validate "$app"
@@ -409,7 +433,7 @@ hdiutil convert "$rw_dmg" -format UDZO -imagekey zlib-level=9 -quiet -o "$dmg"
 #    Warnung. Geht schnell, die App darin ist bereits notarisiert.
 codesign --force --timestamp --sign "$identity" "$dmg"
 echo "== Notarisierung des DMG eingereicht =="
-xcrun notarytool submit "$dmg" --keychain-profile "$NOTARY_PROFILE" --wait
+notarize_submit "$dmg"
 xcrun stapler staple "$dmg"
 xcrun stapler validate "$dmg"
 
