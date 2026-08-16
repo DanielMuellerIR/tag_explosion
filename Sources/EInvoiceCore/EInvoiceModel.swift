@@ -148,6 +148,15 @@ extension EInvoiceProfile {
                                syntax: EInvoiceSyntax) -> EInvoiceProfile {
         let urn = guidelineID.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = urn.lowercased()
+        // Eine CustomizationID reiht URNs mit "#" aneinander
+        // ("urn:cen.eu:en16931:2017#compliant#urn:…:xrechnung_3.0"). Ein
+        // bekannter Stamm zählt nur, wenn eine KOMPONENTE mit ihm beginnt —
+        // eine bloße Teilzeichenfolge ("urn:example:urn:factur-x.eu:…") würde
+        // fremde Kennungen als bekannten Standard ausgeben.
+        let components = lower.components(separatedBy: "#")
+        func hasComponent(withPrefix marker: String) -> Bool {
+            components.contains { $0.hasPrefix(marker) }
+        }
 
         func make(_ standard: String, _ profile: String) -> EInvoiceProfile {
             EInvoiceProfile(guidelineID: urn, standard: standard, profile: profile,
@@ -162,7 +171,7 @@ extension EInvoiceProfile {
             "urn:xoev-de:kosit:standard:xrechnung_",
             "urn:xoev-de:kosit:extension:xrechnung_",
         ]
-        if xrechnungMarkers.contains(where: lower.contains) {
+        if xrechnungMarkers.contains(where: hasComponent(withPrefix:)) {
             let version = urn.components(separatedBy: "xrechnung_").last
                 .map { $0.components(separatedBy: CharacterSet(charactersIn: "#:")).first ?? $0 }
             let extended = lower.contains("kosit:extension")
@@ -172,17 +181,17 @@ extension EInvoiceProfile {
         }
 
         // --- Peppol BIS Billing
-        if lower.contains("urn:fdc:peppol.eu:2017:poacc:billing:") {
+        if hasComponent(withPrefix: "urn:fdc:peppol.eu:2017:poacc:billing:") {
             return make("Peppol BIS", "Peppol BIS Billing 3.0")
         }
 
         // --- Factur-X / ZUGFeRD 2.1+ (gemeinsamer Standard, URN-Stamm factur-x.eu)
-        if lower.contains("urn:factur-x.eu:") {
+        if hasComponent(withPrefix: "urn:factur-x.eu:") {
             return make("Factur-X / ZUGFeRD", facturXProfileName(from: lower))
         }
 
         // --- ZUGFeRD 2.0 (eigener URN-Stamm zugferd.de:2p0)
-        if lower.contains("urn:zugferd.de:2p0:") {
+        if hasComponent(withPrefix: "urn:zugferd.de:2p0:") {
             return make("ZUGFeRD 2.0", facturXProfileName(from: lower))
         }
 

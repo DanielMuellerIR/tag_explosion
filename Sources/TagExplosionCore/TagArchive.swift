@@ -166,10 +166,12 @@ public enum TagArchiveIO {
                                 baseDirectory: jsonURL.deletingLastPathComponent(),
                                 includeCovers: includeCovers)
         // Ein Archiv, das der eigene Import nicht mehr annimmt, wäre als
-        // Sicherung wertlos. `build` übernimmt zum Beispiel jede von exiftool
-        // gelesene Zahl als Bildbewertung, während der Import nur -1 bis 5
-        // zulässt. Deshalb hier dieselbe Prüfung wie beim Laden: lieber laut
-        // scheitern als eine nicht wiederherstellbare Sicherung anlegen.
+        // Sicherung wertlos. Deshalb hier dieselbe strukturelle Prüfung wie
+        // beim Laden: lieber laut scheitern als eine nicht wiederherstellbare
+        // Sicherung anlegen. Bewusst nur STRUKTURELL: Fachfremde Bestandswerte
+        // (etwa eine exiftool-lesbare GPS-Koordinate 91/181) gehören mit ins
+        // Backup; ob sie in ein ZIEL geschrieben werden dürfen, entscheidet
+        // erst der Import gegen dessen tatsächlichen Zustand.
         try validate(archive)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -409,6 +411,12 @@ public enum TagArchiveIO {
                 try snapshot.requireCurrent(at: url)
                 return false
             }
+            // Zielbezogene Wertprüfung VOR Dry-run-Antwort und Sicherung:
+            // Fachfremde Bestandswerte (z.B. GPS 91/181) sind erlaubt, solange
+            // dieser Import sie nicht ändert. Eine echte Änderung auf
+            // ungültige Werte scheitert damit im Dry-run und im Import gleich —
+            // und ohne dass vorher eine Papierkorb-Sicherung entsteht.
+            try ExifTool.requireValidCoreFields(target, original: current)
             if !dryRun {
                 try snapshot.requireCurrent(at: url)
                 try TrashBackup.shared.backUp(url)
@@ -437,6 +445,14 @@ public enum TagArchiveIO {
                 try beforeNoopReturn(url)
                 try snapshot.requireCurrent(at: url)
                 return false
+            }
+            // Wie beim Bild: Was das Ziel-Backend nicht schreiben kann
+            // (Serienindex ohne Serie außerhalb von EPUB, Coverformat außerhalb
+            // des Backend-Vertrags), scheitert für Dry-run und Import gleich —
+            // vor der Papierkorb-Sicherung, nicht erst mitten im Schreibweg.
+            try EbookTool.requireStorableSeries(target, original: current, url: url)
+            if coverDiffers, let targetCover {
+                try EbookTool.requireSupportedCover(targetCover.data, for: url)
             }
             if !dryRun {
                 let coverUpdate: EbookCoverUpdate
@@ -505,7 +521,7 @@ public enum TagArchiveIO {
                         path: entry.path, detail: "audio entries may not contain image or ebook data")
                 }
             case .image:
-                guard let image = entry.image else {
+                guard entry.image != nil else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "image")
                 }
@@ -513,15 +529,14 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "image entries may only contain image data")
                 }
-                // Dieselben Wertebereiche wie Core, CLI und App. exiftool
-                // akzeptiert auch fachlich unmögliche GPS-Koordinaten und
-                // Bewertungen, deshalb vor der ersten Batch-Mutation prüfen.
-                do {
-                    try ExifTool.requireValidCoreFields(image)
-                } catch let error as ImageMetadataValidationError {
-                    throw TagArchiveError.inconsistentEntry(
-                        path: entry.path, detail: error.localizedDescription)
-                }
+                // Wertebereiche (Bewertung, GPS) werden hier bewusst NICHT
+                // geprüft: exiftool liest auch fachlich unmögliche Werte wie
+                // GPS 91/181 aus bestehenden Bildern, und ein Backup muss
+                // genau diesen Bestand sichern können — sonst bricht das
+                // Auto-Backup jeden Batch-Save ab. Ob ein Wert ins ZIEL
+                // geschrieben werden darf, prüft der Import je Eintrag gegen
+                // den vorher gelesenen Zielstand (applyEntry), bevor eine
+                // Sicherung entsteht.
             case .ebook:
                 guard entry.ebook != nil else {
                     throw TagArchiveError.incompleteEntry(
@@ -538,18 +553,19 @@ public enum TagArchiveIO {
                 // Ein Serienindex ohne Serie wird hier bewusst NICHT abgelehnt:
                 // Bestehende EPUBs können genau diesen Zustand tragen
                 // (calibre:series_index ohne Serie), Export muss ihn sichern
-                // können und ältere v1-Archive enthalten ihn bereits. Ob er
-                // sich in ein ZIEL schreiben lässt, entscheidet erst der
-                // Schreibweg (EbookTool.requireStorableSeries) — dort wird ein
-                // solcher Eintrag als Fehler gemeldet, nie still verloren.
+                // können, ältere v1-Archive enthalten ihn bereits — und der
+                // EPUB-Schreibweg kann ihn wiederherstellen. Nur für Ziele
+                // ohne diesen Speicherort (mobi/azw3/fb2) meldet der Import
+                // ihn je Eintrag als Fehler (EbookTool.requireStorableSeries),
+                // nie still verloren.
                 //
                 // Cover werden vor dem ersten Schreibzugriff an ihrer Signatur
                 // geprüft — sonst landete beliebiger Inhalt als angebliches
                 // Bild im E-Book. Zugelassen ist jedes erkennbare Bildformat:
                 // EPUBs können z.B. gültige GIF-Cover enthalten, die Export
-                // und ältere v1-Archive erhalten müssen. Die engere
-                // JPEG/PNG-Regel gilt nur beim tatsächlichen Cover-SETZEN
-                // (EbookTool.requireSupportedCover im Schreibweg).
+                // und ältere v1-Archive erhalten müssen. Was das ZIEL-Backend
+                // beim tatsächlichen Cover-SETZEN annimmt, prüft der Import je
+                // Eintrag (EbookTool.requireSupportedCover, backendbezogen).
                 if let cover = entry.artworks?.first {
                     guard Artwork.sniffMimeType(from: cover.data) != nil else {
                         throw TagArchiveError.inconsistentEntry(

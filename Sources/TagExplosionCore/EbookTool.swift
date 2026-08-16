@@ -181,8 +181,8 @@ public enum EbookTool {
         coverUpdate: EbookCoverUpdate,
         expecting stamp: FileStamp? = nil
     ) throws {
-        try requireStorableSeries(fields, original: original)
-        if case .set(let data) = coverUpdate { try requireSupportedCover(data) }
+        try requireStorableSeries(fields, original: original, url: url)
+        if case .set(let data) = coverUpdate { try requireSupportedCover(data, for: url) }
 
         let hasCoverChange: Bool
         switch coverUpdate {
@@ -252,27 +252,41 @@ public enum EbookTool {
         }
     }
 
-    /// Coverdaten, die kein JPEG oder PNG sind, dürfen gar nicht erst in den
-    /// Schreibweg. Geprüft wird die Dateisignatur, nicht die Endung: Ohne diese
-    /// Prüfung landete beliebiger Inhalt (z.B. Text) als angeblich gültiges
-    /// Bild im E-Book, und der Aufrufer bekäme dafür eine Erfolgsmeldung.
-    /// Öffentlich, damit CLI und App schon VOR der Sicherungskopie ablehnen
-    /// können.
-    public static func requireSupportedCover(_ data: Data) throws {
-        switch Artwork.sniffMimeType(from: data) {
-        case "image/jpeg", "image/png": return
-        default: throw TagError.unsupportedCoverData
+    /// Coverformate, die das Backend des Ziels als Cover SETZEN kann. EPUB
+    /// erlaubt alle per Signatur erkennbaren Kern-Bildformate des Standards
+    /// (JPEG, PNG, GIF, WebP) — nur so bleibt ein exportiertes GIF-/WebP-Cover
+    /// aus einem Archiv wiederherstellbar. ebook-meta übergibt Cover dagegen
+    /// als JPEG-/PNG-Datei.
+    public static func supportedCoverMimeTypes(url: URL) -> Set<String> {
+        backend(for: url) == .epub
+            ? ["image/jpeg", "image/png", "image/gif", "image/webp"]
+            : ["image/jpeg", "image/png"]
+    }
+
+    /// Coverdaten, die das Ziel-Backend nicht setzen kann, dürfen gar nicht
+    /// erst in den Schreibweg. Geprüft wird die Dateisignatur, nicht die
+    /// Endung: Ohne diese Prüfung landete beliebiger Inhalt (z.B. Text) als
+    /// angeblich gültiges Bild im E-Book, und der Aufrufer bekäme dafür eine
+    /// Erfolgsmeldung. Öffentlich, damit CLI und App schon VOR der
+    /// Sicherungskopie ablehnen können.
+    public static func requireSupportedCover(_ data: Data, for url: URL) throws {
+        guard let mime = Artwork.sniffMimeType(from: data),
+              supportedCoverMimeTypes(url: url).contains(mime) else {
+            throw TagError.unsupportedCoverData
         }
     }
 
-    /// Ein Serienindex braucht eine Serie, an der er hängt — sonst hat er in
-    /// keinem der Formate einen Speicherort. Geprüft wird nur eine wirklich
-    /// gewünschte Änderung: Steht die Kombination schon so in der Datei (etwa
-    /// ein fremdes EPUB mit `calibre:series_index` ohne Serie), darf sie das
+    /// Ein Serienindex braucht grundsätzlich eine Serie, an der er hängt.
+    /// EPUB ist die Ausnahme: `calibre:series_index` ohne Serie ist dort ein
+    /// eigener, in fremden Dateien verbreiteter Speicherort — ein Archiv, das
+    /// diesen Zustand gesichert hat, muss ihn wiederherstellen können.
+    /// Für die übrigen Formate wird nur eine wirklich gewünschte Änderung
+    /// geprüft: Steht die Kombination schon so in der Datei, darf sie das
     /// Bearbeiten anderer Felder nicht blockieren.
     public static func requireStorableSeries(
-        _ fields: EbookCoreFields, original: EbookCoreFields
+        _ fields: EbookCoreFields, original: EbookCoreFields, url: URL
     ) throws {
+        guard backend(for: url) != .epub else { return }
         let seriesChanged = fields.series != original.series
             || fields.seriesIndex != original.seriesIndex
         guard seriesChanged, fields.series.isEmpty, !fields.seriesIndex.isEmpty else { return }

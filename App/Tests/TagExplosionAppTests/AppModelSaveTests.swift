@@ -234,11 +234,58 @@ struct AppModelSaveTests {
         #expect(entry.isDirty)
     }
 
-    @Test("Serienindex ohne Serie scheitert vor jeder Datei-Mutation",
+    @Test("Reiner Feld-Save: erneut gewähltes Originalcover bleibt nicht dauerhaft dirty")
+    func reselectedOriginalCoverDuringFieldSaveBecomesClean() async {
+        // Während eines reinen Feld-Saves (Cover unangetastet) wählt die
+        // Person das unveränderte Originalcover erneut. `setEbookCover` darf
+        // während des Saves nicht normalisieren (siehe Test darüber); nach dem
+        // Read-back ist das Cover in der Datei aber identisch zur Auswahl —
+        // der Eintrag muss wieder sauber sein, sonst tauschte der nächste
+        // Save die Datei ohne Inhaltsänderung aus (samt Sicherung).
+        let originalCover = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02, 0x03, 0x04,
+                                  0x05, 0x06, 0x07, 0x08])
+        var fields = EbookCoreFields()
+        fields.title = "Alter Titel"
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/cover-feldsave.epub"),
+                              loaded: .ebook(fields, cover: originalCover))
+        var changedFields = fields
+        changedFields.title = "Neuer Titel"
+        let changed = changedFields
+        entry.ebookFields = changed
+        #expect(entry.isDirty)
+
+        let model = AppModel()
+        let gate = SaveGate()
+        let runningSave = Task { @MainActor in
+            await model.save(entry: entry) { _ in
+                await gate.markStarted()
+                await gate.waitForRelease()
+                return (.ebook(changed, cover: originalCover), nil)
+            }
+        }
+        await gate.waitUntilStarted()
+
+        // Mitten im Feld-Save wird das unveränderte Originalcover erneut gewählt.
+        entry.setEbookCover(originalCover)
+        #expect(entry.ebookCoverReplacement == originalCover)
+
+        await gate.release()
+        _ = await runningSave.value
+
+        #expect(entry.ebookCoverReplacement == nil)
+        #expect(!entry.isDirty)
+        #expect(entry.beginSaving() == nil)
+    }
+
+    @Test("Serienindex ohne Serie: der EPUB-Produktionsweg speichert ihn",
           .enabled(if: AudioFixture.isAvailable, "Fixtures fehlen (ffmpeg?)"))
-    func invalidSeriesFailsBeforeAnyMutation() async throws {
-        // Der Produktions-Schreibweg muss die ungültige Kombination VOR
-        // Sicherung und Schreibzugriff ablehnen: Datei bleibt byte-identisch.
+    func bareSeriesIndexSavesOnEpub() async throws {
+        // EPUB kennt mit calibre:series_index einen Speicherort auch ohne
+        // Serie; der Produktions-Schreibweg muss diesen Zustand speichern
+        // können, sonst wäre ein Archiv-Restore desselben Zustands unmöglich.
+        // Dass Formate OHNE diesen Speicherort weiterhin vor jeder Mutation
+        // ablehnen, deckt der Core-Test "Serienindex ohne Serie: EPUB
+        // speichert ihn, andere Formate lehnen ab" ab.
         guard let directory = AudioFixture.directory else { return }
         let source = directory.appendingPathComponent("book2.epub")
         // Die EPUB-Fixture entsteht nur, wenn zip verfügbar war.
@@ -252,18 +299,17 @@ struct AppModelSaveTests {
 
         let (loaded, stamp) = try AppModel.readStamped(url: copy, kind: .ebook)
         let entry = FileEntry(url: copy, loaded: loaded, stamp: stamp)
-        // Serie löschen, aber einen Index behalten: genau die Kombination,
-        // die kein Format speichern kann.
         entry.ebookFields.series = ""
         entry.ebookFields.seriesIndex = "7"
         #expect(entry.isDirty)
-        let bytesBefore = try Data(contentsOf: copy)
 
         let model = AppModel()
-        #expect(await model.save(entry: entry) == false)
-        #expect(entry.lastError != nil)
-        #expect(try Data(contentsOf: copy) == bytesBefore)
-        #expect(entry.isDirty)
+        #expect(await model.save(entry: entry) == true)
+        #expect(entry.lastError == nil)
+        #expect(!entry.isDirty)
+        let restored = try EbookTool.readCoreFields(url: copy)
+        #expect(restored.series.isEmpty)
+        #expect(restored.seriesIndex == "7")
     }
 
     @Test("Ungültige Bild-GPS-Werte scheitern vor jeder Datei-Mutation")

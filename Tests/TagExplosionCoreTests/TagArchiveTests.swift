@@ -579,27 +579,24 @@ struct TagArchiveTests {
         }
     }
 
-    @Test("Bild-Bewertungen außerhalb von -1…5 werden vor jeder Mutation abgelehnt")
-    func imageRatingOutsideRangeIsRejected() throws {
-        // ExifTool behandelt jeden negativen Wert außer -1 als Löschauftrag;
-        // Werte über 5 wären ein unsinniges Rating. Das Archiv muss dieselben
-        // Grenzen durchsetzen wie die CLI (0–5, -1 = nicht gesetzt).
-        for invalid in [-2, 6] {
-            var fields = ImageCoreFields()
-            fields.rating = invalid
-            let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
-                .init(path: "cover.jpg", kind: .image, image: fields),
-            ])
-            #expect(throws: TagArchiveError.inconsistentEntry(
-                path: "cover.jpg",
-                detail: "image rating must be between -1 (unset) and 5"
-            )) {
-                try TagArchiveIO.validate(archive)
-            }
-        }
-        for valid in [-1, 0, 5] {
-            var fields = ImageCoreFields()
-            fields.rating = valid
+    @Test("Fachfremde Bildwerte bleiben strukturell archivierbar")
+    func foreignImageValuesRemainStructurallyValid() throws {
+        // exiftool liest auch fachlich unmögliche Werte (Rating 6, GPS 91/181)
+        // aus bestehenden Bildern. Ein Backup muss genau diesen Bestand
+        // sichern können — sonst bricht das Auto-Backup jeden Batch-Save ab.
+        // Ob ein Wert ins ZIEL geschrieben werden darf, prüft erst der Import
+        // je Eintrag gegen den dort gelesenen Zustand.
+        var ratingHigh = ImageCoreFields()
+        ratingHigh.rating = 6
+        var ratingLow = ImageCoreFields()
+        ratingLow.rating = -2
+        var gpsOutOfRange = ImageCoreFields()
+        gpsOutOfRange.gpsLatitude = "91"
+        gpsOutOfRange.gpsLongitude = "181"
+        var gpsNotANumber = ImageCoreFields()
+        gpsNotANumber.gpsLatitude = "keine Zahl"
+        gpsNotANumber.gpsLongitude = "0"
+        for fields in [ratingHigh, ratingLow, gpsOutOfRange, gpsNotANumber] {
             let archive = TagArchive(created: "2026-08-02T00:00:00Z", files: [
                 .init(path: "cover.jpg", kind: .image, image: fields),
             ])
@@ -607,29 +604,12 @@ struct TagArchiveTests {
         }
     }
 
-    @Test("Ungültige Bild-GPS-Werte werden vor jeder Archivmutation abgelehnt")
-    func invalidImageGPSIsRejected() throws {
-        for (latitude, longitude) in [
-            ("91", "0"), ("0", "181"), ("keine Zahl", "0"), ("50", ""),
-        ] {
-            var fields = ImageCoreFields()
-            fields.gpsLatitude = latitude
-            fields.gpsLongitude = longitude
-            let archive = TagArchive(created: "2026-08-15T00:00:00Z", files: [
-                .init(path: "cover.jpg", kind: .image, image: fields),
-            ])
-            #expect(throws: TagArchiveError.self) {
-                try TagArchiveIO.validate(archive)
-            }
-        }
-    }
-
-    @Test("Ein Export, den der eigene Import ablehnen würde, entsteht gar nicht erst")
-    func exportRejectsAnArchiveTheImportCouldNotLoad() throws {
-        // exiftool übernimmt beim Lesen jede Zahl als Bewertung, der Import
-        // lässt nur -1…5 zu. Ohne Prüfung beim Export entstünde eine Sicherung,
-        // die sich später nicht mehr laden und damit nicht wiederherstellen
-        // ließe — schlimmstenfalls fällt das erst im Ernstfall auf.
+    @Test("Bestand mit fachfremden Bildwerten ist exportier- und wiederherstellbar")
+    func foreignImageValuesStayExportable() throws {
+        // Genau der Auto-Backup-Fall: Ein Bild trägt ein von exiftool
+        // gelesenes, fachfremdes Rating. Der Export (== Auto-Backup vor einem
+        // Batch-Save) darf daran nicht scheitern, und der unveränderte
+        // Bestand muss als No-op wiederherstellbar bleiben.
         let dir = try makeFolder(["cover.jpg"])
         defer { try? FileManager.default.removeItem(at: dir) }
         let image = dir.appendingPathComponent("cover.jpg")
@@ -639,12 +619,101 @@ struct TagArchiveTests {
         #expect(try ExifTool.readCoreFields(url: image).rating == 6)
 
         let json = dir.appendingPathComponent("tags.json")
-        #expect(throws: TagArchiveError.inconsistentEntry(
-            path: "cover.jpg",
-            detail: "image rating must be between -1 (unset) and 5"
-        )) {
-            try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
-        }
+        try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+        #expect(report.unchanged == ["cover.jpg"])
+        #expect(report.failed.isEmpty)
+    }
+
+    @Test("Eine Änderung AUF ungültige Bildwerte scheitert je Eintrag — Dry-run und Import gleich")
+    func invalidImageChangeFailsConsistently() throws {
+        // Erst wenn der Import einen Wert wirklich ÄNDERN würde, gelten die
+        // Wertebereiche. Der Fehler muss im Dry-run genauso erscheinen wie im
+        // echten Lauf, und die Zieldatei bleibt unangetastet (insbesondere
+        // entsteht keine Papierkorb-Sicherung vor dem Fehler).
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        var target = try ExifTool.readCoreFields(url: image)
+        target.rating = 6
+        target.gpsLatitude = "91"
+        target.gpsLongitude = "181"
+        let archive = TagArchive(created: "2026-08-16T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: target),
+        ])
+
+        let dry = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: true)
+        #expect(dry.failed.map(\.0) == ["cover.jpg"])
+        let bytesBefore = try Data(contentsOf: image)
+        let real = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(real.failed.map(\.0) == ["cover.jpg"])
+        #expect(try Data(contentsOf: image) == bytesBefore)
+    }
+
+    @Test("EPUB: Serienindex ohne Serie wird aus dem Archiv wiederhergestellt")
+    func epubBareSeriesIndexRestores() throws {
+        // Fremde EPUBs können calibre:series_index ohne Serie tragen. Der
+        // Export sichert den Zustand; wurde die Serie im Ziel danach
+        // geändert, muss der Import ihn wieder herstellen können.
+        let dir = try makeFolder(["book2.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let epub = dir.appendingPathComponent("book2.epub")
+        let original = try EbookTool.readCoreFields(url: epub)
+        var bare = original
+        bare.series = ""
+        bare.seriesIndex = "2.5"
+        try EbookTool.write(url: epub, fields: bare, original: original,
+                            coverUpdate: .unchanged)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [epub], to: json, includeCovers: true)
+
+        var changed = try EbookTool.readCoreFields(url: epub)
+        changed.series = "Zwischenzeitliche Serie"
+        changed.seriesIndex = "1"
+        try EbookTool.write(url: epub, fields: changed, original: bare,
+                            coverUpdate: .unchanged)
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["book2.epub"])
+        #expect(report.failed.isEmpty)
+        let restored = try EbookTool.readCoreFields(url: epub)
+        #expect(restored.series.isEmpty)
+        #expect(restored.seriesIndex == "2.5")
+    }
+
+    @Test("EPUB: GIF-Cover aus dem Archiv wird wiederhergestellt")
+    func epubGifCoverRestores() throws {
+        // Export akzeptiert jedes erkennbare Coverformat; der EPUB-Schreibweg
+        // muss die EPUB-Kernformate (hier GIF) dann auch wieder SETZEN können —
+        // sonst widersprächen sich Export- und Import-Vertrag.
+        let dir = try makeFolder(["book2.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let epub = dir.appendingPathComponent("book2.epub")
+        var gifBytes: [UInt8] = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
+        gifBytes.append(contentsOf: Array(repeating: 0, count: 8))
+        let gif = Data(gifBytes)
+        let fields = try EbookTool.readCoreFields(url: epub)
+        try EbookTool.write(url: epub, fields: fields, original: fields,
+                            coverUpdate: .set(gif))
+        #expect(try EbookTool.readCover(url: epub)?.data == gif)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [epub], to: json, includeCovers: true)
+
+        // Zwischenzeitlich bekommt das Ziel ein anderes Cover.
+        let png = try Fixtures.coverData("cover.png")
+        try EbookTool.write(url: epub, fields: fields, original: fields,
+                            coverUpdate: .set(png))
+        #expect(try EbookTool.readCover(url: epub)?.data == png)
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["book2.epub"])
+        #expect(report.failed.isEmpty)
+        #expect(try EbookTool.readCover(url: epub)?.data == gif)
     }
 
     @Test("Ein Serienwunsch für ein PDF wird vor jeder Mutation abgelehnt",

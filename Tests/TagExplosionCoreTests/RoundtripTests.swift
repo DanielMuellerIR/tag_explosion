@@ -229,12 +229,12 @@ struct MediaInfoTests {
                 "Performer-Feld: \(general.fields.filter { $0.key == "Performer" })")
     }
 
-    @Test("Surrogate-Escapes aus mediainfo-JSON werden als Latin1 repariert")
+    @Test("Surrogate-Escapes aus mediainfo-JSON werden als Latin1 dekodiert")
     func surrogateEscapeRepair() throws {
-        // 0xFC = ü, 0xF6 = ö in Latin1; mediainfo schreibt "\udcfc"/"\udcf6"
+        // 0xFC = ü, 0xF6 = ö in Latin1; mediainfo schreibt "\udcfc"/"\udcf6".
+        // Die Reparatur stellt die Rohbytes wieder her; die Latin1-Deutung
+        // trifft erst die Kodierungsentscheidung in decodeLossy.
         let raw = Data(#"{"a":"Ungek\udcfcrzt","b":"B\udcf6rn"}"#.utf8)
-        let repaired = MediaInfoReader.repairSurrogateEscapes(in: raw)
-        let s = String(data: repaired, encoding: .utf8)
-        #expect(s == #"{"a":"Ungekürzt","b":"Börn"}"#)
+        #expect(MediaInfoReader.decodeLossy(raw) == #"{"a":"Ungekürzt","b":"Börn"}"#)
     }
 }

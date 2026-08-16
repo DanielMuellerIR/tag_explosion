@@ -262,8 +262,16 @@ final class FileEntry: Identifiable {
             ebookOriginalCover = cover
             if ebookFields == savedFields { ebookFields = fields }
             // Ein gleiches Ersatz-Cover wurde geschrieben und ist daher nicht
-            // mehr dirty. Ein inzwischen ausgewähltes anderes Cover bleibt.
-            if ebookCoverReplacement == savedCover { ebookCoverReplacement = nil }
+            // mehr dirty. Genauso wenig dirty ist eine Auswahl, die dem
+            // ZURÜCKGELESENEN Cover entspricht: Bei einem reinen Feld-Save
+            // (savedCover == nil) konnte `setEbookCover` das erneut gewählte
+            // Originalcover nicht normalisieren (isSaving) — der Abgleich mit
+            // dem Read-back holt das hier nach, sonst bliebe der Eintrag ohne
+            // Inhaltsänderung dirty und der nächste Save tauschte die Datei
+            // unnötig aus. Ein inzwischen ausgewähltes anderes Cover bleibt.
+            if ebookCoverReplacement == savedCover || ebookCoverReplacement == cover {
+                ebookCoverReplacement = nil
+            }
         default:
             // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
             // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
@@ -1281,8 +1289,8 @@ final class AppModel {
             try ExifTool.requireValidCoreFields(fields, original: original)
         }
         if case .ebook(let fields, let original, let cover) = snapshot {
-            try EbookTool.requireStorableSeries(fields, original: original)
-            if let cover { try EbookTool.requireSupportedCover(cover) }
+            try EbookTool.requireStorableSeries(fields, original: original, url: url)
+            if let cover { try EbookTool.requireSupportedCover(cover, for: url) }
         }
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.

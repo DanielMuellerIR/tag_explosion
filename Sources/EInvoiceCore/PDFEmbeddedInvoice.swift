@@ -30,12 +30,31 @@ enum PDFEmbeddedInvoice {
     /// unter den ersten Anhängen — die Grenzen sind großzügig gewählt.
     static let maxEmbeddedFiles = 32
     static let maxTotalBytes = 64 * 1024 * 1024
+    /// Grenze für die KOMPRIMIERTE Stream-Größe (deklariertes /Length).
+    /// CGPDFStreamCopyData dekomprimiert immer vollständig im Speicher; die
+    /// einzige Vorab-Schranke gegen eine Dekompressionsbombe ist deshalb die
+    /// physisch in der Datei liegende Byte-Menge (Flate entpackt höchstens
+    /// ~1:1032). Echte Rechnungs-XMLs liegen komprimiert weit unter 1 MiB.
+    static let maxCompressedBytes = 8 * 1024 * 1024
+    /// Obergrenze besuchter Namensbaum-Knoten. Die reine Tiefengrenze ließe
+    /// einen sich selbst referenzierenden /Kids-Knoten exponentiell viele
+    /// Besuche erzeugen (2 Verweise × 32 Ebenen = 2^32) — das Budget deckelt
+    /// die Gesamtarbeit; echte Bäume mit wenigen Anhängen bleiben weit darunter.
+    static let maxNameTreeNodes = 4096
 
     static func extract(url: URL) throws -> Extraction {
         guard let document = CGPDFDocument(url as CFURL),
               let catalog = document.catalog else {
             throw EInvoiceError.pdfUnreadable(url.path)
         }
+
+        // Die XMP-Deklaration zuerst: Sie benennt die maßgebliche
+        // Rechnungsdatei, die unten unabhängig vom Dateibudget aufgenommen
+        // werden darf — sonst könnten 32 fremde XML-Anhänge vor ihr das
+        // Budget aufbrauchen und eine gültige Rechnung unsichtbar machen.
+        let declaration = readDeclaration(catalog: catalog)
+        let declaredName = declaration?.documentFileName?
+            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         var files: [EmbeddedFile] = []
         var seenNames = Set<String>()
@@ -45,8 +64,13 @@ enum PDFEmbeddedInvoice {
         // wird: Nur XML-Kandidaten (Endung .xml oder ohne Endung) kommen als
         // Rechnung infrage — andere Anhänge werden gar nicht erst entpackt.
         func add(_ filespec: CGPDFDictionaryRef, fallbackName: String?) {
-            guard files.count < maxEmbeddedFiles, totalBytes < maxTotalBytes else { return }
             let name = filespecName(filespec) ?? fallbackName ?? "eingebettete-datei"
+            // Die deklarierte Datei bekommt einen reservierten Platz jenseits
+            // des Dateibudgets (seenNames hält sie einmalig); die Byte-Budgets
+            // gelten unverändert auch für sie.
+            let isDeclared = declaredName.map { name.lowercased() == $0 } ?? false
+            guard files.count < maxEmbeddedFiles || isDeclared,
+                  totalBytes < maxTotalBytes else { return }
             let ext = (name as NSString).pathExtension.lowercased()
             guard ext.isEmpty || ext == "xml" else { return }
             guard !seenNames.contains(name) else { return }
@@ -57,18 +81,10 @@ enum PDFEmbeddedInvoice {
             files.append(EmbeddedFile(name: name, data: data))
         }
 
-        // Weg 1: Namensbaum Names → EmbeddedFiles
-        var names: CGPDFDictionaryRef?
-        if CGPDFDictionaryGetDictionary(catalog, "Names", &names), let names {
-            var embedded: CGPDFDictionaryRef?
-            if CGPDFDictionaryGetDictionary(names, "EmbeddedFiles", &embedded), let embedded {
-                walkNameTree(embedded, depth: 0) { name, filespec in
-                    add(filespec, fallbackName: name)
-                }
-            }
-        }
-
-        // Weg 2: AF-Array (Associated Files) im Katalog
+        // Weg 1: AF-Array (Associated Files) im Katalog. Es kommt bewusst VOR
+        // dem generischen Namensbaum: ZUGFeRD/Factur-X verlangen die Rechnung
+        // genau hier, und nur so kann ein Namensbaum voller fremder
+        // XML-Anhänge das Dateibudget nicht vor der Rechnung aufbrauchen.
         var af: CGPDFArrayRef?
         if CGPDFDictionaryGetArray(catalog, "AF", &af), let af {
             for i in 0..<CGPDFArrayGetCount(af) {
@@ -79,16 +95,32 @@ enum PDFEmbeddedInvoice {
             }
         }
 
-        return Extraction(files: files, declaration: readDeclaration(catalog: catalog))
+        // Weg 2: Namensbaum Names → EmbeddedFiles
+        var names: CGPDFDictionaryRef?
+        if CGPDFDictionaryGetDictionary(catalog, "Names", &names), let names {
+            var embedded: CGPDFDictionaryRef?
+            if CGPDFDictionaryGetDictionary(names, "EmbeddedFiles", &embedded), let embedded {
+                var nodeBudget = maxNameTreeNodes
+                walkNameTree(embedded, depth: 0, budget: &nodeBudget) { name, filespec in
+                    add(filespec, fallbackName: name)
+                }
+            }
+        }
+
+        return Extraction(files: files, declaration: declaration)
     }
 
     // MARK: - Namensbaum
 
-    /// Namensbaum rekursiv ablaufen. `depth` begrenzt die Rekursion — ein
-    /// zyklischer Baum in einer kaputten Datei darf die App nicht aufhängen.
+    /// Namensbaum rekursiv ablaufen. `depth` begrenzt die Rekursionstiefe,
+    /// `budget` die Gesamtzahl besuchter Knoten — ein zyklischer oder sich
+    /// verzweigend selbst referenzierender Baum in einer kaputten Datei darf
+    /// die App weder aufhängen noch lange blockieren.
     private static func walkNameTree(_ node: CGPDFDictionaryRef, depth: Int,
+                                     budget: inout Int,
                                      visit: (String?, CGPDFDictionaryRef) -> Void) {
-        guard depth < 32 else { return }
+        guard depth < 32, budget > 0 else { return }
+        budget -= 1
 
         var names: CGPDFArrayRef?
         if CGPDFDictionaryGetArray(node, "Names", &names), let names {
@@ -110,9 +142,10 @@ enum PDFEmbeddedInvoice {
         var kids: CGPDFArrayRef?
         if CGPDFDictionaryGetArray(node, "Kids", &kids), let kids {
             for i in 0..<CGPDFArrayGetCount(kids) {
+                guard budget > 0 else { return }
                 var kid: CGPDFDictionaryRef?
                 if CGPDFArrayGetDictionary(kids, i, &kid), let kid {
-                    walkNameTree(kid, depth: depth + 1, visit: visit)
+                    walkNameTree(kid, depth: depth + 1, budget: &budget, visit: visit)
                 }
             }
         }
@@ -142,10 +175,44 @@ enum PDFEmbeddedInvoice {
         if !CGPDFDictionaryGetStream(ef, "UF", &stream) {
             _ = CGPDFDictionaryGetStream(ef, "F", &stream)
         }
-        guard let stream else { return nil }
+        guard let stream, streamSizeIsAcceptable(stream) else { return nil }
         var format = CGPDFDataFormat.raw
         guard let cfData = CGPDFStreamCopyData(stream, &format) else { return nil }
         return cfData as Data
+    }
+
+    /// Größen-Vorprüfung VOR CGPDFStreamCopyData: Der Aufruf materialisiert
+    /// den vollständig dekomprimierten Anhang im Speicher, eine inkrementelle
+    /// Dekomprimierung bietet CoreGraphics nicht. Deshalb wird vorher
+    /// begrenzt, was physisch begrenzbar ist:
+    /// - /Length (komprimierte Bytes, tatsächlich in der Datei) ≤ 8 MiB —
+    ///   Flate entpackt höchstens ~1:1032, das deckelt die Spitzenlast.
+    /// - Keine Filterketten (/Filter-Array > 1): kaskadiertes Flate würde die
+    ///   Entpackungsrate potenzieren; echte Rechnungs-PDFs nutzen das nie.
+    /// - Ein deklariertes /Params/Size über dem Gesamtbudget ist ein ehrlich
+    ///   angekündigter Überlauf und wird sofort abgelehnt.
+    /// Restrisiko (bewusst): siehe knowledge/e-rechnung-anzeige.md.
+    private static func streamSizeIsAcceptable(_ stream: CGPDFStreamRef) -> Bool {
+        guard let dict = CGPDFStreamGetDictionary(stream) else { return false }
+        var length: CGPDFInteger = 0
+        if CGPDFDictionaryGetInteger(dict, "Length", &length),
+           length > CGPDFInteger(maxCompressedBytes) {
+            return false
+        }
+        var filterArray: CGPDFArrayRef?
+        if CGPDFDictionaryGetArray(dict, "Filter", &filterArray), let filterArray,
+           CGPDFArrayGetCount(filterArray) > 1 {
+            return false
+        }
+        var params: CGPDFDictionaryRef?
+        if CGPDFDictionaryGetDictionary(dict, "Params", &params), let params {
+            var size: CGPDFInteger = 0
+            if CGPDFDictionaryGetInteger(params, "Size", &size),
+               size > CGPDFInteger(maxTotalBytes) {
+                return false
+            }
+        }
+        return true
     }
 
     private static func pdfString(_ ref: CGPDFStringRef) -> String? {

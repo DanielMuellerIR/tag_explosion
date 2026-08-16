@@ -19,5 +19,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   nicht sicher löschbare Cover und LC_ALL=C.
 - [e-rechnung-anzeige.md](e-rechnung-anzeige.md) — Bei Arbeit an EInvoiceCore,
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
-  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion,
-  XMP-Präfix-Falle.
+  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
+  samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
+  Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
+  strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
+  vor Sicherung/Dry-run; Backend-Verträge für Serie und Coverformate.

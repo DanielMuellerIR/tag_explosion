@@ -50,13 +50,27 @@ Rechnungsansicht der App.
   (VA/FC) bzw. das `TaxScheme` — und die BT-Nummer hängt zusätzlich an der
   Partei (Verkäufer/Käufer/Steuerbevollmächtigter). BT-110 vs. BT-111
   entscheidet die Währung gegen BT-5.
-- **PDF-Extraktion über CGPDF** (Catalog → Names → EmbeddedFiles, plus
-  `AF`-Array): einziger Apple-only-Teil von EInvoiceCore, gekapselt in
+- **PDF-Extraktion über CGPDF** (Catalog → AF-Array zuerst, dann Names →
+  EmbeddedFiles): einziger Apple-only-Teil von EInvoiceCore, gekapselt in
   `PDFEmbeddedInvoice.swift` (`#if canImport(CoreGraphics)`).
   `CGPDFStreamCopyData` dekomprimiert Flate selbst. Bevorzugte eingebettete
   Dateinamen: zuerst der in XMP deklarierte `DocumentFileName`, danach
   `factur-x.xml`, `zugferd-invoice.xml` und `xrechnung.xml`; sonst das erste
-  eingebettete Rechnungs-XML in PDF-Reihenfolge.
+  eingebettete Rechnungs-XML in PDF-Reihenfolge (AF vor Namensbaum). Das
+  AF-Array läuft bewusst VOR dem Namensbaum und der deklarierte Dateiname hat
+  einen reservierten Platz jenseits des Dateibudgets — sonst könnten 32
+  fremde XML-Anhänge die echte Rechnung aus dem Budget drängen.
+- **Grenzen der Extraktion** (präparierte PDFs): Dateibudget 32 Anhänge,
+  64 MiB entpacktes Gesamtbudget, Namensbaum zusätzlich mit Knoten-Budget
+  (4096) gegen sich selbst referenzierende `/Kids` (Tiefengrenze allein ließe
+  2^32 Besuche zu). **Restrisiko Dekompressionsbombe:** CGPDF bietet keine
+  inkrementelle Dekomprimierung; `CGPDFStreamCopyData` materialisiert immer
+  den ganzen Anhang. Vorab begrenzbar ist nur, was physisch in der Datei
+  liegt: deklariertes `/Length` ≤ 8 MiB, keine `/Filter`-KETTEN (Kaskade
+  potenziert die Flate-Rate ~1:1032), `/Params/Size` über dem Gesamtbudget
+  wird sofort abgelehnt. Worst Case bleibt damit eine transiente Allokation
+  von ~8 GiB (8 MiB × 1032) — begrenzt, aber nicht schön; echte
+  Rechnungs-XMLs liegen komprimiert weit unter 1 MiB.
 - **XMP-Attributform:** XMLParser liefert Attribut-Namensräume nicht direkt.
   `XMLTree` sammelt deshalb die Präfixdeklarationen am jeweiligen Element;
   die Auswertung löst das tatsächlich verwendete Präfix darüber zur

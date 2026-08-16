@@ -649,28 +649,38 @@ struct EbookToolTests {
 
     // MARK: - Abgelehnte Zustände
 
-    @Test("Serienindex ohne Serie wird vor jedem Schreibvorgang abgelehnt")
-    func ebookRejectsSeriesIndexWithoutSeries() throws {
+    @Test("Serienindex ohne Serie: EPUB speichert ihn, andere Formate lehnen ab")
+    func seriesIndexWithoutSeriesIsBackendSpecific() throws {
         let url = try Fixtures.workingCopy("book2.epub")
-        let before = try Data(contentsOf: url)
         let original = try EbookTool.readCoreFields(url: url)
         var indexOnly = original
         indexOnly.series = ""
         indexOnly.seriesIndex = "5"
 
+        // EPUB kennt mit calibre:series_index einen Speicherort auch ohne
+        // Serie — der in fremden EPUBs verbreitete Zustand muss schreib- und
+        // damit aus einem Archiv wiederherstellbar sein.
+        try EbookTool.write(url: url, fields: indexOnly, original: original,
+                            coverUpdate: .unchanged)
+        let readBack = try EbookTool.readCoreFields(url: url)
+        #expect(readBack.series.isEmpty)
+        #expect(readBack.seriesIndex == "5")
+
+        // Formate ohne diesen Speicherort lehnen weiterhin vor jedem
+        // Schreibzugriff ab (die Prüfung läuft vor jedem Backend-Kontakt,
+        // deshalb genügt hier ein Pfad ohne echte Datei).
+        let azw3 = URL(fileURLWithPath: "/nicht-vorhanden/buch.azw3")
         #expect(throws: TagError.seriesIndexWithoutSeries) {
-            try EbookTool.write(url: url, fields: indexOnly, original: original,
+            try EbookTool.write(url: azw3, fields: indexOnly, original: original,
                                 coverUpdate: .unchanged)
         }
-        #expect(try Data(contentsOf: url) == before)
-
         // Eine bereits vorhandene, nicht angefasste Kombination darf das
-        // Bearbeiten anderer Felder nicht blockieren.
+        // Bearbeiten anderer Felder auch dort nicht blockieren.
         var titleOnly = indexOnly
         titleOnly.title = "Anderer Titel"
-        try EbookTool.write(url: url, fields: titleOnly, original: indexOnly,
-                            coverUpdate: .unchanged)
-        #expect(try EbookTool.readCoreFields(url: url).title == "Anderer Titel")
+        #expect(throws: Never.self) {
+            try EbookTool.requireStorableSeries(titleOnly, original: indexOnly, url: azw3)
+        }
     }
 
     @Test("Cover ohne gültige Bildsignatur wird abgelehnt")
@@ -694,6 +704,20 @@ struct EbookToolTests {
         try EbookTool.write(url: url, fields: original, original: original,
                             coverUpdate: .set(png))
         #expect(try EbookTool.readCover(url: url)?.data == png)
+
+        // GIF ist ein Kern-Bildformat von EPUB und muss dort setzbar sein
+        // (sonst wäre ein exportiertes GIF-Cover nicht wiederherstellbar) —
+        // die ebook-meta-Formate bleiben bei JPEG/PNG.
+        var gifBytes: [UInt8] = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
+        gifBytes.append(contentsOf: Array(repeating: 0, count: 8))
+        let gif = Data(gifBytes)
+        try EbookTool.write(url: url, fields: original, original: original,
+                            coverUpdate: .set(gif))
+        #expect(try EbookTool.readCover(url: url)?.data == gif)
+        #expect(throws: TagError.unsupportedCoverData) {
+            try EbookTool.requireSupportedCover(
+                gif, for: URL(fileURLWithPath: "/nicht-vorhanden/buch.azw3"))
+        }
     }
 
     /// Prüft die EPUB-Grundregel und liefert den Wert des Paket-Identifiers:

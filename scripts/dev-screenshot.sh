@@ -32,9 +32,31 @@ guard let running = NSRunningApplication
     .runningApplications(withBundleIdentifier: "io.github.danielmuellerir.tagexplosion").first
 else { print("App läuft nicht"); exit(1) }
 
-func fail(_ message: String) -> Never {
+// Beendet die Test-App und wartet auf ihr tatsächliches Ende — erst höflich
+// (terminate), nach Ablauf der Frist hart (forceTerminate). Erfolgs- UND
+// Fehlerpfad laufen hierüber: Ein bloß angefordertes terminate ohne Warten
+// ließe die App nach einem frühen Fehler sichtbar weiterlaufen.
+func shutDownApp() -> Bool {
+    func waitForExit(seconds: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while !running.isTerminated, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+        return running.isTerminated
+    }
     _ = running.terminate()
+    if waitForExit(seconds: 5) { return true }
+    _ = running.forceTerminate()
+    return waitForExit(seconds: 5)
+}
+
+func fail(_ message: String) -> Never {
+    let stopped = shutDownApp()
     FileHandle.standardError.write(Data("FEHLER: \(message)\n".utf8))
+    if !stopped {
+        FileHandle.standardError.write(
+            Data("FEHLER: Test-App ließ sich nicht beenden — bitte von Hand schließen.\n".utf8))
+    }
     exit(1)
 }
 
@@ -84,11 +106,10 @@ do {
 }
 
 // Sofort beenden — Signal "fertig mit dem Bildschirm"
-guard running.terminate() else { fail("App-Terminierung konnte nicht angefordert werden") }
-let deadline = Date().addingTimeInterval(5)
-while !running.isTerminated, Date() < deadline {
-    RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+guard shutDownApp() else {
+    FileHandle.standardError.write(
+        Data("FEHLER: App beendete sich auch nach forceTerminate nicht.\n".utf8))
+    exit(1)
 }
-guard running.isTerminated else { fail("App beendete sich nicht innerhalb von 5 Sekunden") }
 print("OK \(out)")
 SW

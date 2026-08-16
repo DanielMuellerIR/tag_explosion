@@ -43,8 +43,20 @@ struct MediaInfoReaderProcessTests {
     @Test("Surrogate-Escapes werden unabhängig von der Hex-Schreibweise repariert")
     func repairsUppercaseSurrogateEscape() {
         let raw = Data(#"{"value":"B\uDCFCro"}"#.utf8)
-        let repaired = MediaInfoReader.repairSurrogateEscapes(in: raw)
-        #expect(String(decoding: repaired, as: UTF8.self) == #"{"value":"Büro"}"#)
+        // Die Reparatur stellt das ROHE Byte wieder her (0xFC); erst die
+        // Kodierungsentscheidung in decodeLossy deutet es (hier: Latin1 „ü“).
+        let expected = Data(#"{"value":"B"#.utf8) + Data([0xFC]) + Data(#"ro"}"#.utf8)
+        #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == expected)
+        #expect(MediaInfoReader.decodeLossy(raw) == #"{"value":"Büro"}"#)
+    }
+
+    @Test("Surrogate-Escape eines MacRoman-Bytes erreicht den MacRoman-Fallback")
+    func surrogateEscapeKeepsMacRomanSignal() {
+        // \udc8a steht für das Rohbyte 0x8A — MacRomans „ä“. Würde die
+        // Reparatur es vorschnell als Latin1 deuten, entstünde das
+        // Steuerzeichen U+008A statt des Umlauts.
+        let raw = Data(#"{"value":"B\udc8ackerei"}"#.utf8)
+        #expect(MediaInfoReader.decodeLossy(raw) == #"{"value":"Bäckerei"}"#)
     }
 
     @Test("MacRoman-Steuerbereich und häufiges Latin-1 bleiben unterscheidbar")
@@ -54,6 +66,19 @@ struct MediaInfoReaderProcessTests {
         // 0xFC ist dagegen das häufige Latin-1-„ü“; MacRoman würde daraus
         // ein Cedille-Zeichen machen und darf hier nicht blind gewinnen.
         #expect(MediaInfoReader.decodeLossy(Data([0xFC])) == "ü")
+    }
+
+    @Test("Gültiges UTF-8 bleibt trotz einzelner fremd kodierter Bytes erhalten")
+    func keepsValidUTF8NextToForeignBytes() {
+        // Die Fortsetzungsbytes von „😀“ (F0 9F 98 80) liegen teils im
+        // C1-Bereich. Ein einzelnes Latin1-Byte daneben darf den Bericht
+        // nicht komplett auf MacRoman umschalten und das Emoji zerlegen.
+        let raw = Data("Titel 😀 ".utf8) + Data([0xE4]) + Data(" Ende".utf8)
+        #expect(MediaInfoReader.decodeLossy(raw) == "Titel 😀 ä Ende")
+        // Und umgekehrt: Ein echtes MacRoman-Signal (C1-Byte 0x8A unter den
+        // UNGÜLTIGEN Bytes) gewinnt weiterhin, ohne das Emoji anzutasten.
+        let macRoman = Data("Titel 😀 ".utf8) + Data([0x8A]) + Data(" Ende".utf8)
+        #expect(MediaInfoReader.decodeLossy(macRoman) == "Titel 😀 ä Ende")
     }
 
     // Swift Testing akzeptiert Zeitgrenzen bewusst nur in Minuten. Eine Minute

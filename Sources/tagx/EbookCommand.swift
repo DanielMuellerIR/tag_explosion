@@ -108,10 +108,10 @@ struct EbookSet: ParsableCommand {
            fields.series != original.series || fields.seriesIndex != original.seriesIndex {
             throw ValidationError("This format cannot store a series (PDF).")
         }
-        // Ein Index ohne Serie hätte keinen Speicherort — vor Sicherung und
-        // Schreibweg ablehnen statt hinterher "OK" zu melden.
+        // Ein Index ohne Serie hätte außerhalb von EPUB keinen Speicherort —
+        // vor Sicherung und Schreibweg ablehnen statt hinterher "OK" zu melden.
         do {
-            try EbookTool.requireStorableSeries(fields, original: original)
+            try EbookTool.requireStorableSeries(fields, original: original, url: url)
         } catch TagError.seriesIndexWithoutSeries {
             throw ValidationError("A series index needs a series name (--series).")
         }
@@ -123,11 +123,14 @@ struct EbookSet: ParsableCommand {
             }
             let coverURL = try resolveFile(cover)
             let data = try Data(contentsOf: coverURL)
-            // Nur echte JPEG-/PNG-Daten (Signaturprüfung, nicht Endung).
+            // Nur Bilddaten, die das Ziel-Backend setzen kann
+            // (Signaturprüfung, nicht Endung).
             do {
-                try EbookTool.requireSupportedCover(data)
+                try EbookTool.requireSupportedCover(data, for: url)
             } catch TagError.unsupportedCoverData {
-                throw ValidationError("Cover must be a JPEG or PNG image: \(coverURL.path)")
+                let formats = EbookTool.backend(for: url) == .epub
+                    ? "JPEG, PNG, GIF, or WebP" : "JPEG or PNG"
+                throw ValidationError("Cover must be a \(formats) image: \(coverURL.path)")
             }
             // Auch das Lesen der externen Cover-Datei öffnet ein Zeitfenster.
             // Vor Vergleich/Schreiben muss das E-Book noch der Ausgangsfassung

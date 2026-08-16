@@ -2,13 +2,21 @@
 
 ## mediainfo (26.05)
 
-- **JSON kann kaputtes UTF-8 enthalten:** Latin1-Bytes aus ID3v1/v2.3-Tags
-  werden als Lone-Surrogates escaped (`\udcfc` = Byte 0xFC = „ü", à la Python
-  surrogateescape). JSON-Parser verlieren/verweigern das →
-  `MediaInfoReader.repairSurrogateEscapes` ersetzt die Escapes im Bytestrom
-  unabhängig von der Großschreibung der Hexziffern durch die Latin1-Deutung.
-  Für übrige ungültige Rohbytes folgt nach UTF-8 der MacRoman-/Latin1-Vergleich:
-  C1-Bytes sprechen für MacRoman, sonst hat das häufigere Latin1 Vorrang.
+- **JSON kann kaputtes UTF-8 enthalten:** Latin1-/MacRoman-Bytes aus
+  ID3v1/v2.3-Tags werden als Lone-Surrogates escaped (`\udcfc` = Byte 0xFC,
+  à la Python surrogateescape). JSON-Parser verlieren/verweigern das →
+  `MediaInfoReader.repairSurrogateEscapes` stellt unabhängig von der
+  Großschreibung der Hexziffern das ROHE Byte wieder her; erst `decodeLossy`
+  entscheidet die Kodierung. Eine vorschnelle Latin1-Deutung machte aus
+  `\udc8a` (MacRoman „ä") das Steuerzeichen U+008A.
+- **Kodierungs-Fallback segmentweise, nie global:** Scheitert die strikte
+  UTF-8-Dekodierung, bleiben gültige UTF-8-Sequenzen erhalten; nur die
+  tatsächlich ungültigen Bytes werden dekodiert (C1-Bytes UNTER den
+  ungültigen sprechen für MacRoman, sonst hat das häufigere Latin1 Vorrang —
+  eine Entscheidung pro Bericht). Ein globaler Umschalter würde wegen eines
+  einzigen Fremd-Bytes auch korrekte UTF-8-Tags zerlegen: Die
+  Fortsetzungsbytes von Emoji (z.B. `F0 9F 98 80`) liegen selbst im
+  C1-Bereich und sind KEIN MacRoman-Signal.
 - JSON-Objekt-Reihenfolge geht durch `JSONSerialization` verloren → Original-
   Reihenfolge je Track und verschachteltem `extra`-Objekt mit dem kleinen
   strukturtreuen Lexer aus dem JSON-Text rekonstruieren. Eine globale Suche

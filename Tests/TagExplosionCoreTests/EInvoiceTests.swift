@@ -330,6 +330,17 @@ struct EInvoiceTests {
         #expect(resolved("urn:example:xrechnung_demo").standard == "EN 16931-basiert?")
         #expect(resolved("urn:example:peppol.eu:not-billing").standard
             == "EN 16931-basiert?")
+        // Auch ein VOLLSTÄNDIG eingebetteter bekannter Stamm zählt nur, wenn
+        // er am Anfang einer #-Komponente steht — sonst würde eine fremde
+        // URN, die einen echten Stamm als Suffix trägt, falsch klassifiziert.
+        #expect(resolved("urn:example:urn:factur-x.eu:1p0:basic").standard
+            == "EN 16931-basiert?")
+        #expect(resolved("urn:example:urn:xoev-de:kosit:standard:xrechnung_2.2").standard
+            == "EN 16931-basiert?")
+        #expect(resolved("urn:example:urn:fdc:peppol.eu:2017:poacc:billing:3.0").standard
+            == "EN 16931-basiert?")
+        #expect(resolved("urn:example:urn:zugferd.de:2p0:basic").standard
+            == "EN 16931-basiert?")
         // Unbekannte URN bleibt sichtbar statt geraten.
         #expect(resolved("urn:example:foo").profile == "urn:example:foo")
     }
@@ -576,6 +587,104 @@ struct EInvoiceTests {
         }
     }
 
+    @Test("PDF: Rechnung im AF-Array gewinnt gegen einen gefluteten Namensbaum")
+    func pdfAFInvoiceSurvivesFloodedNameTree() throws {
+        try withTempDirectory { dir in
+            // 33 fremde XML-Anhänge im Namensbaum liegen ÜBER dem Dateibudget
+            // (32); die echte Rechnung steht nur im AF-Array — genau dort, wo
+            // ZUGFeRD/Factur-X sie verlangen. Sie muss trotzdem gefunden werden.
+            let url = dir.appendingPathComponent("geflutet-af.pdf")
+            try Self.makeFloodedPDF(junkCount: 33, invoiceViaAF: true, xmp: nil)
+                .write(to: url)
+            let doc = try EInvoiceReader.read(url: url)
+            #expect(doc.source == .pdfEmbedded(fileName: "factur-x.xml"))
+            #expect(doc.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: Die XMP-deklarierte Datei bekommt einen reservierten Budget-Platz")
+    func pdfDeclaredFileBypassesFileBudget() throws {
+        try withTempDirectory { dir in
+            // Kein AF-Array; die deklarierte Rechnung steht als LETZTER von 34
+            // Namensbaum-Einträgen, hinter 33 fremden XMLs. Der reservierte
+            // Platz für die deklarierte Datei muss sie trotzdem aufnehmen.
+            let url = dir.appendingPathComponent("geflutet-deklariert.pdf")
+            try Self.makeFloodedPDF(junkCount: 33, invoiceViaAF: false,
+                                    xmp: Self.invoiceXMP(fileName: "factur-x.xml"))
+                .write(to: url)
+            let doc = try EInvoiceReader.read(url: url)
+            #expect(doc.source == .pdfEmbedded(fileName: "factur-x.xml"))
+            #expect(doc.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: Ein sich selbst referenzierender Namensbaum blockiert nicht",
+          .timeLimit(.minutes(1)))
+    func pdfCyclicNameTreeTerminates() throws {
+        try withTempDirectory { dir in
+            // Objekt 4 verweist unter /Kids ZWEIMAL auf sich selbst: Mit einer
+            // reinen Tiefengrenze (32) wären das 2^32 Besuche. Das
+            // Knoten-Budget bricht die Wanderung ab; die Rechnung im AF-Array
+            // muss trotzdem gefunden werden.
+            let xml = Self.ciiXML
+            let objects = [
+                "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 4 0 R >> /AF [ 6 0 R ] >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                "<< /Kids [ 4 0 R 4 0 R ] >>",
+                "<< /Type /EmbeddedFile /Length \(xml.utf8.count) >>\nstream\n\(xml)\nendstream",
+                "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) /EF << /F 5 0 R /UF 5 0 R >> >>",
+            ]
+            let url = dir.appendingPathComponent("zyklus.pdf")
+            try Self.assemblePDF(objects: objects).write(to: url)
+            let doc = try EInvoiceReader.read(url: url)
+            #expect(doc.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: überlange, kaskadierte oder Überlauf ankündigende Streams werden übersprungen")
+    func pdfOversizedStreamsAreSkipped() throws {
+        try withTempDirectory { dir in
+            // CGPDFStreamCopyData dekomprimiert immer vollständig im Speicher.
+            // Die Vorprüfung muss solche Streams deshalb VOR dem Entpacken
+            // aussortieren; ohne verwertbaren Anhang ist das Ergebnis ehrlich
+            // "keine E-Rechnung".
+            let xml = Self.ciiXML
+            func poisonedPDF(streamDict: String) -> Data {
+                Self.assemblePDF(objects: [
+                    "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles "
+                        + "<< /Names [ (factur-x.xml) 5 0 R ] >> >> /AF [ 5 0 R ] >>",
+                    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                    "\(streamDict)\nstream\n\(xml)\nendstream",
+                    "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) "
+                        + "/EF << /F 4 0 R /UF 4 0 R >> >>",
+                ])
+            }
+            // Deklarierte komprimierte Größe über der 8-MiB-Schranke …
+            let lengthLie = dir.appendingPathComponent("laenge.pdf")
+            try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length 9437184 >>")
+                .write(to: lengthLie)
+            #expect(throws: EInvoiceError.notAnInvoice) {
+                try EInvoiceReader.read(url: lengthLie)
+            }
+            // … kaskadierte Filter (potenzierte Entpackungsrate) …
+            let chain = dir.appendingPathComponent("filterkette.pdf")
+            try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length \(xml.utf8.count) "
+                + "/Filter [ /FlateDecode /FlateDecode ] >>").write(to: chain)
+            #expect(throws: EInvoiceError.notAnInvoice) {
+                try EInvoiceReader.read(url: chain)
+            }
+            // … und ein angekündigtes Entpackungs-Volumen über dem Gesamtbudget.
+            let sizeLie = dir.appendingPathComponent("params.pdf")
+            try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length \(xml.utf8.count) "
+                + "/Params << /Size 104857600 >> >>").write(to: sizeLie)
+            #expect(throws: EInvoiceError.notAnInvoice) {
+                try EInvoiceReader.read(url: sizeLie)
+            }
+        }
+    }
+
     /// Baut ein minimales, gültiges PDF — optional mit eingebetteten Dateien
     /// (Namensbaum + AF-Array wie bei ZUGFeRD) und Factur-X-XMP-Deklaration
     /// (überschreibbar, um Präfix-/Namensraum-Varianten zu testen).
@@ -630,6 +739,60 @@ struct EInvoiceTests {
             objects.append("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>")
         }
 
+        return assemblePDF(objects: objects)
+    }
+
+    /// PDF mit `junkCount` fremden XML-Anhängen im Namensbaum und einer
+    /// echten Rechnung, die je nach Test NUR im AF-Array oder als LETZTER
+    /// Namensbaum-Eintrag steht — die Flutungs-Szenarien gegen das Dateibudget.
+    private static func makeFloodedPDF(junkCount: Int, invoiceViaAF: Bool,
+                                       xmp customXMP: String?) -> Data {
+        var objects: [String] = []
+        func addObject(_ body: String) -> Int {
+            objects.append(body)
+            return objects.count // Objektnummern sind 1-basiert
+        }
+        // Katalog zuerst reservieren (Objekt 1); er braucht die erst später
+        // bekannten Verweise und wird am Ende ersetzt.
+        _ = addObject("KATALOG-PLATZHALTER")
+        _ = addObject("<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+        _ = addObject("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>")
+
+        func addAttachment(payload: String, name: String) -> Int {
+            let streamID = addObject(
+                "<< /Type /EmbeddedFile /Length \(payload.utf8.count) >>\nstream\n"
+                    + payload + "\nendstream")
+            return addObject("<< /Type /Filespec /F (\(name)) /UF (\(name)) "
+                + "/EF << /F \(streamID) 0 R /UF \(streamID) 0 R >> >>")
+        }
+
+        var nameEntries: [String] = []
+        for i in 1...junkCount {
+            let id = addAttachment(payload: "<fremd-\(i)/>", name: "fremd-\(i).xml")
+            nameEntries.append("(fremd-\(i).xml) \(id) 0 R")
+        }
+        let invoiceID = addAttachment(payload: ciiXML, name: "factur-x.xml")
+        var af = ""
+        if invoiceViaAF {
+            af = " /AF [ \(invoiceID) 0 R ]"
+        } else {
+            nameEntries.append("(factur-x.xml) \(invoiceID) 0 R")
+        }
+        var metadata = ""
+        if let customXMP {
+            let id = addObject("<< /Type /Metadata /Subtype /XML /Length "
+                + "\(customXMP.utf8.count) >>\nstream\n" + customXMP + "\nendstream")
+            metadata = " /Metadata \(id) 0 R"
+        }
+        objects[0] = "<< /Type /Catalog /Pages 2 0 R\(metadata) /Names "
+            + "<< /EmbeddedFiles << /Names [ \(nameEntries.joined(separator: " ")) ] >> >>\(af) >>"
+        return assemblePDF(objects: objects)
+    }
+
+    /// Setzt nummerierte Objekte (1 = Katalog) zu einem PDF mit korrekter
+    /// xref-Tabelle zusammen. Getrennt von makePDF, damit Tests auch bewusst
+    /// präparierte Strukturen (Zyklen, gelogene Stream-Größen) bauen können.
+    private static func assemblePDF(objects: [String]) -> Data {
         var pdf = "%PDF-1.7\n"
         var offsets: [Int] = []
         for (index, body) in objects.enumerated() {

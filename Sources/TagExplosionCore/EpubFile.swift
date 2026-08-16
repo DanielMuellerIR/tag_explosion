@@ -163,7 +163,15 @@ enum EpubFile {
               let manifest = firstElement(named: "manifest", in: root) else {
             throw TagError.cannotOpen(path: url.path)
         }
-        let ext = mime == "image/png" ? "png" : "jpg"
+        // Endung passend zum erkannten Format — Reader richten sich zwar nach
+        // dem media-type, eine falsche Endung wäre aber unnötig irreführend.
+        let ext: String
+        switch mime {
+        case "image/png": ext = "png"
+        case "image/gif": ext = "gif"
+        case "image/webp": ext = "webp"
+        default: ext = "jpg"
+        }
         let items = manifestItems(in: document)
         // XML-IDs gelten im gesamten OPF-Dokument. Auch dc:creator,
         // dc:identifier oder ein anderer Knoten außerhalb des Manifests kann
@@ -471,7 +479,21 @@ enum EpubFile {
             }
         }
         detachRefinements(of: refinedIds, in: metadata)
-        guard !fields.series.isEmpty else { return }
+        if fields.series.isEmpty {
+            // Ein Index ohne Serie hat nur in Calibres Meta-Konvention einen
+            // Speicherort (`calibre:series_index` ohne `calibre:series`) —
+            // genau der Zustand, den fremde EPUBs tragen können und den ein
+            // Archiv-Restore deshalb wieder herstellen können muss. Die
+            // EPUB-3-Form (group-position) braucht dagegen eine Sammlung als
+            // Anker und entfällt hier.
+            if !fields.seriesIndex.isEmpty {
+                let calibreIndex = XMLElement(name: "meta")
+                setAttribute(calibreIndex, "name", "calibre:series_index")
+                setAttribute(calibreIndex, "content", fields.seriesIndex)
+                metadata.addChild(calibreIndex)
+            }
+            return
+        }
 
         // … und in beiden Formen neu schreiben (EPUB 3 + Calibre-kompatibel).
         // Die id muss im GESAMTEN OPF-Dokument eindeutig sein, nicht nur unter

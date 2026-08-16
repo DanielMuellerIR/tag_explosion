@@ -169,17 +169,16 @@ rm -f "$work/verify-count" "$work/release"
 BLOCK_SPCTL_CALL=1 RELEASE_FILE="$work/release" \
     run_installer "$new_source" "$concurrent_root/TagExplosion.app" &
 first_installer=$!
-# Warten, bis der erste Lauf die Sperre VOLLSTÄNDIG hält (owner-Datei
-# veröffentlicht) und die blockierende spctl-Attrappe ihren Haltepunkt
-# erreicht hat. Nur auf das Sperr-Verzeichnis zu warten träfe genau das
-# Initialisierungsfenster zwischen mkdir und owner-Write.
+# Warten, bis der erste Lauf die Sperre hält (der Symlink entsteht atomar
+# mitsamt Besitzer) und die blockierende spctl-Attrappe ihren Haltepunkt
+# erreicht hat.
 for _ in $(seq 1 200); do
-    [ -f "$concurrent_root/.TagExplosion.app.lock/owner" ] \
+    [ -L "$concurrent_root/.TagExplosion.app.lock" ] \
         && [ "$(cat "$work/verify-count" 2>/dev/null)" = "1" ] && break
     sleep 0.05
 done
-[ -f "$concurrent_root/.TagExplosion.app.lock/owner" ] || {
-    echo "FEHLER: erster Lauf hat keine vollständige Sperre angelegt" >&2
+[ -L "$concurrent_root/.TagExplosion.app.lock" ] || {
+    echo "FEHLER: erster Lauf hat keine Sperre angelegt" >&2
     exit 1
 }
 second_output="$work/second.log"
@@ -215,8 +214,8 @@ assert_text old "$signal_root/TagExplosion.app"
 # Eine verwaiste Sperre (abgestürzter Lauf) darf spätere Installationen nicht
 # dauerhaft blockieren.
 stale_root="$work/stale"
-mkdir -p "$stale_root/.TagExplosion.app.lock"
-printf '999999|Mon Jan  1 00:00:00 2001\n' > "$stale_root/.TagExplosion.app.lock/owner"
+mkdir -p "$stale_root"
+ln -s '999999|Mon Jan  1 00:00:00 2001' "$stale_root/.TagExplosion.app.lock"
 rm -f "$work/verify-count"
 run_installer "$new_source" "$stale_root/TagExplosion.app"
 assert_text new "$stale_root/TagExplosion.app"
@@ -226,20 +225,81 @@ assert_text new "$stale_root/TagExplosion.app"
 # NICHT als aktiver Installer — sonst blockierte ein Absturz Updates für die
 # gesamte Laufzeit eines unbeteiligten Prozesses.
 reuse_root="$work/pid-reuse"
-mkdir -p "$reuse_root/.TagExplosion.app.lock"
-printf '%s|Mon Jan  1 00:00:00 2001\n' "$$" > "$reuse_root/.TagExplosion.app.lock/owner"
+mkdir -p "$reuse_root"
+ln -s "$$|Mon Jan  1 00:00:00 2001" "$reuse_root/.TagExplosion.app.lock"
 rm -f "$work/verify-count"
 run_installer "$new_source" "$reuse_root/TagExplosion.app"
 assert_text new "$reuse_root/TagExplosion.app"
 [ -z "$(find "$reuse_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
-# Absturz genau zwischen mkdir und owner-Write: Die besitzerlose Sperre wird
-# nach der Wartefrist übernommen, statt für immer zu blockieren.
+# Altformat-Sperren früherer Skriptfassungen (mkdir-Verzeichnis mit
+# owner-Datei bzw. besitzerlos nach Absturz im Initialisierungsfenster)
+# werden weiterhin erkannt und übernommen.
+legacy_root="$work/legacy-lock"
+mkdir -p "$legacy_root/.TagExplosion.app.lock"
+printf '999999|Mon Jan  1 00:00:00 2001\n' > "$legacy_root/.TagExplosion.app.lock/owner"
+rm -f "$work/verify-count"
+run_installer "$new_source" "$legacy_root/TagExplosion.app"
+assert_text new "$legacy_root/TagExplosion.app"
+[ -z "$(find "$legacy_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
 headless_root="$work/headless-lock"
 mkdir -p "$headless_root/.TagExplosion.app.lock"
 rm -f "$work/verify-count"
 run_installer "$new_source" "$headless_root/TagExplosion.app"
 assert_text new "$headless_root/TagExplosion.app"
 [ -z "$(find "$headless_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# Die Übernahme einer toten Sperre muss den Besitzer im AUSSCHLUSS erneut
+# prüfen: Hier ersetzt ein "Nachfolger" die tote Sperre durch eine lebende,
+# während der Anwärter am Übernahme-Hilfslock wartet. Der Anwärter darf die
+# lebende Sperre danach nicht stehlen, sondern muss sauber abbrechen.
+race_root="$work/takeover-race"
+mkdir -p "$race_root"
+ln -s '999999|Mon Jan  1 00:00:00 2001' "$race_root/.TagExplosion.app.lock"
+# Das belegte Hilfslock hält jede Übernahme auf, bis wir es freigeben.
+mkdir "$race_root/.TagExplosion.app.lock.takeover"
+rm -f "$work/verify-count"
+race_output="$work/takeover-race.log"
+run_installer "$new_source" "$race_root/TagExplosion.app" \
+    > "$race_output" 2>&1 &
+race_installer=$!
+sleep 0.5
+# "Nachfolger": tote Sperre ATOMAR gegen eine lebende (unsere Shell)
+# tauschen — ein rm+ln-Fenster würde der wartende Anwärter sofort selbst
+# mit claim_lock füllen. Erst danach die Übernahme freigeben.
+ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$race_root/.live-lock"
+/bin/mv "$race_root/.live-lock" "$race_root/.TagExplosion.app.lock"
+rmdir "$race_root/.TagExplosion.app.lock.takeover"
+if wait "$race_installer"; then
+    echo "FEHLER: Anwärter hat eine lebende Sperre gestohlen" >&2
+    exit 1
+fi
+grep -q "andere Installation" "$race_output" || {
+    echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
+    cat "$race_output" >&2
+    exit 1
+}
+[ -L "$race_root/.TagExplosion.app.lock" ] || {
+    echo "FEHLER: die lebende Sperre wurde entfernt" >&2
+    exit 1
+}
+[ ! -e "$race_root/TagExplosion.app" ] || {
+    echo "FEHLER: Anwärter hat trotz fremder Sperre installiert" >&2
+    exit 1
+}
+rm -f "$race_root/.TagExplosion.app.lock"
+
+# Ein verwaistes Übernahme-Hilfslock (Absturz mitten in der Übernahme) darf
+# nicht ewig blockieren: Nach Ablauf der Frist wird es weggeräumt.
+old_tko_root="$work/stale-takeover"
+mkdir -p "$old_tko_root"
+ln -s '999999|Mon Jan  1 00:00:00 2001' "$old_tko_root/.TagExplosion.app.lock"
+mkdir "$old_tko_root/.TagExplosion.app.lock.takeover"
+touch -t 202001010000 "$old_tko_root/.TagExplosion.app.lock.takeover"
+rm -f "$work/verify-count"
+run_installer "$new_source" "$old_tko_root/TagExplosion.app"
+assert_text new "$old_tko_root/TagExplosion.app"
+[ -z "$(find "$old_tko_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
 echo "Installer-Rollback-Tests: OK"

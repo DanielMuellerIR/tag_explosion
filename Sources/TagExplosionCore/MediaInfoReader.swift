@@ -405,28 +405,93 @@ public enum MediaInfoReader {
         return index == start ? nil : index
     }
 
-    /// Bytes tolerant dekodieren: UTF-8 strikt, danach MacRoman und Latin1
-    /// gegeneinander prüfen, zuletzt lossy UTF-8. C1-Bytes (0x80…0x9F) wären
-    /// in Latin1 Steuerzeichen und sind deshalb das belastbare Signal für
-    /// MacRoman; ohne dieses Signal hat das in ID3 häufigere Latin1 Vorrang.
-    /// mediainfo gibt rohe Tag-Bytes ungeprüft weiter; ID3v1/v2.3-Tags sind oft
-    /// Latin1 und würden als UTF-8 gelesen zu Ersatzzeichen zerfallen.
+    /// Bytes tolerant dekodieren: UTF-8 strikt; scheitert das, werden gültige
+    /// UTF-8-Sequenzen ERHALTEN und nur die tatsächlich ungültigen Bytes als
+    /// MacRoman bzw. Latin1 gedeutet. Ein komplett umgeschalteter Bericht
+    /// würde sonst wegen eines einzigen fremd kodierten Feldes auch korrekte
+    /// UTF-8-Tags (etwa Emoji, deren Fortsetzungsbytes zufällig im C1-Bereich
+    /// liegen) verstümmeln. C1-Bytes (0x80…0x9F) UNTER DEN UNGÜLTIGEN Bytes
+    /// wären in Latin1 Steuerzeichen und sind deshalb das belastbare Signal
+    /// für MacRoman; ohne dieses Signal hat das in ID3 häufigere Latin1
+    /// Vorrang. mediainfo gibt rohe Tag-Bytes ungeprüft weiter; ID3v1/v2.3-
+    /// Tags sind oft Latin1 und würden als UTF-8 gelesen zu Ersatzzeichen
+    /// zerfallen.
     static func decodeLossy(_ data: Data) -> String {
         let repaired = repairSurrogateEscapes(in: data)
         if let s = String(data: repaired, encoding: .utf8) { return s }
-        let macRoman = String(data: repaired, encoding: .macOSRoman)
-        let latin1 = String(data: repaired, encoding: .isoLatin1)
-        let containsC1Byte = repaired.contains { (0x80...0x9F).contains($0) }
-        if containsC1Byte, let macRoman { return macRoman }
-        if let latin1 { return latin1 }
-        if let macRoman { return macRoman }
-        return String(decoding: repaired, as: UTF8.self)
+
+        // In Läufe aus gültigen UTF-8-Sequenzen und ungültigen Bytes zerlegen.
+        let bytes = [UInt8](repaired)
+        var runs: [(valid: Bool, range: Range<Int>)] = []
+        var index = 0
+        while index < bytes.count {
+            let length = utf8SequenceLength(bytes, at: index)
+            let valid = length != nil
+            let next = index + (length ?? 1)
+            if let last = runs.last, last.valid == valid {
+                runs[runs.count - 1].range = last.range.lowerBound..<next
+            } else {
+                runs.append((valid, index..<next))
+            }
+            index = next
+        }
+
+        // Kodierung EINMAL für alle ungültigen Bytes entscheiden (ein Bericht
+        // stammt aus einer Quelle; byteweise Einzelentscheidungen würden
+        // Mischmasch aus beiden Tabellen erzeugen).
+        let invalidBytes = runs.lazy.filter { !$0.valid }.flatMap { bytes[$0.range] }
+        let fallback: String.Encoding =
+            invalidBytes.contains { (0x80...0x9F).contains($0) } ? .macOSRoman : .isoLatin1
+
+        var out = ""
+        for run in runs {
+            let slice = Data(bytes[run.range])
+            if run.valid {
+                out += String(decoding: slice, as: UTF8.self)
+            } else {
+                // MacRoman/Latin1 bilden jedes Byte ab; der Rückfall auf
+                // lossy UTF-8 ist reine Vorsicht.
+                out += String(data: slice, encoding: fallback)
+                    ?? String(decoding: slice, as: UTF8.self)
+            }
+        }
+        return out
+    }
+
+    /// Länge der gültigen UTF-8-Sequenz an `index`, sonst nil. Prüft
+    /// Fortsetzungsbytes, Überlang-Kodierungen, Surrogate und die
+    /// Unicode-Obergrenze — nur echte Sequenzen zählen als gültig.
+    private static func utf8SequenceLength(_ bytes: [UInt8], at index: Int) -> Int? {
+        let first = bytes[index]
+        if first < 0x80 { return 1 }
+        let length: Int
+        let minScalar: UInt32
+        switch first {
+        case 0xC2...0xDF: length = 2; minScalar = 0x80
+        case 0xE0...0xEF: length = 3; minScalar = 0x800
+        case 0xF0...0xF4: length = 4; minScalar = 0x10000
+        default: return nil
+        }
+        guard index + length <= bytes.count else { return nil }
+        var scalar = UInt32(first) & (0xFF >> UInt32(length + 1))
+        for offset in 1..<length {
+            let byte = bytes[index + offset]
+            guard (0x80...0xBF).contains(byte) else { return nil }
+            scalar = (scalar << 6) | UInt32(byte & 0x3F)
+        }
+        guard scalar >= minScalar, scalar <= 0x10FFFF,
+              !(0xD800...0xDFFF).contains(scalar) else { return nil }
+        return length
     }
 
     /// mediainfo kodiert nicht-UTF-8-Bytes in JSON als Lone-Surrogates
     /// ("\udcfc" für Byte 0xFC, à la Python surrogateescape). JSON-Parser
-    /// lehnen das ab bzw. verlieren die Information — deshalb ersetzen wir
-    /// die Escape-Sequenzen im Bytestrom durch die Latin1-Deutung des Bytes.
+    /// lehnen das ab bzw. verlieren die Information — deshalb stellen wir das
+    /// ROHE Originalbyte wieder her. Es bleibt dadurch bis zur
+    /// Kodierungsentscheidung in `decodeLossy` erhalten und wird dort wie
+    /// jedes andere ungültige Byte als MacRoman/Latin1 gedeutet ("\udc8a" ist
+    /// MacRomans "ä" und würde als vorschnelles Latin1 zum Steuerzeichen
+    /// U+008A).
     static func repairSurrogateEscapes(in data: Data) -> Data {
         var out = Data(capacity: data.count)
         var i = data.startIndex
@@ -441,9 +506,7 @@ public enum MediaInfoReader {
                 let hexBytes = [data[data.index(i, offsetBy: 4)], data[data.index(i, offsetBy: 5)]]
                 if let hex = String(bytes: hexBytes, encoding: .ascii),
                    let byte = UInt8(hex, radix: 16) {
-                    // Byte als Latin1-Zeichen in UTF-8 anhängen
-                    let scalar = Unicode.Scalar(byte)
-                    out.append(contentsOf: Array(String(Character(scalar)).utf8))
+                    out.append(byte)
                     i = data.index(i, offsetBy: 6)
                     continue
                 }

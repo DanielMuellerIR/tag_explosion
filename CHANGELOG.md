@@ -8,6 +8,49 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.21.25] — 2026-08-16
+
+### Behoben
+
+- Präparierte Rechnungs-PDFs können die App nicht mehr ausbremsen: Anhänge
+  werden vor dem Entpacken an ihrer deklarierten Größe geprüft (Filterketten
+  und angekündigte Riesen-Anhänge werden übersprungen), und die Suche im
+  Namensbaum hat neben der Tiefen- jetzt auch eine Knoten-Obergrenze gegen
+  sich selbst referenzierende Bäume.
+- Eine gültige Factur-X-/ZUGFeRD-Rechnung im AF-Array wird auch dann
+  gefunden, wenn viele fremde XML-Anhänge im Namensbaum davorstehen: Das
+  AF-Array wird zuerst gelesen, und die in XMP deklarierte Rechnungsdatei
+  hat einen reservierten Platz im Anhangs-Budget.
+- Die Profil-Erkennung (BT-24) akzeptiert bekannte URN-Stämme nur noch am
+  Anfang einer #-Komponente. Eine fremde Kennung, die einen echten Stamm
+  lediglich enthält, erscheint jetzt ehrlich als „EN 16931-basiert?“.
+- Das Auto-Backup vor einem Batch-Speichern scheitert nicht mehr an
+  fachfremden Bestandswerten (etwa von exiftool gelesenes Rating 6 oder
+  GPS 91/181): Der Export sichert den Bestand, und erst der Import prüft je
+  Eintrag gegen den Zielzustand — vor der Papierkorb-Sicherung und im
+  Dry-run genauso wie im echten Lauf.
+- EPUB-Backups sind wieder vollständig wiederherstellbar: Ein Serienindex
+  ohne Serie (calibre:series_index) und GIF-/WebP-Cover — beides in fremden
+  EPUBs verbreitet — können jetzt auch geschrieben werden, nicht nur
+  exportiert. Für mobi/azw3/fb2 gelten unverändert JPEG/PNG und die Regel
+  „Index braucht Serie“.
+- Ein einzelnes fremd kodiertes Byte in einem MediaInfo-Bericht verstümmelt
+  keine gültigen UTF-8-Tags (etwa Emoji) mehr, und als Surrogate-Escape
+  gelieferte MacRoman-Bytes (z.B. „ä“) werden korrekt gedeutet statt als
+  Steuerzeichen zu enden.
+- Wird während eines reinen Feld-Speicherns das unveränderte Originalcover
+  erneut ausgewählt, gilt der Eintrag nach dem Speichern wieder als sauber,
+  statt beim nächsten Speichern die Datei ohne Inhaltsänderung
+  auszutauschen.
+- Die Installer-Sperre entsteht jetzt atomar mitsamt Besitzerangabe
+  (Symlink statt Verzeichnis + Datei), und die Übernahme einer verwaisten
+  Sperre prüft den Besitzer im gegenseitigen Ausschluss erneut — zwei
+  Wettläufe, in denen parallele Installationen dieselbe App gleichzeitig
+  verändern konnten, sind damit geschlossen.
+- Der GUI-Selbsttest `scripts/dev-screenshot.sh` beendet die Test-App auch
+  in allen Fehlerpfaden zuverlässig (warten, notfalls hart beenden), statt
+  sie sichtbar weiterlaufen zu lassen.
+
 ## [0.21.24] — 2026-08-15
 
 ### Geprüft
