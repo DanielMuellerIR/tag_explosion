@@ -53,12 +53,28 @@ lock_owner() {
 }
 
 # Lebt der als "PID|Startzeit" notierte Besitzer wirklich noch?
+#
+# Geprueft wird ueber `ps`, NICHT ueber `kill -0`: Fuer den Prozess eines
+# anderen Benutzers liefert kill EPERM, und der Code hielt ihn dann faelschlich
+# fuer tot. Zwei Benutzer mit Schreibrecht am gemeinsamen Installationsziel
+# konnten dadurch gleichzeitig installieren (Review-Fund 2026-08-17).
+# `ps -o lstart= -p` sieht auch fremde Prozesse und liefert zugleich die
+# Startzeit — Existenz und Identitaet in einem Schritt.
 owner_alive() {
-    local owner=$1 pid start
+    local owner=$1 pid start current
     pid=${owner%%|*}
     start=${owner#*|}
-    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null \
-        && [ "$(proc_start_time "$pid")" = "$start" ]
+    # PID strikt validieren: Ein Besitzereintrag ohne reine Ziffernfolge ist
+    # Muell und beweist gar nichts.
+    case $pid in ''|*[!0-9]*) return 1 ;; esac
+    [ -n "$start" ] || return 1
+    current=$(proc_start_time "$pid")
+    [ -n "$current" ] && [ "$current" = "$start" ]
+}
+
+# Besitzer des Uebernahme-Hilfslocks (leer, wenn keiner lesbar ist).
+takeover_owner() {
+    readlink "$takeover_lock" 2>/dev/null || true
 }
 
 claim_lock() {
@@ -78,10 +94,16 @@ claim_lock() {
 # dann eine lebende Sperre und bräche die gegenseitige Ausschließung.
 # Rückgabe 1 = gerade nicht möglich, der Aufrufer wartet und versucht es neu.
 takeover_stale_lock() {
-    if ! mkdir "$takeover_lock" 2>/dev/null; then
-        # Ein anderer Übernehmer arbeitet gerade. Sein Hilfs-Lock umfasst nur
-        # wenige Dateisystem-Operationen; steht es länger als 60 Sekunden,
-        # ist der Übernehmer selbst abgestürzt und das Hilfs-Lock verwaist.
+    # Das Hilfs-Lock traegt seinen Besitzer genauso wie die Hauptsperre: EIN
+    # atomarer Symlink-Schritt, dessen Ziel "PID|Startzeit" ist. Vorher war es
+    # ein besitzerloses Verzeichnis, das allein nach 60 Sekunden Alter entfernt
+    # wurde — ein laenger pausierter, LEBENDER Uebernehmer wurde damit verdraengt,
+    # und beide Laeufe arbeiteten gleichzeitig am selben Ziel
+    # (Review-Fund 2026-08-17).
+    # Altformat: ein besitzerloses VERZEICHNIS aus einer frueheren Fassung.
+    # `ln -s` wuerde den Link dort HINEINLEGEN statt zu scheitern, deshalb
+    # vorab behandeln. Ohne lesbaren Besitzer bleibt nur das Alter als Kriterium.
+    if [ -d "$takeover_lock" ] && [ ! -L "$takeover_lock" ]; then
         local mtime now
         mtime=$(stat -f %m "$takeover_lock" 2>/dev/null || echo 0)
         now=$(date +%s)
@@ -90,19 +112,57 @@ takeover_stale_lock() {
         fi
         return 1
     fi
+    if ! ln -s "$my_owner" "$takeover_lock" 2>/dev/null; then
+        local helper_owner mtime now
+        helper_owner=$(takeover_owner)
+        if [ -n "$helper_owner" ]; then
+            if owner_alive "$helper_owner"; then
+                # Lebt: warten, nichts anfassen. Das Alter spielt keine Rolle.
+                return 1
+            fi
+            # Besitzer nachweislich tot — sofort raeumen, keine Frist noetig.
+            rm -f -- "$takeover_lock"
+            return 1
+        fi
+        # Weder Verzeichnis noch lesbarer Link (kaputt): erst nach 60 Sekunden.
+        mtime=$(stat -f %m "$takeover_lock" 2>/dev/null || echo 0)
+        now=$(date +%s)
+        if [ $((now - mtime)) -gt 60 ]; then
+            rm -rf -- "$takeover_lock"
+        fi
+        return 1
+    fi
+    # Nur das eigene Linkziel am Hilfslock-Pfad beweist den Erwerb — genau wie
+    # bei der Hauptsperre.
+    if [ "$(takeover_owner)" != "$my_owner" ]; then
+        return 1
+    fi
     local owner
     owner=$(lock_owner)
     if [ -n "$owner" ] && owner_alive "$owner"; then
         # Die Sperre gehört inzwischen einem lebenden Lauf — nichts entfernen.
-        rmdir "$takeover_lock" 2>/dev/null || true
+        release_takeover_lock
         echo "FEHLER: Eine andere Installation arbeitet bereits an $dest; nichts wurde verändert." >&2
         exit 1
     fi
     if [ -e "$lock" ] || [ -L "$lock" ]; then
+        # Unmittelbar VOR dem Entfernen den eigenen Hilfslock-Besitz erneut
+        # beweisen: War dieser Lauf zwischenzeitlich pausiert, koennte ein
+        # anderer ihn verdraengt und laengst seine eigene, LEBENDE Hauptsperre
+        # gesetzt haben — die duerfte er nicht loeschen.
+        if [ "$(takeover_owner)" != "$my_owner" ]; then
+            return 1
+        fi
         echo "Hinweis: verwaiste Installer-Sperre wird entfernt: $lock" >&2
         rm -rf -- "$lock"
     fi
-    rmdir "$takeover_lock" 2>/dev/null || true
+    release_takeover_lock
+}
+
+# Das Hilfs-Lock nur abnehmen, wenn es noch UNS gehoert.
+release_takeover_lock() {
+    [ "$(takeover_owner)" = "$my_owner" ] || return 0
+    rm -f -- "$takeover_lock" 2>/dev/null || true
 }
 
 acquire_lock() {

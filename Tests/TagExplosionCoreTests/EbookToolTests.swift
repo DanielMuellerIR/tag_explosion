@@ -807,4 +807,39 @@ struct EbookToolTests {
         }
         return result
     }
+
+    @Test("WebP-Cover: EPUB 3 ja, EPUB 2 nein")
+    func webpCoverFollowsPackageVersion() throws {
+        // WebP ist erst ab EPUB 3 ein Kern-Bildformat. In einem EPUB-2-Paket
+        // braeuchte es ein Fallback-Item; ohne das ignorieren Reader das Cover
+        // und Pruefer lehnen das Paket ab. Vorher wurde WebP fuer JEDES EPUB
+        // zugelassen und der Schreibweg meldete trotzdem Erfolg
+        // (Review-Fund 2026-08-17).
+        //
+        // Minimales gueltiges WebP: "RIFF" + Groesse + "WEBPVP8 ".
+        var webpBytes: [UInt8] = Array("RIFF".utf8)
+        webpBytes.append(contentsOf: [0x1A, 0x00, 0x00, 0x00])
+        webpBytes.append(contentsOf: Array("WEBPVP8 ".utf8))
+        webpBytes.append(contentsOf: Array(repeating: 0, count: 14))
+        let webp = Data(webpBytes)
+
+        let epub2 = try Fixtures.workingCopy("book2.epub")
+        #expect(EpubFile.packageVersion(url: epub2)?.hasPrefix("2") == true)
+        #expect(!EbookTool.supportedCoverMimeTypes(url: epub2).contains("image/webp"))
+        let vorher = try Data(contentsOf: epub2)
+        let felder2 = try EbookTool.readCoreFields(url: epub2)
+        #expect(throws: TagError.unsupportedCoverData) {
+            try EbookTool.write(url: epub2, fields: felder2, original: felder2,
+                                coverUpdate: .set(webp))
+        }
+        #expect(try Data(contentsOf: epub2) == vorher, "Die Datei bleibt unangetastet.")
+
+        let epub3 = try Fixtures.workingCopy("book3.epub")
+        #expect(EpubFile.packageVersion(url: epub3)?.hasPrefix("3") == true)
+        #expect(EbookTool.supportedCoverMimeTypes(url: epub3).contains("image/webp"))
+        let felder3 = try EbookTool.readCoreFields(url: epub3)
+        try EbookTool.write(url: epub3, fields: felder3, original: felder3,
+                            coverUpdate: .set(webp))
+        #expect(try EbookTool.readCover(url: epub3)?.data == webp)
+    }
 }

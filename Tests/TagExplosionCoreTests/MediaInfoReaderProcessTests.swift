@@ -122,4 +122,54 @@ struct MediaInfoReaderProcessTests {
             #expect(stderr == String(repeating: stderrChunk, count: repetitions))
         }
     }
+
+    // MARK: - Review-Fund 2026-08-17
+
+    @Test("MacRoman und Latin-1 duerfen im selben Bericht nebeneinander stehen")
+    func decidesEncodingPerInvalidRun() {
+        // Ein einziges C1-Byte irgendwo im Bericht zog vorher ALLE unguel­tigen
+        // Laeufe auf MacRoman: Ein Feld mit 0x8A (MacRoman „ae") verfaelschte
+        // damit ein anderes Feld mit 0xFC (Latin-1 „ue").
+        var raw = Data(#"{"a":"B"#.utf8)
+        raw.append(0x8A)                      // MacRoman „ä"
+        raw.append(contentsOf: Data(#"ckerei","b":"T"#.utf8))
+        raw.append(0xFC)                      // Latin-1 „ü"
+        raw.append(contentsOf: Data(#"r"}"#.utf8))
+
+        let decoded = MediaInfoReader.decodeLossy(raw)
+
+        #expect(decoded.contains("Bäckerei"))
+        #expect(decoded.contains("Tür"))
+    }
+
+    @Test("Ein gueltiges Surrogatpaar bleibt unangetastet")
+    func keepsValidSurrogatePairs() {
+        // `\ud83d\udcfc` ist ein echtes Zeichen jenseits der BMP. Die zweite
+        // Haelfte wurde vorher zum Rohbyte 0xFC umgebaut und das JSON damit
+        // zerstoert.
+        let raw = Data(#"{"v":"\ud83d\udcfc"}"#.utf8)
+        let repaired = MediaInfoReader.repairSurrogateEscapes(in: raw)
+        #expect(repaired == raw)
+        // Und das Ergebnis bleibt gueltiges JSON mit dem richtigen Zeichen.
+        struct Wrapper: Decodable { let v: String }
+        let decoded = try? JSONDecoder().decode(Wrapper.self, from: repaired)
+        #expect(decoded?.v == "📼")
+    }
+
+    @Test("Ein doppelter Backslash leitet keine Escape-Folge ein")
+    func keepsLiteralBackslashEscapes() {
+        // `\\udcfc` meint in JSON den Text „udcfc" hinter einem literalen
+        // Backslash — kein Escape. Vorher wurde daraus ein Rohbyte.
+        let raw = Data(##"{"v":"\\udcfc"}"##.utf8)
+        #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == raw)
+    }
+
+    @Test("Ein einzelnes Byte-Escape wird weiterhin zum Rohbyte")
+    func stillRepairsLoneByteEscapes() {
+        let raw = Data(#"{"v":"T\udcfcr"}"#.utf8)
+        var erwartet = Data(#"{"v":"T"#.utf8)
+        erwartet.append(0xFC)
+        erwartet.append(contentsOf: Data(#"r"}"#.utf8))
+        #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == erwartet)
+    }
 }

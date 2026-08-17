@@ -154,8 +154,21 @@ extension EInvoiceProfile {
         // eine bloße Teilzeichenfolge ("urn:example:urn:factur-x.eu:…") würde
         // fremde Kennungen als bekannten Standard ausgeben.
         let components = lower.components(separatedBy: "#")
+        /// Die GEMATCHTE Komponente — nicht nur ein Ja/Nein.
+        ///
+        /// Version, Extension-Kennzeichen und Profil wurden vorher aus der
+        /// GESAMTEN Rohkennung gezogen: `xrechnung_` case-sensitiv im
+        /// Original-`urn`, `kosit:extension` global, und Factur-X bekam den
+        /// ganzen String. Eine grossgeschriebene Komponente `XRECHNUNG_3.0`
+        /// ergab damit „XRechnung URN", und eine nachgestellte fremde
+        /// Komponente konnte Extension-Kennzeichen oder Profil liefern
+        /// (Review-Fund 2026-08-17). Ausgewertet wird jetzt ausschliesslich
+        /// die normalisierte Komponente, die wirklich gepasst hat.
+        func matchedComponent(withPrefix marker: String) -> String? {
+            components.first { $0.hasPrefix(marker) }
+        }
         func hasComponent(withPrefix marker: String) -> Bool {
-            components.contains { $0.hasPrefix(marker) }
+            matchedComponent(withPrefix: marker) != nil
         }
 
         func make(_ standard: String, _ profile: String) -> EInvoiceProfile {
@@ -171,10 +184,13 @@ extension EInvoiceProfile {
             "urn:xoev-de:kosit:standard:xrechnung_",
             "urn:xoev-de:kosit:extension:xrechnung_",
         ]
-        if xrechnungMarkers.contains(where: hasComponent(withPrefix:)) {
-            let version = urn.components(separatedBy: "xrechnung_").last
+        if let matched = xrechnungMarkers.lazy
+            .compactMap({ matchedComponent(withPrefix: $0) }).first {
+            // Version, Extension und Name kommen NUR aus dieser Komponente.
+            let version = matched.components(separatedBy: "xrechnung_").last
                 .map { $0.components(separatedBy: CharacterSet(charactersIn: "#:")).first ?? $0 }
-            let extended = lower.contains("kosit:extension")
+                .flatMap { $0.isEmpty ? nil : $0 }
+            let extended = matched.contains("kosit:extension")
             let name = "XRechnung" + (version.map { " \($0)" } ?? "")
                 + (extended ? " (mit Extension)" : "")
             return make("XRechnung", name)
@@ -186,13 +202,13 @@ extension EInvoiceProfile {
         }
 
         // --- Factur-X / ZUGFeRD 2.1+ (gemeinsamer Standard, URN-Stamm factur-x.eu)
-        if hasComponent(withPrefix: "urn:factur-x.eu:") {
-            return make("Factur-X / ZUGFeRD", facturXProfileName(from: lower))
+        if let matched = matchedComponent(withPrefix: "urn:factur-x.eu:") {
+            return make("Factur-X / ZUGFeRD", facturXProfileName(from: matched))
         }
 
         // --- ZUGFeRD 2.0 (eigener URN-Stamm zugferd.de:2p0)
-        if hasComponent(withPrefix: "urn:zugferd.de:2p0:") {
-            return make("ZUGFeRD 2.0", facturXProfileName(from: lower))
+        if let matched = matchedComponent(withPrefix: "urn:zugferd.de:2p0:") {
+            return make("ZUGFeRD 2.0", facturXProfileName(from: matched))
         }
 
         // --- ZUGFeRD 1.0 (vor EN 16931)

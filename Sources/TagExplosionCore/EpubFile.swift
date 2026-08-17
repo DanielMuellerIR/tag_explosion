@@ -274,6 +274,20 @@ enum EpubFile {
 
     /// Öffnet das Archiv, findet die OPF über META-INF/container.xml und
     /// liefert das geparste XML samt Pfad und Archiv zurück.
+    /// Die im OPF deklarierte EPUB-Version ("2.0", "3.0", …). `nil`, wenn die
+    /// Datei nicht lesbar ist oder keine Version nennt.
+    ///
+    /// Wird gebraucht, um versionsabhaengige Coverformate zu entscheiden: WebP
+    /// ist erst ab EPUB 3 ein Kern-Bildformat; in einem EPUB-2-Paket braeuchte
+    /// es einen Fallback und wird von Readern sonst ignoriert
+    /// (Review-Fund 2026-08-17).
+    public static func packageVersion(url: URL) -> String? {
+        guard let (document, _, _) = try? loadOpf(url: url, accessMode: .read),
+              let root = document.rootElement() else { return nil }
+        return attribute(root, "version")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private static func loadOpf(url: URL, accessMode: Archive.AccessMode) throws -> (XMLDocument, String, Archive) {
         let archive: Archive
         do {

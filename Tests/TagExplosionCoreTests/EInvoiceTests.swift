@@ -341,6 +341,25 @@ struct EInvoiceTests {
             == "EN 16931-basiert?")
         #expect(resolved("urn:example:urn:zugferd.de:2p0:basic").standard
             == "EN 16931-basiert?")
+        // Review-Fund 2026-08-17: Version, Extension und Profil kommen NUR aus
+        // der gematchten, normalisierten Komponente.
+        // Grossgeschriebene Komponente: Die Erkennung lief schon immer auf der
+        // kleingeschriebenen Fassung, die Version wurde aber aus der ROHEN
+        // Kennung gezogen — dort stand "XRECHNUNG_3.0", und "xrechnung_" fand
+        // sich nicht. Ergebnis war "XRechnung URN" ohne Versionsnummer.
+        let grossgeschrieben = resolved(
+            "urn:cen.eu:en16931:2017#compliant#URN:XEINKAUF.DE:KOSIT:XRECHNUNG_3.0")
+        #expect(grossgeschrieben.standard == "XRechnung")
+        #expect(grossgeschrieben.profile == "XRechnung 3.0")
+        // Nachgestellte fremde Komponente: Sie darf weder ein
+        // Extension-Kennzeichen noch ein Factur-X-Profil beisteuern.
+        let mitFremdteil = resolved(
+            "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
+                + "#urn:example:kosit:extension")
+        #expect(mitFremdteil.profile == "XRechnung 3.0")
+        let facturXMitFremdteil = resolved(
+            "urn:factur-x.eu:1p0:basic#urn:example:extended")
+        #expect(facturXMitFremdteil.profile == "BASIC")
         // Unbekannte URN bleibt sichtbar statt geraten.
         #expect(resolved("urn:example:foo").profile == "urn:example:foo")
     }
@@ -682,6 +701,102 @@ struct EInvoiceTests {
             #expect(throws: EInvoiceError.notAnInvoice) {
                 try EInvoiceReader.read(url: sizeLie)
             }
+        }
+    }
+
+    // MARK: - Review-Fund 2026-08-17
+
+    @Test("PDF: Ein Anhangs-Stream ohne gueltige /Length wird uebersprungen")
+    func pdfStreamWithoutLengthIsSkipped() throws {
+        try withTempDirectory { dir in
+            // Fehlte die Laengenangabe oder war sie keine Ganzzahl, liess die
+            // Vorpruefung den Stream einfach durch — er umging damit jede
+            // Groessenschranke, obwohl CGPDFStreamCopyData ihn vollstaendig im
+            // Speicher materialisiert.
+            let xml = Self.ciiXML
+            func pdf(streamDict: String) -> Data {
+                Self.assemblePDF(objects: [
+                    "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles "
+                        + "<< /Names [ (factur-x.xml) 5 0 R ] >> >> /AF [ 5 0 R ] >>",
+                    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                    "\(streamDict)\nstream\n\(xml)\nendstream",
+                    "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) "
+                        + "/EF << /F 4 0 R /UF 4 0 R >> >>",
+                ])
+            }
+            // Gar keine /Length …
+            let ohneLaenge = dir.appendingPathComponent("ohne-laenge.pdf")
+            try pdf(streamDict: "<< /Type /EmbeddedFile >>").write(to: ohneLaenge)
+            #expect(throws: EInvoiceError.notAnInvoice) {
+                try EInvoiceReader.read(url: ohneLaenge)
+            }
+            // … und eine /Length von 0 (unehrliche Angabe).
+            let nullLaenge = dir.appendingPathComponent("null-laenge.pdf")
+            try pdf(streamDict: "<< /Type /EmbeddedFile /Length 0 >>").write(to: nullLaenge)
+            #expect(throws: EInvoiceError.notAnInvoice) {
+                try EInvoiceReader.read(url: nullLaenge)
+            }
+        }
+    }
+
+    @Test("PDF: Ein uebergrosser XMP-Metadatenstrom wird gar nicht erst gelesen")
+    func pdfOversizedMetadataIsSkipped() throws {
+        try withTempDirectory { dir in
+            // `readDeclaration` las den /Metadata-Strom vorher OHNE jede
+            // Schranke und baute daraus einen vollstaendigen XML-Baum — schon
+            // das blosse Oeffnen eines PDFs war damit angreifbar. Der Inhalt
+            // hier ist eine gueltige Factur-X-Deklaration, die deklarierte
+            // Laenge liegt aber ueber der XMP-Schranke: Wird der Strom
+            // uebersprungen, fehlt die Deklaration — genau der beobachtbare
+            // Unterschied. Der Anhang selbst bleibt lesbar.
+            let xml = Self.ciiXML
+            let xmp = Self.invoiceXMP(fileName: "factur-x.xml")
+            let url = dir.appendingPathComponent("xmp-bombe.pdf")
+            try Self.assemblePDF(objects: [
+                "<< /Type /Catalog /Pages 2 0 R /Metadata 6 0 R /Names << /EmbeddedFiles "
+                    + "<< /Names [ (factur-x.xml) 5 0 R ] >> >> /AF [ 5 0 R ] >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                "<< /Type /EmbeddedFile /Length \(xml.utf8.count) >>\nstream\n\(xml)\nendstream",
+                "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) "
+                    + "/EF << /F 4 0 R /UF 4 0 R >> >>",
+                "<< /Type /Metadata /Subtype /XML /Length 9437184 >>\nstream\n\(xmp)\nendstream",
+            ]).write(to: url)
+
+            let doc = try EInvoiceReader.read(url: url)
+            #expect(doc.pdfDeclaration == nil,
+                    "Ein Metadatenstrom ueber der Schranke darf nicht gelesen werden.")
+            // Die Rechnung wird trotzdem ueber den Anhang gefunden.
+            #expect(doc.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: Ein breites /AF-Array bleibt im Arbeitsbudget", .timeLimit(.minutes(1)))
+    func pdfWideAFArrayTerminates() throws {
+        try withTempDirectory { dir in
+            // Waechter fuer das gemeinsame Arbeitsbudget (Review-Fund
+            // 2026-08-17): Das Knotenbudget zaehlte nur rekursive Dictionaries,
+            // ein breites /AF-Array lief trotzdem vollstaendig durch. Dieser
+            // Test faellt nicht gegen den alten Stand — er haelt fest, dass die
+            // Rechnung trotz Budgetgrenze weiterhin gefunden wird, damit die
+            // Grenze nicht heimlich wieder verschwindet oder zu eng wird.
+            let xml = Self.ciiXML
+            let verweise = Array(repeating: "6 0 R", count: 40_000).joined(separator: " ")
+            let url = dir.appendingPathComponent("breites-af.pdf")
+            try Self.assemblePDF(objects: [
+                "<< /Type /Catalog /Pages 2 0 R /AF [ 5 0 R \(verweise) ] >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                "<< /Type /EmbeddedFile /Length \(xml.utf8.count) >>\nstream\n\(xml)\nendstream",
+                "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) "
+                    + "/EF << /F 4 0 R /UF 4 0 R >> >>",
+                "<< /Type /Filespec /F (fuell.xml) /UF (fuell.xml) >>",
+            ]).write(to: url)
+
+            // Die echte Rechnung steht vorn und wird trotzdem gefunden.
+            let doc = try EInvoiceReader.read(url: url)
+            #expect(doc.summary.invoiceNumber == "R-1")
         }
     }
 

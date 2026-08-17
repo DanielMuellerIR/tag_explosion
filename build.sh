@@ -308,8 +308,17 @@ notarize_submit() {
         [ "$status" -eq 0 ] && return 0
         case $output in
             *"No Keychain password item found"*)
-                echo "Hinweis: Keychain-Falsch-Negativ (Versuch $attempt/5) — neuer Versuch in 3 s." >&2
-                sleep 3 ;;
+                # Beim LETZTEN Versuch gibt es nichts mehr anzukuendigen: Ein
+                # "neuer Versuch in 3 s" mit anschliessendem Schlaf war falsch
+                # protokolliert und verzoegerte den endgueltigen Fehler nur
+                # (Review-Fund 2026-08-17).
+                if [ "$attempt" -lt 5 ]; then
+                    echo "Hinweis: Keychain-Falsch-Negativ (Versuch $attempt/5) — neuer Versuch in 3 s." >&2
+                    sleep 3
+                else
+                    echo "FEHLER: Keychain-Profil auch nach 5 Versuchen nicht lesbar." >&2
+                    return "$status"
+                fi ;;
             *) return "$status" ;;
         esac
     done

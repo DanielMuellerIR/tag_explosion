@@ -54,6 +54,23 @@ if [ -n "${SIGNAL_ON_RM_OF:-}" ]; then
 fi
 exec /bin/rm "$@"
 SH
+# Marker fuer den Wettlauf-Test: Sobald der Anwaerter den Besitzer des
+# Uebernahme-Hilfslocks liest, wartet er nachweislich dort. Ein blosses
+# `sleep 0.5` bewies das nicht — wurde der Hintergrundlauf erst nach dem
+# Sperrtausch eingeplant, sah er sofort den lebenden Besitzer, brach
+# erwartungsgemaess ab, und der Test bestand, ohne die erneute Pruefung in
+# takeover_stale_lock je auszufuehren (Review-Fund 2026-08-17).
+cat > "$fake_bin/readlink" <<'SH'
+#!/usr/bin/env bash
+if [ -n "${TAKEOVER_WAIT_MARKER:-}" ]; then
+    for arg in "$@"; do
+        case $arg in
+            *.lock.takeover) : > "$TAKEOVER_WAIT_MARKER" ;;
+        esac
+    done
+fi
+exec /usr/bin/readlink "$@"
+SH
 cat > "$fake_bin/mv" <<'SH'
 #!/usr/bin/env bash
 if [ "${FAIL_ROLLBACK:-0}" -eq 1 ] && [[ "$1" == *.old.* ]]; then
@@ -80,6 +97,7 @@ run_installer() {
         BLOCK_SPCTL_CALL="${BLOCK_SPCTL_CALL:-0}" \
         RELEASE_FILE="${RELEASE_FILE:-}" \
         SIGNAL_ON_RM_OF="${SIGNAL_ON_RM_OF:-}" \
+        TAKEOVER_WAIT_MARKER="${TAKEOVER_WAIT_MARKER:-}" \
         "$root/scripts/install-verified-app.sh" "$source" "$destination"
 }
 
@@ -257,20 +275,34 @@ assert_text new "$headless_root/TagExplosion.app"
 race_root="$work/takeover-race"
 mkdir -p "$race_root"
 ln -s '999999|Mon Jan  1 00:00:00 2001' "$race_root/.TagExplosion.app.lock"
-# Das belegte Hilfslock hält jede Übernahme auf, bis wir es freigeben.
-mkdir "$race_root/.TagExplosion.app.lock.takeover"
+# Das belegte Hilfslock hält jede Übernahme auf, bis wir es freigeben. Es trägt
+# jetzt selbst einen LEBENDEN Besitzer (diese Shell) — ein besitzerloses
+# Verzeichnis wäre nach 60 s verdrängbar und genau das war der Fehler.
+ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$race_root/.TagExplosion.app.lock.takeover"
 rm -f "$work/verify-count"
 race_output="$work/takeover-race.log"
+race_marker="$work/takeover-race.waiting"
+rm -f "$race_marker"
+TAKEOVER_WAIT_MARKER="$race_marker" \
 run_installer "$new_source" "$race_root/TagExplosion.app" \
     > "$race_output" 2>&1 &
 race_installer=$!
-sleep 0.5
+# Erst weitermachen, wenn der Anwärter das Hilfslock nachweislich gelesen hat.
+race_wait=0
+until [ -f "$race_marker" ]; do
+    sleep 0.05
+    race_wait=$((race_wait + 1))
+    [ "$race_wait" -lt 200 ] || {
+        echo "FEHLER: Anwärter erreichte das Übernahme-Hilfslock nicht" >&2
+        exit 1
+    }
+done
 # "Nachfolger": tote Sperre ATOMAR gegen eine lebende (unsere Shell)
 # tauschen — ein rm+ln-Fenster würde der wartende Anwärter sofort selbst
 # mit claim_lock füllen. Erst danach die Übernahme freigeben.
 ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$race_root/.live-lock"
 /bin/mv "$race_root/.live-lock" "$race_root/.TagExplosion.app.lock"
-rmdir "$race_root/.TagExplosion.app.lock.takeover"
+rm -f "$race_root/.TagExplosion.app.lock.takeover"
 if wait "$race_installer"; then
     echo "FEHLER: Anwärter hat eine lebende Sperre gestohlen" >&2
     exit 1
@@ -295,11 +327,44 @@ rm -f "$race_root/.TagExplosion.app.lock"
 old_tko_root="$work/stale-takeover"
 mkdir -p "$old_tko_root"
 ln -s '999999|Mon Jan  1 00:00:00 2001' "$old_tko_root/.TagExplosion.app.lock"
+# Besitzerloses Altformat-Verzeichnis: Genau das darf nach Fristablauf weg.
 mkdir "$old_tko_root/.TagExplosion.app.lock.takeover"
 touch -t 202001010000 "$old_tko_root/.TagExplosion.app.lock.takeover"
 rm -f "$work/verify-count"
 run_installer "$new_source" "$old_tko_root/TagExplosion.app"
 assert_text new "$old_tko_root/TagExplosion.app"
 [ -z "$(find "$old_tko_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# Ein Sperrbesitzer, dem dieser Benutzer kein Signal schicken darf, gilt
+# trotzdem als LEBEND. `kill -0` liefert dafuer EPERM, und der Code hielt ihn
+# frueher fuer tot — zwei Benutzer mit Schreibrecht am selben Ziel konnten
+# dadurch gleichzeitig installieren (Review-Fund 2026-08-17).
+# Kein Stub noetig: PID 1 (launchd) gehoert root, existiert immer, und `ps`
+# sieht sie. Ein Stub waere hier ohnehin wirkungslos, weil `kill` ein
+# Shell-Builtin ist und nicht aus dem PATH kommt.
+eperm_root="$work/eperm-owner"
+mkdir -p "$eperm_root"
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Hinweis: als root uebersprungen — jedes Signal ist erlaubt." >&2
+else
+    ln -s "1|$(ps -o lstart= -p 1 | head -n 1)" "$eperm_root/.TagExplosion.app.lock"
+    rm -f "$work/verify-count"
+    eperm_output="$work/eperm.log"
+    if run_installer "$new_source" "$eperm_root/TagExplosion.app" \
+            > "$eperm_output" 2>&1; then
+        echo "FEHLER: Sperre eines nicht signalisierbaren Besitzers wurde uebergangen" >&2
+        exit 1
+    fi
+    grep -q "andere Installation" "$eperm_output" || {
+        echo "FEHLER: falscher Abbruchgrund beim nicht signalisierbaren Besitzer:" >&2
+        cat "$eperm_output" >&2
+        exit 1
+    }
+    [ ! -e "$eperm_root/TagExplosion.app" ] || {
+        echo "FEHLER: trotz lebender fremder Sperre installiert" >&2
+        exit 1
+    }
+    rm -f "$eperm_root/.TagExplosion.app.lock"
+fi
 
 echo "Installer-Rollback-Tests: OK"

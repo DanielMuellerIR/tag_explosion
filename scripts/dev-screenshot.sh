@@ -3,6 +3,13 @@
 # holt das Fenster kurz nach vorn, macht einen Region-Screenshot und beendet
 # die App sofort wieder (Fenster blitzt nur kurz auf).
 # Aufruf: scripts/dev-screenshot.sh <ausgabe.png> [datei-oder-ordner ...]
+#
+# Start UND Ende der Test-App liegen bewusst im Swift-Teil unten. Vorher startete
+# die Shell die App per `open -a`, wartete drei Sekunden und griff danach die
+# ERSTE laufende App mit dieser Bundle-ID: Lief schon eine produktiv benutzte
+# Instanz, beendete der Selbsttest die falsche — mitsamt ungesicherter
+# Aenderungen. Und ein Signal waehrend des `sleep` oder ein Fehler beim
+# Kompilieren erreichte den Aufraeumcode nie (Review-Fund 2026-08-17).
 set -eu
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,26 +18,56 @@ out="${1:?Ausgabe-PNG angeben}"; shift
 app="$here/TagExplosion.app"
 [ -d "$app" ] || { echo "App fehlt — erst ./build.sh" >&2; exit 1; }
 
-# App mit optionalen Dateien starten
-if [ "$#" -gt 0 ]; then
-    open -a "$app" "$@"
-else
-    open -a "$app"
-fi
-sleep 3
-
 # Fenster-Region ermitteln, aktivieren, screenshotten, App beenden
-swift - "$out" <<'SW'
+swift - "$app" "$out" "$@" <<'SW'
 import AppKit
 import CoreGraphics
 import Foundation
 
-let out = CommandLine.arguments[1]
-let appName = "Tag Explosion" // kCGWindowOwnerName = CFBundleName (mit Leerzeichen)
+let appPath = CommandLine.arguments[1]
+let out = CommandLine.arguments[2]
+let documents = CommandLine.arguments.dropFirst(3).map { URL(fileURLWithPath: $0) }
 
-guard let running = NSRunningApplication
-    .runningApplications(withBundleIdentifier: "io.github.danielmuellerir.tagexplosion").first
-else { print("App läuft nicht"); exit(1) }
+// Eine EIGENE Instanz starten und genau sie festhalten. `createsNewApplicationInstance`
+// sorgt dafuer, dass eine bereits laufende Tag Explosion unberuehrt bleibt.
+func launchTestInstance() -> NSRunningApplication? {
+    let configuration = NSWorkspace.OpenConfiguration()
+    configuration.createsNewApplicationInstance = true
+    configuration.activates = true
+    let bundle = URL(fileURLWithPath: appPath)
+    var launched: NSRunningApplication?
+    let done = DispatchSemaphore(value: 0)
+    let handler: (NSRunningApplication?, Error?) -> Void = { application, error in
+        launched = application
+        if let error {
+            FileHandle.standardError.write(
+                Data("FEHLER: App-Start: \(error.localizedDescription)\n".utf8))
+        }
+        done.signal()
+    }
+    if documents.isEmpty {
+        NSWorkspace.shared.openApplication(at: bundle, configuration: configuration,
+                                           completionHandler: handler)
+    } else {
+        NSWorkspace.shared.open(documents, withApplicationAt: bundle,
+                                configuration: configuration, completionHandler: handler)
+    }
+    // Der Handler laeuft auf dem Main-Thread; deshalb die RunLoop drehen statt
+    // blockierend zu warten.
+    let deadline = Date().addingTimeInterval(30)
+    while done.wait(timeout: .now()) == .timedOut, Date() < deadline {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+    }
+    return launched
+}
+
+guard let running = launchTestInstance() else {
+    FileHandle.standardError.write(Data("FEHLER: Test-Instanz startete nicht.\n".utf8))
+    exit(1)
+}
+// Ab hier gilt: Auf JEDEM Weg aus diesem Programm wird genau diese Instanz
+// beendet — sie gehoert uns, niemandem sonst.
+let testPID = running.processIdentifier
 
 // Beendet die Test-App und wartet auf ihr tatsächliches Ende — erst höflich
 // (terminate), nach Ablauf der Frist hart (forceTerminate). Erfolgs- UND
@@ -60,14 +97,18 @@ func fail(_ message: String) -> Never {
     exit(1)
 }
 
+// Fenster brauchen einen Moment, bis sie auf dem Bildschirm sind.
+Thread.sleep(forTimeInterval: 3.0)
 guard running.activate() else { fail("App konnte nicht aktiviert werden") }
 Thread.sleep(forTimeInterval: 1.0)
 
 guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
 else { fail("Fensterliste konnte nicht gelesen werden") }
 
+// Fenster ueber die PID zuordnen, nicht ueber den Anzeigenamen: Eine zweite
+// Instanz derselben App traegt denselben Namen, aber eine andere PID.
 var best: (bounds: CGRect, area: CGFloat) = (.zero, 0)
-for w in list where (w[kCGWindowOwnerName as String] as? String ?? "") == appName {
+for w in list where (w[kCGWindowOwnerPID as String] as? pid_t) == testPID {
     let b = w[kCGWindowBounds as String] as? [String: Any] ?? [:]
     let rect = CGRect(
         x: b["X"] as? CGFloat ?? 0, y: b["Y"] as? CGFloat ?? 0,

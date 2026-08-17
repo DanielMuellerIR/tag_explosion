@@ -227,6 +227,14 @@ public enum ExifTool {
         _ fields: ImageCoreFields,
         original: ImageCoreFields? = nil
     ) throws {
+        try requireWritableCoreFields(fields, original: original)
+
+        // Ab hier die reinen WERTEBEREICHE der Oberflaeche. Sie gelten fuer
+        // eine vom Nutzer gewuenschte Aenderung, NICHT fuer das
+        // Wiederherstellen eines archivierten Bestandswerts: Ein Rating 6 oder
+        // eine GPS-Koordinate 91/181 lag vor dem Backup wirklich in der Datei
+        // und muss dorthin zurueckkoennen (Review-Fund 2026-08-17, siehe
+        // knowledge/archiv-restore-vertrag.md).
         let ratingChanged = original.map { $0.rating != fields.rating } ?? true
         if ratingChanged {
             guard (-1...5).contains(fields.rating) else {
@@ -237,6 +245,37 @@ public enum ExifTool {
         let gpsChanged = original.map {
             $0.gpsLatitude != fields.gpsLatitude || $0.gpsLongitude != fields.gpsLongitude
         } ?? true
+        guard gpsChanged, !fields.gpsLatitude.isEmpty, !fields.gpsLongitude.isEmpty else {
+            return
+        }
+        guard let latitude = Double(fields.gpsLatitude), (-90...90).contains(latitude) else {
+            throw ImageMetadataValidationError.invalidLatitude(fields.gpsLatitude)
+        }
+        guard let longitude = Double(fields.gpsLongitude), (-180...180).contains(longitude) else {
+            throw ImageMetadataValidationError.invalidLongitude(fields.gpsLongitude)
+        }
+    }
+
+    /// Nur die TECHNISCHE Schreibbarkeit — ohne die Wertebereiche der
+    /// Oberflaeche.
+    ///
+    /// Getrennt von `requireValidCoreFields`, weil beides verschiedene Fragen
+    /// beantwortet: „Darf der Nutzer das eingeben?" gegen „Kann exiftool das
+    /// ueberhaupt schreiben?". Der Archiv-Import stellt einen Zustand wieder
+    /// her, den die Datei nachweislich schon einmal hatte — dort zaehlt nur die
+    /// zweite Frage. Vorher lehnte der Import genau die Bestandswerte ab, die
+    /// der Export ausdruecklich sichern soll, sobald sich das Ziel inzwischen
+    /// geaendert hatte (Review-Fund 2026-08-17).
+    ///
+    /// Geprueft wird: GPS nur vollstaendig oder gar nicht, und beide Werte
+    /// muessen endliche Zahlen sein.
+    public static func requireWritableCoreFields(
+        _ fields: ImageCoreFields,
+        original: ImageCoreFields? = nil
+    ) throws {
+        let gpsChanged = original.map {
+            $0.gpsLatitude != fields.gpsLatitude || $0.gpsLongitude != fields.gpsLongitude
+        } ?? true
         guard gpsChanged else { return }
         let latitudeEmpty = fields.gpsLatitude.isEmpty
         let longitudeEmpty = fields.gpsLongitude.isEmpty
@@ -244,14 +283,13 @@ public enum ExifTool {
         guard !latitudeEmpty && !longitudeEmpty else {
             throw ImageMetadataValidationError.incompleteGPS
         }
-        guard let latitude = Double(fields.gpsLatitude), latitude.isFinite,
-              (-90...90).contains(latitude) else {
+        guard let latitude = Double(fields.gpsLatitude), latitude.isFinite else {
             throw ImageMetadataValidationError.invalidLatitude(fields.gpsLatitude)
         }
-        guard let longitude = Double(fields.gpsLongitude), longitude.isFinite,
-              (-180...180).contains(longitude) else {
+        guard let longitude = Double(fields.gpsLongitude), longitude.isFinite else {
             throw ImageMetadataValidationError.invalidLongitude(fields.gpsLongitude)
         }
+        _ = (latitude, longitude)
     }
 
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
@@ -262,11 +300,21 @@ public enum ExifTool {
     /// atomaren Rahmens: Sonst könnte eine fremde Änderung, die genau während
     /// des Werkzeuglaufs passiert, still verworfen werden. Erst unmittelbar
     /// vor dem eigenen Austausch wird der Stempel ein letztes Mal geprüft.
+    /// `allowingArchivedValues`: Nur der Archiv-Restore setzt das. Dann gelten
+    /// ausschliesslich die technischen Schranken — ein gesicherter
+    /// Bestandswert (Rating 6, GPS 91/181) muss in die Datei zurueckkoennen,
+    /// aus der er stammt (Review-Fund 2026-08-17). Fuer jeden anderen Aufrufer
+    /// bleibt die Wertebereichspruefung als Sicherheitsnetz bestehen.
     public static func writeCoreFields(
         url: URL, fields: ImageCoreFields, original: ImageCoreFields,
-        expecting stamp: FileStamp? = nil
+        expecting stamp: FileStamp? = nil,
+        allowingArchivedValues: Bool = false
     ) throws {
-        try requireValidCoreFields(fields, original: original)
+        if allowingArchivedValues {
+            try requireWritableCoreFields(fields, original: original)
+        } else {
+            try requireValidCoreFields(fields, original: original)
+        }
         var args: [String] = []
 
         func assign(_ tag: String, _ new: String, _ old: String) {

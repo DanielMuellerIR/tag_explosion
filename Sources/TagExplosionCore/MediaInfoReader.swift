@@ -436,19 +436,24 @@ public enum MediaInfoReader {
             index = next
         }
 
-        // Kodierung EINMAL für alle ungültigen Bytes entscheiden (ein Bericht
-        // stammt aus einer Quelle; byteweise Einzelentscheidungen würden
-        // Mischmasch aus beiden Tabellen erzeugen).
-        let invalidBytes = runs.lazy.filter { !$0.valid }.flatMap { bytes[$0.range] }
-        let fallback: String.Encoding =
-            invalidBytes.contains { (0x80...0x9F).contains($0) } ? .macOSRoman : .isoLatin1
-
         var out = ""
         for run in runs {
             let slice = Data(bytes[run.range])
             if run.valid {
                 out += String(decoding: slice, as: UTF8.self)
             } else {
+                // Kodierung JE UNGÜLTIGEM LAUF entscheiden, nicht einmal für
+                // den ganzen Bericht. Ein Bericht enthält viele Felder aus
+                // verschiedenen Containern; ein einziges C1-Byte irgendwo zog
+                // vorher ALLE ungültigen Läufe auf MacRoman. Ein Feld mit
+                // 0x8A (MacRoman „ä") verfälschte damit ein anderes Feld mit
+                // 0xFC (Latin1 „ü") (Review-Fund 2026-08-17).
+                //
+                // C1-Bereich 0x80–0x9F: In Latin1 sind das unsichtbare
+                // Steuerzeichen, in MacRoman echte Buchstaben — ein solcher
+                // Lauf stammt praktisch immer aus MacRoman.
+                let fallback: String.Encoding = bytes[run.range]
+                    .contains { (0x80...0x9F).contains($0) } ? .macOSRoman : .isoLatin1
                 // MacRoman/Latin1 bilden jedes Byte ab; der Rückfall auf
                 // lossy UTF-8 ist reine Vorsicht.
                 out += String(data: slice, encoding: fallback)
@@ -493,28 +498,84 @@ public enum MediaInfoReader {
     /// MacRomans "ä" und würde als vorschnelles Latin1 zum Steuerzeichen
     /// U+008A).
     static func repairSurrogateEscapes(in data: Data) -> Data {
-        var out = Data(capacity: data.count)
-        var i = data.startIndex
-        while i < data.endIndex {
-            // Muster: \udcXY (6 Bytes ASCII, auch großgeschrieben möglich)
-            if data[i] == UInt8(ascii: "\\"),
-               data.index(i, offsetBy: 5, limitedBy: data.endIndex) != nil,
-               data.distance(from: i, to: data.endIndex) >= 6,
-               data[data.index(i, offsetBy: 1)] == UInt8(ascii: "u"),
-               (data[data.index(i, offsetBy: 2)] | 0x20) == UInt8(ascii: "d"),
-               (data[data.index(i, offsetBy: 3)] | 0x20) == UInt8(ascii: "c") {
-                let hexBytes = [data[data.index(i, offsetBy: 4)], data[data.index(i, offsetBy: 5)]]
-                if let hex = String(bytes: hexBytes, encoding: .ascii),
-                   let byte = UInt8(hex, radix: 16) {
-                    out.append(byte)
-                    i = data.index(i, offsetBy: 6)
+        let bytes = [UInt8](data)
+        var out = Data(capacity: bytes.count)
+        var i = 0
+        while i < bytes.count {
+            guard bytes[i] == UInt8(ascii: "\\") else {
+                out.append(bytes[i])
+                i += 1
+                continue
+            }
+            // Backslash-Lauf am Stück betrachten: In JSON ist jedes PAAR ein
+            // literaler Backslash und leitet nichts ein. `\\udcfc` meint den
+            // Text „udcfc" und wurde vorher fälschlich zum Rohbyte umgebaut
+            // (Review-Fund 2026-08-17).
+            var run = 0
+            while i + run < bytes.count, bytes[i + run] == UInt8(ascii: "\\") { run += 1 }
+            let literals = run - (run % 2)
+            out.append(contentsOf: repeatElement(UInt8(ascii: "\\"), count: literals))
+            i += literals
+            guard run % 2 == 1 else { continue }
+
+            // Ab hier steht ein einzelner Backslash, der wirklich eine
+            // Escape-Folge einleitet.
+            guard let value = unicodeEscapeValue(bytes, at: i) else {
+                out.append(bytes[i])
+                i += 1
+                continue
+            }
+            if (0xD800...0xDBFF).contains(value) {
+                // Hohes Surrogat. Folgt unmittelbar ein niedriges, ist das ein
+                // GÜLTIGES Paar (etwa `\ud83d\udcfc`) und beschreibt ein
+                // echtes Zeichen jenseits der BMP — beide Hälften bleiben
+                // unangetastet. Vorher wurde die zweite Hälfte zum Rohbyte
+                // umgebaut und das Zeichen zerstört.
+                if let low = unicodeEscapeValue(bytes, at: i + 6),
+                   (0xDC00...0xDFFF).contains(low) {
+                    out.append(contentsOf: bytes[i..<(i + 12)])
+                    i += 12
                     continue
                 }
+                out.append(contentsOf: bytes[i..<(i + 6)])
+                i += 6
+                continue
             }
-            out.append(data[i])
-            i = data.index(after: i)
+            // Nur die von mediainfo erzeugten Byte-Fluchten DC80–DCFF werden zum
+            // Rohbyte zurückgebaut — und nur, wenn sie allein stehen.
+            if (0xDC80...0xDCFF).contains(value) {
+                out.append(UInt8(value & 0xFF))
+                i += 6
+                continue
+            }
+            out.append(contentsOf: bytes[i..<(i + 6)])
+            i += 6
         }
         return out
+    }
+
+    /// Wert der `\uXXXX`-Folge, die an `index` beginnt — sonst nil.
+    /// JSON kennt nur das kleine `u`; die Hexziffern dürfen beide Schreibweisen
+    /// haben.
+    private static func unicodeEscapeValue(_ bytes: [UInt8], at index: Int) -> UInt16? {
+        guard index >= 0, index + 6 <= bytes.count,
+              bytes[index] == UInt8(ascii: "\\"),
+              bytes[index + 1] == UInt8(ascii: "u") else { return nil }
+        var value: UInt16 = 0
+        for offset in 2..<6 {
+            guard let digit = hexDigitValue(bytes[index + offset]) else { return nil }
+            value = value << 4 | UInt16(digit)
+        }
+        return value
+    }
+
+    private static func hexDigitValue(_ byte: UInt8) -> UInt8? {
+        switch byte {
+        case UInt8(ascii: "0")...UInt8(ascii: "9"): return byte - UInt8(ascii: "0")
+        case UInt8(ascii: "a")...UInt8(ascii: "f"): return byte - UInt8(ascii: "a") + 10
+        case UInt8(ascii: "A")...UInt8(ascii: "F"): return byte - UInt8(ascii: "A") + 10
+        default: return nil
+        }
     }
 
     /// Externes Programm ausführen, stdout zurückgeben. Der optionale Timeout

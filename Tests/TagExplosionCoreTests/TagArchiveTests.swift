@@ -626,19 +626,49 @@ struct TagArchiveTests {
         #expect(report.failed.isEmpty)
     }
 
-    @Test("Eine Änderung AUF ungültige Bildwerte scheitert je Eintrag — Dry-run und Import gleich")
-    func invalidImageChangeFailsConsistently() throws {
-        // Erst wenn der Import einen Wert wirklich ÄNDERN würde, gelten die
-        // Wertebereiche. Der Fehler muss im Dry-run genauso erscheinen wie im
-        // echten Lauf, und die Zieldatei bleibt unangetastet (insbesondere
+    @Test("Ein gesicherter Bestandswert kommt auch nach einer Änderung zurück")
+    func archivedForeignImageValueRestoresAfterChange() throws {
+        // Der Kern des Restore-Vertrags (Review-Fund 2026-08-17): Rating 6
+        // exportieren, das Ziel danach auf 5 ändern, wieder auf 6 importieren.
+        // Vorher lehnte genau dieser Import ab, weil er die Wertebereiche der
+        // Oberfläche auch auf archivierte Bestandswerte anwandte — ein
+        // erfolgreich erzeugtes Auto-Backup war damit nicht wiederherstellbar.
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let exe = try ExifTool.locateExecutable()
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=6", image.path])
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+
+        // Ziel danach auf einen gültigen Wert ändern.
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=5", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == 5)
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+
+        #expect(report.failed.isEmpty)
+        #expect(report.applied == ["cover.jpg"])
+        #expect(try ExifTool.readCoreFields(url: image).rating == 6)
+    }
+
+    @Test("Technisch unschreibbare Archivwerte scheitern je Eintrag — Dry-run und Import gleich")
+    func unwritableImageValuesFailConsistently() throws {
+        // Die Wertebereiche gelten beim Restore nicht mehr, die TECHNISCHEN
+        // Schranken schon: Eine halbe GPS-Koordinate kann exiftool nicht
+        // sinnvoll schreiben. Der Fehler muss im Dry-run genauso erscheinen wie
+        // im echten Lauf, und die Zieldatei bleibt unangetastet (insbesondere
         // entsteht keine Papierkorb-Sicherung vor dem Fehler).
         let dir = try makeFolder(["cover.jpg"])
         defer { try? FileManager.default.removeItem(at: dir) }
         let image = dir.appendingPathComponent("cover.jpg")
         var target = try ExifTool.readCoreFields(url: image)
-        target.rating = 6
-        target.gpsLatitude = "91"
-        target.gpsLongitude = "181"
+        target.gpsLatitude = "48.1"
+        target.gpsLongitude = ""          // unvollständiges Paar
         let archive = TagArchive(created: "2026-08-16T00:00:00Z", files: [
             .init(path: "cover.jpg", kind: .image, image: target),
         ])
@@ -649,6 +679,25 @@ struct TagArchiveTests {
         let real = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
         #expect(real.failed.map(\.0) == ["cover.jpg"])
         #expect(try Data(contentsOf: image) == bytesBefore)
+    }
+
+    @Test("Die Oberfläche lehnt eine echte Änderung auf fachfremde Werte weiter ab")
+    func uiStillRejectsOutOfRangeChanges() throws {
+        // Gegenprobe zur Trennung: Der Restore-Pfad ist gelockert, der
+        // Bearbeitungspfad NICHT.
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let current = try ExifTool.readCoreFields(url: image)
+        var target = current
+        target.rating = 6
+
+        #expect(throws: (any Error).self) {
+            try ExifTool.requireValidCoreFields(target, original: current)
+        }
+        #expect(throws: Never.self) {
+            try ExifTool.requireWritableCoreFields(target, original: current)
+        }
     }
 
     @Test("EPUB: Serienindex ohne Serie wird aus dem Archiv wiederhergestellt")

@@ -253,14 +253,25 @@ public enum EbookTool {
     }
 
     /// Coverformate, die das Backend des Ziels als Cover SETZEN kann. EPUB
-    /// erlaubt alle per Signatur erkennbaren Kern-Bildformate des Standards
-    /// (JPEG, PNG, GIF, WebP) — nur so bleibt ein exportiertes GIF-/WebP-Cover
-    /// aus einem Archiv wiederherstellbar. ebook-meta übergibt Cover dagegen
-    /// als JPEG-/PNG-Datei.
+    /// erlaubt die per Signatur erkennbaren Kern-Bildformate des Standards —
+    /// nur so bleibt ein exportiertes GIF-Cover aus einem Archiv
+    /// wiederherstellbar. ebook-meta übergibt Cover dagegen als JPEG-/PNG-Datei.
+    ///
+    /// WebP ist erst ab EPUB 3 ein Kern-Bildformat. In einem EPUB-2-Paket
+    /// braeuchte es ein Fallback-Item; ohne das ignorieren Reader das Cover und
+    /// EPUB-Pruefer lehnen das Paket ab. Vorher wurde WebP fuer JEDES EPUB
+    /// zugelassen und der Schreibweg meldete trotzdem Erfolg
+    /// (Review-Fund 2026-08-17). Die Version steht im OPF; laesst sie sich
+    /// nicht lesen, gilt die engere EPUB-2-Regel.
     public static func supportedCoverMimeTypes(url: URL) -> Set<String> {
-        backend(for: url) == .epub
-            ? ["image/jpeg", "image/png", "image/gif", "image/webp"]
-            : ["image/jpeg", "image/png"]
+        guard backend(for: url) == .epub else { return ["image/jpeg", "image/png"] }
+        var types: Set<String> = ["image/jpeg", "image/png", "image/gif"]
+        if let version = EpubFile.packageVersion(url: url),
+           let major = Int(version.components(separatedBy: ".").first ?? ""),
+           major >= 3 {
+            types.insert("image/webp")
+        }
+        return types
     }
 
     /// Coverdaten, die das Ziel-Backend nicht setzen kann, dürfen gar nicht
