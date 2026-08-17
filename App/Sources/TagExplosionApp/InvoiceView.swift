@@ -49,6 +49,8 @@ struct InvoiceContentView: View {
     @State private var filter = ""
     /// Nur Felder mit EN-16931-Zuordnung zeigen (blendet Struktur-Rauschen aus).
     @State private var termsOnly = false
+    /// Gemessene Breite der Feldliste — Grundlage für die Spaltenaufteilung.
+    @State private var listWidth: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -164,16 +166,74 @@ struct InvoiceContentView: View {
     }
 
     private var fieldList: some View {
-        ScrollView {
+        // Die Breite der rechten BT-Spalte hängt von der Fensterbreite ab und
+        // wird EINMAL für die ganze Liste bestimmt — so stehen die Business
+        // Terms aller Zeilen genau untereinander.
+        let termWidth = InvoiceFieldLayout.termColumnWidth(containerWidth: listWidth)
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(visibleFields.enumerated()), id: \.offset) { _, field in
-                    InvoiceFieldRow(field: field, flat: !filter.isEmpty || termsOnly)
+                    InvoiceFieldRow(field: field, flat: !filter.isEmpty || termsOnly,
+                                    termColumnWidth: termWidth)
                 }
             }
-            .padding(12)
-            .frame(maxWidth: 1000, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .padding(InvoiceFieldLayout.padding)
+            .frame(maxWidth: InvoiceFieldLayout.maxContentWidth, alignment: .leading)
+            // Linksbündig wie der Profilkopf darüber. Zentriert stünde die
+            // Liste in einem breiten Fenster als Insel in der Mitte, während
+            // der Kopf am linken Rand klebt.
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(WidthReader(width: $listWidth))
+    }
+}
+
+/// Misst die Breite der Ansicht, ohne das Layout zu verändern. Ein
+/// GeometryReader als Inhalt wäre gierig: Er nimmt sich die ganze Höhe und
+/// schiebt Kopf, Tab-Umschalter und Filterzeile aus dem Fenster. Als
+/// Hintergrund misst er nur.
+private struct WidthReader: View {
+    @Binding var width: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: WidthPreferenceKey.self, value: proxy.size.width)
+        }
+        .onPreferenceChange(WidthPreferenceKey.self) { measured in
+            Task { @MainActor in width = measured }
+        }
+    }
+}
+
+private struct WidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Breitenaufteilung der Feldliste.
+///
+/// Die BT-/BG-Spalte hatte fest 380 pt reserviert. Bei Standard-Fenstergröße
+/// blieb dem Inhalt dadurch so wenig Platz, dass Elementnamen und Werte mitten
+/// im Wort umbrachen, während rechts neben den kurzen Bezeichnungen Luft stand.
+/// Jetzt wächst die Spalte mit der verfügbaren Breite mit.
+enum InvoiceFieldLayout {
+    /// Höchstbreite der Textspalte — sehr lange Zeilen bleiben lesbar. Erst
+    /// jenseits davon bleibt rechts Luft; bis dahin nutzt die Liste die ganze
+    /// Fensterbreite.
+    static let maxContentWidth: CGFloat = 1400
+    static let padding: CGFloat = 12
+    /// Abstand zwischen Inhalts- und Business-Term-Spalte.
+    static let columnSpacing: CGFloat = 12
+
+    /// Breite der rechten BT-/BG-Spalte: gut ein Drittel der wirklich
+    /// nutzbaren Breite, nach oben auf 380 gedeckelt (breiter braucht die
+    /// längste Bezeichnung nicht) und nach unten begrenzt, damit die Spalte
+    /// nicht auf die reine Nummer zusammenfällt.
+    static func termColumnWidth(containerWidth: CGFloat) -> CGFloat {
+        let usable = min(containerWidth, maxContentWidth) - 2 * padding
+        return min(380, max(150, (usable * 0.36).rounded()))
     }
 }
 
@@ -183,11 +243,14 @@ struct InvoiceContentView: View {
 private struct InvoiceFieldRow: View {
     let field: EInvoiceField
     let flat: Bool
+    /// Feste Breite der rechten Spalte — für alle Zeilen dieselbe, damit die
+    /// Business Terms eine echte Spalte bilden.
+    let termColumnWidth: CGFloat
 
     private var isGroup: Bool { field.value.isEmpty && field.term?.hasPrefix("BG") == true }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: InvoiceFieldLayout.columnSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(field.element)
                     .font(.caption.monospaced())
@@ -218,8 +281,9 @@ private struct InvoiceFieldRow: View {
                 }
             }
             .padding(.leading, flat ? 0 : CGFloat(field.level) * 16)
-
-            Spacer(minLength: 16)
+            // Der Inhalt nimmt den ganzen Rest — Zeilen ohne Business Term
+            // nutzen dadurch die volle Breite.
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let term = field.term {
                 HStack(spacing: 4) {
@@ -236,7 +300,7 @@ private struct InvoiceFieldRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: 380, alignment: .leading)
+                .frame(width: termColumnWidth, alignment: .leading)
             }
         }
         .padding(.vertical, isGroup ? 5 : 2)

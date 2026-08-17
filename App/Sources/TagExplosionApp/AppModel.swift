@@ -321,6 +321,12 @@ final class FileEntry: Identifiable {
         return title.isEmpty ? url.lastPathComponent : title
     }
 
+    /// Alles, was der Fensterkopf über diese Datei wissen muss.
+    var chromeEntry: WindowChromeEntry {
+        WindowChromeEntry(title: displayTitle, url: url,
+                          isDirty: isDirty, isSaving: isSaving)
+    }
+
     var displaySubtitle: String {
         switch kind {
         case .audio:
@@ -412,6 +418,11 @@ final class AppModel {
 
     var entries: [FileEntry] = []
     var selection: Set<URL> = []
+    /// Das Fenster, in dem dieses Modell steckt — gesetzt von `WindowBridge`.
+    /// `WindowSessions` erkennt daran, welche Modelle wirklich sichtbar sind;
+    /// ein Modell ohne Fenster darf keine Dateien mehr zugeteilt bekommen.
+    /// Bewusst nicht beobachtet: Es ist keine Anzeige-, sondern Zuordnungsinfo.
+    @ObservationIgnored weak var hostWindow: NSWindow?
     /// Mehrere Öffnen-Aktionen können überlappen (z.B. Finder-Drop und
     /// Öffnen-Dialog). Der Zähler hält den Fortschrittsindikator sichtbar,
     /// bis auch der letzte Auftrag fertig ist.
@@ -471,16 +482,10 @@ final class AppModel {
 
     // MARK: - Öffnen
 
-    /// Öffnen-Dialog (Dateien und Ordner).
+    /// Öffnen-Dialog (Dateien und Ordner) für dieses Fenster.
     func presentOpenPanel() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = true
-        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen")
-        if panel.runModal() == .OK {
-            Task { await self.open(urls: panel.urls) }
-        }
+        guard let urls = MediaOpenPanel.run() else { return }
+        Task { await self.open(urls: urls) }
     }
 
     /// Lädt Dateien/Ordner (rekursiv), liest Tags im Hintergrund.

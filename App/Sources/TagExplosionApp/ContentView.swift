@@ -5,10 +5,14 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    /// Seitenleiste: Grundeinstellung nach Anzahl der Dateien (siehe
+    /// `SidebarRule`). Wer sie von Hand ein- oder ausblendet, behält das —
+    /// bis sich die Anzahl der geöffneten Dateien wieder ändert.
+    @State private var columnVisibility = SidebarRule.visibility(fileCount: 0)
 
     var body: some View {
         @Bindable var model = model
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {
@@ -57,9 +61,16 @@ struct ContentView: View {
                 DropPlaceholder()
             }
         }
-        .navigationTitle(navigationTitle)
-        .navigationSubtitle(subtitle)
-        .background(WindowCloseAccessor(model: model).frame(width: 0, height: 0))
+        .navigationTitle(chrome.title)
+        .navigationSubtitle(chrome.subtitle)
+        .onChange(of: model.entries.count) { _, count in
+            columnVisibility = SidebarRule.visibility(fileCount: count)
+        }
+        // Die Brücke trägt Fenster und Modell zusammen: Schließen-Rückfrage,
+        // Anmeldung bei WindowSessions und die vertretene Datei (Datei-Icon
+        // plus Pfadmenü bei Command-Klick auf den Fenstertitel).
+        .background(WindowBridge(model: model, documentURL: chrome.documentURL)
+            .frame(width: 0, height: 0))
         // Drop überall im Fenster: Dateien/Ordner laden
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers)
@@ -202,22 +213,12 @@ struct ContentView: View {
         .modifier(BrewToolInstallOffer())
     }
 
-    private var navigationTitle: String {
-        if let entry = model.selectedEntry { return entry.displayTitle }
-        if model.selectedEntries.count > 1 { return String(localized: "\(model.selectedEntries.count) Dateien") }
-        return "Tag Explosion"
-    }
-
-    private var subtitle: String {
-        if let entry = model.selectedEntry {
-            if entry.isSaving { return String(localized: "Speichert …") }
-            return entry.isDirty ? String(localized: "Bearbeitet") : ""
-        }
-        if model.selectedEntries.count > 1 {
-            let dirty = model.selectedEntries.filter(\.isDirty).count
-            return dirty > 0 ? String(localized: "\(dirty) bearbeitet") : ""
-        }
-        return model.entries.isEmpty ? "" : String(localized: "\(model.entries.count) Dateien")
+    /// Titel, Untertitel und vertretene Datei — die Regeln stehen in
+    /// `WindowChrome` und sind dort ohne Fenster geprüft.
+    private var chrome: WindowChrome {
+        WindowChrome.make(
+            selected: model.selectedEntries.map(\.chromeEntry),
+            totalCount: model.entries.count)
     }
 
     @ViewBuilder

@@ -15,34 +15,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
-    /// Das SwiftUI-Modell gehört der App-Szene; der Delegate hält nur eine
-    /// schwache Referenz, um Cmd-Q durch dieselbe Konfliktlogik zu leiten.
-    weak var model: AppModel?
     private var terminationReplyPending = false
 
-    /// Dateien, die vor dem Erscheinen des Fensters ankommen (Kaltstart aus
-    /// dem Finder). Sie warten hier, bis die Szene das Modell übergibt.
-    private var pendingURLs: [URL] = []
-
-    /// Die Szene meldet sich, sobald sie da ist, und übernimmt Wartendes.
-    func attach(model: AppModel) {
-        self.model = model
-        guard !pendingURLs.isEmpty else { return }
-        let urls = pendingURLs
-        pendingURLs = []
-        Task { @MainActor in await model.open(urls: urls) }
-    }
-
     /// Finder, Dock und `open -a` liefern Dateien über diesen Weg — zuverlässig
-    /// auch beim Kaltstart, anders als SwiftUIs `onOpenURL`. Trifft eine Datei
-    /// ein, bevor die Szene das Modell übergeben hat, wartet sie in
-    /// `pendingURLs`.
+    /// auch beim Kaltstart, anders als SwiftUIs `onOpenURL`. Wohin die Dateien
+    /// gehören, entscheidet `WindowSessions`: ins vorderste Fenster, und wenn
+    /// gerade keines offen ist, in ein neu angelegtes.
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let model else {
-            pendingURLs.append(contentsOf: urls)
-            return
-        }
-        Task { @MainActor in await model.open(urls: urls) }
+        WindowSessions.shared.open(urls: urls)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -55,39 +35,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// unsichtbar weiter und bekommt die zu öffnende Datei nie zugestellt, weil
     /// macOS das Öffnen-Ereignis erst an ein vorhandenes Fenster ausliefert.
     ///
-    /// Ein Reopen auf das eigene Bundle wirkt wie ein Klick aufs Dock-Symbol
-    /// und bringt SwiftUI dazu, das Fenster anzulegen; danach kommt auch die
-    /// Datei an. Ohne Datei gestartet ist längst ein Fenster da, dann tut diese
-    /// Prüfung nichts.
+    /// `WindowSessions.requestWindow()` holt das Fenster nach (Reopen aufs
+    /// eigene Bundle) und sorgt zugleich dafür, dass ein bereits angefordertes
+    /// Fenster nicht ein zweites Mal entsteht. Ohne Datei gestartet ist längst
+    /// ein Fenster da, dann tut diese Prüfung nichts.
     private func showWindowIfHidden() {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
             guard !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) else { return }
-            NSWorkspace.shared.open(Bundle.main.bundleURL)
+            WindowSessions.shared.requestWindow()
         }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let model else { return .terminateNow }
-        guard model.hasDirtyEntries || model.hasSavingEntries || model.isDestructiveActionLocked else {
-            return .terminateNow
-        }
+        let sessions = WindowSessions.shared
+        guard sessions.needsTerminationConfirmation else { return .terminateNow }
         // AppKit kann die Anfrage wiederholen, solange wir terminateLater
         // gemeldet haben. Genau ein Modellauftrag darf darauf antworten.
         guard !terminationReplyPending else { return .terminateLater }
         terminationReplyPending = true
         Task { @MainActor [weak self] in
-            guard let self else { return }
-            await model.requestTermination { [weak self] decision in
-                guard let self else { return }
-                self.terminationReplyPending = false
-                let shouldTerminate: Bool
-                switch decision {
-                case .terminateNow: shouldTerminate = true
-                case .terminateCancel: shouldTerminate = false
-                }
-                NSApp.reply(toApplicationShouldTerminate: shouldTerminate)
-            }
+            // Jedes Fenster wird einzeln gefragt; ein Abbrechen hält die App.
+            let shouldTerminate = await sessions.confirmTermination()
+            self?.terminationReplyPending = false
+            NSApp.reply(toApplicationShouldTerminate: shouldTerminate)
         }
         return .terminateLater
     }
@@ -109,58 +80,108 @@ struct CheckForUpdatesButton: View {
     }
 }
 
+/// Das Modell des Fensters, in dem gerade gearbeitet wird. Menübefehle wirken
+/// darüber immer auf das vorderste Fenster — jedes hat seine eigene Dateiliste.
+private struct FocusedAppModelKey: FocusedValueKey {
+    typealias Value = AppModel
+}
+
+extension FocusedValues {
+    var appModel: AppModel? {
+        get { self[FocusedAppModelKey.self] }
+        set { self[FocusedAppModelKey.self] = newValue }
+    }
+}
+
 @main
 struct TagExplosionApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var model = AppModel()
+
+    /// Kennung der Fenstergruppe — nötig, damit „Neues Fenster" gezielt ein
+    /// weiteres Fenster dieser Gruppe öffnen kann.
+    static let windowGroupID = "hauptfenster"
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environment(model)
-                .frame(minWidth: 900, minHeight: 600)
-                .onAppear {
-                    // Übergibt das Modell und holt Dateien nach, die schon vor
-                    // dem Fenster angekommen sind ("Öffnen mit …" aus dem Finder).
-                    appDelegate.attach(model: model)
-                    AppModel.applySafeMode()
-                }
+        WindowGroup(id: Self.windowGroupID) {
+            MainWindow()
         }
+        .defaultSize(width: 1100, height: 760)
         .commands {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesButton(updater: appDelegate.updaterController.updater)
             }
-            CommandGroup(replacing: .newItem) {
-                Button("Öffnen …") {
-                    model.presentOpenPanel()
-                }
-                .keyboardShortcut("o", modifiers: .command)
-            }
-            CommandGroup(after: .saveItem) {
-                Button("Speichern") {
-                    Task { await model.saveSelected() }
-                }
-                .keyboardShortcut("s", modifiers: .command)
-                .disabled(!model.selectionIsDirty || model.selectionIsSaving
-                          || model.isDestructiveActionLocked)
-
-                Button("Alle speichern") {
-                    Task { await model.saveAll() }
-                }
-                .keyboardShortcut("s", modifiers: [.command, .option])
-                .disabled(!model.hasDirtyEntries || model.hasSavingEntries
-                          || model.isDestructiveActionLocked)
-
-                Button("Änderungen verwerfen") {
-                    model.revertSelected()
-                }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(!model.selectionIsDirty || model.isDestructiveActionLocked)
-            }
+            FileCommands()
+            EditingCommands()
         }
 
         Settings {
             SettingsView()
+        }
+    }
+}
+
+/// Inhalt eines Fensters. Das Modell entsteht hier und nicht in der App:
+/// So bekommt jedes Fenster seine eigene Dateiliste und Auswahl.
+struct MainWindow: View {
+    @State private var model = AppModel()
+
+    var body: some View {
+        ContentView()
+            .environment(model)
+            .frame(minWidth: 900, minHeight: 600)
+            // Menübefehle greifen auf das Modell des vordersten Fensters zu.
+            .focusedSceneValue(\.appModel, model)
+            .onAppear { AppModel.applySafeMode() }
+    }
+}
+
+/// Ablage-Menü: neues Fenster und Öffnen. Beides muss auch dann gehen, wenn
+/// gerade kein Fenster offen ist — die Menüleiste bleibt ja bestehen.
+struct FileCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("Neues Fenster") {
+                openWindow(id: TagExplosionApp.windowGroupID)
+            }
+            .keyboardShortcut("n", modifiers: .command)
+
+            Button("Öffnen …") {
+                WindowSessions.shared.presentOpenPanel()
+            }
+            .keyboardShortcut("o", modifiers: .command)
+        }
+    }
+}
+
+/// Speichern und Verwerfen wirken auf das Fenster, das gerade vorn ist.
+struct EditingCommands: Commands {
+    @FocusedValue(\.appModel) private var model
+
+    var body: some Commands {
+        CommandGroup(after: .saveItem) {
+            Button("Speichern") {
+                guard let model else { return }
+                Task { await model.saveSelected() }
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            .disabled(model.map { !$0.selectionIsDirty || $0.selectionIsSaving
+                                 || $0.isDestructiveActionLocked } ?? true)
+
+            Button("Alle speichern") {
+                guard let model else { return }
+                Task { await model.saveAll() }
+            }
+            .keyboardShortcut("s", modifiers: [.command, .option])
+            .disabled(model.map { !$0.hasDirtyEntries || $0.hasSavingEntries
+                                 || $0.isDestructiveActionLocked } ?? true)
+
+            Button("Änderungen verwerfen") {
+                model?.revertSelected()
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(model.map { !$0.selectionIsDirty || $0.isDestructiveActionLocked } ?? true)
         }
     }
 }

@@ -281,6 +281,10 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 - GUI-Tests: Maus-Klicks via CGEvent funktionieren, synthetische Tastatur-Events
   erreichen SwiftUI-TextFields nicht zuverlässig → UI-Tests setzen Werte über die
   Accessibility-API (`scripts/dev-uitest.swift`) und speichern über den Menüpunkt.
+- Fensterverhalten (öffnen, schließen, wieder öffnen, Seitenleiste, Datei-Icon
+  im Titel) prüft `scripts/dev-windowtest.swift` ebenfalls über die
+  Accessibility-API; Hintergründe in
+  [knowledge/fenster-und-layout.md](../knowledge/fenster-und-layout.md).
 
 ## Verifikation
 

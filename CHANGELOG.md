@@ -8,6 +8,34 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.22.0] — 2026-08-17
+
+### Hinzugefügt
+
+- „Neues Fenster“ (⌘N) im Ablage-Menü. Jedes Fenster hat seine eigene
+  Dateiliste und Auswahl; Speichern und Verwerfen wirken immer auf das
+  Fenster, in dem gerade gearbeitet wird.
+- Der Fenstertitel vertritt jetzt die geöffnete Datei: mit Datei-Icon und
+  dem gewohnten Pfadmenü bei Command-Klick auf den Titel. Weicht der
+  Tag-Titel vom Dateinamen ab, steht der Dateiname daneben im Untertitel.
+
+### Behoben
+
+- Nach dem Schließen des letzten Fensters war die App eine Sackgasse: Es ließ
+  sich kein Fenster mehr öffnen, und eine im Finder geöffnete Datei
+  verschwand kommentarlos. Dateien landen jetzt im vordersten Fenster — und
+  wenn keines offen ist, legt das Öffnen eines an.
+- Die E-Rechnungs-Ansicht nutzt die Fensterbreite: Die Spalte mit den
+  EN-16931-Bezeichnungen wächst mit der verfügbaren Breite, statt fest
+  380 Punkte zu belegen. Damit brechen Elementnamen und Werte schon bei
+  Standard-Fenstergröße nicht mehr mitten im Wort um.
+
+### Geändert
+
+- Die Seitenleiste mit der Dateiliste ist bei einer einzelnen Datei
+  standardmäßig eingeklappt und öffnet sich ab der zweiten Datei. So steht
+  dem Editor die volle Fensterbreite zur Verfügung.
+
 ## [0.21.25] — 2026-08-16
 
 ### Behoben

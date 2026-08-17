@@ -14,7 +14,15 @@ laufen ohne Freigabe — siehe globale Testregeln.
 - Fenster-Screenshot: Region-Capture (`screencapture -R x,y,w,h`) mit Bounds
   aus `CGWindowListCopyWindowInfo`; Bounds enthalten die Titelleiste.
 - Skripte: `scripts/dev-screenshot.sh` (nur Screenshot),
-  `scripts/dev-uitest.swift` (Feld setzen + Speichern + verifizierbar).
+  `scripts/dev-uitest.swift` (Feld setzen + Speichern + verifizierbar),
+  `scripts/dev-windowtest.swift` (Fenster öffnen/schließen/wieder öffnen,
+  Seitenleiste, Datei-Icon im Titel — Aufruf mit zwei Fixture-Dateien).
+- `kAXDocumentAttribute` eines Fensters spiegelt `NSWindow.representedURL`.
+  Damit lässt sich ohne Klicken prüfen, ob Datei-Icon und Command-Klick-
+  Pfadmenü im Fenstertitel vorhanden sind.
+- Menüpunkte prüfen: `kAXMenuItemCmdCharAttribute` liefert das Tastenkürzel in
+  GROSSBUCHSTABEN („N“ für ⌘N) — beim Vergleich nicht auf Kleinschreibung
+  bestehen.
 - App für Tests immer als **.app-Bundle** starten (`open -a`), nie das nackte
   swift-build-Binary (keine Fensterpräsenz).
 - **Falle (2026-07-25):** Beim Start mit einer Datei (`open -a App datei.mp3`)
