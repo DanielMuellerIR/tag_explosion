@@ -1,7 +1,7 @@
 // Auto-beendender GUI-Selbsttest der Fensterverwaltung.
 //
 // Geprüft wird genau das, was ein Nutzer im Finder tut und was zuvor kaputt
-// war (Daniel-Befund 2026-08-17): Datei öffnen, Fenster schließen, wieder
+// war (Befund 2026-08-17): Datei öffnen, Fenster schließen, wieder
 // öffnen. Dazu Seitenleiste, Dateiname und Datei-Icon im Fensterkopf.
 //
 // Aufruf: swift scripts/dev-windowtest.swift <app> <ausgabeordner> <datei1> [datei2]

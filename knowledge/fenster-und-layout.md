@@ -36,7 +36,7 @@ Trifft zu bei Arbeit an `TagExplosionApp.swift`, `WindowSessions.swift`,
 - **Falle:** `CommandGroup(replacing: .newItem)` entfernt SwiftUIs eigenen
   Eintrag „Neues Fenster“ mitsamt ⌘N. Wer `.newItem` ersetzt, muss den Eintrag
   selbst wieder anbieten, sonst ist die App nach dem Schließen des letzten
-  Fensters eine Sackgasse (Daniel-Befund 2026-08-17).
+  Fensters eine Sackgasse (Befund 2026-08-17).
 
 ## Dateiname, Datei-Icon und Pfadmenü
 
