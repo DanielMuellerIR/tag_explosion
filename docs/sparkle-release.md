@@ -116,7 +116,21 @@ Build gesetzt werden (siehe `build.sh`); normale Builds verwenden immer den
 öffentlichen GitHub-Pages-Feed.
 
 Der Workflow kann für ein bereits veröffentlichtes Tag manuell gestartet
-werden. Er erwartet genau ein `*.dmg` im Release. Der Feed führt nur das
+werden:
+
+```sh
+gh workflow run publish-appcast.yml -R <owner>/<repo> -f tag=v<version>
+```
+
+**Nach einem Fehlschlag nie den einzelnen Job neu starten**
+(`gh run rerun <id> --failed`). Der Lauf lädt sein Ergebnis als Artefakt
+`github-pages` hoch; ein zweiter Anlauf im selben Lauf legt ein zweites Artefakt
+gleichen Namens an, und `actions/deploy-pages` bricht dann mit „Multiple
+artifacts named github-pages were unexpectedly found" ab — der Lauf ist danach
+nicht mehr zu retten. Stattdessen immer einen frischen Lauf mit dem Tag starten
+(Befund 2026-08-17, ausgelöst durch eine GitHub-Störung beim Pages-Deployment).
+
+Der Workflow erwartet genau ein `*.dmg` im Release. Der Feed führt nur das
 aktuelle Vollupdate; Delta-Updates sind bewusst deaktiviert, bis der
 Pages-Workflow mehrere historische Archive mit ihren jeweiligen Download-URLs
 verwaltet.
