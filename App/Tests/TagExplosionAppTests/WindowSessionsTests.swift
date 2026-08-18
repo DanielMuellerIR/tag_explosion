@@ -16,6 +16,8 @@ struct WindowSessionsTests {
         var key: ObjectIdentifier?
         var closed: Set<ObjectIdentifier> = []
         var windowRequests = 0
+        /// Ergebnis des ersetzten Fensterstarts (false = Start scheitert).
+        var windowLaunchSucceeds = true
         var opened: [(AppModel, [URL])] = []
 
         @MainActor
@@ -26,7 +28,10 @@ struct WindowSessionsTests {
                 return WindowStatus(exists: true, isVisible: visible.contains(id),
                                     isKey: key == id, isMain: key == id)
             }
-            sessions.makeWindow = { [unowned self] in windowRequests += 1 }
+            sessions.makeWindow = { [unowned self] in
+                windowRequests += 1
+                return windowLaunchSucceeds
+            }
             sessions.openInModel = { [unowned self] model, urls in opened.append((model, urls)) }
         }
 
@@ -164,6 +169,99 @@ struct WindowSessionsTests {
 
         await dirty.resolvePendingConflict(.cancel)
         #expect(await termination.value == false)
+    }
+
+    // MARK: - Review-Fund 2026-08-18
+
+    @Test("Ein fehlgeschlagener Fensterstart blockiert spätere Anforderungen nicht")
+    func failedWindowLaunchDoesNotBlockLaterRequests() {
+        let harness = Harness()
+        harness.windowLaunchSucceeds = false
+
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 1)
+
+        // Vorher löste nur `register` den Merker: Nach einem gescheiterten
+        // Start wies die Registry bis zum App-Neustart jede Anforderung ab.
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 2)
+    }
+
+    @Test("Bleibt das Fenster aus, wird begrenzt nachgefasst")
+    func missingWindowIsRequestedAgainOnce() async throws {
+        let harness = Harness()
+        harness.sessions.windowRequestTimeout = .milliseconds(10)
+
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 1)
+
+        // Nach der Frist genau EIN Nachfassen — danach entscheidet wieder der
+        // Nutzer, statt dass die App im Hintergrund endlos Fenster anfordert.
+        for _ in 0..<200 where harness.windowRequests < 2 {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(harness.windowRequests == 2)
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(harness.windowRequests == 2)
+
+        // Der Merker ist frei: Das Fenster, das doch noch kommt, bekommt die
+        // wartende Datei.
+        let model = harness.addWindow()
+        #expect(harness.opened.first?.0 === model)
+        #expect(harness.opened.first?.1 == [file])
+    }
+
+    @Test("Ein während der Fragerunde erneut geändertes Fenster hält das Beenden auf")
+    func windowChangedDuringRoundIsAskedAgain() async {
+        let harness = Harness()
+        let first = harness.addWindow()
+        first.entries = [Self.changedEntry()]
+        let second = harness.addWindow()
+        second.entries = [Self.changedEntry()]
+
+        let termination = Task { await harness.sessions.confirmTermination() }
+
+        #expect(await Self.waitForConflict(in: first))
+        await first.resolvePendingConflict(.discard)
+
+        // Während das zweite Fenster fragt, wird im ersten wieder etwas
+        // geändert. Genau das sah die einmal gebildete Fensterliste nicht.
+        #expect(await Self.waitForConflict(in: second))
+        first.entries = [Self.changedEntry()]
+        await second.resolvePendingConflict(.discard)
+
+        // Zweite Runde: Das erste Fenster muss erneut gefragt werden.
+        #expect(await Self.waitForConflict(in: first))
+        await first.resolvePendingConflict(.cancel)
+        #expect(await termination.value == false)
+    }
+
+    @Test("Ein während der Fragerunde neu angemeldetes Fenster wird noch gefragt")
+    func windowRegisteredDuringRoundIsAsked() async {
+        let harness = Harness()
+        let first = harness.addWindow()
+        first.entries = [Self.changedEntry()]
+
+        let termination = Task { await harness.sessions.confirmTermination() }
+
+        #expect(await Self.waitForConflict(in: first))
+        let late = harness.addWindow()
+        late.entries = [Self.changedEntry()]
+        await first.resolvePendingConflict(.discard)
+
+        #expect(await Self.waitForConflict(in: late))
+        await late.resolvePendingConflict(.cancel)
+        #expect(await termination.value == false)
+    }
+
+    /// Wartet auf die Rückfrage eines Fensters, ohne feste Wartezeit.
+    private static func waitForConflict(in model: AppModel) async -> Bool {
+        var attempts = 0
+        while model.pendingConflict == nil, attempts < 5000 {
+            await Task.yield()
+            attempts += 1
+        }
+        return model.pendingConflict != nil
     }
 
     private static func changedEntry() -> FileEntry {

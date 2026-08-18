@@ -1131,6 +1131,16 @@
         }
       }
     },
+    "Neues Fenster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Window"
+          }
+        }
+      }
+    },
     "Nicht lesbar (Format unbekannt?):": {
       "localizations": {
         "en": {

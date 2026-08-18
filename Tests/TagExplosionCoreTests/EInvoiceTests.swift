@@ -2,7 +2,7 @@
 // für CII und UBL sowie die PDF-Extraktion. Die Fixtures sind bewusst
 // selbstgeschriebene Minimal-Rechnungen — kein fremdes Material, keine
 // echten Daten.
-import EInvoiceCore
+@testable import EInvoiceCore
 import Foundation
 import TagExplosionCore
 import Testing
@@ -680,7 +680,8 @@ struct EInvoiceTests {
                         + "/EF << /F 4 0 R /UF 4 0 R >> >>",
                 ])
             }
-            // Deklarierte komprimierte Größe über der 8-MiB-Schranke …
+            // Deklarierte komprimierte Größe über der Schranke für
+            // komprimierte Streams (256 KiB) …
             let lengthLie = dir.appendingPathComponent("laenge.pdf")
             try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length 9437184 >>")
                 .write(to: lengthLie)
@@ -703,6 +704,36 @@ struct EInvoiceTests {
             }
         }
     }
+
+    // MARK: - Review-Fund 2026-08-18
+
+#if canImport(CoreGraphics)
+    @Test("PDF: Auch verworfene Anhaenge verbrauchen das Entpack-Budget")
+    func pdfDroppedAttachmentsConsumeBudget() throws {
+        try withTempDirectory { dir in
+            // Ein Anhang, der das Budget sprengt, wird nicht uebernommen —
+            // entpackt (und damit im Speicher materialisiert) war er trotzdem.
+            // Zaehlte nur das Behaltene, durfte dieselbe Dekompressionsbombe
+            // beliebig oft im Namensbaum stehen und die App lange beschaeftigen
+            // (Review-Fund 2026-08-18). Das Budget ist hier klein gesetzt, damit
+            // der Test ohne 64-MiB-Fixture auskommt.
+            let filler = Data(String(repeating: "a", count: 600).utf8)
+            let url = dir.appendingPathComponent("budget.pdf")
+            try Self.makePDF(embeddings: [
+                (filler, "fuell-1.xml"),
+                (filler, "fuell-2.xml"),
+                (Data(String(repeating: "b", count: 100).utf8), "spaet.xml"),
+            ]).write(to: url)
+
+            let extraction = try PDFEmbeddedInvoice.extract(url: url, byteBudget: 1000)
+
+            // fuell-2 sprengt das Budget und wird verworfen; „spaet" passte
+            // rechnerisch noch ins BEHALTENE Budget und wurde deshalb vorher
+            // trotzdem entpackt.
+            #expect(extraction.files.map(\.name) == ["fuell-1.xml"])
+        }
+    }
+#endif
 
     // MARK: - Review-Fund 2026-08-17
 

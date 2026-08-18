@@ -50,6 +50,45 @@ do {
     exit(1)
 }
 
+/// Beendet JEDE laufende Instanz mit unserer Bundle-ID — erst höflich, dann
+/// hart. Zu Beginn lief keine (oben geprüft), jede jetzt laufende gehört also
+/// diesem Test. Das deckt auch die Instanz ab, die erst NACH der Startfrist
+/// auftaucht: Ohne diesen Weg lief sie sichtbar weiter, während der Test sich
+/// längst mit „startete nicht" beendet hatte (Review-Fund 2026-08-18).
+@discardableResult
+func shutDownOwnedInstances() -> Bool {
+    func alive() -> [NSRunningApplication] {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+    }
+    func waitForExit(_ seconds: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while !alive().isEmpty, Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
+        return alive().isEmpty
+    }
+    for app in alive() { _ = app.terminate() }
+    if waitForExit(5) { return true }
+    for app in alive() { _ = app.forceTerminate() }
+    return waitForExit(5)
+}
+
+// Signale behandeln, BEVOR gestartet wird: Ohne das beendete ein Ctrl-C oder
+// ein Abbruch der übergeordneten Shell den Test mitten in einem
+// `Thread.sleep`, und die Test-App blieb sichtbar zurück. Die Quellen laufen
+// auf einer eigenen Warteschlange und greifen deshalb auch, während der
+// Hauptthread schläft (Review-Fund 2026-08-18).
+let signalSources: [DispatchSourceSignal] = [SIGINT, SIGTERM, SIGHUP].map { number in
+    signal(number, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
+    source.setEventHandler {
+        FileHandle.standardError.write(Data(
+            "ABBRUCH: Signal \(number) — die Test-App wird beendet.\n".utf8))
+        shutDownOwnedInstances()
+        exit(128 + number)
+    }
+    source.resume()
+    return source
+}
+
 /// Startet die App beziehungsweise reicht Dateien an die laufende Instanz.
 func open(_ urls: [URL], newInstance: Bool) -> NSRunningApplication? {
     let configuration = NSWorkspace.OpenConfiguration()
@@ -76,29 +115,34 @@ func open(_ urls: [URL], newInstance: Bool) -> NSRunningApplication? {
     while done.wait(timeout: .now()) == .timedOut, Date() < deadline {
         RunLoop.current.run(until: Date().addingTimeInterval(0.05))
     }
+    // Frist abgelaufen, aber der Auftrag kann noch ankommen. Eine App mit
+    // unserer Bundle-ID, die jetzt auftaucht, ist unsere — sie zu übersehen
+    // hieße, sie laufen zu lassen.
+    if launched == nil {
+        let grace = Date().addingTimeInterval(10)
+        while launched == nil, Date() < grace {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            launched = NSRunningApplication
+                .runningApplications(withBundleIdentifier: bundleID).first
+        }
+    }
     return launched
 }
 
 guard let running = open(Array(documents.prefix(1)), newInstance: true) else {
     FileHandle.standardError.write(Data("FEHLER: Test-Instanz startete nicht.\n".utf8))
+    // Sicherheitsnetz: Ein verspätet gestartetes Fenster darf nicht bleiben.
+    shutDownOwnedInstances()
     exit(1)
 }
 let pid = running.processIdentifier
 
-/// Beendet die Test-App — erst höflich, nach der Frist hart.
+/// Beendet die Test-App — erst höflich, nach der Frist hart. Geht bewusst über
+/// die Bundle-ID statt nur über `running`: Ein zweiter, verspätet gestarteter
+/// Prozess gehört genauso zu diesem Test.
 @discardableResult
 func shutDown() -> Bool {
-    func waitForExit(_ seconds: TimeInterval) -> Bool {
-        let deadline = Date().addingTimeInterval(seconds)
-        while !running.isTerminated, Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
-        }
-        return running.isTerminated
-    }
-    _ = running.terminate()
-    if waitForExit(5) { return true }
-    _ = running.forceTerminate()
-    return waitForExit(5)
+    shutDownOwnedInstances()
 }
 
 Thread.sleep(forTimeInterval: 3.0)
@@ -183,9 +227,21 @@ func closeAllWindows() {
         Thread.sleep(forTimeInterval: 1.2)
     }
 }
+/// Belegbild des größten eigenen Fensters. JEDER Fehlschlag landet in
+/// `failures`: Vorher endete diese Funktion still, unterdrückte den Startfehler
+/// von `screencapture` mit `try?` und prüfte die Zieldatei nie — der Test
+/// meldete „OK Fenstertest", obwohl die Belegbilder fehlten oder aus einem
+/// früheren Lauf stammten (Review-Fund 2026-08-18).
 func screenshot(_ name: String) {
+    let target = outDir.appendingPathComponent(name)
+    // Ein Bild aus einem früheren Lauf darf nicht als frisches durchgehen.
+    try? FileManager.default.removeItem(at: target)
+
     guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID)
-        as? [[String: Any]] else { return }
+        as? [[String: Any]] else {
+        check(false, "Fensterliste für Belegbild \(name) lesbar")
+        return
+    }
     var best: (rect: CGRect, area: CGFloat) = (.zero, 0)
     for entry in list where (entry[kCGWindowOwnerPID as String] as? pid_t) == pid {
         let bounds = entry[kCGWindowBounds as String] as? [String: Any] ?? [:]
@@ -194,14 +250,29 @@ func screenshot(_ name: String) {
                           height: bounds["Height"] as? CGFloat ?? 0)
         if rect.width * rect.height > best.area { best = (rect, rect.width * rect.height) }
     }
-    guard best.area > 0 else { return }
+    guard best.area > 0 else {
+        check(false, "Fenster für Belegbild \(name) gefunden")
+        return
+    }
     let task = Process()
     task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
     task.arguments = ["-o", "-x",
                       "-R\(best.rect.origin.x),\(best.rect.origin.y),\(best.rect.width),\(best.rect.height)",
-                      outDir.appendingPathComponent(name).path]
-    try? task.run()
+                      target.path]
+    do {
+        try task.run()
+    } catch {
+        check(false, "screencapture für \(name) gestartet: \(error.localizedDescription)")
+        return
+    }
     task.waitUntilExit()
+    guard task.terminationStatus == 0 else {
+        check(false, "screencapture für \(name) endete mit Status \(task.terminationStatus)")
+        return
+    }
+    let bytes = (try? FileManager.default.attributesOfItem(atPath: target.path)[.size]
+        as? NSNumber)??.intValue ?? 0
+    check(bytes > 0, "Belegbild \(name) ist frisch entstanden und nicht leer")
 }
 
 // ---- Ablauf ------------------------------------------------------------------

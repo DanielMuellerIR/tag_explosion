@@ -8,6 +8,35 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.22.1] — 2026-08-18
+
+### Behoben
+
+- Beim Beenden gehen keine Änderungen mehr verloren, die erst während der
+  Rückfragen entstehen: Solange ein Fenster fragt, bleiben die übrigen
+  bedienbar. Die App fragt jetzt in Runden gegen den aktuellen Stand und
+  beendet sich erst, wenn wirklich kein Fenster mehr etwas zu verlieren hat —
+  auch ein Fenster, das während der Runde dazukommt, wird gefragt.
+- Bleibt ein angefordertes Fenster aus (etwa weil der Neustart des Programms
+  scheitert), blockiert das nicht mehr jede weitere Anforderung bis zum
+  nächsten Programmstart: Die Anforderung wird nach kurzer Frist einmal
+  wiederholt und danach wieder freigegeben.
+- Ein gesichertes negatives Bild-Rating (etwa −2 aus einer fremden Datei)
+  wird beim Wiederherstellen exakt zurückgeschrieben. Vorher löschte der
+  Import das Rating-Tag und meldete anschließend einen Fehler — nachdem die
+  Datei bereits verändert war. „Kein Rating“ bleibt allein die −1.
+- Umlaute innerhalb desselben Feldes werden einheitlich gedeutet: Aus dem
+  MacRoman-Tag „Bäckereistraße“ wurde vorher „Bäckereistra§e“, weil die
+  Kodierung je Byte-Folge statt je Feld entschieden wurde.
+- Der Menüpunkt „Neues Fenster“ heißt bei englischer Systemsprache jetzt
+  „New Window“.
+
+### Geändert
+
+- Bei präparierten PDFs endet die Anhangs-Suche nach 64 MiB entpackter
+  Gesamtmenge; verworfene Anhänge zählen dabei mit. Dieselbe
+  Dekompressionsbombe kann so nicht mehr beliebig oft entpackt werden.
+
 ## [0.22.0] — 2026-08-17
 
 ### Hinzugefügt

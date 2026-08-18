@@ -172,4 +172,44 @@ struct MediaInfoReaderProcessTests {
         erwartet.append(contentsOf: Data(#"r"}"#.utf8))
         #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == erwartet)
     }
+
+    // MARK: - Review-Fund 2026-08-18
+
+    @Test("Ein MacRoman-Feld bleibt trotz Nicht-C1-Bytes vollstaendig MacRoman")
+    func decidesEncodingPerField() {
+        // „Bäckereistraße" in MacRoman: das ä ist 0x8A (C1-Bereich, eindeutiges
+        // MacRoman-Signal), das ß dagegen 0xA7 — dazwischen liegt gültiges
+        // ASCII. Die Entscheidung je ungültigem LAUF nahm für den zweiten Lauf
+        // mangels C1-Byte Latin-1 an und machte aus dem ß ein „§".
+        var raw = Data(#"{"a":"B"#.utf8)
+        raw.append(0x8A)                      // MacRoman „ä"
+        raw.append(contentsOf: Data("ckereistra".utf8))
+        raw.append(0xA7)                      // MacRoman „ß", in Latin-1 „§"
+        raw.append(contentsOf: Data(#"e","b":"T"#.utf8))
+        raw.append(0xFC)                      // Latin-1 „ü" im NACHBARFELD
+        raw.append(contentsOf: Data(#"r"}"#.utf8))
+
+        let decoded = MediaInfoReader.decodeLossy(raw)
+
+        #expect(decoded.contains("Bäckereistraße"))
+        // Das Nachbarfeld bleibt davon unberührt — sonst wäre nur der alte
+        // Fehler „ein C1-Byte schaltet den ganzen Bericht um" zurück.
+        #expect(decoded.contains("Tür"))
+    }
+
+    @Test("Zeilen einer Klartextausgabe entscheiden getrennt")
+    func decidesEncodingPerLineInPlainText() {
+        // Calibre und mediainfo geben auch reinen Text aus; dort ist die Zeile
+        // die Feldgrenze.
+        var raw = Data("Titel: B".utf8)
+        raw.append(0x8A)                      // MacRoman „ä"
+        raw.append(contentsOf: Data("r\nAutor: T".utf8))
+        raw.append(0xFC)                      // Latin-1 „ü"
+        raw.append(contentsOf: Data("r".utf8))
+
+        let decoded = MediaInfoReader.decodeLossy(raw)
+
+        #expect(decoded.contains("Bär"))
+        #expect(decoded.contains("Tür"))
+    }
 }

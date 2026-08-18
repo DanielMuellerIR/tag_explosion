@@ -29,18 +29,27 @@ enum PDFEmbeddedInvoice {
     /// Speichermangels beenden. Eine echte Rechnungsdatei ist klein und liegt
     /// unter den ersten Anhängen — die Grenzen sind großzügig gewählt.
     static let maxEmbeddedFiles = 32
+    /// Gesamtbudget der Extraktion in ENTPACKTEN Bytes. Es begrenzt sowohl das
+    /// Behaltene als auch die insgesamt geleistete Entpackarbeit.
     static let maxTotalBytes = 64 * 1024 * 1024
     /// Grenze für die KOMPRIMIERTE Stream-Größe (deklariertes /Length).
     /// CGPDFStreamCopyData dekomprimiert immer vollständig im Speicher; die
     /// einzige Vorab-Schranke gegen eine Dekompressionsbombe ist deshalb die
     /// physisch in der Datei liegende Byte-Menge.
     ///
-    /// Die Grenze folgt der SPITZENLAST, nicht dem Bauchgefühl: Flate entpackt
-    /// höchstens ~1:1032, und mehr als `maxTotalBytes` (64 MiB) darf dabei nie
-    /// entstehen. 64 MiB / 1032 ≈ 64 KiB — auf 256 KiB aufgerundet, weil die
-    /// Höchstrate nur bei völlig gleichförmigen Daten erreicht wird und echte
-    /// Rechnungs-XMLs komprimiert deutlich unter 100 KiB liegen. Die alten
-    /// 8 MiB liessen rund 8 GiB transient zu (Review-Fund 2026-08-17).
+    /// 256 KiB heißt: eine EINZELNE Entpackung belegt kurzzeitig höchstens
+    /// 256 KiB × 1032 ≈ 258 MiB. Das liegt bewusst über dem Gesamtbudget von
+    /// 64 MiB, und der frühere Kommentar, der genau 64 MiB als Spitzenlast
+    /// zusagte, war deshalb falsch (Review-Fund 2026-08-18). Die strenge
+    /// Ableitung 64 MiB / 1032 ≈ 64 KiB scheidet aus, weil sie echte Rechnungen
+    /// unsichtbar machen würde: Eine Rechnung mit 5000 Positionen ist roh gut
+    /// 5 MiB groß und komprimiert rund 100 KiB (gemessen mit deflate -9). Eine
+    /// kurzzeitige Allokation von 258 MiB übersteht eine Mac-App dagegen; die
+    /// alten 8 MiB liessen rund 8 GiB zu (Review-Fund 2026-08-17).
+    ///
+    /// Wiederholung begrenzt `maxTotalBytes` unten: Es zählt ALLE entpackten
+    /// Bytes, auch die verworfenen — sonst könnte dieselbe Bombe im Namensbaum
+    /// tausendfach auftauchen und die App minutenlang beschäftigen.
     static let maxCompressedBytes = 256 * 1024
     /// Obergrenze besuchter Namensbaum-Knoten. Die reine Tiefengrenze ließe
     /// einen sich selbst referenzierenden /Kids-Knoten exponentiell viele
@@ -81,7 +90,9 @@ enum PDFEmbeddedInvoice {
         }
     }
 
-    static func extract(url: URL) throws -> Extraction {
+    /// `byteBudget`: Gesamtbudget in ENTPACKTEN Bytes. Nur Tests setzen es
+    /// klein, um die Budgetgrenze ohne 64-MiB-Fixture zu prüfen.
+    static func extract(url: URL, byteBudget: Int = maxTotalBytes) throws -> Extraction {
         guard let document = CGPDFDocument(url as CFURL),
               let catalog = document.catalog else {
             throw EInvoiceError.pdfUnreadable(url.path)
@@ -98,6 +109,11 @@ enum PDFEmbeddedInvoice {
         var files: [EmbeddedFile] = []
         var seenNames = Set<String>()
         var totalBytes = 0
+        // Alle entpackten Bytes, auch die verworfenen. Ein Anhang, der das
+        // Budget sprengt, wird zwar nicht übernommen — materialisiert war er
+        // trotzdem. Ohne diesen Zähler durfte dieselbe Dekompressionsbombe
+        // beliebig oft im Namensbaum stehen (Review-Fund 2026-08-18).
+        var materializedBytes = 0
         // Ein Budget fuer die GESAMTE Untersuchung: jeder Array-Posten, jedes
         // Name-Filespec-Paar und jedes aufgeloeste Filespec kostet einen Punkt.
         // Das frueher allein zaehlende Knotenbudget deckte nur die Rekursion ab
@@ -115,12 +131,14 @@ enum PDFEmbeddedInvoice {
             // gelten unverändert auch für sie.
             let isDeclared = declaredName.map { name.lowercased() == $0 } ?? false
             guard files.count < maxEmbeddedFiles || isDeclared,
-                  totalBytes < maxTotalBytes else { return }
+                  totalBytes < byteBudget,
+                  materializedBytes < byteBudget else { return }
             let ext = (name as NSString).pathExtension.lowercased()
             guard ext.isEmpty || ext == "xml" else { return }
             guard !seenNames.contains(name) else { return }
             guard let data = filespecData(filespec) else { return }
-            guard totalBytes + data.count <= maxTotalBytes else { return }
+            materializedBytes += data.count
+            guard totalBytes + data.count <= byteBudget else { return }
             seenNames.insert(name)
             totalBytes += data.count
             files.append(EmbeddedFile(name: name, data: data))
@@ -241,8 +259,9 @@ enum PDFEmbeddedInvoice {
     /// den vollständig dekomprimierten Anhang im Speicher, eine inkrementelle
     /// Dekomprimierung bietet CoreGraphics nicht. Deshalb wird vorher
     /// begrenzt, was physisch begrenzbar ist:
-    /// - /Length (komprimierte Bytes, tatsächlich in der Datei) ≤ 8 MiB —
-    ///   Flate entpackt höchstens ~1:1032, das deckelt die Spitzenlast.
+    /// - /Length (komprimierte Bytes, tatsächlich in der Datei) ≤
+    ///   `maxCompressedBytes` — Flate entpackt höchstens ~1:1032, das deckelt
+    ///   die Spitzenlast einer einzelnen Entpackung.
     /// - Keine Filterketten (/Filter-Array > 1): kaskadiertes Flate würde die
     ///   Entpackungsrate potenzieren; echte Rechnungs-PDFs nutzen das nie.
     /// - Ein deklariertes /Params/Size über dem Gesamtbudget ist ein ehrlich

@@ -656,6 +656,36 @@ struct TagArchiveTests {
         #expect(try ExifTool.readCoreFields(url: image).rating == 6)
     }
 
+    @Test("Ein gesichertes negatives Bestands-Rating kommt exakt zurück")
+    func archivedNegativeRatingRestoresExactly() throws {
+        // Derselbe Vertrag nach unten (Review-Fund 2026-08-18): Leerwert ist
+        // ausschließlich -1. Ein gesichertes -2 bildete der Schreibweg vorher
+        // auf „Rating-Tag löschen" ab; die Datei trug danach -1, und der
+        // Read-back meldete den Fehlschlag erst NACH dem atomaren Austausch.
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let exe = try ExifTool.locateExecutable()
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=-2", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == -2)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+
+        // Zwischenzeitliche Änderung auf einen normalen Wert.
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=3", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == 3)
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+
+        #expect(report.failed.isEmpty)
+        #expect(report.applied == ["cover.jpg"])
+        #expect(try ExifTool.readCoreFields(url: image).rating == -2)
+    }
+
     @Test("Technisch unschreibbare Archivwerte scheitern je Eintrag — Dry-run und Import gleich")
     func unwritableImageValuesFailConsistently() throws {
         // Die Wertebereiche gelten beim Restore nicht mehr, die TECHNISCHEN

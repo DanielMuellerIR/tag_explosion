@@ -61,16 +61,21 @@ Rechnungsansicht der App.
   einen reservierten Platz jenseits des Dateibudgets — sonst könnten 32
   fremde XML-Anhänge die echte Rechnung aus dem Budget drängen.
 - **Grenzen der Extraktion** (präparierte PDFs): Dateibudget 32 Anhänge,
-  64 MiB entpacktes Gesamtbudget, Namensbaum zusätzlich mit Knoten-Budget
+  64 MiB entpacktes Gesamtbudget — es zählt ALLE entpackten Bytes, auch die
+  gleich wieder verworfenen —, Namensbaum zusätzlich mit Knoten-Budget
   (4096) gegen sich selbst referenzierende `/Kids` (Tiefengrenze allein ließe
   2^32 Besuche zu). **Restrisiko Dekompressionsbombe:** CGPDF bietet keine
   inkrementelle Dekomprimierung; `CGPDFStreamCopyData` materialisiert immer
   den ganzen Anhang. Vorab begrenzbar ist nur, was physisch in der Datei
-  liegt: deklariertes `/Length` ≤ 8 MiB, keine `/Filter`-KETTEN (Kaskade
+  liegt: deklariertes `/Length` ≤ 256 KiB, keine `/Filter`-KETTEN (Kaskade
   potenziert die Flate-Rate ~1:1032), `/Params/Size` über dem Gesamtbudget
-  wird sofort abgelehnt. Worst Case bleibt damit eine transiente Allokation
-  von ~8 GiB (8 MiB × 1032) — begrenzt, aber nicht schön; echte
-  Rechnungs-XMLs liegen komprimiert weit unter 1 MiB.
+  wird sofort abgelehnt. Eine EINZELNE Entpackung kann damit kurzzeitig rund
+  258 MiB belegen (256 KiB × 1032). Das ist bewusst mehr als das
+  Gesamtbudget: Eine echte Rechnung mit 5000 Positionen ist komprimiert schon
+  etwa 100 KiB groß, eine streng abgeleitete Schranke von 64 KiB
+  (64 MiB / 1032) würde sie unlesbar machen. Wiederholen lässt sich die
+  Spitze nicht — nach 64 MiB entpackter Gesamtmenge endet die Extraktion
+  (Review-Fund 2026-08-18).
 - **XMP-Attributform:** XMLParser liefert Attribut-Namensräume nicht direkt.
   `XMLTree` sammelt deshalb die Präfixdeklarationen am jeweiligen Element;
   die Auswertung löst das tatsächlich verwendete Präfix darüber zur

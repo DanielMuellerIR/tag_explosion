@@ -69,6 +69,30 @@ if [ -n "${TAKEOVER_WAIT_MARKER:-}" ]; then
         esac
     done
 fi
+# Zweiter Haltepunkt: erst NACH dem Erwerb des Hilfslocks, beim Lesen der
+# HAUPTSPERRE. Genau dort sitzt die erneute Besitzerpruefung im gegenseitigen
+# Ausschluss. Der Zustand liegt in Dateien, weil jeder readlink-Aufruf ein
+# eigener Prozess ist: ".takeover-seen" heisst "Hilfslock erworben und
+# geprueft", ".done" sorgt dafuer, dass nur der ERSTE solche Lesevorgang haelt.
+if [ -n "${LOCK_READ_BLOCK_MARKER:-}" ]; then
+    for arg in "$@"; do
+        case $arg in
+            *.lock.takeover) : > "$LOCK_READ_BLOCK_MARKER.takeover-seen" ;;
+            *.lock)
+                if [ -f "$LOCK_READ_BLOCK_MARKER.takeover-seen" ] &&
+                   [ ! -f "$LOCK_READ_BLOCK_MARKER.done" ]; then
+                    : > "$LOCK_READ_BLOCK_MARKER.done"
+                    : > "$LOCK_READ_BLOCK_MARKER"
+                    waited=0
+                    while [ ! -f "${LOCK_READ_BLOCK_RELEASE:-}" ] && [ "$waited" -lt 200 ]; do
+                        sleep 0.05
+                        waited=$((waited + 1))
+                    done
+                fi
+                ;;
+        esac
+    done
+fi
 exec /usr/bin/readlink "$@"
 SH
 cat > "$fake_bin/mv" <<'SH'
@@ -88,6 +112,16 @@ assert_text() {
     }
 }
 
+# Wartet auf eine Marker-Datei (max. 10 s) statt auf eine feste Zeit.
+wait_for_file() {
+    local path=$1 message=$2 waited=0
+    until [ -f "$path" ]; do
+        sleep 0.05
+        waited=$((waited + 1))
+        [ "$waited" -lt 200 ] || { echo "FEHLER: $message" >&2; exit 1; }
+    done
+}
+
 run_installer() {
     local source=$1 destination=$2
     PATH="$fake_bin:/usr/bin:/bin" \
@@ -98,6 +132,8 @@ run_installer() {
         RELEASE_FILE="${RELEASE_FILE:-}" \
         SIGNAL_ON_RM_OF="${SIGNAL_ON_RM_OF:-}" \
         TAKEOVER_WAIT_MARKER="${TAKEOVER_WAIT_MARKER:-}" \
+        LOCK_READ_BLOCK_MARKER="${LOCK_READ_BLOCK_MARKER:-}" \
+        LOCK_READ_BLOCK_RELEASE="${LOCK_READ_BLOCK_RELEASE:-}" \
         "$root/scripts/install-verified-app.sh" "$source" "$destination"
 }
 
@@ -268,10 +304,12 @@ run_installer "$new_source" "$headless_root/TagExplosion.app"
 assert_text new "$headless_root/TagExplosion.app"
 [ -z "$(find "$headless_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
-# Die Übernahme einer toten Sperre muss den Besitzer im AUSSCHLUSS erneut
-# prüfen: Hier ersetzt ein "Nachfolger" die tote Sperre durch eine lebende,
-# während der Anwärter am Übernahme-Hilfslock wartet. Der Anwärter darf die
-# lebende Sperre danach nicht stehlen, sondern muss sauber abbrechen.
+# Wettlauf 1 — Anwärter wartet am BELEGTEN Hilfslock: Ein "Nachfolger" ersetzt
+# die tote Sperre durch eine lebende, während der Anwärter noch gar keinen
+# Zugriff auf die Übernahme hat. Danach muss er die lebende Sperre in der
+# äußeren Schleife erkennen und abbrechen, statt sie zu stehlen.
+# (Die innere Prüfung nach eigenem Hilfslock-Erwerb erreicht dieser Fall
+# ausdrücklich NICHT — dafür gibt es Wettlauf 2 weiter unten.)
 race_root="$work/takeover-race"
 mkdir -p "$race_root"
 ln -s '999999|Mon Jan  1 00:00:00 2001' "$race_root/.TagExplosion.app.lock"
@@ -321,6 +359,58 @@ grep -q "andere Installation" "$race_output" || {
     exit 1
 }
 rm -f "$race_root/.TagExplosion.app.lock"
+
+# Wettlauf 2 — Anwärter hält das Hilfslock BEREITS: Genau dann greift die
+# erneute Besitzerprüfung im gegenseitigen Ausschluss (install-verified-app.sh,
+# takeover_stale_lock). Der readlink-Stub hält den Anwärter erst an, nachdem er
+# das Hilfslock erworben und seinen Besitz bestätigt hat; erst dann wird die
+# tote Hauptsperre gegen eine lebende getauscht. Ohne die innere Prüfung würde
+# er die lebende Sperre jetzt entfernen und installieren.
+inner_root="$work/takeover-inner"
+mkdir -p "$inner_root"
+ln -s '999999|Mon Jan  1 00:00:00 2001' "$inner_root/.TagExplosion.app.lock"
+rm -f "$work/verify-count"
+inner_output="$work/takeover-inner.log"
+inner_marker="$work/takeover-inner.waiting"
+inner_release="$work/takeover-inner.release"
+rm -f "$inner_marker" "$inner_marker.takeover-seen" "$inner_marker.done" "$inner_release"
+LOCK_READ_BLOCK_MARKER="$inner_marker" \
+LOCK_READ_BLOCK_RELEASE="$inner_release" \
+run_installer "$new_source" "$inner_root/TagExplosion.app" \
+    > "$inner_output" 2>&1 &
+inner_installer=$!
+wait_for_file "$inner_marker" "Anwärter erreichte die innere Besitzerprüfung nicht"
+# Beweis, dass wirklich der innere Pfad erreicht ist: Das Hilfslock gehört ihm.
+[ -L "$inner_root/.TagExplosion.app.lock.takeover" ] || {
+    echo "FEHLER: Anwärter hält das Übernahme-Hilfslock nicht" >&2
+    exit 1
+}
+# Tote Sperre atomar gegen eine lebende (unsere Shell) tauschen, dann freigeben.
+ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$inner_root/.live-lock"
+/bin/mv "$inner_root/.live-lock" "$inner_root/.TagExplosion.app.lock"
+: > "$inner_release"
+if wait "$inner_installer"; then
+    echo "FEHLER: Anwärter hat trotz innerer Prüfung eine lebende Sperre übernommen" >&2
+    exit 1
+fi
+grep -q "andere Installation" "$inner_output" || {
+    echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
+    cat "$inner_output" >&2
+    exit 1
+}
+[ -L "$inner_root/.TagExplosion.app.lock" ] || {
+    echo "FEHLER: die lebende Sperre wurde entfernt" >&2
+    exit 1
+}
+[ ! -e "$inner_root/TagExplosion.app" ] || {
+    echo "FEHLER: Anwärter hat trotz fremder Sperre installiert" >&2
+    exit 1
+}
+[ ! -e "$inner_root/.TagExplosion.app.lock.takeover" ] || {
+    echo "FEHLER: das Übernahme-Hilfslock blieb liegen" >&2
+    exit 1
+}
+rm -f "$inner_root/.TagExplosion.app.lock"
 
 # Ein verwaistes Übernahme-Hilfslock (Absturz mitten in der Übernahme) darf
 # nicht ewig blockieren: Nach Ablauf der Frist wird es weggeräumt.

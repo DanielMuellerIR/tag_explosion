@@ -415,7 +415,10 @@ public enum MediaInfoReader {
     /// für MacRoman; ohne dieses Signal hat das in ID3 häufigere Latin1
     /// Vorrang. mediainfo gibt rohe Tag-Bytes ungeprüft weiter; ID3v1/v2.3-
     /// Tags sind oft Latin1 und würden als UTF-8 gelesen zu Ersatzzeichen
-    /// zerfallen.
+    /// zerfallen. Entschieden wird je TEXTFELD, nicht je ungültigem Byte-Lauf:
+    /// Ein Feld enthält seine fremden Bytes oft getrennt durch ASCII
+    /// („Bäckereistraße" = 0x8A … 0xA7), und eine Entscheidung pro Lauf mischte
+    /// darin MacRoman und Latin1 (Review-Fund 2026-08-18).
     static func decodeLossy(_ data: Data) -> String {
         let repaired = repairSurrogateEscapes(in: data)
         if let s = String(data: repaired, encoding: .utf8) { return s }
@@ -436,24 +439,45 @@ public enum MediaInfoReader {
             index = next
         }
 
+        // Jeden Lauf seinem Textfeld zuordnen. Feldgrenze ist das
+        // Anführungszeichen (JSON-Strings) beziehungsweise der Zeilenumbruch
+        // (Klartextausgaben von mediainfo und Calibre). Beide sind ASCII und
+        // können deshalb nie innerhalb eines ungültigen Laufs liegen: Ein Byte
+        // unter 0x80 ist immer eine gültige UTF-8-Sequenz für sich.
+        func isFieldBoundary(_ byte: UInt8) -> Bool {
+            byte == 0x22 || byte == 0x0A || byte == 0x0D
+        }
+        var fieldOfRun = [Int](repeating: 0, count: runs.count)
+        var field = 0
+        for (position, run) in runs.enumerated() {
+            fieldOfRun[position] = field
+            guard run.valid else { continue }
+            for index in run.range where isFieldBoundary(bytes[index]) { field += 1 }
+        }
+
+        // C1-Bereich 0x80–0x9F: In Latin1 sind das unsichtbare Steuerzeichen,
+        // in MacRoman echte Buchstaben. Ein solches Byte IRGENDWO im Feld ist
+        // deshalb das Signal, das GANZE Feld als MacRoman zu deuten — sonst
+        // würde „Bäckereistraße" zu „Bäckereistra§e", weil das ß (0xA7) für
+        // sich genommen wie Latin1 aussieht (Review-Fund 2026-08-18).
+        // Die Entscheidung bleibt aber feldweise: Ein einziges C1-Byte darf
+        // nicht den ganzen Bericht umschalten und ein anderes Feld mit 0xFC
+        // (Latin1 „ü") verfälschen (Review-Fund 2026-08-17).
+        var macRomanFields = Set<Int>()
+        for (position, run) in runs.enumerated() where !run.valid {
+            if bytes[run.range].contains(where: { (0x80...0x9F).contains($0) }) {
+                macRomanFields.insert(fieldOfRun[position])
+            }
+        }
+
         var out = ""
-        for run in runs {
+        for (position, run) in runs.enumerated() {
             let slice = Data(bytes[run.range])
             if run.valid {
                 out += String(decoding: slice, as: UTF8.self)
             } else {
-                // Kodierung JE UNGÜLTIGEM LAUF entscheiden, nicht einmal für
-                // den ganzen Bericht. Ein Bericht enthält viele Felder aus
-                // verschiedenen Containern; ein einziges C1-Byte irgendwo zog
-                // vorher ALLE ungültigen Läufe auf MacRoman. Ein Feld mit
-                // 0x8A (MacRoman „ä") verfälschte damit ein anderes Feld mit
-                // 0xFC (Latin1 „ü") (Review-Fund 2026-08-17).
-                //
-                // C1-Bereich 0x80–0x9F: In Latin1 sind das unsichtbare
-                // Steuerzeichen, in MacRoman echte Buchstaben — ein solcher
-                // Lauf stammt praktisch immer aus MacRoman.
-                let fallback: String.Encoding = bytes[run.range]
-                    .contains { (0x80...0x9F).contains($0) } ? .macOSRoman : .isoLatin1
+                let fallback: String.Encoding =
+                    macRomanFields.contains(fieldOfRun[position]) ? .macOSRoman : .isoLatin1
                 // MacRoman/Latin1 bilden jedes Byte ab; der Rückfall auf
                 // lossy UTF-8 ist reine Vorsicht.
                 out += String(data: slice, encoding: fallback)

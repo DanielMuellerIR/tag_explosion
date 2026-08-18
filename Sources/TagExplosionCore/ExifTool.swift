@@ -336,7 +336,14 @@ public enum ExifTool {
             }
         }
         if fields.rating != original.rating {
-            args.append(fields.rating >= 0 ? "-MWG:Rating=\(fields.rating)" : "-MWG:Rating=")
+            // NUR -1 ist der Leerwert „kein Rating-Tag"; so liest ihn auch
+            // `readCoreFields`. Jeder andere negative Wert ist ein echter
+            // Bestandswert aus der Datei, den ein Archiv-Restore exakt
+            // zurückschreiben muss. Vorher löschte hier jeder negative Wert das
+            // Tag: Der Restore eines gesicherten -2 schrieb -1, und der
+            // Read-back meldete den Fehler erst nach dem atomaren Austausch
+            // (Review-Fund 2026-08-18).
+            args.append(fields.rating == -1 ? "-MWG:Rating=" : "-MWG:Rating=\(fields.rating)")
         }
         if fields.gpsLatitude != original.gpsLatitude || fields.gpsLongitude != original.gpsLongitude {
             if fields.gpsLatitude.isEmpty || fields.gpsLongitude.isEmpty {

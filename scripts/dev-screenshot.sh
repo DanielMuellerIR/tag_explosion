@@ -28,6 +28,57 @@ let appPath = CommandLine.arguments[1]
 let out = CommandLine.arguments[2]
 let documents = CommandLine.arguments.dropFirst(3).map { URL(fileURLWithPath: $0) }
 
+// Wem gehoert welcher Prozess? Alles, was VOR unserem Start schon lief, gehoert
+// einer produktiv benutzten Tag Explosion und wird nie angefasst. Alles, was
+// danach mit dieser Bundle-ID auftaucht, ist unsere Test-Instanz — auch wenn
+// der Startauftrag erst nach der Frist ankommt (Review-Fund 2026-08-18).
+// Bewusst dieselbe Logik wie in scripts/dev-windowtest.swift: `swift datei.swift`
+// kann keine zweite Quelldatei einbinden, ein gemeinsamer Helfer ginge nur
+// ueber eine zusammenkopierte Datei.
+let testBundleID = Bundle(url: URL(fileURLWithPath: appPath))?.bundleIdentifier
+let foreignPIDs: Set<pid_t> = Set((testBundleID.map {
+    NSRunningApplication.runningApplications(withBundleIdentifier: $0)
+} ?? []).map(\.processIdentifier))
+
+func ownedInstances() -> [NSRunningApplication] {
+    guard let testBundleID else { return [] }
+    return NSRunningApplication.runningApplications(withBundleIdentifier: testBundleID)
+        .filter { !foreignPIDs.contains($0.processIdentifier) }
+}
+
+/// Beendet alle eigenen Instanzen — erst hoeflich, dann hart.
+@discardableResult
+func shutDownOwnedInstances() -> Bool {
+    func waitForExit(_ seconds: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while !ownedInstances().isEmpty, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        return ownedInstances().isEmpty
+    }
+    for app in ownedInstances() { _ = app.terminate() }
+    if waitForExit(5) { return true }
+    for app in ownedInstances() { _ = app.forceTerminate() }
+    return waitForExit(5)
+}
+
+// Signale VOR dem Start behandeln: Ein Ctrl-C oder ein Abbruch der
+// uebergeordneten Shell traf sonst mitten in einen `Thread.sleep`, und die
+// Test-App blieb sichtbar zurueck. Die Quellen laufen auf einer eigenen
+// Warteschlange und greifen deshalb auch bei schlafendem Hauptthread.
+let signalSources: [DispatchSourceSignal] = [SIGINT, SIGTERM, SIGHUP].map { number in
+    signal(number, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
+    source.setEventHandler {
+        FileHandle.standardError.write(Data(
+            "ABBRUCH: Signal \(number) — die Test-App wird beendet.\n".utf8))
+        shutDownOwnedInstances()
+        exit(128 + number)
+    }
+    source.resume()
+    return source
+}
+
 // Eine EIGENE Instanz starten und genau sie festhalten. `createsNewApplicationInstance`
 // sorgt dafuer, dass eine bereits laufende Tag Explosion unberuehrt bleibt.
 func launchTestInstance() -> NSRunningApplication? {
@@ -58,11 +109,22 @@ func launchTestInstance() -> NSRunningApplication? {
     while done.wait(timeout: .now()) == .timedOut, Date() < deadline {
         RunLoop.current.run(until: Date().addingTimeInterval(0.05))
     }
+    // Frist abgelaufen, der Auftrag kann trotzdem noch ankommen: Eine JETZT neu
+    // auftauchende Instanz ist unsere und darf nicht unbeaufsichtigt bleiben.
+    if launched == nil {
+        let grace = Date().addingTimeInterval(10)
+        while launched == nil, Date() < grace {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            launched = ownedInstances().first
+        }
+    }
     return launched
 }
 
 guard let running = launchTestInstance() else {
     FileHandle.standardError.write(Data("FEHLER: Test-Instanz startete nicht.\n".utf8))
+    // Sicherheitsnetz gegen einen verspaeteten Start ohne Rueckmeldung.
+    shutDownOwnedInstances()
     exit(1)
 }
 // Ab hier gilt: Auf JEDEM Weg aus diesem Programm wird genau diese Instanz
@@ -74,17 +136,9 @@ let testPID = running.processIdentifier
 // Fehlerpfad laufen hierüber: Ein bloß angefordertes terminate ohne Warten
 // ließe die App nach einem frühen Fehler sichtbar weiterlaufen.
 func shutDownApp() -> Bool {
-    func waitForExit(seconds: TimeInterval) -> Bool {
-        let deadline = Date().addingTimeInterval(seconds)
-        while !running.isTerminated, Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
-        }
-        return running.isTerminated
-    }
-    _ = running.terminate()
-    if waitForExit(seconds: 5) { return true }
-    _ = running.forceTerminate()
-    return waitForExit(seconds: 5)
+    // Ueber die eigene Instanzliste statt nur ueber `running`: Ein zweiter,
+    // verspaetet gestarteter Prozess gehoert genauso zu diesem Lauf.
+    shutDownOwnedInstances()
 }
 
 func fail(_ message: String) -> Never {
