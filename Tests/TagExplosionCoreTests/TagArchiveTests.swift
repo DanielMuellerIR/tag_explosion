@@ -686,6 +686,80 @@ struct TagArchiveTests {
         #expect(try ExifTool.readCoreFields(url: image).rating == -2)
     }
 
+    // MARK: - Review-Fund 2026-08-20
+
+    @Test("Ein gesichertes Rating -1 wird zurueckgeschrieben, nicht geloescht")
+    func archivedRejectedRatingRestoresExactly() throws {
+        // -1 ist der von Adobe dokumentierte Wert fuer „abgelehnt" und wird von
+        // Bridge und Lightroom wirklich geschrieben. Solange -1 zugleich der
+        // Leerwert war, loeschte der Restore genau dieses Tag — und der
+        // Read-back konnte den Fehler nicht sehen, weil er das geloeschte Tag
+        // wieder als -1 las.
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let exe = try ExifTool.locateExecutable()
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=-1", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == -1)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=3", image.path])
+        #expect(try ExifTool.readCoreFields(url: image).rating == 3)
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+
+        #expect(report.failed.isEmpty)
+        #expect(report.applied == ["cover.jpg"])
+        #expect(try ExifTool.readCoreFields(url: image).rating == -1)
+    }
+
+    @Test("Ohne Rating-Tag bleibt das Feld leer und der Restore loescht es wieder")
+    func missingRatingStaysAbsent() throws {
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        #expect(try ExifTool.readCoreFields(url: image).rating == nil)
+
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [image], to: json, includeCovers: false)
+
+        let exe = try ExifTool.locateExecutable()
+        _ = try MediaInfoReader.run(
+            exe, ["-overwrite_original", "-m", "-XMP:Rating=4", image.path])
+
+        let report = try TagArchiveIO.apply(
+            try TagArchiveIO.load(json), relativeTo: dir, dryRun: false)
+
+        #expect(report.applied == ["cover.jpg"])
+        #expect(try ExifTool.readCoreFields(url: image).rating == nil)
+    }
+
+    @Test("Im alten Schema 1 bleibt -1 der Leerwert")
+    func legacySchemaTreatsMinusOneAsAbsent() throws {
+        // Schema 1 konnte „kein Tag" und „Tag mit -1" nicht unterscheiden und
+        // schrieb fuer beides -1. Ein solcher Bestand darf beim Import kein
+        // -1-Tag in eine Datei schreiben, die vorher keines hatte.
+        var fields = ImageCoreFields()
+        fields.rating = -1
+        let legacy = TagArchive(version: 1, created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: fields),
+        ])
+
+        let normalized = TagArchiveIO.normalizingLegacyValues(legacy)
+        #expect(normalized.files[0].image?.rating == nil)
+
+        // Ein Archiv im heutigen Schema behaelt die -1 dagegen.
+        let current = TagArchive(created: "2026-07-19T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: fields),
+        ])
+        #expect(TagArchiveIO.normalizingLegacyValues(current).files[0].image?.rating == -1)
+    }
+
     @Test("Technisch unschreibbare Archivwerte scheitern je Eintrag — Dry-run und Import gleich")
     func unwritableImageValuesFailConsistently() throws {
         // Die Wertebereiche gelten beim Restore nicht mehr, die TECHNISCHEN
@@ -846,7 +920,8 @@ struct TagArchiveTests {
 
     @Test("Nur bekannte Archivversionen und passende Pflichtdaten werden akzeptiert")
     func archiveSchemaValidation() throws {
-        let unsupported = TagArchive(version: 2, created: "2026-07-19T00:00:00Z", files: [])
+        let unsupported = TagArchive(version: TagArchive.currentVersion + 1,
+                                     created: "2026-07-19T00:00:00Z", files: [])
         #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(unsupported) }
 
         let missingImage = TagArchive(created: "2026-07-19T00:00:00Z", files: [

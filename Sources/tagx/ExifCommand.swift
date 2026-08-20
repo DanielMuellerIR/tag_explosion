@@ -61,7 +61,10 @@ struct ExifShow: ParsableCommand {
         line("CREATOR", core.creator)
         line("COPYRIGHT", core.copyright)
         line("DATE", core.dateTimeOriginal)
-        if core.rating >= 0 { print("RATING=\(core.rating)") }
+        // Ausgegeben wird jeder vorhandene Wert — auch ein negativer
+        // Bestandswert. Die Textausgabe verschwieg ihn, während --json ihn
+        // zeigte (Review-Fund 2026-08-20).
+        if let rating = core.rating { print("RATING=\(rating)") }
         if !core.gpsLatitude.isEmpty { print("GPS=\(core.gpsLatitude),\(core.gpsLongitude)") }
         if let groups {
             for group in groups {
@@ -115,7 +118,7 @@ struct ExifSet: ParsableCommand {
         if let date { fields.dateTimeOriginal = date }
         if let rating {
             if rating.isEmpty {
-                fields.rating = -1
+                fields.rating = nil
             } else {
                 // Die CLI nutzt bewusst den leeren Optionswert zum Löschen;
                 // -1 ist nur die interne Darstellung im Core-Modell.

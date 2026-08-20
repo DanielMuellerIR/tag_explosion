@@ -8,6 +8,46 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.22.2] — 2026-08-20
+
+### Behoben
+
+- Eine E-Rechnung wird auch dann gefunden, wenn im PDF ein sehr großer
+  Fremdanhang davor liegt. Vorher beendete ein einziger übergroßer Anhang die
+  Suche, und die Datei galt als „keine E-Rechnung“, obwohl andere Programme
+  die Rechnung anzeigten.
+- Eine unkomprimiert eingebettete Rechnung über 256 KiB wird gelesen. Die
+  Größenschranke gegen Dekompressionsbomben galt bisher auch für Anhänge, die
+  gar nicht komprimiert sind.
+- Ein Bild-Rating von −1 („abgelehnt“, so schreiben es Adobe Bridge und
+  Lightroom) ist jetzt ein echter Wert und kein Leerwert mehr: Ein
+  Wiederherstellen aus dem Backup schreibt es zurück, statt das Tag zu
+  löschen. „Kein Rating“ heißt jetzt „das Feld fehlt“. Ältere Backups
+  (Schema 1) werden weiterhin gelesen und dabei richtig umgedeutet.
+- `tagx exif show` zeigt jedes vorhandene Rating an, auch ein negatives. Die
+  Textausgabe verschwieg es, während `--json` es ausgab.
+- Tags mit Anführungszeichen im Wert (`Der "Bär" aus der Straße`) werden
+  wieder vollständig richtig gedeutet; das Anführungszeichen galt fälschlich
+  auch außerhalb von JSON als Feldgrenze.
+- Umlaute neben typografischen Zeichen bleiben erhalten: „Café – Bar“ wurde
+  wegen des Gedankenstrichs komplett falsch gedeutet („CafÈ ñ Bar“). Die App
+  wählt die Kodierung jetzt nach dem plausibleren Gesamtbild des Feldes und
+  kennt Windows-1252, die in Musikdateien übliche Kodierung.
+- Beim Beenden springt ein Fenster nur noch nach vorn, wenn dort auch
+  wirklich eine Frage oder ein Dialog erscheint.
+- Bleibt ein angefordertes Fenster aus, wird auch beim zweiten und jedem
+  weiteren Mal nachgefasst. Nach dem ersten Fehlversuch war das Nachfassen
+  vorher für den Rest der Sitzung abgeschaltet.
+
+### Geändert
+
+- Die drei GUI-Selbsttests teilen sich einen gemeinsamen Unterbau
+  (`scripts/lib/gui-testkit.swift`) und heißen jetzt alle `.sh`. Sie beenden
+  nur noch Instanzen, die sie selbst gestartet haben — auch dann, wenn während
+  des Laufs eine weitere Tag Explosion dazukommt. `scripts/dev-uitest.sh`
+  startet eine eigene Instanz, statt in die gerade geöffnete Datei des
+  Nutzers zu schreiben.
+
 ## [0.22.1] — 2026-08-18
 
 ### Behoben

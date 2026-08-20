@@ -680,10 +680,9 @@ struct EInvoiceTests {
                         + "/EF << /F 4 0 R /UF 4 0 R >> >>",
                 ])
             }
-            // Deklarierte komprimierte Größe über der Schranke für
-            // komprimierte Streams (256 KiB) …
+            // Deklarierte Größe über dem Gesamtbudget (64 MiB) …
             let lengthLie = dir.appendingPathComponent("laenge.pdf")
-            try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length 9437184 >>")
+            try poisonedPDF(streamDict: "<< /Type /EmbeddedFile /Length 104857600 >>")
                 .write(to: lengthLie)
             #expect(throws: EInvoiceError.notAnInvoice) {
                 try EInvoiceReader.read(url: lengthLie)
@@ -727,10 +726,127 @@ struct EInvoiceTests {
 
             let extraction = try PDFEmbeddedInvoice.extract(url: url, byteBudget: 1000)
 
-            // fuell-2 sprengt das Budget und wird verworfen; „spaet" passte
-            // rechnerisch noch ins BEHALTENE Budget und wurde deshalb vorher
-            // trotzdem entpackt.
-            #expect(extraction.files.map(\.name) == ["fuell-1.xml"])
+            // fuell-2 sprengt das Anzeigebudget und wird verworfen — die Suche
+            // laeuft aber weiter, und „spaet" passt noch hinein.
+            #expect(extraction.files.map(\.name) == ["fuell-1.xml", "spaet.xml"])
+        }
+    }
+#endif
+
+    // MARK: - Review-Fund 2026-08-20
+
+#if canImport(CoreGraphics)
+    @Test("PDF: Ein zu grosser Anhang beendet die Suche nach der Rechnung nicht")
+    func pdfOversizedAttachmentDoesNotHideInvoice() throws {
+        try withTempDirectory { dir in
+            // Der Angriff: EIN Fuellanhang, der allein das Anzeigebudget
+            // sprengt, VOR der deklarierten Rechnung. Zaehlte die Entpackarbeit
+            // gegen dasselbe Budget, war danach jeder weitere Kandidat gesperrt
+            // — die Datei galt als „keine E-Rechnung", waehrend andere Leser
+            // dieselbe Rechnung anzeigten (Review-Fund 2026-08-20).
+            let url = dir.appendingPathComponent("versteckt.pdf")
+            try Self.makePDF(embeddings: [
+                (Data(String(repeating: "a", count: 4000).utf8), "fuell-1.xml"),
+                (Data(String(repeating: "b", count: 4500).utf8), "fuell-2.xml"),
+                (Data(Self.ciiXML.utf8), "factur-x.xml"),
+            ]).write(to: url)
+
+            // fuell-2 wird entpackt und dann verworfen; danach liegt die
+            // Entpackmenge (8500) ueber dem Anzeigebudget (8000) — genau der
+            // Zustand, der frueher jede weitere Suche abwuergte.
+            let extraction = try PDFEmbeddedInvoice.extract(url: url, byteBudget: 8000)
+            #expect(extraction.files.map(\.name) == ["fuell-1.xml", "factur-x.xml"])
+
+            let document = try EInvoiceReader.read(url: url)
+            #expect(document.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: Derselbe Stream unter vielen Namen erschoepft das Arbeitsbudget")
+    func pdfRepeatedStreamHitsWorkBudget() throws {
+        try withTempDirectory { dir in
+            // Wiederholungsschutz: Ein Filespec-Array, das vielfach auf
+            // denselben grossen Stream zeigt, jeweils unter einem anderen Namen.
+            // `seenNames` greift hier nicht — nur das Arbeitsbudget begrenzt,
+            // wie oft entpackt wird.
+            let payload = String(repeating: "a", count: 600)
+            var objects: [String] = [
+                "KATALOG-PLATZHALTER",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                "<< /Type /EmbeddedFile /Length \(payload.utf8.count) >>\nstream\n"
+                    + payload + "\nendstream",
+            ]
+            let streamID = 4
+            var af: [String] = []
+            for i in 1...20 {
+                objects.append("<< /Type /Filespec /F (kopie-\(i).xml) /UF (kopie-\(i).xml) "
+                    + "/EF << /F \(streamID) 0 R /UF \(streamID) 0 R >> >>")
+                af.append("\(objects.count) 0 R")
+            }
+            // Ein kleiner Anhang GANZ am Ende: Er passte ins Anzeigebudget,
+            // darf aber nicht mehr erreicht werden.
+            let spaet = "<klein/>"
+            objects.append("<< /Type /EmbeddedFile /Length \(spaet.utf8.count) >>\nstream\n"
+                + spaet + "\nendstream")
+            let spaetStreamID = objects.count
+            objects.append("<< /Type /Filespec /F (spaet.xml) /UF (spaet.xml) "
+                + "/EF << /F \(spaetStreamID) 0 R /UF \(spaetStreamID) 0 R >> >>")
+            af.append("\(objects.count) 0 R")
+            objects[0] = "<< /Type /Catalog /Pages 2 0 R /AF [ \(af.joined(separator: " ")) ] >>"
+            let url = dir.appendingPathComponent("wiederholung.pdf")
+            try Self.assemblePDF(objects: objects).write(to: url)
+
+            let extraction = try PDFEmbeddedInvoice.extract(url: url, byteBudget: 1000)
+
+            // Behalten wird nur, was ins Anzeigebudget passt — und nach dem
+            // Vierfachen an Entpackarbeit (sieben der zwanzig Kopien) endet die
+            // Suche, „spaet.xml" wird nicht mehr erreicht.
+            #expect(extraction.files.map(\.name) == ["kopie-1.xml"])
+        }
+    }
+
+    @Test("PDF: Eine unkomprimiert eingebettete Rechnung ueber 256 KiB bleibt lesbar")
+    func pdfLargeUncompressedInvoiceIsRead() throws {
+        try withTempDirectory { dir in
+            // /Length ist bei einem Stream OHNE /Filter bereits die entpackte
+            // Groesse; die Bomben-Schranke von 256 KiB gehoert dort nicht hin.
+            // Factur-X schreibt keine Kompression vor, und eine Rechnung mit
+            // vielen Positionen wird unkomprimiert schnell groesser
+            // (Review-Fund 2026-08-20).
+            let padding = String(repeating: " ", count: 300 * 1024)
+            let big = Self.ciiXML + "\n<!--" + padding + "-->"
+            #expect(big.utf8.count > PDFEmbeddedInvoice.maxCompressedBytes)
+            let url = dir.appendingPathComponent("gross-unkomprimiert.pdf")
+            try Self.makePDF(embedding: Data(big.utf8), fileName: "factur-x.xml").write(to: url)
+
+            let document = try EInvoiceReader.read(url: url)
+            #expect(document.summary.invoiceNumber == "R-1")
+        }
+    }
+
+    @Test("PDF: Ein angekuendigtes /Params/Size ueber dem uebergebenen Budget zaehlt")
+    func pdfParamsSizeUsesPassedBudget() throws {
+        try withTempDirectory { dir in
+            // Frueher pruefte dieser Pfad gegen die Konstante statt gegen das
+            // uebergebene Budget — ein Test mit kleinem Budget beruehrte ihn
+            // deshalb nie (Review-Fund 2026-08-20).
+            let xml = Self.ciiXML
+            let url = dir.appendingPathComponent("params-klein.pdf")
+            try Self.assemblePDF(objects: [
+                "<< /Type /Catalog /Pages 2 0 R /AF [ 5 0 R ] >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+                "<< /Type /EmbeddedFile /Length \(xml.utf8.count) "
+                    + "/Params << /Size 5000 >> >>\nstream\n\(xml)\nendstream",
+                "<< /Type /Filespec /F (factur-x.xml) /UF (factur-x.xml) "
+                    + "/EF << /F 4 0 R /UF 4 0 R >> >>",
+            ]).write(to: url)
+
+            // Mit grossem Budget lesbar …
+            #expect(try PDFEmbeddedInvoice.extract(url: url).files.count == 1)
+            // … mit einem Budget unter der angekuendigten Groesse nicht.
+            #expect(try PDFEmbeddedInvoice.extract(url: url, byteBudget: 1000).files.isEmpty)
         }
     }
 #endif

@@ -28,6 +28,20 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   (EPUB-Kernformate); ebook-meta-Formate bleiben bei JPEG/PNG und lehnen
   den nackten Index ab.
 
+## Bewertung: „kein Tag" ist kein Wert (seit 2026-08-20)
+
+- `ImageCoreFields.rating` ist `Int?`. nil heißt „die Datei trägt gar kein
+  Rating-Tag"; JEDER Wert ist ein echter Wert und wird wörtlich
+  zurückgeschrieben. Solange −1 zugleich der Leerwert war, löschte ein Restore
+  genau das Tag, das Adobe Bridge und Lightroom für „abgelehnt" schreiben — und
+  der Read-back konnte den Fehler nicht sehen, weil er das gelöschte Tag wieder
+  als −1 las (Review-Fund 2026-08-20).
+- Das Archivschema steht deshalb auf **2**. Schema 1 kannte nur `Int` und
+  schrieb −1 für beides; `TagArchiveIO.normalizingLegacyValues` rechnet solche
+  Archive beim Import auf nil um. Ohne diese Umrechnung schriebe ein alter
+  Bestand plötzlich ein −1-Tag in Dateien, die vorher keines hatten. Beide
+  Schemata bleiben importierbar.
+
 ## Restlücke (bewusst)
 
 - Ein BMP-Cover in einem (spec-widrigen) fremden EPUB ist archivierbar und

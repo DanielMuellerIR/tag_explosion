@@ -27,15 +27,22 @@ public struct ImageCoreFields: Sendable, Codable, Equatable {
     public var copyright: String
     /// Aufnahmedatum als exiftool-String "YYYY:MM:DD HH:MM:SS" (ggf. mit Zone)
     public var dateTimeOriginal: String
-    /// XMP-Bewertung 0–5; -1 = nicht gesetzt
-    public var rating: Int
+    /// XMP-Bewertung 0–5; nil = die Datei trägt gar kein Rating-Tag.
+    ///
+    /// Als Optional, weil „kein Tag" und „Tag mit dem Wert −1" zwei
+    /// verschiedene Zustände sind: −1 ist der von Adobe dokumentierte Wert für
+    /// „abgelehnt" und wird von Bridge und Lightroom wirklich geschrieben. Mit
+    /// −1 als Leerwert löschte ein Archiv-Restore genau dieses Tag, statt es
+    /// zurückzuschreiben — und der Read-back konnte den Fehler nicht sehen,
+    /// weil er dieselbe Mehrdeutigkeit las (Review-Fund 2026-08-20).
+    public var rating: Int?
     /// GPS als Dezimalgrad-Strings; leer = nicht gesetzt
     public var gpsLatitude: String
     public var gpsLongitude: String
 
     public init(title: String = "", description: String = "", keywords: [String] = [],
                 creator: String = "", copyright: String = "", dateTimeOriginal: String = "",
-                rating: Int = -1, gpsLatitude: String = "", gpsLongitude: String = "") {
+                rating: Int? = nil, gpsLatitude: String = "", gpsLongitude: String = "") {
         self.title = title
         self.description = description
         self.keywords = keywords
@@ -59,7 +66,7 @@ public enum ImageMetadataValidationError: Error, LocalizedError, Sendable, Equat
     public var errorDescription: String? {
         switch self {
         case .ratingOutOfRange:
-            return "image rating must be between -1 (unset) and 5"
+            return "image rating must be between -1 (rejected) and 5, or absent"
         case .incompleteGPS:
             return "image GPS requires both latitude and longitude, or neither"
         case .invalidLatitude:
@@ -188,7 +195,9 @@ public enum ExifTool {
         fields.creator = stringify(dict["Creator"])
         fields.copyright = stringify(dict["Copyright"])
         fields.dateTimeOriginal = stringify(dict["DateTimeOriginal"])
-        fields.rating = (dict["Rating"] as? NSNumber)?.intValue ?? -1
+        // Fehlt der Schlüssel, bleibt das Feld nil — „kein Tag". Ein
+        // vorhandenes Tag behält seinen Wert, auch das negative −1.
+        fields.rating = (dict["Rating"] as? NSNumber)?.intValue
         if let lat = dict["GPSLatitude"] as? NSNumber { fields.gpsLatitude = lat.stringValue }
         if let lon = dict["GPSLongitude"] as? NSNumber { fields.gpsLongitude = lon.stringValue }
         return fields
@@ -236,9 +245,9 @@ public enum ExifTool {
         // und muss dorthin zurueckkoennen (Review-Fund 2026-08-17, siehe
         // knowledge/archiv-restore-vertrag.md).
         let ratingChanged = original.map { $0.rating != fields.rating } ?? true
-        if ratingChanged {
-            guard (-1...5).contains(fields.rating) else {
-                throw ImageMetadataValidationError.ratingOutOfRange(fields.rating)
+        if ratingChanged, let rating = fields.rating {
+            guard (-1...5).contains(rating) else {
+                throw ImageMetadataValidationError.ratingOutOfRange(rating)
             }
         }
 
@@ -289,7 +298,6 @@ public enum ExifTool {
         guard let longitude = Double(fields.gpsLongitude), longitude.isFinite else {
             throw ImageMetadataValidationError.invalidLongitude(fields.gpsLongitude)
         }
-        _ = (latitude, longitude)
     }
 
     /// Schreibt die Kernfelder (nur die Unterschiede zu `original`).
@@ -336,14 +344,13 @@ public enum ExifTool {
             }
         }
         if fields.rating != original.rating {
-            // NUR -1 ist der Leerwert „kein Rating-Tag"; so liest ihn auch
-            // `readCoreFields`. Jeder andere negative Wert ist ein echter
-            // Bestandswert aus der Datei, den ein Archiv-Restore exakt
-            // zurückschreiben muss. Vorher löschte hier jeder negative Wert das
-            // Tag: Der Restore eines gesicherten -2 schrieb -1, und der
-            // Read-back meldete den Fehler erst nach dem atomaren Austausch
-            // (Review-Fund 2026-08-18).
-            args.append(fields.rating == -1 ? "-MWG:Rating=" : "-MWG:Rating=\(fields.rating)")
+            // nil heißt „kein Rating-Tag" und wird zum Löschbefehl; JEDER Wert,
+            // auch ein negativer, ist ein echter Bestandswert aus der Datei und
+            // wird wörtlich geschrieben. Vorher löschte hier jeder negative Wert
+            // das Tag (Review-Fund 2026-08-18), und danach blieb −1 als
+            // Löschwert übrig — genau der Wert, den Adobe für „abgelehnt"
+            // vergibt (Review-Fund 2026-08-20).
+            args.append(fields.rating.map { "-MWG:Rating=\($0)" } ?? "-MWG:Rating=")
         }
         if fields.gpsLatitude != original.gpsLatitude || fields.gpsLongitude != original.gpsLongitude {
             if fields.gpsLatitude.isEmpty || fields.gpsLongitude.isEmpty {

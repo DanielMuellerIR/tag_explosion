@@ -197,6 +197,68 @@ struct MediaInfoReaderProcessTests {
         #expect(decoded.contains("Tür"))
     }
 
+    // MARK: - Review-Fund 2026-08-20
+
+    @Test("Ein Anfuehrungszeichen im Wert trennt eine Klartextzeile nicht")
+    func quotesInsidePlainTextValueDoNotSplitField() {
+        // „Der \"Bär\" aus der Straße" in MacRoman. Das Anführungszeichen galt
+        // in JEDER Ausgabe als Feldgrenze; damit lag das ß (0xA7) in einem
+        // eigenen Feld ohne C1-Signal und wurde zum „§".
+        var raw = Data("Titel: Der \"B".utf8)
+        raw.append(0x8A)                      // MacRoman „ä"
+        raw.append(contentsOf: Data("r\" aus der Stra".utf8))
+        raw.append(0xA7)                      // MacRoman „ß"
+        raw.append(contentsOf: Data("e".utf8))
+
+        let decoded = MediaInfoReader.decodeLossy(raw)
+
+        #expect(decoded == "Titel: Der \"Bär\" aus der Straße")
+    }
+
+    @Test("Ein maskiertes Anfuehrungszeichen trennt auch im JSON nicht")
+    func escapedQuoteInJSONDoesNotSplitField() {
+        // Im JSON IST das Anführungszeichen die Feldgrenze — ein maskiertes
+        // \" gehört aber zum Wert.
+        var raw = Data(#"{"a":"B"#.utf8)
+        raw.append(0x8A)                      // MacRoman „ä"
+        raw.append(contentsOf: Data(##"r \" Stra"##.utf8))
+        raw.append(0xA7)                      // MacRoman „ß"
+        raw.append(contentsOf: Data(#"e"}"#.utf8))
+
+        let decoded = MediaInfoReader.decodeLossy(raw)
+
+        #expect(decoded.contains(#"Bär \" Straße"#))
+    }
+
+    @Test("Ein cp1252-Gedankenstrich zieht das Feld nicht auf MacRoman")
+    func windows1252PunctuationKeepsUmlautsIntact() {
+        // „Café – Bar": 0xE9 ist in Windows-1252 „é", 0x96 der Gedankenstrich.
+        // Das C1-Byte 0x96 schaltete vorher das GANZE Feld auf MacRoman und
+        // machte aus dem é ein „È".
+        var raw = Data("Caf".utf8)
+        raw.append(0xE9)
+        raw.append(contentsOf: Data(" ".utf8))
+        raw.append(0x96)
+        raw.append(contentsOf: Data(" Bar".utf8))
+
+        #expect(MediaInfoReader.decodeLossy(raw) == "Café – Bar")
+    }
+
+    @Test("Ein Grossbuchstabe am Wortanfang bleibt Windows-1252")
+    func uppercaseAtWordStartStaysWindows1252() {
+        // 0xC4/0xD6 sind in Windows-1252 „Ä"/„Ö" und stehen am Wortanfang —
+        // eine Bewertung, die jeden Großbuchstaben bestraft, läge hier falsch.
+        var raw = Data("Testk".utf8)
+        raw.append(0xFC)
+        raw.append(contentsOf: Data("nstler ".utf8))
+        raw.append(0xC4)
+        raw.append(contentsOf: Data("rger ".utf8))
+        raw.append(0xD6)
+        raw.append(contentsOf: Data("se".utf8))
+
+        #expect(MediaInfoReader.decodeLossy(raw) == "Testkünstler Ärger Öse")
+    }
+
     @Test("Zeilen einer Klartextausgabe entscheiden getrennt")
     func decidesEncodingPerLineInPlainText() {
         // Calibre und mediainfo geben auch reinen Text aus; dort ist die Zeile

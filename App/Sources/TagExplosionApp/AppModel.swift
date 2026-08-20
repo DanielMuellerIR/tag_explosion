@@ -714,6 +714,15 @@ final class AppModel {
         entries.contains { $0.isSaving }
     }
 
+    /// Hat dieses Fenster etwas zu verlieren? Ungespeicherte Änderungen, ein
+    /// laufendes Speichern oder ein offener Dialog — jedes davon muss das
+    /// Beenden aufhalten. Als benannte Eigenschaft, weil `WindowSessions` das
+    /// Prädikat an zwei Stellen braucht (Rundenguard und Schlussabgleich) und
+    /// ein Auseinanderlaufen die App unbeendbar machte (Review-Fund 2026-08-20).
+    var hasUnfinishedWork: Bool {
+        hasDirtyEntries || hasSavingEntries || isDestructiveActionLocked
+    }
+
     func saveAll() async {
         guard !isDestructiveActionLocked else { return }
         await saveEntries(entries.filter(\.isDirty))

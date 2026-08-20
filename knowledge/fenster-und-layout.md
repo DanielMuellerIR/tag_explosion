@@ -46,7 +46,7 @@ Trifft zu bei Arbeit an `TagExplosionApp.swift`, `WindowSessions.swift`,
 - Der Titel bleibt der Tag-Titel; der Dateiname steht daneben im Untertitel
   (`WindowChrome`), aber nur, wenn er nicht ohnehin der Titel ist.
 - Prüfbar ohne Klicken: Die Accessibility-API spiegelt `representedURL` als
-  `kAXDocumentAttribute` des Fensters — `scripts/dev-windowtest.swift` prüft
+  `kAXDocumentAttribute` des Fensters — `scripts/dev-windowtest.sh` prüft
   genau das.
 
 ## SwiftUI-Layout: zwei Fallen, die ganze Ansichten zerlegen

@@ -8,7 +8,26 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 # shellcheck source=./shell-test-support.sh
 . "$root/Tests/shell-test-support.sh"
 work=$(tagx_make_test_workdir tagx-install-tests)
-trap 'rm -rf -- "$work"' EXIT
+
+# Hintergrundlaeufe des Nebenlaeufigkeitstests. Ohne dieses Aufraeumen verlor ein
+# noch laufender Installer beim Abbruch mitten in der Ausfuehrung seine
+# PATH-Attrappen und sein Zielverzeichnis, und eine wartende spctl-Attrappe
+# hielt die geerbte stdout/stderr-Pipe des CI-Schritts offen — der Job hing bis
+# zum globalen Timeout, statt mit der eigentlichen Fehlermeldung zu enden
+# (Review-Fund 2026-08-20).
+background_pids=""
+note_background() { background_pids="$background_pids $1"; }
+stop_background_runs() {
+    [ -n "$background_pids" ] || return 0
+    # Erst die Haltepunkte freigeben, damit kein Hintergrundlauf in einer
+    # Warteschleife stirbt, dann beenden und einsammeln.
+    : > "$work/release" 2>/dev/null || true
+    : > "$work/takeover-inner.release" 2>/dev/null || true
+    for pid in $background_pids; do kill "$pid" 2>/dev/null || true; done
+    for pid in $background_pids; do wait "$pid" 2>/dev/null || true; done
+    background_pids=""
+}
+trap 'stop_background_runs; rm -rf -- "$work"' EXIT
 fake_bin="$work/bin"
 mkdir -p "$fake_bin"
 
@@ -33,7 +52,13 @@ printf '%s\n' "$count" > "$VERIFY_COUNT_FILE"
 # Haltepunkt für den Nebenläufigkeitstest: Der Lauf bleibt mitten in der
 # Pruefung stehen, bis die Freigabedatei auftaucht.
 if [ "${BLOCK_SPCTL_CALL:-0}" -eq "$count" ]; then
-    while [ ! -f "${RELEASE_FILE:-/nonexistent}" ]; do sleep 0.05; done
+    # Begrenzt wie die readlink-Attrappe unten: Bricht der Test ab, bevor die
+    # Freigabedatei entsteht, darf dieser Lauf nicht ewig warten.
+    waited=0
+    while [ ! -f "${RELEASE_FILE:-/nonexistent}" ] && [ "$waited" -lt 400 ]; do
+        sleep 0.05
+        waited=$((waited + 1))
+    done
 fi
 [ "${FAIL_SPCTL_CALL:-0}" -ne "$count" ]
 SH
@@ -112,14 +137,23 @@ assert_text() {
     }
 }
 
-# Wartet auf eine Marker-Datei (max. 10 s) statt auf eine feste Zeit.
-wait_for_file() {
-    local path=$1 message=$2 waited=0
-    until [ -f "$path" ]; do
+# Wartet auf eine Bedingung (max. 10 s) statt auf eine feste Zeit. `condition`
+# ist ein Kommando; ist es leer, wird auf die Marker-Datei `$path` gewartet.
+# Alle Warteschleifen dieses Tests laufen hierueber, damit das Aufraeumen der
+# Hintergrundlaeufe an einer Stelle sitzt (Review-Fund 2026-08-20).
+wait_for() {
+    local message=$1; shift
+    local waited=0
+    until "$@"; do
         sleep 0.05
         waited=$((waited + 1))
         [ "$waited" -lt 200 ] || { echo "FEHLER: $message" >&2; exit 1; }
     done
+}
+
+wait_for_file() {
+    local path=$1 message=$2
+    wait_for "$message" test -f "$path"
 }
 
 run_installer() {
@@ -223,18 +257,15 @@ rm -f "$work/verify-count" "$work/release"
 BLOCK_SPCTL_CALL=1 RELEASE_FILE="$work/release" \
     run_installer "$new_source" "$concurrent_root/TagExplosion.app" &
 first_installer=$!
+note_background "$first_installer"
 # Warten, bis der erste Lauf die Sperre hält (der Symlink entsteht atomar
 # mitsamt Besitzer) und die blockierende spctl-Attrappe ihren Haltepunkt
 # erreicht hat.
-for _ in $(seq 1 200); do
+lock_held_and_blocked() {
     [ -L "$concurrent_root/.TagExplosion.app.lock" ] \
-        && [ "$(cat "$work/verify-count" 2>/dev/null)" = "1" ] && break
-    sleep 0.05
-done
-[ -L "$concurrent_root/.TagExplosion.app.lock" ] || {
-    echo "FEHLER: erster Lauf hat keine Sperre angelegt" >&2
-    exit 1
+        && [ "$(cat "$work/verify-count" 2>/dev/null)" = "1" ]
 }
+wait_for "erster Lauf hat keine Sperre angelegt" lock_held_and_blocked
 second_output="$work/second.log"
 if run_installer "$new_source" "$concurrent_root/TagExplosion.app" \
     > "$second_output" 2>&1; then
@@ -325,16 +356,9 @@ TAKEOVER_WAIT_MARKER="$race_marker" \
 run_installer "$new_source" "$race_root/TagExplosion.app" \
     > "$race_output" 2>&1 &
 race_installer=$!
+note_background "$race_installer"
 # Erst weitermachen, wenn der Anwärter das Hilfslock nachweislich gelesen hat.
-race_wait=0
-until [ -f "$race_marker" ]; do
-    sleep 0.05
-    race_wait=$((race_wait + 1))
-    [ "$race_wait" -lt 200 ] || {
-        echo "FEHLER: Anwärter erreichte das Übernahme-Hilfslock nicht" >&2
-        exit 1
-    }
-done
+wait_for_file "$race_marker" "Anwärter erreichte das Übernahme-Hilfslock nicht"
 # "Nachfolger": tote Sperre ATOMAR gegen eine lebende (unsere Shell)
 # tauschen — ein rm+ln-Fenster würde der wartende Anwärter sofort selbst
 # mit claim_lock füllen. Erst danach die Übernahme freigeben.
@@ -379,6 +403,7 @@ LOCK_READ_BLOCK_RELEASE="$inner_release" \
 run_installer "$new_source" "$inner_root/TagExplosion.app" \
     > "$inner_output" 2>&1 &
 inner_installer=$!
+note_background "$inner_installer"
 wait_for_file "$inner_marker" "Anwärter erreichte die innere Besitzerprüfung nicht"
 # Beweis, dass wirklich der innere Pfad erreicht ist: Das Hilfslock gehört ihm.
 [ -L "$inner_root/.TagExplosion.app.lock.takeover" ] || {
@@ -406,7 +431,11 @@ grep -q "andere Installation" "$inner_output" || {
     echo "FEHLER: Anwärter hat trotz fremder Sperre installiert" >&2
     exit 1
 }
-[ ! -e "$inner_root/.TagExplosion.app.lock.takeover" ] || {
+# -L UND -e: Das Hilfslock ist ein Symlink auf "PID|Startzeit", also ein
+# BAUMELNDER Link. `-e` folgt dem Link und ist deshalb immer falsch — die
+# Zusicherung lief ins Leere (Review-Fund 2026-08-20).
+[ ! -L "$inner_root/.TagExplosion.app.lock.takeover" ] \
+    && [ ! -e "$inner_root/.TagExplosion.app.lock.takeover" ] || {
     echo "FEHLER: das Übernahme-Hilfslock blieb liegen" >&2
     exit 1
 }

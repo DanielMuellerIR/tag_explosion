@@ -170,9 +170,10 @@ struct ImageFieldsTab: View {
                 GridRow {
                     GridFieldLabel("Bewertung")
                     Picker("", selection: $entry.imageFields.rating) {
-                        Text("keine").tag(-1)
+                        Text("keine").tag(Int?.none)
                         ForEach(0...5, id: \.self) { stars in
-                            Text(stars == 0 ? "0" : String(repeating: "★", count: stars)).tag(stars)
+                            Text(stars == 0 ? "0" : String(repeating: "★", count: stars))
+                                .tag(Int?.some(stars))
                         }
                     }
                     .labelsHidden()

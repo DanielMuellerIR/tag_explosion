@@ -58,24 +58,43 @@ Rechnungsansicht der App.
   `factur-x.xml`, `zugferd-invoice.xml` und `xrechnung.xml`; sonst das erste
   eingebettete Rechnungs-XML in PDF-Reihenfolge (AF vor Namensbaum). Das
   AF-Array läuft bewusst VOR dem Namensbaum und der deklarierte Dateiname hat
-  einen reservierten Platz jenseits des Dateibudgets — sonst könnten 32
-  fremde XML-Anhänge die echte Rechnung aus dem Budget drängen.
+  einen reservierten Platz jenseits des DATEIbudgets — sonst könnten 32
+  fremde XML-Anhänge die echte Rechnung aus dem Budget drängen. Die
+  Byte-Budgets unten gelten allerdings auch für ihn: Eine deklarierte Rechnung,
+  die allein größer als das Anzeigebudget ist, wird nicht angezeigt.
 - **Grenzen der Extraktion** (präparierte PDFs): Dateibudget 32 Anhänge,
-  64 MiB entpacktes Gesamtbudget — es zählt ALLE entpackten Bytes, auch die
-  gleich wieder verworfenen —, Namensbaum zusätzlich mit Knoten-Budget
-  (4096) gegen sich selbst referenzierende `/Kids` (Tiefengrenze allein ließe
-  2^32 Besuche zu). **Restrisiko Dekompressionsbombe:** CGPDF bietet keine
-  inkrementelle Dekomprimierung; `CGPDFStreamCopyData` materialisiert immer
-  den ganzen Anhang. Vorab begrenzbar ist nur, was physisch in der Datei
-  liegt: deklariertes `/Length` ≤ 256 KiB, keine `/Filter`-KETTEN (Kaskade
-  potenziert die Flate-Rate ~1:1032), `/Params/Size` über dem Gesamtbudget
-  wird sofort abgelehnt. Eine EINZELNE Entpackung kann damit kurzzeitig rund
-  258 MiB belegen (256 KiB × 1032). Das ist bewusst mehr als das
-  Gesamtbudget: Eine echte Rechnung mit 5000 Positionen ist komprimiert schon
-  etwa 100 KiB groß, eine streng abgeleitete Schranke von 64 KiB
-  (64 MiB / 1032) würde sie unlesbar machen. Wiederholen lässt sich die
-  Spitze nicht — nach 64 MiB entpackter Gesamtmenge endet die Extraktion
-  (Review-Fund 2026-08-18).
+  Namensbaum zusätzlich mit Knoten-Budget (4096) gegen sich selbst
+  referenzierende `/Kids` (Tiefengrenze allein ließe 2^32 Besuche zu). Für die
+  Bytes gelten ZWEI getrennte Budgets:
+  - **Anzeigebudget 64 MiB** — so groß darf die Summe der BEHALTENEN Anhänge
+    werden. Ein einzelner Anhang, der nicht mehr hineinpasst, wird nur
+    übersprungen; die Suche läuft weiter.
+  - **Arbeitsbudget 256 MiB** (das Vierfache) — so viel darf insgesamt
+    entpackt werden, verworfene Anhänge eingeschlossen. Es bremst dieselbe
+    Dekompressionsbombe, wenn sie vielfach im Namensbaum steht.
+  Ein einziger Zähler für beides war ein Versteck-Primitiv: EIN übergroßer
+  Anhang vor der Rechnung sperrte jeden weiteren Kandidaten, und die Datei galt
+  als „keine E-Rechnung", während andere Leser dieselbe Rechnung anzeigten
+  (Review-Fund 2026-08-20). Verworfene Anhänge kommen außerdem in `seenNames`,
+  damit derselbe Stream unter demselben Namen nicht erneut entpackt wird.
+- **Restrisiko Dekompressionsbombe:** CGPDF bietet keine inkrementelle
+  Dekomprimierung; `CGPDFStreamCopyData` materialisiert immer den ganzen
+  Anhang. Vorab begrenzbar ist nur, was physisch in der Datei liegt:
+  - GEFILTERTER Stream: deklariertes `/Length` ≤ 256 KiB. Eine EINZELNE
+    Entpackung kann damit kurzzeitig rund 258 MiB belegen (256 KiB × 1032).
+    Das ist bewusst mehr als das Anzeigebudget: Eine echte Rechnung mit 5000
+    Positionen ist komprimiert schon etwa 100 KiB groß, eine streng
+    abgeleitete Schranke von 64 KiB (64 MiB / 1032) würde sie unlesbar machen.
+  - UNGEFILTERTER Stream: `/Length` ist bereits die entpackte Größe, eine
+    Bombe also ausgeschlossen. Hier gilt das Anzeigebudget. Die enge
+    256-KiB-Schranke wies sonst eine gültige, unkomprimiert eingebettete
+    Rechnung ab — Factur-X schreibt keine Kompression vor (Review-Fund
+    2026-08-20).
+  - Keine `/Filter`-KETTEN (Kaskade potenziert die Flate-Rate ~1:1032);
+    `/Params/Size` über dem Budget wird sofort abgelehnt.
+- **Der XMP-Metadatenstrom hat eigene Grenzen** und zählt nicht gegen die
+  Anhangs-Budgets: komprimiert ≤ 64 KiB, entpackt ≤ 4 MiB. Er wird genau
+  einmal je PDF gelesen, eine Wiederholung gibt es dort nicht.
 - **XMP-Attributform:** XMLParser liefert Attribut-Namensräume nicht direkt.
   `XMLTree` sammelt deshalb die Präfixdeklarationen am jeweiligen Element;
   die Auswertung löst das tatsächlich verwendete Präfix darüber zur

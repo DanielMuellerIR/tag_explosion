@@ -82,11 +82,11 @@ struct ImageBatchEditorView: View {
                 GridRow {
                     GridFieldLabel("Bewertung")
                     Picker("", selection: ratingBinding) {
-                        Text("— verschieden —").tag(Int?.none)
-                        Text("keine").tag(Int?.some(-1))
+                        Text("— verschieden —").tag(RatingChoice.mixed)
+                        Text("keine").tag(RatingChoice.none)
                         ForEach(0...5, id: \.self) { stars in
                             Text(stars == 0 ? "0" : String(repeating: "★", count: stars))
-                                .tag(Int?.some(stars))
+                                .tag(RatingChoice.stars(stars))
                         }
                     }
                     .labelsHidden()
@@ -120,15 +120,39 @@ struct ImageBatchEditorView: View {
         rawTags = loaded
     }
 
-    private var ratingBinding: Binding<Int?> {
+    /// Die drei Zustände der Bewertung in einer Mehrfachauswahl. Ein
+    /// doppeltes Optional („kein Wert" gegen „uneinheitlich") wäre an dieser
+    /// Stelle nicht mehr lesbar, seit `rating` selbst optional ist.
+    private enum RatingChoice: Hashable {
+        /// Die ausgewählten Bilder tragen verschiedene Bewertungen.
+        case mixed
+        /// Alle tragen gar kein Rating-Tag.
+        case none
+        /// Alle tragen dieselbe Bewertung.
+        case stars(Int)
+    }
+
+    private var ratingBinding: Binding<RatingChoice> {
         Binding(
             get: {
-                guard let first = entries.first?.imageFields.rating else { return nil }
-                return entries.allSatisfy { $0.imageFields.rating == first } ? first : nil
+                guard let first = entries.first?.imageFields.rating,
+                      entries.allSatisfy({ $0.imageFields.rating == first }) else {
+                    // Entweder uneinheitlich oder überall kein Tag — beides
+                    // unterscheidet erst der zweite Blick.
+                    if entries.allSatisfy({ $0.imageFields.rating == nil }) { return .none }
+                    return .mixed
+                }
+                return .stars(first)
             },
             set: { newValue in
-                guard let newValue else { return }
-                for entry in entries { entry.imageFields.rating = newValue }
+                switch newValue {
+                case .mixed:
+                    return
+                case .none:
+                    for entry in entries { entry.imageFields.rating = nil }
+                case .stars(let stars):
+                    for entry in entries { entry.imageFields.rating = stars }
+                }
             }
         )
     }

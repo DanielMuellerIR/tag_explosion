@@ -29,13 +29,27 @@ final class WindowSessions {
     /// nächste Fenster — beim Kaltstart aus dem Finder ebenso wie nach dem
     /// Schließen des letzten Fensters.
     private var pendingURLs: [URL] = []
-    /// Ein angefordertes Fenster ist noch nicht da. Ohne diesen Merker könnten
-    /// zwei kurz aufeinanderfolgende Anforderungen (Öffnen-Ereignis und das
-    /// Sicherheitsnetz beim Start) zwei Fenster erzeugen.
-    private var isRequestingWindow = false
-    /// Wie oft für die aktuell wartenden Dateien schon ein Fenster angefordert
-    /// wurde. Begrenzt das automatische Nachfassen, wenn kein Fenster entsteht.
-    private var windowRequestAttempts = 0
+    /// Zustand einer laufenden Fensteranforderung. Merker, Versuchszähler und
+    /// Watchdog gehören zusammen und liegen deshalb in EINEM Wert: Als drei
+    /// unabhängige Variablen liefen sie auseinander — der Watchdog einer längst
+    /// erledigten Anforderung hielt sich für den der laufenden und forderte ein
+    /// zweites Fenster an (Review-Fund 2026-08-20).
+    private struct WindowRequest {
+        /// Fortlaufende Nummer JEDER Anforderung. Sie wird nie zurückgesetzt —
+        /// nur so erkennt ein Watchdog zuverlässig, dass er veraltet ist.
+        var generation = 0
+        /// Wie oft in DIESER Anforderungskette schon ein Fenster verlangt wurde.
+        /// Eine Kette beginnt mit einem Nutzerereignis und endet, sobald ein
+        /// Fenster da ist oder der Etat aufgebraucht wurde.
+        var attempts = 0
+        /// Eine Anforderung ist unterwegs. Ohne diesen Merker könnten zwei kurz
+        /// aufeinanderfolgende Anforderungen (Öffnen-Ereignis und das
+        /// Sicherheitsnetz beim Start) zwei Fenster erzeugen.
+        var isPending = false
+        /// Wacht über die Frist der laufenden Anforderung.
+        var watchdog: Task<Void, Never>?
+    }
+    private var windowRequest = WindowRequest()
 
     /// Legt ein neues Fenster an. `false` = der Start ist fehlgeschlagen.
     /// Für Tests ersetzbar.
@@ -43,10 +57,10 @@ final class WindowSessions {
     /// Frist, nach der ein angefordertes, aber nie angemeldetes Fenster als
     /// ausgeblieben gilt. Für Tests verkürzbar.
     var windowRequestTimeout: Duration = .seconds(5)
-    /// Wie oft ein ausbleibendes Fenster automatisch neu angefordert wird.
-    /// Danach entscheidet wieder der Nutzer (Öffnen-Dialog, Datei aus dem
-    /// Finder) — endloses Nachfassen im Hintergrund wäre schlimmer als gar
-    /// keins.
+    /// Höchstzahl der Anforderungen INSGESAMT je Kette, Erstversuch
+    /// eingeschlossen: 2 heißt also „einmal nachfassen". Danach entscheidet
+    /// wieder der Nutzer (Öffnen-Dialog, Datei aus dem Finder) — endloses
+    /// Nachfassen im Hintergrund wäre schlimmer als gar keins.
     var maxWindowRequestAttempts = 2
     /// Fensterzustand eines Modells. Für Tests ersetzbar.
     var statusOf: @MainActor (AppModel) -> WindowStatus = WindowSessions.appKitStatus
@@ -60,8 +74,13 @@ final class WindowSessions {
     /// Wird von der Fensterbrücke gerufen, sobald das Modell wirklich ein
     /// Fenster hat. Erst dann darf es Dateien aufnehmen.
     func register(_ model: AppModel) {
-        isRequestingWindow = false
-        windowRequestAttempts = 0
+        // Die Anforderung ist erfüllt: Merker frei, Watchdog abbestellen. Ohne
+        // das Abbestellen fasste er später für eine ganz andere Anforderung
+        // nach. `unregister` räumt bewusst NICHT auf — schließt sich ein
+        // Fenster, während ein anderes angefordert ist, wird das angeforderte
+        // weiterhin gebraucht.
+        finishWindowRequest()
+        windowRequest.attempts = 0
         pruneClosedWindows()
         if !models.contains(where: { $0 === model }) { models.append(model) }
         lastActive = model
@@ -124,7 +143,11 @@ final class WindowSessions {
         open(urls: urls)
     }
 
-    /// Fordert ein Fenster an, sofern nicht schon eines unterwegs ist.
+    /// Fordert ein Fenster an, sofern nicht schon eines unterwegs ist. Startet
+    /// eine NEUE Kette: Der Nachfass-Etat gilt je Kette und beginnt hier von
+    /// vorn. Vorher zählte ein einziger Zähler über die ganze Sitzung — nach
+    /// dem ersten ausgebliebenen Fenster war das Nachfassen für immer
+    /// abgeschaltet (Review-Fund 2026-08-20).
     ///
     /// Der Merker wird auf JEDEM Weg wieder frei: bei einem fehlgeschlagenen
     /// Start sofort, sonst spätestens nach `windowRequestTimeout`. Vorher löste
@@ -132,25 +155,44 @@ final class WindowSessions {
     /// bis zum App-Neustart jede weitere Anforderung ab, und die wartenden
     /// Dateien blieben unsichtbar liegen (Review-Fund 2026-08-18).
     func requestWindow() {
-        guard !isRequestingWindow else { return }
-        isRequestingWindow = true
-        windowRequestAttempts += 1
+        guard !windowRequest.isPending else { return }
+        windowRequest.attempts = 0
+        startWindowRequest()
+    }
+
+    /// Ein einzelner Versuch innerhalb der laufenden Kette.
+    private func startWindowRequest() {
+        windowRequest.generation += 1
+        windowRequest.isPending = true
+        windowRequest.attempts += 1
         guard makeWindow() else {
-            isRequestingWindow = false
+            // Ein Fehlstart darf den Etat nicht belasten: Sonst wäre nach einem
+            // einzigen Fehlversuch für den Rest der Kette nichts mehr übrig.
+            windowRequest.attempts -= 1
+            windowRequest.isPending = false
             return
         }
-        let attempt = windowRequestAttempts
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: self?.windowRequestTimeout ?? .seconds(5))
-            guard let self, isRequestingWindow, windowRequestAttempts == attempt else { return }
+        let generation = windowRequest.generation
+        let timeout = windowRequestTimeout
+        windowRequest.watchdog = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: timeout)
+            guard let self, !Task.isCancelled, windowRequest.isPending,
+                  windowRequest.generation == generation else { return }
             // Kein Fenster in der Frist: Merker lösen und, solange Dateien
-            // warten, begrenzt nachfassen.
-            isRequestingWindow = false
-            guard !pendingURLs.isEmpty, windowRequestAttempts < maxWindowRequestAttempts else {
-                return
-            }
-            requestWindow()
+            // warten, innerhalb des Etats dieser Kette nachfassen.
+            windowRequest.isPending = false
+            windowRequest.watchdog = nil
+            guard !pendingURLs.isEmpty,
+                  windowRequest.attempts < maxWindowRequestAttempts else { return }
+            startWindowRequest()
         }
+    }
+
+    /// Beendet die laufende Anforderung und bestellt ihren Watchdog ab.
+    private func finishWindowRequest() {
+        windowRequest.isPending = false
+        windowRequest.watchdog?.cancel()
+        windowRequest.watchdog = nil
     }
 
     private func deliverPending(to model: AppModel) {
@@ -181,16 +223,16 @@ final class WindowSessions {
 
     /// Hat irgendein Fenster etwas zu verlieren?
     var needsTerminationConfirmation: Bool {
-        models.contains {
-            $0.hasDirtyEntries || $0.hasSavingEntries || $0.isDestructiveActionLocked
-        }
+        models.contains(where: \.hasUnfinishedWork)
     }
 
     /// Höchstzahl der Fragerunden. Eine Runde genügt im Normalfall; weitere
     /// braucht es nur, wenn WÄHREND der Runde neue ungespeicherte Änderungen
     /// entstanden sind. Die Grenze verhindert eine Endlosschleife, wenn jemand
-    /// unablässig weiterschreibt — dann bleibt die App eben offen.
-    static let maxTerminationRounds = 8
+    /// unablässig weiterschreibt — dann bleibt die App eben offen. Als
+    /// Instanzfeld, damit Tests den Erschöpfungsfall überhaupt erreichen
+    /// (Review-Fund 2026-08-20).
+    var maxTerminationRounds = 8
 
     /// Fragt jedes Fenster mit ungespeicherten Änderungen der Reihe nach.
     /// Ein einziges Abbrechen beendet die Runde: Die App bleibt offen, und die
@@ -204,24 +246,31 @@ final class WindowSessions {
     /// gebildete Fensterliste sah beides nicht, und AppKit beendete die App
     /// anschließend mitsamt diesen Änderungen (Review-Fund 2026-08-18).
     func confirmTermination() async -> Bool {
-        for _ in 0..<Self.maxTerminationRounds {
+        for _ in 0..<maxTerminationRounds {
             for model in models {
                 // Saubere Fenster werden nicht behelligt — in einer
                 // Wiederholungsrunde sind das fast alle.
-                guard model.hasDirtyEntries || model.hasSavingEntries
-                    || model.isDestructiveActionLocked else { continue }
-                // Gefragt wird im sichtbaren Fenster — sonst stünde der Dialog
-                // hinter einem anderen und niemand fände die Frage.
-                model.hostWindow?.makeKeyAndOrderFront(nil)
+                guard model.hasUnfinishedWork else { continue }
+                // Und Fenster, die sich WÄHREND der Runde abgemeldet haben,
+                // erst recht nicht: Ihr Dialog erschiene nirgends mehr, die
+                // Continuation unten würde nie fortgesetzt und ⌘Q hinge ohne
+                // Antwort an AppKit (Review-Fund 2026-08-20).
+                guard models.contains(where: { $0 === model }) else { continue }
+                // Nach vorn nur, wenn der Nutzer dort auch etwas zu sehen
+                // bekommt: die eigene Rückfrage (ungespeicherte Änderungen)
+                // oder den bereits offenen Dialog, an dem ⌘Q gerade scheitert.
+                // Ein reines Speichern beantwortet `requestTermination` ohne
+                // jede Frage — das Fenster dafür nach vorn zu reißen wäre nur
+                // ein Zucken ohne Erklärung (Review-Fund 2026-08-20).
+                if model.hasDirtyEntries || model.isDestructiveActionLocked {
+                    model.hostWindow?.makeKeyAndOrderFront(nil)
+                }
                 let decision = await withCheckedContinuation { continuation in
                     Task { @MainActor in
                         await model.requestTermination { continuation.resume(returning: $0) }
                     }
                 }
-                switch decision {
-                case .terminateCancel: return false
-                case .terminateNow: continue
-                }
+                if case .terminateCancel = decision { return false }
             }
             // Schlussabgleich gegen die aktuelle Registry: Erst ein Stand ohne
             // jede offene Änderung darf das Beenden freigeben.

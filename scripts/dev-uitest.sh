@@ -1,16 +1,39 @@
-// Auto-beendender GUI-End-to-End-Test über die Accessibility-API:
-// setzt das Titel-Feld, speichert über das Menü, prüft Screenshots und beendet
-// die App. Aufruf: swift scripts/dev-uitest.swift <screenshot-verzeichnis> [neuer-titel]
-import AppKit
-import ApplicationServices
-import Foundation
+#!/bin/sh
+# Auto-beendender GUI-End-to-End-Test über die Accessibility-API: setzt das
+# Titel-Feld, speichert über das Menü, prüft Belegbilder und beendet die App.
+#
+# Aufruf: scripts/dev-uitest.sh <app> <ausgabeordner> <datei> [neuer-titel]
+#
+# Die Datei wird beschrieben und gespeichert — sie MUSS eine Wegwerfkopie sein.
+# Der Test startet dafür eine EIGENE Instanz. Vorher griff er die erste laufende
+# App mit dieser Bundle-ID: Er schrieb damit in die gerade geöffnete Datei des
+# Nutzers, speicherte sie und beendete anschließend dessen Instanz
+# (Review-Fund 2026-08-20). Start, Besitzverfolgung, Signalbehandlung und
+# Beenden liegen in scripts/lib/gui-testkit.swift.
+set -eu
 
-let shotDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "/tmp"
-let newTitle = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "GUI Test Titel"
-let bundleID = "io.github.danielmuellerir.tagexplosion"
+here="$(cd "$(dirname "$0")/.." && pwd)"
+[ "$#" -ge 3 ] || {
+    echo "Aufruf: dev-uitest.sh <app> <ausgabeordner> <datei> [neuer-titel]" >&2
+    exit 2
+}
+
+{
+    cat "$here/scripts/lib/gui-testkit.swift"
+    cat <<'SW'
+
+// ---- Rumpf: Titel setzen, speichern ------------------------------------------
+
+let document = URL(fileURLWithPath: testArguments[0])
+let newTitle = testArguments.count > 1 ? testArguments[1] : "GUI Test Titel"
 
 func fail(_ message: String) -> Never {
-    print("FEHLER: \(message)")
+    let stopped = shutDownOwnedInstances()
+    FileHandle.standardError.write(Data("FEHLER: \(message)\n".utf8))
+    if !stopped {
+        FileHandle.standardError.write(
+            Data("FEHLER: Test-App ließ sich nicht beenden — bitte von Hand schließen.\n".utf8))
+    }
     exit(1)
 }
 
@@ -20,10 +43,17 @@ func requireAX(_ result: AXError, operation: String) {
     }
 }
 
-guard AXIsProcessTrusted() else { fail("Accessibility nicht freigegeben") }
+guard AXIsProcessTrusted() else { kitFail("Accessibility nicht freigegeben") }
+guard FileManager.default.fileExists(atPath: document.path) else {
+    kitFail("Testdatei fehlt: \(document.path)")
+}
 
-guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first
-else { fail("App läuft nicht") }
+guard let app = launchTestInstance(documents: [document]) else {
+    shutDownOwnedInstances(followUpFor: 8)
+    kitFail("Test-Instanz startete nicht.")
+}
+// Fenster brauchen einen Moment, bis sie auf dem Bildschirm sind.
+Thread.sleep(forTimeInterval: 3.0)
 guard app.activate() else { fail("App konnte nicht aktiviert werden") }
 Thread.sleep(forTimeInterval: 1.0)
 
@@ -73,65 +103,9 @@ func firstWindow() -> AXUIElement {
 }
 
 func screenshot(_ name: String) {
-    let directory = URL(fileURLWithPath: shotDir, isDirectory: true)
-    do {
-        try FileManager.default.createDirectory(at: directory,
-                                                withIntermediateDirectories: true)
-    } catch {
-        fail("Screenshot-Verzeichnis kann nicht angelegt werden: \(error.localizedDescription)")
-    }
-    var isDirectory: ObjCBool = false
-    guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
-          isDirectory.boolValue else {
-        fail("Screenshot-Ziel ist kein Verzeichnis: \(directory.path)")
-    }
-
-    let window = firstWindow()
-    let positionObject = requiredAttribute(window, kAXPositionAttribute,
-                                           operation: "Fensterposition lesen")
-    let sizeObject = requiredAttribute(window, kAXSizeAttribute,
-                                       operation: "Fenstergröße lesen")
-    guard CFGetTypeID(positionObject) == AXValueGetTypeID(),
-          CFGetTypeID(sizeObject) == AXValueGetTypeID() else {
-        fail("Fenstergeometrie ist keine AXValue")
-    }
-    let position = positionObject as! AXValue
-    let size = sizeObject as! AXValue
-    var point = CGPoint.zero
-    var extent = CGSize.zero
-    guard AXValueGetValue(position, .cgPoint, &point),
-          AXValueGetValue(size, .cgSize, &extent),
-          point.x.isFinite, point.y.isFinite,
-          extent.width.isFinite, extent.height.isFinite,
-          extent.width > 1, extent.height > 1 else {
-        fail("Fenstergeometrie ist ungültig")
-    }
-
-    let target = directory.appendingPathComponent(name)
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-    task.arguments = ["-o", "-x",
-                      "-R\(point.x),\(point.y),\(extent.width),\(extent.height)",
-                      target.path]
-    do {
-        try task.run()
-    } catch {
-        fail("screencapture konnte nicht starten: \(error.localizedDescription)")
-    }
-    task.waitUntilExit()
-    guard task.terminationStatus == 0 else {
-        fail("screencapture endete mit \(task.terminationStatus)")
-    }
-    guard FileManager.default.fileExists(atPath: target.path) else {
-        fail("Screenshot fehlt: \(target.path)")
-    }
-    do {
-        let attributes = try FileManager.default.attributesOfItem(atPath: target.path)
-        guard let bytes = attributes[.size] as? NSNumber, bytes.intValue > 0 else {
-            fail("Screenshot ist leer: \(target.path)")
-        }
-    } catch {
-        fail("Screenshot kann nicht geprüft werden: \(error.localizedDescription)")
+    if let problem = captureWindow(of: app.processIdentifier,
+                                   to: outDir.appendingPathComponent(name)) {
+        fail(problem)
     }
 }
 
@@ -180,10 +154,11 @@ screenshot("ui-saved.png")
 
 // ---- 3) App beenden — Signal "fertig mit dem Bildschirm" ----------------------
 
-guard app.terminate() else { fail("App-Terminierung konnte nicht angefordert werden") }
-let deadline = Date().addingTimeInterval(5)
-while !app.isTerminated, Date() < deadline {
-    RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+guard shutDownOwnedInstances() else {
+    FileHandle.standardError.write(
+        Data("FEHLER: App beendete sich auch nach forceTerminate nicht.\n".utf8))
+    exit(1)
 }
-guard app.isTerminated else { fail("App beendete sich nicht innerhalb von 5 Sekunden") }
 print("OK")
+SW
+} | swift - "$@"

@@ -39,7 +39,12 @@ public struct TagArchive: Codable, Sendable, Equatable {
         }
     }
 
-    public init(version: Int = 1, created: String, files: [Entry]) {
+    /// Aktuelles Schema. 2 unterscheidet beim Bild-Rating „kein Tag" (Feld
+    /// fehlt beziehungsweise null) von „Tag mit dem Wert −1"; in Schema 1
+    /// stand −1 für beides.
+    public static let currentVersion = 2
+
+    public init(version: Int = TagArchive.currentVersion, created: String, files: [Entry]) {
         self.version = version
         self.created = created
         self.files = files
@@ -108,10 +113,28 @@ public struct TagArchiveReport: Sendable, Equatable {
 
 public enum TagArchiveIO {
 
-    /// Aktuell versteht der Import ausschließlich das erste, veröffentlichte
-    /// Archivschema. Neue Schemata dürfen nicht versehentlich wie alte gelesen
-    /// werden, weil dabei Felder verloren gehen könnten.
-    private static let supportedVersions: Set<Int> = [1]
+    /// Verstandene Archivschemata. Neue Schemata dürfen nicht versehentlich
+    /// wie alte gelesen werden, weil dabei Felder verloren gehen könnten.
+    /// Schema 1 wird weiterhin importiert und beim Lesen umgerechnet, siehe
+    /// `normalizingLegacyValues`.
+    private static let supportedVersions: Set<Int> = [1, TagArchive.currentVersion]
+
+    /// Rechnet ein Archiv des alten Schemas auf die heutige Bedeutung um.
+    ///
+    /// Schema 1 kannte für das Bild-Rating nur `Int`, und −1 hieß dort „die
+    /// Datei trug gar kein Rating-Tag" — ein echtes Rating −1 („abgelehnt")
+    /// konnte gar nicht im Archiv landen, weil schon die Leseseite beides auf
+    /// −1 abbildete. Genau so wird es deshalb wiederhergestellt; ohne diese
+    /// Umrechnung schriebe ein alter Bestand plötzlich ein −1-Tag in Dateien,
+    /// die vorher keines hatten (Review-Fund 2026-08-20).
+    static func normalizingLegacyValues(_ archive: TagArchive) -> TagArchive {
+        guard archive.version == 1 else { return archive }
+        var archive = archive
+        for index in archive.files.indices where archive.files[index].image?.rating == -1 {
+            archive.files[index].image?.rating = nil
+        }
+        return archive
+    }
 
     // MARK: - Exportieren
 
@@ -244,7 +267,7 @@ public enum TagArchiveIO {
     public static func load(_ url: URL) throws -> TagArchive {
         let archive = try JSONDecoder().decode(TagArchive.self, from: Data(contentsOf: url))
         try validate(archive)
-        return archive
+        return normalizingLegacyValues(archive)
     }
 
     /// Wendet ein Archiv auf die Platte an (bzw. zeigt mit `dryRun` nur, was
@@ -290,6 +313,9 @@ public enum TagArchiveIO {
         // Ein zuvor in CLI/App angezeigter externer Pfad wird hier unmittelbar
         // vor den Mutationen nochmals vollständig aufgelöst und geprüft.
         try validate(archive)
+        // Auch hier umrechnen, nicht nur in `load`: App und Tests bauen Archive
+        // direkt und umgehen `load` damit.
+        let archive = normalizingLegacyValues(archive)
         let validated = try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
             allowExternalTargets: allowExternalTargets

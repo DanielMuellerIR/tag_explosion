@@ -254,6 +254,94 @@ struct WindowSessionsTests {
         #expect(await termination.value == false)
     }
 
+    // MARK: - Review-Fund 2026-08-20
+
+    @Test("Ein angemeldetes Fenster bestellt den Watchdog der Anforderung ab")
+    func registeringCancelsTheWatchdog() async throws {
+        let harness = Harness()
+        harness.sessions.windowRequestTimeout = .milliseconds(30)
+
+        // Anforderung 1 …
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 1)
+        // … wird von einem Fenster erfüllt und danach wieder geschlossen.
+        let model = harness.addWindow()
+        harness.close(model)
+        // Anforderung 2 aus einem neuen Nutzerereignis — mit einer Frist, die
+        // im Test garantiert nicht abläuft. Was jetzt noch nachfasst, kann
+        // deshalb nur der Watchdog von Anforderung 1 sein.
+        harness.sessions.windowRequestTimeout = .seconds(60)
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 2)
+
+        // Der Watchdog von Anforderung 1 darf jetzt nichts mehr tun. Vorher war
+        // sein Token („Versuch 1") nach dem Zähler-Rücksetzen in `register`
+        // nicht mehr eindeutig: Er hielt sich für den Watchdog von Anforderung 2
+        // und forderte ein drittes Fenster an, während 2 noch unterwegs war.
+        try await Task.sleep(for: .milliseconds(120))
+        #expect(harness.windowRequests == 2)
+    }
+
+    @Test("Der Nachfass-Etat gilt je Anforderungskette")
+    func retryBudgetIsPerRequestChain() async throws {
+        let harness = Harness()
+        harness.sessions.windowRequestTimeout = .milliseconds(10)
+
+        // Kette 1: Das Fenster bleibt aus, es wird einmal nachgefasst.
+        harness.sessions.open(urls: [file])
+        for _ in 0..<200 where harness.windowRequests < 2 {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(harness.windowRequests == 2)
+        try await Task.sleep(for: .milliseconds(60))
+        #expect(harness.windowRequests == 2)
+
+        // Kette 2 aus einem neuen Nutzerereignis: Der Etat beginnt von vorn.
+        // Vorher lief ein einziger Zähler über die ganze Sitzung — nach dem
+        // ersten ausgebliebenen Fenster gab es nie wieder ein Nachfassen.
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 3)
+        for _ in 0..<200 where harness.windowRequests < 4 {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(harness.windowRequests == 4)
+    }
+
+    @Test("Ein fehlgeschlagener Start verbraucht keinen Nachfass-Versuch")
+    func failedLaunchKeepsTheRetryBudget() async throws {
+        let harness = Harness()
+        harness.sessions.windowRequestTimeout = .milliseconds(10)
+        harness.windowLaunchSucceeds = false
+
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 1)
+
+        // Der zweite Anlauf gelingt bis zum Start, das Fenster bleibt aber aus:
+        // Der Watchdog muss trotzdem noch einmal nachfassen dürfen.
+        harness.windowLaunchSucceeds = true
+        harness.sessions.open(urls: [file])
+        #expect(harness.windowRequests == 2)
+        for _ in 0..<200 where harness.windowRequests < 3 {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(harness.windowRequests == 3)
+    }
+
+    @Test("Ist der Runden-Etat aufgebraucht, bleibt die App offen")
+    func terminationGivesUpWhenRoundsAreExhausted() async {
+        let harness = Harness()
+        // Null Runden bildet den Zustand nach der letzten Runde nach: Es wird
+        // niemand mehr gefragt, und trotzdem darf die App nicht beenden,
+        // solange ein Fenster etwas zu verlieren hat. Dieser Zweig war ohne
+        // ersetzbare Rundenzahl aus den Tests nicht erreichbar.
+        harness.sessions.maxTerminationRounds = 0
+        let model = harness.addWindow()
+        model.entries = [Self.changedEntry()]
+
+        #expect(await harness.sessions.confirmTermination() == false)
+        #expect(model.pendingConflict == nil)
+    }
+
     /// Wartet auf die Rückfrage eines Fensters, ohne feste Wartezeit.
     private static func waitForConflict(in model: AppModel) async -> Bool {
         var attempts = 0

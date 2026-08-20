@@ -401,7 +401,9 @@
       "id": "developer-tools",
       "paths": [
         "scripts/dev-screenshot.sh",
-        "scripts/dev-uitest.swift",
+        "scripts/dev-uitest.sh",
+        "scripts/dev-windowtest.sh",
+        "scripts/lib/gui-testkit.swift",
         "scripts/gen-social-preview.py",
         "scripts/generate-dmg-background.swift",
         "scripts/icon-from-image.swift",

@@ -76,19 +76,6 @@ public enum EInvoiceReader {
         }
     }
 
-    /// Gibt es in dieser Datei eine E-Rechnung? (Billiger Vorab-Test für
-    /// UI-Entscheidungen; bei XML ohne Parsen, bei PDF via Extraktion.)
-    public static func containsInvoice(url: URL) -> Bool {
-        switch url.pathExtension.lowercased() {
-        case "xml":
-            return sniffXML(url: url)
-        case "pdf":
-            return (try? readPDF(url: url)) != nil
-        default:
-            return false
-        }
-    }
-
     /// PDF: eingebettetes Rechnungs-XML finden und lesen.
     static func readPDF(url: URL) throws -> EInvoiceDocument {
         #if canImport(CoreGraphics)
