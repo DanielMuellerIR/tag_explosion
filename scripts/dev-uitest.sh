@@ -5,9 +5,10 @@
 # Aufruf: scripts/dev-uitest.sh <app> <ausgabeordner> <datei> [neuer-titel]
 #
 # Die Datei wird beschrieben und gespeichert — sie MUSS eine Wegwerfkopie sein.
-# Der Test startet dafür eine EIGENE Instanz. Vorher griff er die erste laufende
-# App mit dieser Bundle-ID: Er schrieb damit in die gerade geöffnete Datei des
-# Nutzers, speicherte sie und beendete anschließend dessen Instanz
+# Der Test startet dafür eine EIGENE Instanz und beendet ausschließlich diese.
+# Vorher griff er die erste laufende App mit dieser Bundle-ID: Er schrieb damit
+# in die gerade geöffnete Datei des Nutzers, speicherte sie und beendete
+# anschließend dessen Instanz
 # (Review-Fund 2026-08-20). Start, Besitzverfolgung, Signalbehandlung und
 # Beenden liegen in scripts/lib/gui-testkit.swift.
 set -eu

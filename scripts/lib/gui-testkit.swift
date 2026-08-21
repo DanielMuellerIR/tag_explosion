@@ -66,16 +66,26 @@ func claimOwnership(of app: NSRunningApplication) {
 
 /// Alle Instanzen, die zu DIESEM Lauf gehören.
 ///
-/// Die reine PID-Momentaufnahme vom Programmstart genügt nicht: Zwischen ihr
+/// Sobald der Start eine PID zurückgemeldet hat, gilt AUSSCHLIESSLICH sie.
+/// Eine PID-Momentaufnahme vom Programmstart genügt nämlich nicht: Zwischen ihr
 /// und dem Beenden liegen bis zu einer Minute Warte- und Startfristen, und eine
 /// App, die der Nutzer in dieser Zeit startet, galt darin als „unsere" —
 /// `terminate()` samt Rückfragedialog und 5 Sekunden später `forceTerminate()`
 /// träfen dann seine ungespeicherten Änderungen (Review-Fund 2026-08-20).
-/// Deshalb zusätzlich der Startzeitpunkt: Nur was NACH unserem Start begonnen
-/// hat, kann uns gehören.
+///
+/// Nur SOLANGE nichts zurückgemeldet wurde, greift die Ersatzregel: unbekannte
+/// PID plus `launchDate` nach unserem Start. Ohne sie bliebe eine Instanz, die
+/// erst nach Ablauf der Startfrist auftaucht, sichtbar stehen (Review-Fund
+/// 2026-08-18). Restrisiko dieses einen Falls (bewusst): Scheitert unser Start
+/// und der Nutzer startet genau in diesem Fenster die App, trifft es seine
+/// Instanz. Beide Regeln zugleich zu verlangen ginge nicht — dann bliebe die
+/// verspätete Instanz stehen.
 func ownedInstances() -> [NSRunningApplication] {
-    NSRunningApplication.runningApplications(withBundleIdentifier: testBundleID).filter { app in
-        if claimedPIDs.contains(app.processIdentifier) { return true }
+    let running = NSRunningApplication.runningApplications(withBundleIdentifier: testBundleID)
+    if !claimedPIDs.isEmpty {
+        return running.filter { claimedPIDs.contains($0.processIdentifier) }
+    }
+    return running.filter { app in
         guard !foreignPIDs.contains(app.processIdentifier) else { return false }
         // Ohne Startzeitpunkt bleibt die Instanz unangetastet: Lieber eine
         // Test-App sichtbar stehen lassen (das meldet der Test) als eine fremde

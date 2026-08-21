@@ -7,9 +7,10 @@
 #
 # Aufruf: scripts/dev-windowtest.sh <app> <ausgabeordner> <datei1> [datei2]
 #
-# Der Test startet eine EIGENE Instanz und beendet ausschließlich diese; eine
-# produktiv benutzte Tag Explosion bleibt unberührt. Läuft bereits eine, bricht
-# der Test ab, statt fremde Fenster zu schließen. Start, Besitzverfolgung,
+# Der Test startet eine EIGENE Instanz und beendet ausschließlich diese — auch
+# eine Tag Explosion, die der Nutzer WÄHREND des Laufs startet, bleibt
+# unberührt. Läuft schon eine, bricht der Test ab, statt fremde Fenster zu
+# schließen. Start, Besitzverfolgung,
 # Signalbehandlung und Beenden liegen in scripts/lib/gui-testkit.swift.
 set -eu
 

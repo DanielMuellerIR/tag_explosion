@@ -16,8 +16,12 @@ set -eu
 here="$(cd "$(dirname "$0")/.." && pwd)"
 out="${1:?Ausgabe-PNG angeben}"; shift
 
-app="$here/TagExplosion.app"
-[ -d "$app" ] || { echo "App fehlt — erst ./build.sh" >&2; exit 1; }
+# Voreinstellung ist das im Projekt gebaute Bundle. TAGX_APP zeigt auf ein
+# anderes — etwa die notarisierte Installation in /Applications: TCC-Rechte
+# (Bedienungshilfen, Bildschirmaufnahme) haengen an der Code-Signatur, ein
+# ad-hoc signierter Build bekommt sie also nicht.
+app="${TAGX_APP:-$here/TagExplosion.app}"
+[ -d "$app" ] || { echo "App fehlt: $app — erst ./build.sh oder TAGX_APP setzen" >&2; exit 1; }
 
 # Der Testkit erwartet <app> <ausgabeordner>; das Ziel-PNG kommt als eigenes
 # Argument dahinter, damit ein voller Pfad moeglich bleibt.

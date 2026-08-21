@@ -15,7 +15,9 @@ laufen ohne Freigabe — siehe globale Testregeln.
   aus `CGWindowListCopyWindowInfo`; Bounds enthalten die Titelleiste.
 - Skripte und Aufrufform:
   - `scripts/dev-screenshot.sh <ausgabe.png> [datei-oder-ordner ...]` — nur
-    Belegbild.
+    Belegbild. `TAGX_APP=<bundle>` zeigt auf ein anderes Bundle als das im
+    Projekt gebaute; die beiden anderen Skripte nehmen den Pfad als erstes
+    Argument.
   - `scripts/dev-uitest.sh <app> <ausgabeordner> <datei> [neuer-titel]` — Feld
     setzen, über das Menü speichern, verifizierbar. Die Datei wird BESCHRIEBEN
     und gespeichert; sie muss eine Wegwerfkopie sein.
@@ -25,12 +27,35 @@ laufen ohne Freigabe — siehe globale Testregeln.
 - **Besitzmodell (verbindlich):** Alle drei Skripte teilen sich
   `scripts/lib/gui-testkit.swift` und starten eine EIGENE Instanz
   (`NSWorkspace.open(..., createsNewApplicationInstance: true)`). Beendet wird
-  nur, was diesem Lauf gehört: eine PID, die vor dem Start nicht existierte UND
-  deren `launchDate` nach dem Startzeitpunkt liegt. Beendet wird hart
-  (`terminate`, nach 5 s `forceTerminate`), deshalb ist diese Unterscheidung
-  keine Feinheit — eine produktiv benutzte Tag Explosion verlöre sonst ihre
-  ungespeicherten Änderungen. Die Skripte behandeln außerdem SIGINT/SIGTERM/
-  SIGHUP und räumen im Startfenster noch einige Sekunden nach.
+  hart (`terminate`, nach 5 s `forceTerminate`), deshalb entscheidet die
+  Besitzfrage über fremde ungespeicherte Änderungen. Zwei Regeln, in dieser
+  Reihenfolge:
+  1. Hat der Start eine PID zurückgemeldet, gilt **ausschließlich** sie.
+  2. Nur solange nichts zurückgemeldet wurde, greift die Ersatzregel:
+     unbekannte PID plus `launchDate` nach unserem Start. Ohne sie bliebe eine
+     Instanz, die erst nach Ablauf der 30-s-Startfrist auftaucht, sichtbar
+     stehen (Review-Fund 2026-08-18).
+  Nur die Momentaufnahme der PIDs vom Programmstart genügte nicht: Zwischen ihr
+  und dem Beenden liegen bis zu einer Minute Fristen, und eine in dieser Zeit
+  vom Nutzer gestartete App galt darin als „unsere" (Review-Fund 2026-08-20).
+  **Restrisiko (bewusst):** Scheitert unser eigener Start UND startet der Nutzer
+  genau in diesem Fenster die App, trifft es seine Instanz. Beide Regeln
+  gleichzeitig zu verlangen ginge nicht — dann bliebe die verspätete Instanz
+  stehen. Die Skripte behandeln außerdem SIGINT/SIGTERM/SIGHUP und räumen im
+  Startfenster noch einige Sekunden nach.
+- **Echter Lauf 2026-08-20** gegen die notarisierte Installation
+  `/Applications/TagExplosion.app` 0.22.2: alle drei Skripte grün (Fenstertest
+  11 Prüfungen, Belegbilder frisch, `dev-uitest` schrieb den Titel und
+  `mediainfo` las ihn zurück), keine Instanz blieb stehen. Gegenprobe zur
+  Besitzregel: eine mitten im Lauf per `open -n` gestartete zweite Instanz hat
+  den Testlauf überlebt.
+- **Notarisiert testen, nicht ad-hoc:** TCC-Rechte (Bedienungshilfen,
+  Bildschirmaufnahme) hängen an der Code-Signatur. Ein `./build.sh`-Bundle ist
+  nur ad-hoc signiert und bekommt sie nicht verlässlich; deshalb vorher
+  `./install.sh` und die Skripte auf `/Applications/TagExplosion.app` zeigen
+  lassen. Der steuernde Prozess (Terminal beziehungsweise Agent) braucht die
+  Rechte ebenfalls — `AXIsProcessTrusted()` und
+  `CGPreflightScreenCaptureAccess()` sagen es in zwei Zeilen Swift.
 - `kAXDocumentAttribute` eines Fensters spiegelt `NSWindow.representedURL`.
   Damit lässt sich ohne Klicken prüfen, ob Datei-Icon und Command-Klick-
   Pfadmenü im Fenstertitel vorhanden sind.
