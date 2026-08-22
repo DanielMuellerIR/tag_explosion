@@ -169,11 +169,11 @@ struct ImageFieldsTab: View {
                 }
                 GridRow {
                     GridFieldLabel("Bewertung")
+                    // Einträge samt „abgelehnt" (−1) und ggf. einem sichtbaren
+                    // Bestandswert außerhalb des Standards: siehe RatingPicker.
                     Picker("", selection: $entry.imageFields.rating) {
-                        Text("keine").tag(Int?.none)
-                        ForEach(0...5, id: \.self) { stars in
-                            Text(stars == 0 ? "0" : String(repeating: "★", count: stars))
-                                .tag(Int?.some(stars))
+                        ForEach(RatingPicker.options(current: entry.imageFields.rating)) { option in
+                            Text(option.label).tag(option.value)
                         }
                     }
                     .labelsHidden()

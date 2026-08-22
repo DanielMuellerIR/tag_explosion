@@ -81,12 +81,12 @@ struct ImageBatchEditorView: View {
                 }
                 GridRow {
                     GridFieldLabel("Bewertung")
+                    // Einträge samt „abgelehnt" (−1) und ggf. einem sichtbaren
+                    // gemeinsamen Bestandswert: siehe RatingChoice.
                     Picker("", selection: ratingBinding) {
-                        Text("— verschieden —").tag(RatingChoice.mixed)
-                        Text("keine").tag(RatingChoice.none)
-                        ForEach(0...5, id: \.self) { stars in
-                            Text(stars == 0 ? "0" : String(repeating: "★", count: stars))
-                                .tag(RatingChoice.stars(stars))
+                        ForEach(RatingChoice.options(current: ratingBinding.wrappedValue),
+                                id: \.self) { choice in
+                            Text(choice.label).tag(choice)
                         }
                     }
                     .labelsHidden()
@@ -120,39 +120,14 @@ struct ImageBatchEditorView: View {
         rawTags = loaded
     }
 
-    /// Die drei Zustände der Bewertung in einer Mehrfachauswahl. Ein
-    /// doppeltes Optional („kein Wert" gegen „uneinheitlich") wäre an dieser
-    /// Stelle nicht mehr lesbar, seit `rating` selbst optional ist.
-    private enum RatingChoice: Hashable {
-        /// Die ausgewählten Bilder tragen verschiedene Bewertungen.
-        case mixed
-        /// Alle tragen gar kein Rating-Tag.
-        case none
-        /// Alle tragen dieselbe Bewertung.
-        case stars(Int)
-    }
-
+    /// Gemeinsamer Bewertungszustand der Auswahl (Abbildung in `RatingChoice`,
+    /// dort auch getestet). „— verschieden —" auszuwählen ändert nichts.
     private var ratingBinding: Binding<RatingChoice> {
         Binding(
-            get: {
-                guard let first = entries.first?.imageFields.rating,
-                      entries.allSatisfy({ $0.imageFields.rating == first }) else {
-                    // Entweder uneinheitlich oder überall kein Tag — beides
-                    // unterscheidet erst der zweite Blick.
-                    if entries.allSatisfy({ $0.imageFields.rating == nil }) { return .none }
-                    return .mixed
-                }
-                return .stars(first)
-            },
+            get: { RatingChoice.choice(for: entries.map(\.imageFields.rating)) },
             set: { newValue in
-                switch newValue {
-                case .mixed:
-                    return
-                case .none:
-                    for entry in entries { entry.imageFields.rating = nil }
-                case .stars(let stars):
-                    for entry in entries { entry.imageFields.rating = stars }
-                }
+                guard let rating = newValue.ratingToApply else { return }
+                for entry in entries { entry.imageFields.rating = rating }
             }
         )
     }

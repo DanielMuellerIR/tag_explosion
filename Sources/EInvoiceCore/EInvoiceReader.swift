@@ -76,6 +76,27 @@ public enum EInvoiceReader {
         }
     }
 
+    /// Gibt es in dieser Datei eine E-Rechnung? Bei XML ohne Baumaufbau, bei
+    /// PDF über die vollständige Extraktion.
+    ///
+    /// Nur noch als Übergang für externe Aufrufer: 0.22.2 hatte die Methode
+    /// entfernt, obwohl `EInvoiceCore` ein veröffentlichtes Library-Produkt
+    /// ist (Review-Fund 2026-08-22). Neuer Code nutzt `sniffXML(url:)` für
+    /// XML und `read(url:)` für PDF — letzteres liefert gleich das Dokument,
+    /// statt es zu verwerfen.
+    @available(*, deprecated,
+               message: "Für XML sniffXML(url:) verwenden, für PDF read(url:) — diese Methode verwirft das gelesene Dokument.")
+    public static func containsInvoice(url: URL) -> Bool {
+        switch url.pathExtension.lowercased() {
+        case "xml":
+            return sniffXML(url: url)
+        case "pdf":
+            return (try? readPDF(url: url)) != nil
+        default:
+            return false
+        }
+    }
+
     /// PDF: eingebettetes Rechnungs-XML finden und lesen.
     static func readPDF(url: URL) throws -> EInvoiceDocument {
         #if canImport(CoreGraphics)

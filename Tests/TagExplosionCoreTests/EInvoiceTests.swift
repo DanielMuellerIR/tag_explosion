@@ -533,6 +533,34 @@ struct EInvoiceTests {
         }
     }
 
+    @Test("containsInvoice(url:) bleibt als Übergangs-API mit altem Verhalten")
+    @available(*, deprecated) // Absicht: Der Test ruft die veraltete Methode auf.
+    func containsInvoiceCompatibilityWrapper() throws {
+        try withTempDirectory { dir in
+            // XML: Rechnung ja, Fremd-XML nein.
+            let xmlURL = dir.appendingPathComponent("rechnung.xml")
+            try Data(Self.ciiXML.utf8).write(to: xmlURL)
+            #expect(EInvoiceReader.containsInvoice(url: xmlURL))
+            let foreignURL = dir.appendingPathComponent("fremd.xml")
+            try Data("<?xml version=\"1.0\"?><plist/>".utf8).write(to: foreignURL)
+            #expect(!EInvoiceReader.containsInvoice(url: foreignURL))
+
+            // PDF: mit eingebetteter Rechnung ja, ohne nein.
+            let pdfURL = dir.appendingPathComponent("rechnung.pdf")
+            try Self.makePDF(embedding: Data(Self.ciiXML.utf8), fileName: "factur-x.xml")
+                .write(to: pdfURL)
+            #expect(EInvoiceReader.containsInvoice(url: pdfURL))
+            let plainURL = dir.appendingPathComponent("leer.pdf")
+            try Self.makePDF(embedding: nil, fileName: nil).write(to: plainURL)
+            #expect(!EInvoiceReader.containsInvoice(url: plainURL))
+
+            // Andere Endungen galten schon immer als "keine Rechnung".
+            let txtURL = dir.appendingPathComponent("rechnung.txt")
+            try Data(Self.ciiXML.utf8).write(to: txtURL)
+            #expect(!EInvoiceReader.containsInvoice(url: txtURL))
+        }
+    }
+
     @Test("XMP-Deklaration: Namensraum entscheidet, nicht das Präfix")
     func pdfDeclarationResolvesAttributeNamespaces() throws {
         try withTempDirectory { dir in

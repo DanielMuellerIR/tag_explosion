@@ -17,15 +17,32 @@ work=$(tagx_make_test_workdir tagx-install-tests)
 # (Review-Fund 2026-08-20).
 background_pids=""
 note_background() { background_pids="$background_pids $1"; }
+# Nach jedem erfolgreichen wait die PID wieder vergessen: Ein eingesammeltes
+# Kind ist weg, und das System kann dieselbe Nummer sofort an einen fremden
+# Prozess vergeben — der EXIT-Handler traefe dann den (Review-Fund 2026-08-22).
+forget_background() {
+    local kept="" pid
+    for pid in $background_pids; do
+        [ "$pid" = "$1" ] || kept="$kept $pid"
+    done
+    background_pids="$kept"
+}
 stop_background_runs() {
     [ -n "$background_pids" ] || return 0
+    # Nur Kinder beenden, die wirklich noch laufen und nicht eingesammelt
+    # wurden; alles andere ist kein Prozess von uns mehr.
+    local live="" pid
+    for pid in $background_pids; do
+        if kill -0 "$pid" 2>/dev/null; then live="$live $pid"; fi
+    done
+    background_pids=""
+    [ -n "$live" ] || return 0
     # Erst die Haltepunkte freigeben, damit kein Hintergrundlauf in einer
     # Warteschleife stirbt, dann beenden und einsammeln.
     : > "$work/release" 2>/dev/null || true
     : > "$work/takeover-inner.release" 2>/dev/null || true
-    for pid in $background_pids; do kill "$pid" 2>/dev/null || true; done
-    for pid in $background_pids; do wait "$pid" 2>/dev/null || true; done
-    background_pids=""
+    for pid in $live; do kill "$pid" 2>/dev/null || true; done
+    for pid in $live; do wait "$pid" 2>/dev/null || true; done
 }
 trap 'stop_background_runs; rm -rf -- "$work"' EXIT
 fake_bin="$work/bin"
@@ -280,6 +297,7 @@ grep -q "andere Installation" "$second_output" || {
 # Der erste Lauf muss unbeschadet zu Ende laufen können.
 touch "$work/release"
 wait "$first_installer"
+forget_background "$first_installer"
 assert_text new "$concurrent_root/TagExplosion.app"
 [ -z "$(find "$concurrent_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
@@ -369,6 +387,7 @@ if wait "$race_installer"; then
     echo "FEHLER: Anwärter hat eine lebende Sperre gestohlen" >&2
     exit 1
 fi
+forget_background "$race_installer"
 grep -q "andere Installation" "$race_output" || {
     echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
     cat "$race_output" >&2
@@ -418,6 +437,7 @@ if wait "$inner_installer"; then
     echo "FEHLER: Anwärter hat trotz innerer Prüfung eine lebende Sperre übernommen" >&2
     exit 1
 fi
+forget_background "$inner_installer"
 grep -q "andere Installation" "$inner_output" || {
     echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
     cat "$inner_output" >&2

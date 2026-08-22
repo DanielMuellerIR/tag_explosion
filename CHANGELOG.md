@@ -8,6 +8,35 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.0] — 2026-08-22
+
+### Inkompatibel (Library-Produkte `TagExplosionCore`, `EInvoiceCore`)
+
+Zwei Änderungen aus 0.22.2 waren quellinkompatibel und hätten dort keinen
+Patch-Sprung verdient; sie werden hier als Minor-Sprung nachgetragen:
+
+- `ImageCoreFields.rating` ist seit 0.22.2 `Int?` statt `Int`: `nil` heißt
+  „die Datei trägt kein Rating-Tag“, −1 ist der echte Wert „abgelehnt“.
+  Aufrufer, die `rating` als `Int` lesen oder `-1` als Leerwert benutzen,
+  müssen auf das Optional umstellen. Die Abwesenheitssemantik bleibt, sie
+  ist fachlich richtig (siehe 0.22.2).
+- `EInvoiceReader.containsInvoice(url:)` war in 0.22.2 entfernt worden und
+  ist wieder da — als veralteter Wrapper (`@available(*, deprecated)`) mit
+  dem bisherigen Verhalten. Neuer Code nutzt `sniffXML(url:)` für XML und
+  `read(url:)` für PDF.
+
+### Behoben
+
+- Der Bewertungs-Picker kennt jetzt „abgelehnt“ (−1). Vorher passte ein
+  abgelehntes Bild zu keinem Eintrag im Einzel- und im Batch-Editor, und die
+  Auswahl blieb leer, obwohl die Datei einen Wert trug. Andere tolerierte
+  Bestandswerte (etwa 7 aus einer fremden Datei) erscheinen als eigener,
+  sichtbarer Eintrag statt still zu verschwinden.
+- Der Installer-Regressionstest vergisst jede Hintergrund-PID, sobald er sie
+  eingesammelt hat, und beendet beim Abbruch nur noch Kinder, die wirklich
+  noch laufen. Vorher konnte das Aufräumen eine inzwischen neu vergebene
+  Prozessnummer — also einen fremden Prozess — treffen.
+
 ## [0.22.2] — 2026-08-20
 
 ### Behoben
