@@ -143,10 +143,19 @@ guard CFGetTypeID(menuBar) == AXUIElementGetTypeID() else {
 let menuBarElement = menuBar as! AXUIElement
 var menuItems: [AXUIElement] = []
 findAll(menuBarElement, role: kAXMenuItemRole, into: &menuItems)
+let saveTitles: Set<String> = ["Speichern", "Save"]
 guard let saveItem = menuItems.first(where: {
-    (optionalAttribute($0, kAXTitleAttribute) as? String) == "Speichern"
+    guard let title = optionalAttribute($0, kAXTitleAttribute) as? String,
+          let command = optionalAttribute($0, kAXMenuItemCmdCharAttribute) as? String,
+          let modifiers = optionalAttribute($0, kAXMenuItemCmdModifiersAttribute) as? NSNumber
+    else { return false }
+    // AX liefert den Tastencode als Großbuchstaben. Modifier 0 bedeutet den
+    // normalen Command-Shortcut ohne Shift/Option/Control; so treffen wir
+    // weder „Save As“ noch „Alle speichern“.
+    return saveTitles.contains(title) && command.uppercased() == "S"
+        && modifiers.intValue == 0
 }) else {
-    fail("Menüpunkt Speichern nicht gefunden")
+    fail("Menüpunkt Speichern/Save mit ⌘S nicht gefunden")
 }
 requireAX(AXUIElementPerformAction(saveItem, kAXPressAction as CFString),
           operation: "Menüpunkt Speichern drücken")

@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 681585
+    "tokens_spent": 759039
   },
   "campaign_history": [
     {
@@ -395,32 +395,18 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T16:03:32+02:00",
-        "observed_head": "e2aa537f74f7c1ec54713fbfa062abc28cd2c7d7",
-        "content_sha256": "11338cedc9d9bb45a37b7ed252df465f16f40486e0ef5279bc69c1ca7c6ae5aa",
-        "file_count": 10,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Gemeinsamer Cover-Drop prüft Provider sequenziell bis zum ersten gültigen und erlaubten Bild; Swift-6-Sendable-Grenze gekapselt; Cover-Export benennt BMP und unbekannte Daten korrekt; alle Einzel-/Batch-Editoren und 186 Lokalisierungseinträge vollständig geprüft.",
-        "tests": [
-          "Mehrfach-Drop-Fehler zuerst mit einem Issue reproduziert; CoverDrop 3/3, vollständige Root-Suite 138 Tests in 13 Suites und App-Suite 30 Tests in 4 Suites bestanden; App-Release-Build ohne Swift-Warnung, String-Catalog ohne fehlende Übersetzung oder Platzhalterabweichung, Diff-Prüfung und CodeQA-Validierung grün."
-        ]
-      },
-      "pending_paths": [
-        "App/Sources/TagExplosionApp/RatingPicker.swift",
-        "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
-      ],
-      "active_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:41:15+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "App/Sources/TagExplosionApp/RatingPicker.swift",
-          "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
+        "completed_at": "2026-08-29T19:46:17+02:00",
+        "observed_head": "26561a62dc8cc70a51a38f364d1971f6b29349b4",
+        "content_sha256": "356d3ba72ad290a10c7d164ae139ab05090ae42929484615ae4b128f5748b283",
+        "file_count": 12,
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "Bewertungsmodell und Picker-Grenzen für nil, abgelehnt −1, 0…5, gemischte Auswahl und tolerierte Fremdwerte geprüft. Dynamisch erzeugte Picker-Strings wurden bisher wörtlich und damit in der englischen Oberfläche deutsch angezeigt; explizite Lokalisierung und fehlende englische Katalogeinträge ergänzt.",
+        "tests": [
+          "swift test --package-path App --filter RatingPickerTests\\|CoverDropTests\\|AppModelSaveTests: 34 Tests in 4 Suites bestanden; xcstringstool compile und JSON-Prüfung des deutschen/englischen String-Katalogs bestanden"
         ]
       }
     },
@@ -441,7 +427,7 @@
       "risk": "low",
       "priority": 14,
       "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T16:10:53+02:00",
@@ -454,6 +440,13 @@
         "tests": [
           "Falschen Exit 0 beider Icon-Generatoren zuerst reproduziert; neuer Parallel-/Fehlercode-Test grün; alle Swift-/Shell-/Python-Werkzeuge syntax- bzw. typgeprüft; DMG 1200x840, Social Preview 1280x640 und 19 reale Fixtures erzeugt, Fixture-Zweitlauf byteidentisch; Workflow-YAML, Diff und CodeQA-Validierung grün. Sichtbarer Screenshot-Lauf nach GUI-Regel nicht gestartet."
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:46:24+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     }
   ],

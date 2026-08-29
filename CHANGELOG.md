@@ -8,6 +8,24 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.11] — 2026-08-29
+
+### Behoben
+
+- Die GUI-Selbsttests finden Speichern und Neues Fenster jetzt in der
+  deutschen wie in der englischen Menüleiste. Der Fenstertest belegt außerdem
+  den vorgesehenen Shortcut ⌘N; bisher prüfte er nur den deutschen Titel
+  und konnte einen fehlenden oder falschen Shortcut nicht erkennen.
+
+### Geprüft
+
+- CodeQA: Prozessbesitz, Start-/Abbruchfristen, Screenshot-Nachweis,
+  Accessibility-Grenzen, Icon-Generatoren und die unveränderten Asset- und
+  Fixture-Werkzeuge wurden erneut geprüft. Alle zusammengesetzten
+  Swift-GUI-Programme, Shellskripte und Generatoren bestanden die Syntax-
+  beziehungsweise Typprüfung; der parallele Icon-Regressionstest bestand.
+  Ein sichtbarer GUI-Lauf wurde nicht gestartet.
+
 ## [0.23.10] — 2026-08-29
 
 ### Behoben

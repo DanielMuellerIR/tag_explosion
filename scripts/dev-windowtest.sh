@@ -106,18 +106,25 @@ func report(_ label: String) -> [AXUIElement] {
     }
     return list
 }
-@discardableResult
-func pressMenuItem(_ menuName: String, _ itemName: String) -> Bool {
-    guard let menuBar = attribute(axApp, kAXMenuBarAttribute) else { return false }
+func menuItem(menuNames: Set<String>, itemNames: Set<String>) -> AXUIElement? {
+    guard let menuBar = attribute(axApp, kAXMenuBarAttribute) else { return nil }
     // swiftlint:disable:next force_cast
-    for item in children(menuBar as! AXUIElement) where title(item) == menuName {
+    for item in children(menuBar as! AXUIElement) where menuNames.contains(title(item)) {
         for submenu in children(item) {
-            for entry in children(submenu) where title(entry) == itemName {
-                return AXUIElementPerformAction(entry, kAXPressAction as CFString) == .success
+            for entry in children(submenu) where itemNames.contains(title(entry)) {
+                return entry
             }
         }
     }
-    return false
+    return nil
+}
+func hasPlainCommand(_ character: String, item: AXUIElement) -> Bool {
+    guard let command = attribute(item, kAXMenuItemCmdCharAttribute) as? String,
+          let modifiers = attribute(item, kAXMenuItemCmdModifiersAttribute) as? NSNumber
+    else { return false }
+    // Command ist der implizite Grundmodifier. 0 schließt Shift, Option,
+    // Control und „kein Command“ aus.
+    return command.uppercased() == character.uppercased() && modifiers.intValue == 0
 }
 func closeAllWindows() {
     // Begrenzte Runde: Ohne Obergrenze liefe der Test bei einem hängenden
@@ -145,7 +152,14 @@ check(list.first.map { documentURL($0).contains(fileName) } ?? false,
 check(sidebarWidth() == 0, "Seitenleiste bei einer Datei ausgeblendet")
 screenshot("fenster-eine-datei.png")
 
-check(pressMenuItem("Ablage", "Neues Fenster"), "Menüpunkt „Neues Fenster“ vorhanden")
+let newWindowItem = menuItem(
+    menuNames: ["Ablage", "File"], itemNames: ["Neues Fenster", "New Window"])
+check(newWindowItem != nil, "Menüpunkt „Neues Fenster/New Window“ vorhanden")
+check(newWindowItem.map { hasPlainCommand("N", item: $0) } ?? false,
+      "Neues Fenster hat den Shortcut ⌘N")
+check(newWindowItem.map {
+    AXUIElementPerformAction($0, kAXPressAction as CFString) == .success
+} ?? false, "Neues Fenster lässt sich auslösen")
 Thread.sleep(forTimeInterval: 2.0)
 check(report("nach Neues Fenster").count == 2, "zweites Fenster geöffnet")
 

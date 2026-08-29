@@ -59,9 +59,10 @@ laufen ohne Freigabe — siehe globale Testregeln.
 - `kAXDocumentAttribute` eines Fensters spiegelt `NSWindow.representedURL`.
   Damit lässt sich ohne Klicken prüfen, ob Datei-Icon und Command-Klick-
   Pfadmenü im Fenstertitel vorhanden sind.
-- Menüpunkte prüfen: `kAXMenuItemCmdCharAttribute` liefert das Tastenkürzel in
-  GROSSBUCHSTABEN („N“ für ⌘N) — beim Vergleich nicht auf Kleinschreibung
-  bestehen.
+- Menüpunkte prüfen: deutsche und englische Titel akzeptieren;
+  `kAXMenuItemCmdCharAttribute` liefert das Tastenkürzel in GROSSBUCHSTABEN
+  („N“ für ⌘N). `kAXMenuItemCmdModifiersAttribute == 0` bezeichnet den
+  normalen Command-Shortcut ohne Shift, Option oder Control.
 - App für Tests immer als **.app-Bundle** starten, nie das nackte
   swift-build-Binary (keine Fensterpräsenz). NICHT über `open -a`: Das trifft
   eine bereits laufende Instanz, und der Test beendete danach die falsche
