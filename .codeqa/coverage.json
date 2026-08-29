@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 161426
+    "tokens_spent": 191236
   },
   "campaign_history": [
     {
@@ -104,27 +104,19 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:05:41+02:00",
-        "observed_head": "2caf809a492b825db55919cd759928e0da35b40d",
-        "content_sha256": "9ec6243c15d54aeeea466f44793fe9c238d56f7a73e3a7849eead845a436b276",
+        "campaign_id": "20260829T191121837920+0200",
+        "completed_at": "2026-08-29T19:15:46+02:00",
+        "observed_head": "8a3b7c325e00e793bb87d4d132aac161cd83b76b",
+        "content_sha256": "40a97929d414de3689b9692583261b4883b93e665454aa1db3a8f7d52e44852a",
         "file_count": 5,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Der Theme-Diff ersetzt nur den lokalen Prozessfänger der Archiv-/Kollisions-CLI-Regressionen; Status und stderr-Vertrag bleiben identisch, während beide Pipes nun gleichzeitig geleert werden.",
+        "outcome": "reviewed-clean",
+        "summary": "Schema-1/2-Normalisierung, strukturtreuer Export, zielbezogene Importprüfung, Zielidentität, externe Freigabe, No-op-Grenze und Bild-Read-back im Delta plus aktuelle Aufrufgrenzen geprüft; keine kleine zusätzliche Verbesserung nötig.",
         "tests": [
-          "swift test --filter ExportCollisionTests: 3 Tests in 1 Suite bestanden",
-          "Vollständige Suite im Theme-Schritt: 130 Tests in 13 Suites bestanden"
+          "swift test --filter TagArchiveTests|ExportCollisionTests: 38 Tests in 2 Suites bestanden"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:14:47+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -141,7 +133,7 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:23:24+02:00",
@@ -155,6 +147,13 @@
           "TMPDIR=/tmp/tagx-codeqa-missing-parent-20260815 Tests/taglib-refs-tests.sh: TagLib-Ladepfad-Tests OK",
           "bash -n für Testtreiber und Helfer bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:15:57+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {

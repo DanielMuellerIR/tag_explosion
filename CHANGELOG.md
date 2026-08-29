@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.3] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: Der TagLib-Shim, seine Swift-Fassade und der ausschließlich atomare
+  Schreibzugang wurden nach dem geänderten MediaInfo-Testdelta erneut an ihren
+  Speicher-, Cover- und Ladepfadgrenzen geprüft. 13 Roundtrip-/MediaInfo-Tests
+  und der TagLib-Ladepfadtest bestanden.
+
 ## [0.23.2] — 2026-08-29
 
 ### Geprüft
