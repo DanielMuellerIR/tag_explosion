@@ -8,6 +8,23 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.13] — 2026-08-29
+
+### Geprüft
+
+- Die CodeQA-Kampagne ist mit allen 14 Bereichen auf aktuellem Stand und
+  allen vier Querschnittsthemen abgeschlossen. In diesem Lauf wurden sechs
+  Bereiche verbessert und fünf erneut ohne weiteren Befund geprüft; die drei
+  unveränderten Bereiche blieben durch ihren aktuellen Abdeckungsstand belegt.
+- Der Abschlusslauf bestand mit 175 Root-Tests in 14 Suites, 65 App-Tests in
+  8 Suites, einem vollständigen Release-Build und allen sechs CI-Shelltests
+  für Tempordner, Bundle, Installer, Mindestversion, TagLib und Icons. Die
+  sichtbaren GUI-Selbsttests wurden nicht gestartet.
+- Die Schichten aus portablem Core, CLI-Adaptern, SwiftUI-App und
+  Fensterkoordinator bleiben passend. `AppModel.swift` ist mit 1.357 Zeilen
+  weiterhin die belegte spätere Teilungsgrenze für Laden, Speichern,
+  Konflikte, Archivimport und Fensterlebenszyklus.
+
 ## [0.23.12] — 2026-08-29
 
 ### Behoben

@@ -4,9 +4,11 @@
   "campaign": {
     "id": "20260829T191121837920+0200",
     "token_budget": 5000000,
-    "status": "active",
+    "status": "complete",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 812109
+    "tokens_spent": 870347,
+    "finished_at": "2026-08-29T19:55:26+02:00",
+    "finish_reason": "all-current"
   },
   "campaign_history": [
     {
@@ -104,26 +106,19 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:15:46+02:00",
-        "observed_head": "8a3b7c325e00e793bb87d4d132aac161cd83b76b",
-        "content_sha256": "40a97929d414de3689b9692583261b4883b93e665454aa1db3a8f7d52e44852a",
+        "completed_at": "2026-08-29T19:54:17+02:00",
+        "observed_head": "958e640efd9680f065339cc14fc1c6b092636400",
+        "content_sha256": "c187e7c4352a9808450c03c7338d728a0f2b4082cd2eae3fcf3aa11029cbbd2f",
         "file_count": 5,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Schema-1/2-Normalisierung, strukturtreuer Export, zielbezogene Importprüfung, Zielidentität, externe Freigabe, No-op-Grenze und Bild-Read-back im Delta plus aktuelle Aufrufgrenzen geprüft; keine kleine zusätzliche Verbesserung nötig.",
+        "outcome": "improved",
+        "summary": "Beim abschließenden Gesamtlauf widersprach der ältere ExportCollision-Test dem seit 0.23.6 gültigen Rating-Vertrag: −1 ist abgelehnt, nicht ungültig. Testdelta auf 4x und 6 sowie die aktuelle Fehlermeldung korrigiert; Archiv-, Kollisions- und Mutationsgrenzen bleiben unverändert.",
         "tests": [
-          "swift test --filter TagArchiveTests|ExportCollisionTests: 38 Tests in 2 Suites bestanden"
+          "swift test --filter ExportCollisionTests\\|ExifCommandTests: 4 Tests in 2 Suites bestanden; vollständiges swift test: 175 Tests in 14 Suites bestanden"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:53:20+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
