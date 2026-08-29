@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.2] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: Archivexport und -import wurden seit dem letzten Abdeckungsstand
+  erneut gegen Schema-1/2-Kompatibilität, Zielidentität, externe Freigaben,
+  zielbezogene Schreibbarkeit und Read-back geprüft. 38 Archiv- und
+  Exportkollisionstests bestätigen den unveränderten Vertrag.
+
 ## [0.23.1] — 2026-08-29
 
 ### Geprüft

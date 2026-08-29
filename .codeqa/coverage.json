@@ -5,7 +5,8 @@
     "id": "20260829T191121837920+0200",
     "token_budget": 5000000,
     "status": "active",
-    "started_at": "2026-08-29T19:11:21+02:00"
+    "started_at": "2026-08-29T19:11:21+02:00",
+    "tokens_spent": 161426
   },
   "campaign_history": [
     {
@@ -76,27 +77,19 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:46:17+02:00",
-        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
-        "content_sha256": "5c6c7f11a85e8aa97747a2f956ba5b34df93b9e80f2a045a0ad2519b500c30f6",
+        "campaign_id": "20260829T191121837920+0200",
+        "completed_at": "2026-08-29T19:14:39+02:00",
+        "observed_head": "e57761cfcbfb1701c1459ad3efe642f729e22540",
+        "content_sha256": "cff852eaa9f8ce6711e89efb1c56623cbb3a54d680093b816c5161151111a688",
         "file_count": 2,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Der Theme-Diff validiert Bildfelder im produktiven AppModel.write unmittelbar vor TrashBackup; der bestehende Snapshot-, Konflikt- und Save-Zustand bleibt unverändert.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta seit der letzten Abdeckung samt Cover-No-op nach Read-back, konsistentem Datei-/Stempel-Schnappschuss, Save-Wartezustand, synchron beanspruchten Konfliktentscheidungen und neuen Fenstergrenzen geprüft; keine belastbar bessere kleine Änderung gefunden.",
         "tests": [
-          "swift test --package-path App --filter invalidImageGPSFailsBeforeAnyMutation: 1 Test bestanden",
-          "Vollständige App-Suite im Theme-Schritt: 27 Tests in 3 Suites bestanden"
+          "swift test --package-path App --filter AppModel|Lesepfad: 23 Tests in 2 Suites bestanden"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:12:21+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -111,7 +104,7 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:05:41+02:00",
@@ -125,6 +118,13 @@
           "swift test --filter ExportCollisionTests: 3 Tests in 1 Suite bestanden",
           "Vollständige Suite im Theme-Schritt: 130 Tests in 13 Suites bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:14:47+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
