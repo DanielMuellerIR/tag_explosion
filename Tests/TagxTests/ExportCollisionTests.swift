@@ -51,12 +51,15 @@ struct ExportCollisionTests {
         #expect(try runTagx(arguments: ["exif", "set", image.path,
                                         "--rating", "5"]).status == 0)
         let bytesBefore = try Data(contentsOf: image)
-        for invalid in ["4x", "-1", "6"] {
+        // −1 ist ein echter XMP-Wert („abgelehnt") und wird im
+        // ExifCommand-Test separat samt Read-back geprüft. Hier bleiben nur
+        // syntaktisch beziehungsweise fachlich ungültige Eingaben.
+        for invalid in ["4x", "6"] {
             let result = try runTagx(arguments: [
                 "exif", "set", image.path, "--rating=\(invalid)",
             ])
             #expect(result.status != 0)
-            #expect(result.stderr.contains("integer from 0 to 5"))
+            #expect(result.stderr.contains("integer from -1 (rejected) to 5"))
             #expect(try Data(contentsOf: image) == bytesBefore)
         }
     }

@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.12] — 2026-08-29
+
+### Behoben
+
+- Der ältere CLI-Mutationsschutztest behandelt Bewertung −1 nicht mehr als
+  ungültig. −1 ist der unterstützte XMP-Wert „abgelehnt“; der Test prüft jetzt
+  nur noch wirklich ungültige Eingaben gegen den aktuellen Wertebereich und
+  passt damit wieder zum separaten −1-Read-back-Test.
+
+### Geprüft
+
+- Die gezielten Export-/Exif-Tests bestanden mit 4 Tests in 2 Suites. Die
+  vollständige Root-Suite bestand mit 175 Tests in 14 Suites.
+
 ## [0.23.11] — 2026-08-29
 
 ### Behoben

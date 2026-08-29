@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 759039
+    "tokens_spent": 812109
   },
   "campaign_history": [
     {
@@ -104,7 +104,7 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:15:46+02:00",
@@ -117,6 +117,13 @@
         "tests": [
           "swift test --filter TagArchiveTests|ExportCollisionTests: 38 Tests in 2 Suites bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:53:20+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -427,26 +434,19 @@
       "risk": "low",
       "priority": 14,
       "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T16:10:53+02:00",
-        "observed_head": "15afeac9b072ce727621d4ffd9fd7c570b2addd4",
-        "content_sha256": "8ddb7885f0b0b80e5272da2cd5b293d9184768c5686e4c1961dcc6e24473f234",
-        "file_count": 8,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Icon-Generatoren verwenden eindeutige Tempordner und propagieren Ausgabe-/iconutil-Fehler; paralleler headless Regressionstest ergänzt und in macOS-CI aufgenommen; Screenshot-Selbsttest prüft Aktivierung, Fenster, Prozessstatus, PNG-Inhalt und Terminierung ehrlich.",
-        "tests": [
-          "Falschen Exit 0 beider Icon-Generatoren zuerst reproduziert; neuer Parallel-/Fehlercode-Test grün; alle Swift-/Shell-/Python-Werkzeuge syntax- bzw. typgeprüft; DMG 1200x840, Social Preview 1280x640 und 19 reale Fixtures erzeugt, Fixture-Zweitlauf byteidentisch; Workflow-YAML, Diff und CodeQA-Validierung grün. Sichtbarer Screenshot-Lauf nach GUI-Regel nicht gestartet."
-        ]
-      },
-      "active_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:46:24+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
+        "completed_at": "2026-08-29T19:51:50+02:00",
+        "observed_head": "85598492633f8e2f2df98e7ce44bcd68eea4fa6c",
+        "content_sha256": "405d06597caf95ee445345d4ee47042227464a4385a69470490ee436d3b07389",
+        "file_count": 10,
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "GUI-Testkit, Prozessbesitz, Start-/Abbruchfristen, Screenshot-Nachweis, Accessibility-Ablauf, Icon-Generatoren sowie unveränderte Asset-/Fixture-Grenzen geprüft. Menütests suchten nur deutsche Titel und der Fenstertest belegte ⌘N nicht; deutsche/englische Suche sowie exakte AX-Tastatur- und Modifierprüfung ergänzt.",
+        "tests": [
+          "Alle drei aus Testkit und Skriptrumpf zusammengesetzten Swift-GUI-Programme typgeprüft; sh -n für GUI-, Icon- und Fixture-Skripte; Swift-Generatoren typgeprüft; Python-Generator kompiliert; Tests/icon-generator-tests.sh bestanden. Sichtbarer GUI-Lauf gemäß Fokusregel nicht gestartet."
+        ]
       }
     }
   ],
