@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.8] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: E-Rechnungs-Erkennung, BT-24-Profilzuordnung, CII-/UBL-Feldmapping,
+  PDF-Anhangs- und Dekompressionsgrenzen, XMP-Auswahl, reine CLI-/App-Anzeige
+  sowie die neue adaptive BT-/BG-Spalte wurden erneut geprüft. 31 Core-/CLI-
+  und 3 App-Layouttests bestanden; der bestehende Parservertrag lädt keine
+  externen Entitäten.
+
 ## [0.23.7] — 2026-08-29
 
 ### Behoben
