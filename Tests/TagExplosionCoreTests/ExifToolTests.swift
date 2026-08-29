@@ -84,6 +84,28 @@ struct ExifToolTests {
         }
     }
 
+    @Test("Archiv-Read-back scheitert vor dem atomaren Austausch")
+    func archivedNormalizationLeavesOriginalUntouched() throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        let original = try ExifTool.readCoreFields(url: url)
+        let bytesBefore = try Data(contentsOf: url)
+        let stampBefore = try #require(FileStamp.current(of: url))
+        var target = original
+        // exiftool speichert dieselbe Koordinate numerisch, liest sie aber als
+        // "48.1"/"11.2" zurück. Ein Archiv verlangt den exakten Sollwert und
+        // muss deshalb abbrechen, OHNE die normalisierte Datei einzuwechseln.
+        target.gpsLatitude = "48.1000"
+        target.gpsLongitude = "11.2000"
+
+        #expect(throws: TagError.saveFailed(path: url.path)) {
+            try ExifTool.writeCoreFields(
+                url: url, fields: target, original: original,
+                allowingArchivedValues: true)
+        }
+        #expect(try Data(contentsOf: url) == bytesBefore)
+        #expect(FileStamp.current(of: url) == stampBefore)
+    }
+
     @Test("Feld löschen (leerer Wert)")
     func deleteField() throws {
         let url = try Fixtures.workingCopy("cover.jpg")

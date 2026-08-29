@@ -309,10 +309,12 @@ public enum ExifTool {
     /// des Werkzeuglaufs passiert, still verworfen werden. Erst unmittelbar
     /// vor dem eigenen Austausch wird der Stempel ein letztes Mal geprüft.
     /// `allowingArchivedValues`: Nur der Archiv-Restore setzt das. Dann gelten
-    /// ausschliesslich die technischen Schranken — ein gesicherter
-    /// Bestandswert (Rating 6, GPS 91/181) muss in die Datei zurueckkoennen,
-    /// aus der er stammt (Review-Fund 2026-08-17). Fuer jeden anderen Aufrufer
-    /// bleibt die Wertebereichspruefung als Sicherheitsnetz bestehen.
+    /// ausschließlich die technischen Schranken — ein gesicherter
+    /// Bestandswert (Rating 6, GPS 91/181) muss in die Datei zurückkönnen,
+    /// aus der er stammt (Review-Fund 2026-08-17). Für jeden anderen Aufrufer
+    /// bleibt die Wertebereichsprüfung als Sicherheitsnetz bestehen. Der
+    /// Archivweg verlangt außerdem einen exakten Read-back auf der Temp-Datei;
+    /// eine Normalisierung oder Ablehnung ersetzt dadurch nie das Original.
     public static func writeCoreFields(
         url: URL, fields: ImageCoreFields, original: ImageCoreFields,
         expecting stamp: FileStamp? = nil,
@@ -385,11 +387,18 @@ public enum ExifTool {
         } validate: { temp in
             // exiftool bricht bei einem Bild, das es nicht versteht, selbst ab
             // (Exit-Code ungleich 0, oben als `toolFailed` sichtbar) und lässt
-            // die Datei dann unverändert. Ein zweiter exiftool-Lauf nur zur
-            // Kontrolle würde die Prozessanzahl je Bild verdoppeln — geprüft
-            // wird deshalb nur, dass überhaupt eine nicht-leere Datei entstand.
+            // die Datei dann unverändert. Für normale UI-/CLI-Werte genügt
+            // deshalb die Strukturprüfung; die Oberfläche liest nach dem
+            // Speichern ohnehin neu. Der Archivvertrag ist strenger: Er
+            // verspricht den EXAKTEN früheren Zustand. Dessen Read-back muss
+            // noch auf der Temp-Datei passen, bevor sie das Original ersetzt.
             guard let size = VolumeSpace.fileSize(of: temp), size > 0 else {
                 throw TagError.saveFailed(path: url.path)
+            }
+            if allowingArchivedValues {
+                guard try readCoreFields(url: temp) == fields else {
+                    throw TagError.saveFailed(path: url.path)
+                }
             }
         }
     }

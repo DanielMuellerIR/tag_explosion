@@ -8,6 +8,24 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.6] — 2026-08-29
+
+### Behoben
+
+- `tagx exif set --rating=-1` setzt jetzt den gültigen XMP-Wert „abgelehnt“.
+  Bisher wies die CLI ihn zurück, obwohl Core, Archiv und App −1 bereits als
+  echten Wert behandeln; nur ein explizit leerer Optionswert löscht das Tag.
+- Der Bild-Restore prüft die exakte exiftool-Rückgabe jetzt auf der Temp-Datei
+  vor dem atomaren Austausch. Normalisiert oder verwirft exiftool einen
+  Archivwert, bleibt das Original bytegleich, statt trotz Fehlermeldung bereits
+  durch die abweichende Fassung ersetzt zu sein.
+
+### Geprüft
+
+- CodeQA: Bildfelder, Wertebereichs- und Archivgrenzen, exiftool-Argumente,
+  Pfadbehandlung und atomarer Austausch wurden erneut geprüft. 12 gezielte
+  Core-/CLI-Tests und 35 Archivtests bestanden.
+
 ## [0.23.5] — 2026-08-29
 
 ### Behoben

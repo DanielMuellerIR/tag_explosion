@@ -88,7 +88,7 @@ struct ExifSet: ParsableCommand {
     @Option(help: "Creator/photographer") var creator: String?
     @Option(help: "Copyright") var copyright: String?
     @Option(help: "Capture date (YYYY:MM:DD HH:MM:SS)") var date: String?
-    @Option(help: "Rating 0–5, empty deletes") var rating: String?
+    @Option(help: "Rating -1–5 (use --rating=-1 for rejected), empty deletes") var rating: String?
     @Option(help: "GPS as \"lat,lon\" in decimal degrees, empty deletes") var gps: String?
     @Option(parsing: .upToNextOption,
             help: """
@@ -120,10 +120,12 @@ struct ExifSet: ParsableCommand {
             if rating.isEmpty {
                 fields.rating = nil
             } else {
-                // Die CLI nutzt bewusst den leeren Optionswert zum Löschen;
-                // -1 ist nur die interne Darstellung im Core-Modell.
-                guard let parsed = Int(rating), (0...5).contains(parsed) else {
-                    throw ValidationError("Rating must be an integer from 0 to 5; use an explicit empty value to delete it.")
+                // −1 ist ein echter XMP-Wert („abgelehnt“), kein Leerwert.
+                // Nur ein explizit leerer Optionswert löscht das Tag.
+                guard let parsed = Int(rating), (-1...5).contains(parsed) else {
+                    throw ValidationError(
+                        "Rating must be an integer from -1 (rejected) to 5; "
+                            + "use an explicit empty value to delete it.")
                 }
                 fields.rating = parsed
             }

@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 270174
+    "tokens_spent": 375946
   },
   "campaign_history": [
     {
@@ -199,29 +199,19 @@
       "risk": "high",
       "priority": 6,
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:31:30+02:00",
-        "observed_head": "d0c430746ffc6df511376b3b2302cb2f337109ba",
-        "content_sha256": "bb98935e17a68f411ba6a67bab874005acadcf968813158ac436a3eeca35be9e",
-        "file_count": 4,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "EPUB-Schreiben erhält bei einer Haupttiteländerung weitere Titel samt Verfeinerungen, entfernt beim Löschen oder Ersetzen die refines-Verweise gelöschter XML-IDs und löst URL-kodierte Manifest-Pfade vor dem ZIP-Zugriff auf.",
-        "tests": [
-          "Vorzustand: drei gezielte Tests belegten gelöschten Untertitel, verwaiste subject-refines und nicht aufgelöstes Cover-href",
-          "Gezielte EPUB-Regressionen: 3 Tests bestanden",
-          "swift test: 122 Tests in 13 Suites bestanden",
-          "swift test --package-path App: 26 Tests in 3 Suites bestanden"
-        ]
-      },
-      "active_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:19:35+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
+        "completed_at": "2026-08-29T19:24:30+02:00",
+        "observed_head": "7f41f7fc5f66b29fc381cb43f1bb43aa12b3be70",
+        "content_sha256": "1fd168c8b51061bc07abe604b68d53c70d64cad7017499027a3c3904e6dac4c1",
+        "file_count": 4,
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "E-Book-Schreibweg samt atomarem EPUB-Austausch, OPF-Struktur, Backendgrenzen und Read-back geprüft; die CLI nennt bei abgelehnten Covern jetzt die für EPUB 2, EPUB 3 oder Calibre tatsächlich unterstützten Formate.",
+        "tests": [
+          "swift test --filter EbookToolTests: 33 Tests in 1 Suite bestanden; tagx ebook set --help geprüft"
+        ]
       }
     },
     {
@@ -229,12 +219,13 @@
       "paths": [
         "Sources/TagExplosionCore/ExifTool.swift",
         "Sources/tagx/ExifCommand.swift",
-        "Tests/TagExplosionCoreTests/ExifToolTests.swift"
+        "Tests/TagExplosionCoreTests/ExifToolTests.swift",
+        "Tests/TagxTests/ExifCommandTests.swift"
       ],
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T14:48:52+02:00",
@@ -248,7 +239,17 @@
           "swift test --filter invalidCoreFieldsAreRejected|validBoundariesAndUnchangedForeignValues|invalidRatingDoesNotDeleteExistingRating: 3 Tests in 2 Suites bestanden",
           "Vollständige Suite im Theme-Schritt: 125 Tests in 13 Suites; reale CLI-Probe lehnt GPS 91/181 mit Exit 64 und bytegleicher Datei ab"
         ]
-      }
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:24:39+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
+      },
+      "pending_paths": [
+        "Tests/TagxTests/ExifCommandTests.swift"
+      ]
     },
     {
       "id": "cli-tag-commands",

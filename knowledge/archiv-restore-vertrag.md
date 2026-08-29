@@ -29,6 +29,12 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   WebP gehört erst seit EPUB 3.3 zu den Kernformaten. Das OPF-Attribut bleibt
   auch dort `version="3.0"`; der Schreibweg kann daher nur EPUB 2 von der
   aktuellen EPUB-3-Fassung unterscheiden.
+- Bei Bildwerten prüft `ExifTool.writeCoreFields` den exakten Archiv-Sollwert
+  noch auf der Geschwisterkopie von `AtomicFileRewrite`. Normalisiert exiftool
+  beispielsweise `48.1000` zu `48.1`, scheitert der Restore vor dem atomaren
+  Austausch und das Original bleibt bytegleich. Ein Read-back erst nach dem
+  Austausch meldet zwar den Fehler, kommt für Dateisicherheit aber zu spät
+  (Review-Fund 2026-08-29).
 
 ## Bewertung: „kein Tag" ist kein Wert (seit 2026-08-20)
 
