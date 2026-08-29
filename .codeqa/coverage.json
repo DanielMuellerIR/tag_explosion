@@ -1,16 +1,23 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "tag_explosion",
   "campaign": {
-    "id": "20260815T135107310106+0200",
-    "token_budget": 2000000,
-    "status": "complete",
-    "started_at": "2026-08-15T13:51:07+02:00",
-    "tokens_spent": 1401465,
-    "finished_at": "2026-08-15T16:15:31+02:00",
-    "finish_reason": "all-current"
+    "id": "20260829T191121837920+0200",
+    "token_budget": 5000000,
+    "status": "active",
+    "started_at": "2026-08-29T19:11:21+02:00"
   },
-  "campaign_history": [],
+  "campaign_history": [
+    {
+      "id": "20260815T135107310106+0200",
+      "token_budget": 2000000,
+      "status": "complete",
+      "started_at": "2026-08-15T13:51:07+02:00",
+      "tokens_spent": 1401465,
+      "finished_at": "2026-08-15T16:15:31+02:00",
+      "finish_reason": "all-current"
+    }
+  ],
   "scope": {
     "paths": [
       "Sources",
@@ -69,7 +76,7 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T14:46:17+02:00",
@@ -83,6 +90,13 @@
           "swift test --package-path App --filter invalidImageGPSFailsBeforeAnyMutation: 1 Test bestanden",
           "Vollständige App-Suite im Theme-Schritt: 27 Tests in 3 Suites bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:12:21+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -318,12 +332,13 @@
         "Sources/tagx/InvoiceCommand.swift",
         "App/Sources/TagExplosionApp/InvoiceView.swift",
         "Tests/TagExplosionCoreTests/EInvoiceTests.swift",
-        "Tests/TagxTests/InvoiceCommandTests.swift"
+        "Tests/TagxTests/InvoiceCommandTests.swift",
+        "App/Tests/TagExplosionAppTests/InvoiceFieldLayoutTests.swift"
       ],
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:50:56+02:00",
@@ -336,7 +351,10 @@
         "tests": [
           "Vier Fehlerfälle zuerst mit insgesamt neun Issues reproduziert; EInvoice 16 Tests und InvoiceCommand 2 Tests gezielt grün, vollständige Root-Suite 138 Tests in 13 Suites sowie App-Suite 27 Tests in 3 Suites bestanden; Diff-Prüfung und CodeQA-Validierung grün."
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Tests/TagExplosionAppTests/InvoiceFieldLayoutTests.swift"
+      ]
     },
     {
       "id": "app-shell-lifecycle",
@@ -345,12 +363,17 @@
         "App/Sources/TagExplosionApp/TagExplosionApp.swift",
         "App/Sources/TagExplosionApp/WindowCloseAccessor.swift",
         "App/Sources/TagExplosionApp/BrewToolInstallOffer.swift",
-        "App/Tests/TagExplosionAppTests/BrewToolInstallerTests.swift"
+        "App/Tests/TagExplosionAppTests/BrewToolInstallerTests.swift",
+        "App/Sources/TagExplosionApp/WindowBridge.swift",
+        "App/Sources/TagExplosionApp/WindowChrome.swift",
+        "App/Sources/TagExplosionApp/WindowSessions.swift",
+        "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
+        "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
       ],
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:55:14+02:00",
@@ -363,7 +386,14 @@
         "tests": [
           "BrewToolInstaller 5/5, vollständige App-Suite 27 Tests in 3 Suites und App-Release-Build bestanden; der große stderr-Regressionstest bestätigt den Pipe-Weg; Diff-Prüfung und CodeQA-Validierung grün."
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Sources/TagExplosionApp/WindowBridge.swift",
+        "App/Sources/TagExplosionApp/WindowChrome.swift",
+        "App/Sources/TagExplosionApp/WindowSessions.swift",
+        "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
+        "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
+      ]
     },
     {
       "id": "app-editors",
@@ -377,12 +407,14 @@
         "App/Sources/TagExplosionApp/CoverWell.swift",
         "App/Sources/TagExplosionApp/SharedFormControls.swift",
         "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings",
-        "App/Tests/TagExplosionAppTests/CoverDropTests.swift"
+        "App/Tests/TagExplosionAppTests/CoverDropTests.swift",
+        "App/Sources/TagExplosionApp/RatingPicker.swift",
+        "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
       ],
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T16:03:32+02:00",
@@ -395,7 +427,11 @@
         "tests": [
           "Mehrfach-Drop-Fehler zuerst mit einem Issue reproduziert; CoverDrop 3/3, vollständige Root-Suite 138 Tests in 13 Suites und App-Suite 30 Tests in 4 Suites bestanden; App-Release-Build ohne Swift-Warnung, String-Catalog ohne fehlende Übersetzung oder Platzhalterabweichung, Diff-Prüfung und CodeQA-Validierung grün."
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Sources/TagExplosionApp/RatingPicker.swift",
+        "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
+      ]
     },
     {
       "id": "developer-tools",
@@ -431,13 +467,13 @@
     }
   ],
   "architecture": {
-    "campaign_id": "20260815T135107310106+0200",
-    "recorded_at": "2026-08-15T13:51:07+02:00",
-    "observed_head": "114b81efc4da1e08f9d1d331774f7839bb452bed",
-    "summary": "Core-Dienste bleiben von SwiftUI/AppKit getrennt und CLI/App nutzen dieselben Modelle; AppModel.swift bündelt jedoch Laden, Speichern, Konflikte, Archivimporte und Lebenszyklus auf 1331 Zeilen.",
-    "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell (MVVM-artig) und CLI-Adaptern",
+    "campaign_id": "20260829T191121837920+0200",
+    "recorded_at": "2026-08-29T19:12:00+02:00",
+    "observed_head": "869cfc23cd51baa1414c3e727034c089dedce6ee",
+    "summary": "Core-Dienste bleiben von SwiftUI/AppKit getrennt; CLI und App nutzen dieselben Core-Modelle. WindowSessions bündelt jetzt appweite Fenster-, Öffnen- und Beenden-Koordination, doch AppModel.swift vereint auf 1357 Zeilen weiterhin Laden, Speichern, Konflikte, Archivimport und per-Fenster-Lebenszyklus.",
+    "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell (MVVM-artig), Fensterkoordinator und CLI-Adaptern",
     "fit": "gespannt",
-    "recommendation": "Paradigma beibehalten. AppModel-Verantwortungen nur bereichsweise an belegten Änderungsgrenzen entkoppeln; ein Paradigmenwechsel lohnt den Migrations- und Regressionstestaufwand derzeit nicht."
+    "recommendation": "Paradigma beibehalten: Die neue Fensterkoordination entlastet die Szenenschicht und passt zum Ist-Modell. AppModel-Verantwortungen nur an belegten Bereichsgrenzen weiter entkoppeln; ein Paradigmenwechsel bringt gegenüber Migrations- und Regressionstestaufwand keinen ausreichenden Nutzen."
   },
   "themes": [
     {

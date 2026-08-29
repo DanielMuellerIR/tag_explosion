@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.1] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: Die Save- und Konfliktkoordination in `AppModel` wurde seit dem
+  letzten Abdeckungsstand samt Cover-No-op, konsistentem Datei-Schnappschuss,
+  Dialogentscheidungen und aktuellen Fenstergrenzen erneut geprüft. Die 23
+  gezielten AppModel-/Lesepfad-Tests bestätigen den unveränderten Vertrag.
+
 ## [0.23.0] — 2026-08-22
 
 ### Inkompatibel (Library-Produkte `TagExplosionCore`, `EInvoiceCore`)
