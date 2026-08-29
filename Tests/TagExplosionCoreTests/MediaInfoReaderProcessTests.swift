@@ -164,6 +164,15 @@ struct MediaInfoReaderProcessTests {
         #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == raw)
     }
 
+    @Test("Surrogat-Text in einer Klartextausgabe bleibt wörtlich")
+    func plainTextDoesNotRepairSurrogateSpelling() {
+        // Lone-Surrogate-Escapes erzeugt MediaInfo nur im JSON. In einer
+        // normalen Textzeile kann dieselbe Zeichenfolge ein echter Tagwert
+        // sein; die allgemeine Ausgabedekodierung darf sie nicht umdeuten.
+        let raw = Data(#"Titel: \udcfc"#.utf8)
+        #expect(MediaInfoReader.decodeLossy(raw) == #"Titel: \udcfc"#)
+    }
+
     @Test("Ein einzelnes Byte-Escape wird weiterhin zum Rohbyte")
     func stillRepairsLoneByteEscapes() {
         let raw = Data(#"{"v":"T\udcfcr"}"#.utf8)

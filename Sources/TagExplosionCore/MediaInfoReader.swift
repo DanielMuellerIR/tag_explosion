@@ -428,7 +428,13 @@ public enum MediaInfoReader {
     /// Umlaut zog sonst ALLE Nicht-ASCII-Zeichen des Feldes auf MacRoman
     /// (Review-Fund 2026-08-20).
     static func decodeLossy(_ data: Data) -> String {
-        let repaired = repairSurrogateEscapes(in: data)
+        let originalBytes = [UInt8](data)
+        // Lone-Surrogates sind eine Besonderheit von MediaInfos JSON-Ausgabe.
+        // In Klartext von MediaInfo, Calibre oder stderr ist `\udcfc` dagegen
+        // wörtlicher Text und darf nicht zum Rohbyte 0xFC werden.
+        let repaired = looksLikeJSON(originalBytes)
+            ? repairSurrogateEscapes(in: data)
+            : data
         if let s = String(data: repaired, encoding: .utf8) { return s }
 
         // In Läufe aus gültigen UTF-8-Sequenzen und ungültigen Bytes zerlegen.

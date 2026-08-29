@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.7] — 2026-08-29
+
+### Behoben
+
+- Wörtlicher Text wie `\udcfc` bleibt in Klartextausgaben von MediaInfo,
+  Calibre und externen Fehlermeldungen unverändert. Die Reparatur solcher
+  Byte-Escapes gehört nur zu MediaInfo-JSON; bisher deutete der gemeinsame
+  Decoder dieselbe Zeichenfolge in jedem Text fälschlich als „ü“.
+
+### Geprüft
+
+- CodeQA: Der Prozessrahmen wurde samt vollständigem parallelem Leeren von
+  stdout/stderr, Timeout-Grenze, JSON-Struktur, UTF-8-Erhalt sowie
+  feldbezogener MacRoman-/Windows-1252-Reparatur erneut geprüft. 20 gezielte
+  Decoder-, Prozess- und reale MediaInfo-Tests bestanden.
+
 ## [0.23.6] — 2026-08-29
 
 ### Behoben

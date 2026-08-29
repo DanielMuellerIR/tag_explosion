@@ -1,4 +1,4 @@
-# mediainfo/exiftool-Wrapper: Fallen (Stand 2026-08-20)
+# mediainfo/exiftool-Wrapper: Fallen (Stand 2026-08-29)
 
 ## mediainfo (26.05)
 
@@ -9,6 +9,10 @@
   Großschreibung der Hexziffern das ROHE Byte wieder her; erst `decodeLossy`
   entscheidet die Kodierung. Eine vorschnelle Latin1-Deutung machte aus
   `\udc8a` (MacRoman „ä") das Steuerzeichen U+008A.
+  Diese Reparatur gilt ausschließlich für Ausgaben, die nach führendem
+  Weißraum als JSON beginnen. In MediaInfo-/Calibre-Klartext und stderr kann
+  `\udcfc` wörtlicher Text sein; eine allgemeine Reparatur machte daraus
+  fälschlich „ü" (Review-Fund 2026-08-29).
 - **Kodierungs-Fallback je Textfeld, nie global:** Scheitert die strikte
   UTF-8-Dekodierung, bleiben gültige UTF-8-Sequenzen erhalten; nur die
   tatsächlich ungültigen Bytes werden dekodiert. Ein globaler Umschalter würde

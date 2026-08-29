@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 375946
+    "tokens_spent": 467862
   },
   "campaign_history": [
     {
@@ -225,31 +225,20 @@
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T14:48:52+02:00",
-        "observed_head": "0ac9b8381fa62f55c11d210e92587f227869439f",
-        "content_sha256": "829b0670c86375c1665a33d389f54dd9626606c2a9f6f36698814fe7db1a1fd0",
-        "file_count": 3,
+        "campaign_id": "20260829T191121837920+0200",
+        "completed_at": "2026-08-29T19:30:14+02:00",
+        "observed_head": "23572478facde955b31da73b01e6a57aebf8ebe4",
+        "content_sha256": "cd97f91e0c35c052cb37ab11c52447db74d803bfd930c314cc02c1dabf2cd294",
+        "file_count": 4,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der Theme-Diff zentralisiert die fachlichen Rating- und GPS-Grenzen in ExifTool.requireValidCoreFields; Core-Schreiber und CLI prüfen sie vor exiftool, während unveränderte fremde Altwerte und die explizite CLI-Löschsyntax erhalten bleiben.",
+        "summary": "Den während des ersten Laufs ergänzten echten CLI-Roundtrip für Rating −1 und explizites Löschen als Bereichspfad aufgenommen und gegen den committed Produktstand geprüft.",
         "tests": [
-          "swift test --filter invalidCoreFieldsAreRejected|validBoundariesAndUnchangedForeignValues|invalidRatingDoesNotDeleteExistingRating: 3 Tests in 2 Suites bestanden",
-          "Vollständige Suite im Theme-Schritt: 125 Tests in 13 Suites; reale CLI-Probe lehnt GPS 91/181 mit Exit 64 und bytegleicher Datei ab"
+          "swift test --filter ExifCommandTests: 1 echter CLI-Test bestanden; tagx exif set --help geprüft"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:24:39+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
-      },
-      "pending_paths": [
-        "Tests/TagxTests/ExifCommandTests.swift"
-      ]
+      }
     },
     {
       "id": "cli-tag-commands",
@@ -312,7 +301,7 @@
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:40:59+02:00",
@@ -325,6 +314,13 @@
         "tests": [
           "Fünf Fehlerfälle zuerst reproduziert; MediaInfoReaderProcessTests 5/5, vollständige Root-Suite 136 Tests in 13 Suites und App-Suite 27 Tests in 3 Suites bestanden; Diff-Prüfung und CodeQA-Validierung grün."
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:30:27+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
