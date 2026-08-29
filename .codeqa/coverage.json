@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 519964
+    "tokens_spent": 594845
   },
   "campaign_history": [
     {
@@ -329,30 +329,18 @@
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:50:56+02:00",
-        "observed_head": "20ceb7b5e73795a678af7e413814bd3f78cdffcd",
-        "content_sha256": "f2f5cf7fe20ae1266ed97c8d110c185e029662baa4680ef20a88dbe8682b337b",
-        "file_count": 12,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Profilfamilien an belastbare URN-Stämme gebunden; PDF-Auswahl folgt zuerst XMP-DocumentFileName und sonst stabiler Anhangsreihenfolge; täuschend ähnliche XMP-Namensräume werden abgelehnt; CII-Datumshilfe prüft wirkliche Kalendertage.",
-        "tests": [
-          "Vier Fehlerfälle zuerst mit insgesamt neun Issues reproduziert; EInvoice 16 Tests und InvoiceCommand 2 Tests gezielt grün, vollständige Root-Suite 138 Tests in 13 Suites sowie App-Suite 27 Tests in 3 Suites bestanden; Diff-Prüfung und CodeQA-Validierung grün."
-        ]
-      },
-      "pending_paths": [
-        "App/Tests/TagExplosionAppTests/InvoiceFieldLayoutTests.swift"
-      ],
-      "active_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:33:30+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "App/Tests/TagExplosionAppTests/InvoiceFieldLayoutTests.swift"
+        "completed_at": "2026-08-29T19:36:56+02:00",
+        "observed_head": "8b5c7b83ed51476444e459c31de6e53fb97930ad",
+        "content_sha256": "87351c28a3662dce81691df35137ab1cc3d33412cb5a4461b05db30dce9d114e",
+        "file_count": 13,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Delta und Grenzen von XML-/PDF-Erkennung, Profilauflösung, CII-/UBL-Mapping, XMP- und Anhangsauswahl, Ressourcenbudgets sowie ausschließlich lesender CLI-/App-Darstellung geprüft. Die neue adaptive Feldspalte passt zum bestehenden Anzeigemodell; keine weitere kleine Änderung nötig.",
+        "tests": [
+          "swift test --filter EInvoiceTests|InvoiceCommandTests: 31 Tests in 2 Suites bestanden; swift test --package-path App --filter InvoiceFieldLayoutTests: 3 Tests bestanden"
         ]
       }
     },
@@ -373,7 +361,7 @@
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:55:14+02:00",
@@ -393,7 +381,20 @@
         "App/Sources/TagExplosionApp/WindowSessions.swift",
         "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
         "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:37:11+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "App/Sources/TagExplosionApp/WindowBridge.swift",
+          "App/Sources/TagExplosionApp/WindowChrome.swift",
+          "App/Sources/TagExplosionApp/WindowSessions.swift",
+          "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
+          "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
+        ]
+      }
     },
     {
       "id": "app-editors",

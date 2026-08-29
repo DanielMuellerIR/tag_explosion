@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.9] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: Fenster-Registry, Dateiöffnung ohne sichtbares Fenster,
+  begrenztes Nachfassen, fensterweise Beenden-Rückfragen, Delegate-Brücke,
+  Dokument-URL, Fensterkopf, Seitenleistenregel und Homebrew-Angebot wurden
+  erneut geprüft. 28 gezielte App-Tests und der App-Release-Build bestanden.
+
 ## [0.23.8] — 2026-08-29
 
 ### Geprüft
