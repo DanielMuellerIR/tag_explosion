@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.4] — 2026-08-29
+
+### Geprüft
+
+- CodeQA: Build, Signatur-/Notarisierungsgrenzen und der atomare Installer
+  wurden seit dem letzten Abdeckungsstand erneut auf Bundle-Prüfung,
+  Sperrübernahme, Rollback und sichere Temp-Ziele geprüft. Installer-,
+  Property-List-, Mindestversions-, Tempordner- und Ladepfadtests bestanden.
+
 ## [0.23.3] — 2026-08-29
 
 ### Geprüft

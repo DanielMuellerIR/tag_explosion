@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 191236
+    "tokens_spent": 217324
   },
   "campaign_history": [
     {
@@ -133,27 +133,20 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:23:24+02:00",
-        "observed_head": "19b5a709fd2150f26b9439351f15a5ad15a50a65",
-        "content_sha256": "8c4b066dbea280ca30f2a44b68fdf46598a49c6252533fde1338dd199b2f05b6",
+        "campaign_id": "20260829T191121837920+0200",
+        "completed_at": "2026-08-29T19:16:52+02:00",
+        "observed_head": "4b74f3ee3f04f261ce5185e5fdb2aca14d8b29d0",
+        "content_sha256": "2130c4e67f61155dbbf8aadd62907fa305ed8866fd5bb6f8d0490ba8a916a324",
         "file_count": 9,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Der TagLib-Produktionscode bleibt unverändert; sein Ladepfad-Test verwendet nun den geprüften gemeinsamen Tempordner-Helfer und läuft auch bei einem gesetzten, fehlenden TMPDIR vollständig durch.",
+        "outcome": "reviewed-clean",
+        "summary": "Testdelta plus heutige C-/Swift-Grenzen geprüft: externer Schreibzugang bleibt statisch und atomar, Handle und C-Puffer werden eindeutig freigegeben, Cover-/PropertyMap-Verträge sowie TagLib-Ladepfade bleiben konsistent.",
         "tests": [
-          "TMPDIR=/tmp/tagx-codeqa-missing-parent-20260815 Tests/taglib-refs-tests.sh: TagLib-Ladepfad-Tests OK",
-          "bash -n für Testtreiber und Helfer bestanden"
+          "swift test --filter RoundtripTests|Tag-Roundtrip: 13 Tests in 2 Suites bestanden",
+          "Tests/taglib-refs-tests.sh: TagLib-Ladepfad-Tests OK"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:15:57+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -178,7 +171,7 @@
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T16:11:55+02:00",
@@ -191,6 +184,13 @@
         "tests": [
           "Workflow-YAML lesbar; Shell-Temp-, echter Release-/Plist-, Installer-Rollback-, Mindestversions-, TagLib-Ladepfad- und Icon-Generator-Test vollständig grün; Diff-Prüfung und CodeQA-Validierung grün."
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:17:03+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
