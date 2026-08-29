@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 594845
+    "tokens_spent": 681585
   },
   "campaign_history": [
     {
@@ -361,38 +361,18 @@
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:55:14+02:00",
-        "observed_head": "20ceb7b5e73795a678af7e413814bd3f78cdffcd",
-        "content_sha256": "8c763a9efb8960dc3c4e7098067bf6ac1cb7f760c0598e2511cb054f5faae45d",
-        "file_count": 5,
-        "review": "full",
-        "outcome": "reviewed-clean",
-        "summary": "App-Szene, Finder-/Drop-Öffnen, Fenster- und Quit-Delegates, Konfliktdialoggrenzen, Einstellungen sowie Homebrew-Angebot und Prozesslauf vollständig geprüft; keine belastbare Bereichsabweichung gefunden. Die Release-Warnungen liegen ausschließlich im nachfolgenden Editorbereich.",
-        "tests": [
-          "BrewToolInstaller 5/5, vollständige App-Suite 27 Tests in 3 Suites und App-Release-Build bestanden; der große stderr-Regressionstest bestätigt den Pipe-Weg; Diff-Prüfung und CodeQA-Validierung grün."
-        ]
-      },
-      "pending_paths": [
-        "App/Sources/TagExplosionApp/WindowBridge.swift",
-        "App/Sources/TagExplosionApp/WindowChrome.swift",
-        "App/Sources/TagExplosionApp/WindowSessions.swift",
-        "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
-        "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
-      ],
-      "active_run": {
         "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:37:11+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "App/Sources/TagExplosionApp/WindowBridge.swift",
-          "App/Sources/TagExplosionApp/WindowChrome.swift",
-          "App/Sources/TagExplosionApp/WindowSessions.swift",
-          "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
-          "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift"
+        "completed_at": "2026-08-29T19:41:07+02:00",
+        "observed_head": "8e7acaadf86789a84584188d0409abcef7ae0e9e",
+        "content_sha256": "904f6c85ca97fe99285d2d80ee8da56b2f658bc7db76f55f36274c142b39d966",
+        "file_count": 9,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Delta und Grenzen von Fenster-Registry, Finder-/Dock-Dateiöffnung, begrenzter Fensteranforderung, fensterweiser Terminierung, Delegate-Weiterleitung, dargestellter Dokument-URL, Fensterkopf, Seitenleistenregel und Homebrew-Angebot geprüft; kein weiterer kleiner Eingriff nötig.",
+        "tests": [
+          "swift test --package-path App --filter WindowSessionsTests\\|WindowChromeTests\\|BrewToolInstallerTests: 28 Tests in 3 Suites bestanden; swift build --package-path App -c release bestanden (nur bekannte lokale TagLib-Mindestversionswarnung)"
         ]
       }
     },
@@ -415,7 +395,7 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T16:03:32+02:00",
@@ -432,7 +412,17 @@
       "pending_paths": [
         "App/Sources/TagExplosionApp/RatingPicker.swift",
         "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:41:15+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "App/Sources/TagExplosionApp/RatingPicker.swift",
+          "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
+        ]
+      }
     },
     {
       "id": "developer-tools",

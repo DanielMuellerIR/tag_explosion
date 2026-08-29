@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.10] — 2026-08-29
+
+### Behoben
+
+- Der Bewertungs-Picker übersetzt seine dynamisch erzeugten Einträge nun
+  auch in der englischen Oberfläche. „keine“ und „— verschieden —“ blieben
+  bisher deutsch; für „abgelehnt“ und sichtbare Fremdwerte fehlten zudem die
+  englischen Katalogeinträge.
+
+### Geprüft
+
+- CodeQA: Einzel- und Batch-Bewertung samt fehlendem Tag, −1, 0…5,
+  tolerierten Bestandswerten und Bild-Speichergrenzen wurden erneut geprüft.
+  34 Editor-, Cover-, Speicher- und Lesepfadtests sowie die Kompilierung des
+  deutschen und englischen String-Katalogs bestanden.
+
 ## [0.23.9] — 2026-08-29
 
 ### Geprüft

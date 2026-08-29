@@ -11,6 +11,16 @@
         }
       }
     },
+    "%lld (Bestand)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld (existing value)"
+          }
+        }
+      }
+    },
     "%lld Bilder ausgewählt": {
       "localizations": {
         "en": {
@@ -1697,6 +1707,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Install Additional Tools?"
+          }
+        }
+      }
+    },
+    "abgelehnt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rejected"
           }
         }
       }

@@ -30,12 +30,16 @@ enum RatingPicker {
     /// Beschriftung eines Werts: „keine" für fehlendes Tag, „abgelehnt" für
     /// −1, Sterne für 1…5, sonst der nackte Wert als Bestandswert.
     static func label(for value: Int?) -> String {
-        guard let value else { return "keine" }
+        // `Text(option.label)` erhält hier einen Laufzeit-String und behandelt
+        // ihn deshalb wörtlich. Die Lokalisierung muss bereits an dieser
+        // Abbildungsgrenze passieren; nur String-Literale direkt in `Text`
+        // werden von SwiftUI selbst als Lokalisierungsschlüssel erkannt.
+        guard let value else { return String(localized: "keine") }
         switch value {
-        case rejected: return "abgelehnt"
+        case rejected: return String(localized: "abgelehnt")
         case 0: return "0"
         case 1...5: return String(repeating: "★", count: value)
-        default: return "\(value) (Bestand)"
+        default: return String(localized: "\(value) (Bestand)")
         }
     }
 
@@ -86,7 +90,7 @@ enum RatingChoice: Hashable {
     /// Beschriftung im Picker.
     var label: String {
         switch self {
-        case .mixed: return "— verschieden —"
+        case .mixed: return String(localized: "— verschieden —")
         case .none: return RatingPicker.label(for: nil)
         case .value(let value): return RatingPicker.label(for: value)
         }
