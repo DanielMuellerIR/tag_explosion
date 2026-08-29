@@ -79,7 +79,7 @@ struct EbookSet: ParsableCommand {
     @Option(help: "Language code, e.g. en") var language: String?
     @Option(help: "Publication date (ISO 8601)") var date: String?
     @Option(help: "Tags/subjects, comma-separated") var subjects: String?
-    @Option(help: "Set cover from image file (jpg/png)") var cover: String?
+    @Option(help: "Set cover from an image format supported by the target e-book") var cover: String?
     @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
@@ -128,8 +128,15 @@ struct EbookSet: ParsableCommand {
             do {
                 try EbookTool.requireSupportedCover(data, for: url)
             } catch TagError.unsupportedCoverData {
-                let formats = EbookTool.backend(for: url) == .epub
-                    ? "JPEG, PNG, GIF, or WebP" : "JPEG or PNG"
+                let supported = EbookTool.supportedCoverMimeTypes(url: url)
+                let formats: String
+                if supported.contains("image/webp") {
+                    formats = "JPEG, PNG, GIF, or WebP"
+                } else if supported.contains("image/gif") {
+                    formats = "JPEG, PNG, or GIF"
+                } else {
+                    formats = "JPEG or PNG"
+                }
                 throw ValidationError("Cover must be a \(formats) image: \(coverURL.path)")
             }
             // Auch das Lesen der externen Cover-Datei öffnet ein Zeitfenster.

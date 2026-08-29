@@ -24,9 +24,11 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   das jeweilige Ziel-Backend auch wieder SETZEN können, sonst widersprechen
   sich Export- und Import-Vertrag (nicht wiederherstellbares Backup).
   Deshalb backendbezogen: EPUB speichert Serienindex ohne Serie
-  (`calibre:series_index`) und Cover in JPEG/PNG/GIF/WebP
-  (EPUB-Kernformate); ebook-meta-Formate bleiben bei JPEG/PNG und lehnen
-  den nackten Index ab.
+  (`calibre:series_index`) und Cover in JPEG/PNG/GIF sowie bei EPUB 3 in WebP;
+  ebook-meta-Formate bleiben bei JPEG/PNG und lehnen den nackten Index ab.
+  WebP gehört erst seit EPUB 3.3 zu den Kernformaten. Das OPF-Attribut bleibt
+  auch dort `version="3.0"`; der Schreibweg kann daher nur EPUB 2 von der
+  aktuellen EPUB-3-Fassung unterscheiden.
 
 ## Bewertung: „kein Tag" ist kein Wert (seit 2026-08-20)
 

@@ -8,6 +8,21 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.5] — 2026-08-29
+
+### Behoben
+
+- `tagx ebook set` nennt bei einem abgelehnten Cover jetzt die Formate, die
+  das konkrete Ziel tatsächlich schreiben kann. Für EPUB 2 versprach die
+  Meldung bisher fälschlich WebP, obwohl dieses Format erst in der aktuellen
+  EPUB-3-Spezifikation ohne Fallback zulässig ist.
+
+### Geprüft
+
+- CodeQA: Der transaktionale E-Book-Schreibweg wurde samt EPUB-OPF-Struktur,
+  formatabhängigen Serien- und Covergrenzen, Calibre-/exiftool-Adaptern und
+  exaktem Read-back erneut geprüft. 33 `EbookTool`-Tests bestanden.
+
 ## [0.23.4] — 2026-08-29
 
 ### Geprüft

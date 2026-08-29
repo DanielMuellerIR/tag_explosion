@@ -6,7 +6,7 @@
     "token_budget": 5000000,
     "status": "active",
     "started_at": "2026-08-29T19:11:21+02:00",
-    "tokens_spent": 217324
+    "tokens_spent": 270174
   },
   "campaign_history": [
     {
@@ -171,26 +171,21 @@
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T16:11:55+02:00",
-        "observed_head": "15afeac9b072ce727621d4ffd9fd7c570b2addd4",
-        "content_sha256": "df245eecb4b7eca7751693ae1e4c74ed4dd957980e0e9f8d6fac0d42c9b4e6b3",
+        "campaign_id": "20260829T191121837920+0200",
+        "completed_at": "2026-08-29T19:19:28+02:00",
+        "observed_head": "52afeca9b563a20d0764bb77b24e0b3d7d6d47f4",
+        "content_sha256": "094fcdc9865d28b7381b8df50c44c34633c129ec37d496b235d6ee7100041802",
         "file_count": 16,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "macOS-CI um den parallelen Icon-/Fehlercode-Test ergänzt und die geänderte Workflow-Grenze samt allen aufgerufenen Shell-Testtreibern revalidiert.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta und heutige Grenzen von Build, Signatur, Notarisierung, Stapling, Bundle-Austausch, Sperrübernahme und Rollback geprüft. /Applications bleibt ausschließlich dem vorgeprüften notarisierten Weg vorbehalten; keine zusätzliche kleine Änderung nötig.",
         "tests": [
-          "Workflow-YAML lesbar; Shell-Temp-, echter Release-/Plist-, Installer-Rollback-, Mindestversions-, TagLib-Ladepfad- und Icon-Generator-Test vollständig grün; Diff-Prüfung und CodeQA-Validierung grün."
+          "Tests/install-verified-app-tests.sh: Installer-Rollback-Tests OK",
+          "Tests/build-plist-tests.sh: Build-Plist-Test OK",
+          "Mindestversions-, Shell-Tempordner- und TagLib-Ladepfadtests bestanden"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "started_at": "2026-08-29T19:17:03+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -204,7 +199,7 @@
       "risk": "high",
       "priority": 6,
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T14:31:30+02:00",
@@ -220,6 +215,13 @@
           "swift test: 122 Tests in 13 Suites bestanden",
           "swift test --package-path App: 26 Tests in 3 Suites bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260829T191121837920+0200",
+        "started_at": "2026-08-29T19:19:35+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {

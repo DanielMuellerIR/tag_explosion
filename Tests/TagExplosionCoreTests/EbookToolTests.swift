@@ -810,13 +810,14 @@ struct EbookToolTests {
 
     @Test("WebP-Cover: EPUB 3 ja, EPUB 2 nein")
     func webpCoverFollowsPackageVersion() throws {
-        // WebP ist erst ab EPUB 3 ein Kern-Bildformat. In einem EPUB-2-Paket
-        // braeuchte es ein Fallback-Item; ohne das ignorieren Reader das Cover
-        // und Pruefer lehnen das Paket ab. Vorher wurde WebP fuer JEDES EPUB
-        // zugelassen und der Schreibweg meldete trotzdem Erfolg
+        // WebP gehört seit EPUB 3.3 zu den Kern-Bildformaten. Das OPF nennt
+        // weiterhin Version 3.0; in einem EPUB-2-Paket bräuchte WebP dagegen
+        // ein Fallback-Item. Ohne das ignorieren Reader das Cover und Prüfer
+        // lehnen das Paket ab. Vorher wurde WebP für JEDES EPUB zugelassen und
+        // der Schreibweg meldete trotzdem Erfolg
         // (Review-Fund 2026-08-17).
         //
-        // Minimales gueltiges WebP: "RIFF" + Groesse + "WEBPVP8 ".
+        // Minimales gültiges WebP: "RIFF" + Größe + "WEBPVP8 ".
         var webpBytes: [UInt8] = Array("RIFF".utf8)
         webpBytes.append(contentsOf: [0x1A, 0x00, 0x00, 0x00])
         webpBytes.append(contentsOf: Array("WEBPVP8 ".utf8))
