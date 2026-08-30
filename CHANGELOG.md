@@ -12,7 +12,7 @@ jeder Entscheidung steht im jeweiligen Commit.
 
 ### Geprüft
 
-- Die CodeQA-Folgekampagne hat die sieben durch den Review-Fix veränderten
+- Die CodeQA-Folgekampagne hat die acht durch den Review-Fix veränderten
   Bereiche erneut geprüft: atomare Dateisicherheit, Archivimport,
   TagLib-Roundtripgrenze, Installer-Distribution, E-Book-Schreiben,
   Bildmetadaten sowie CLI- und Prozessausgabe. Alle 14 Bereiche und vier
