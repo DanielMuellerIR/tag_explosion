@@ -478,7 +478,8 @@ public enum EbookTool {
     /// Fortsetzungszeilen angehängt.
     private static func readCalibre(url: URL) throws -> EbookCoreFields {
         let exe = try locateCalibre()
-        let output = MediaInfoReader.decodeLossy(try runCalibre(exe, [MediaInfoReader.toolArgument(for: url)]))
+        let output = MediaInfoReader.decodeLossyPlainText(
+            try runCalibre(exe, [MediaInfoReader.toolArgument(for: url)]))
 
         var values: [String: String] = [:]
         var currentKey: String?

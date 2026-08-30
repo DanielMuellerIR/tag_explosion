@@ -785,6 +785,37 @@ struct TagArchiveTests {
         #expect(try Data(contentsOf: image) == bytesBefore)
     }
 
+    @Test("Normalisierte Bildwerte scheitern im Dry-run und vor der Sicherung")
+    func normalizedImageValuesFailBeforeBackup() throws {
+        let dir = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let image = dir.appendingPathComponent("cover.jpg")
+        let bytesBefore = try Data(contentsOf: image)
+        var target = try ExifTool.readCoreFields(url: image)
+        // exiftool speichert diese Dezimalzahlen, liest sie aber ohne die
+        // nachgestellten Nullen zurück. Das Archiv verspricht exakte Werte.
+        target.gpsLatitude = "48.1000"
+        target.gpsLongitude = "11.2000"
+        let archive = TagArchive(created: "2026-08-30T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: target),
+        ])
+        var backupCalls = 0
+        let backUp: (URL) throws -> Void = { _ in backupCalls += 1 }
+
+        let dry = try TagArchiveIO.apply(
+            archive, relativeTo: dir, dryRun: true,
+            afterValidation: {}, backUp: backUp)
+        #expect(dry.failed.map(\.0) == ["cover.jpg"])
+        #expect(backupCalls == 0)
+
+        let real = try TagArchiveIO.apply(
+            archive, relativeTo: dir, dryRun: false,
+            afterValidation: {}, backUp: backUp)
+        #expect(real.failed.map(\.0) == ["cover.jpg"])
+        #expect(backupCalls == 0)
+        #expect(try Data(contentsOf: image) == bytesBefore)
+    }
+
     @Test("Die Oberfläche lehnt eine echte Änderung auf fachfremde Werte weiter ab")
     func uiStillRejectsOutOfRangeChanges() throws {
         // Gegenprobe zur Trennung: Der Restore-Pfad ist gelockert, der

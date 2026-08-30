@@ -8,6 +8,29 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.14] — 2026-08-30
+
+### Behoben
+
+- Der Archiv-Dry-run schreibt Bildwerte nun auf eine Geschwisterkopie und liest
+  sie exakt zurück. Normalisiert exiftool einen Wert, lehnen Dry-run und Import
+  ihn vor der Papierkorb-Sicherung ab; der Import setzt andernfalls genau die
+  geprüfte Kopie atomar ein.
+- Klartext und Fehlermeldungen behalten wörtliche Surrogate-Schreibweisen auch
+  dann, wenn sie mit `[` oder `{` beginnen. JSON- und Klartext-Aufrufer wählen
+  ihren Dekodierweg jetzt ausdrücklich.
+- Der Installer-Regressionstest trägt Hintergrundprozesse nach jedem `wait`
+  unabhängig vom Exit-Code aus und vergleicht vor dem Aufräumen zusätzlich
+  Eltern-PID und Startzeit. Eine wiederverwendete Prozessnummer kann dadurch
+  keinen fremden Prozess treffen.
+- Der echte Bild-CLI-Test hängt nur noch von der getrackten Bild-Fixture und
+  exiftool ab; fehlendes ffmpeg überspringt ihn nicht mehr.
+
+### Geprüft
+
+- 66 gezielte Archiv-, Bild-, Dekodier- und CLI-Tests sowie die vollständige
+  Installer-Rollback-Suite bestanden.
+
 ## [0.23.13] — 2026-08-29
 
 ### Geprüft

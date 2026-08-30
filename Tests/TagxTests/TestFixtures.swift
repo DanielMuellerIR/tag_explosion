@@ -87,6 +87,15 @@ enum TagxFixtures {
         .deletingLastPathComponent() // Tests
         .deletingLastPathComponent() // Repo-Wurzel
 
+    /// Das kleine Bild ist getrackt und braucht weder die Audio-Fixtures noch
+    /// ffmpeg. Bild-CLI-Tests dürfen deshalb direkt darauf zugreifen.
+    static let trackedCover = repoRoot
+        .appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated/cover.jpg")
+
+    static var trackedCoverIsAvailable: Bool {
+        FileManager.default.fileExists(atPath: trackedCover.path)
+    }
+
     /// Verzeichnis mit den erzeugten Fixtures; `nil`, wenn die Erzeugung nicht
     /// möglich war (typischerweise fehlendes ffmpeg).
     static let directory: URL? = {

@@ -8,15 +8,15 @@ import TagExplosionCore
 struct ExifCommandTests {
 
     @Test("Rating -1 setzt abgelehnt; nur ein leerer Wert löscht das Tag",
-          .enabled(if: TagxFixtures.isAvailable && exifToolIsAvailable,
-                   "Bild-Fixture oder exiftool fehlt"))
+          .enabled(if: TagxFixtures.trackedCoverIsAvailable && exifToolIsAvailable,
+                   "Getrackte Bild-Fixture oder exiftool fehlt"))
     func rejectedRatingIsNotDeletion() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("tagx-exif-rating-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let file = directory.appendingPathComponent("bild.jpg")
-        try FileManager.default.copyItem(at: try TagxFixtures.url("cover.jpg"), to: file)
+        try FileManager.default.copyItem(at: TagxFixtures.trackedCover, to: file)
 
         let rejected = try runTagx(arguments: [
             "exif", "set", file.path, "--rating=-1", "--no-backup",

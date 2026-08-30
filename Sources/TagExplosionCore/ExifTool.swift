@@ -102,7 +102,7 @@ public enum ExifTool {
               let dict = root.first
         else { return [] }
 
-        let jsonText = MediaInfoReader.decodeLossy(data)
+        let jsonText = MediaInfoReader.decodeLossyJSON(data)
         // Gruppen in stabiler Reihenfolge des JSON-Textes aufbauen
         var groups: [String: [TagProperty]] = [:]
         var groupOrder: [String] = []
@@ -320,6 +320,31 @@ public enum ExifTool {
         expecting stamp: FileStamp? = nil,
         allowingArchivedValues: Bool = false
     ) throws {
+        try writeCoreFields(
+            url: url, fields: fields, original: original, expecting: stamp,
+            allowingArchivedValues: allowingArchivedValues,
+            replacingOriginal: true, beforeReplace: {})
+    }
+
+    /// Archivwerte werden auf einer Geschwisterkopie wirklich geschrieben
+    /// und exakt zurückgelesen, bevor Dry-run oder Sicherung Erfolg melden.
+    /// Der echte Import setzt anschließend genau diese geprüfte Kopie ein.
+    static func writeArchivedCoreFields(
+        url: URL, fields: ImageCoreFields, original: ImageCoreFields,
+        expecting stamp: FileStamp, dryRun: Bool,
+        beforeReplace: () throws -> Void
+    ) throws {
+        try writeCoreFields(
+            url: url, fields: fields, original: original, expecting: stamp,
+            allowingArchivedValues: true, replacingOriginal: !dryRun,
+            beforeReplace: beforeReplace)
+    }
+
+    private static func writeCoreFields(
+        url: URL, fields: ImageCoreFields, original: ImageCoreFields,
+        expecting stamp: FileStamp?, allowingArchivedValues: Bool,
+        replacingOriginal: Bool, beforeReplace: () throws -> Void
+    ) throws {
         if allowingArchivedValues {
             try requireWritableCoreFields(fields, original: original)
         } else {
@@ -378,29 +403,34 @@ public enum ExifTool {
         // schon fremd verändert ist. Die verbindliche Prüfung macht der
         // atomare Rahmen unten direkt vor dem Austausch.
         try FileStamp.requireUnchanged(stamp, at: url)
-        try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
-            // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
-            _ = try MediaInfoReader.run(
-                exe,
-                ["-use", "MWG", "-overwrite_original", "-m"] + args
-                    + [MediaInfoReader.toolArgument(for: temp)])
-        } validate: { temp in
-            // exiftool bricht bei einem Bild, das es nicht versteht, selbst ab
-            // (Exit-Code ungleich 0, oben als `toolFailed` sichtbar) und lässt
-            // die Datei dann unverändert. Für normale UI-/CLI-Werte genügt
-            // deshalb die Strukturprüfung; die Oberfläche liest nach dem
-            // Speichern ohnehin neu. Der Archivvertrag ist strenger: Er
-            // verspricht den EXAKTEN früheren Zustand. Dessen Read-back muss
-            // noch auf der Temp-Datei passen, bevor sie das Original ersetzt.
-            guard let size = VolumeSpace.fileSize(of: temp), size > 0 else {
-                throw TagError.saveFailed(path: url.path)
-            }
-            if allowingArchivedValues {
-                guard try readCoreFields(url: temp) == fields else {
+        try AtomicFileRewrite.run(
+            url: url, expecting: stamp, replacingOriginal: replacingOriginal,
+            beforeReplace: beforeReplace,
+            mutate: { temp in
+                // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
+                _ = try MediaInfoReader.run(
+                    exe,
+                    ["-use", "MWG", "-overwrite_original", "-m"] + args
+                        + [MediaInfoReader.toolArgument(for: temp)])
+            },
+            validate: { temp in
+                // exiftool bricht bei einem Bild, das es nicht versteht, selbst ab
+                // (Exit-Code ungleich 0, oben als `toolFailed` sichtbar) und lässt
+                // die Datei dann unverändert. Für normale UI-/CLI-Werte genügt
+                // deshalb die Strukturprüfung; die Oberfläche liest nach dem
+                // Speichern ohnehin neu. Der Archivvertrag ist strenger: Er
+                // verspricht den EXAKTEN früheren Zustand. Dessen Read-back muss
+                // noch auf der Temp-Datei passen, bevor Dry-run, Sicherung oder
+                // Austausch Erfolg melden.
+                guard let size = VolumeSpace.fileSize(of: temp), size > 0 else {
                     throw TagError.saveFailed(path: url.path)
                 }
-            }
-        }
+                if allowingArchivedValues {
+                    guard try readCoreFields(url: temp) == fields else {
+                        throw TagError.saveFailed(path: url.path)
+                    }
+                }
+            })
     }
 
     // MARK: - Intern

@@ -176,7 +176,8 @@ public enum MediaInfoReader {
         let jsonData = try run(exe, ["--Output=JSON", path])
         let textData = try run(exe, [path])
         let tracks = try parseTracks(jsonData: jsonData)
-        let text = decodeLossy(textData).trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = decodeLossyPlainText(textData)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         return MediaInfoReport(tracks: tracks, text: text)
     }
 
@@ -188,7 +189,7 @@ public enum MediaInfoReader {
         // mediainfo liefert gelegentlich kaputtes UTF-8 (rohe Latin1-Bytes aus
         // ID3v1/v2.3) — JSONSerialization lehnt das ab, daher lossy dekodieren
         // und wieder als sauberes UTF-8 einlesen.
-        let jsonString = decodeLossy(jsonData)
+        let jsonString = decodeLossyJSON(jsonData)
         guard let cleaned = jsonString.data(using: .utf8) else {
             throw ReportError.invalidJSON
         }
@@ -427,12 +428,26 @@ public enum MediaInfoReader {
     /// eine Plausibilitätswertung des ganzen Feldes: Ein C1-Byte neben einem
     /// Umlaut zog sonst ALLE Nicht-ASCII-Zeichen des Feldes auf MacRoman
     /// (Review-Fund 2026-08-20).
-    static func decodeLossy(_ data: Data) -> String {
-        let originalBytes = [UInt8](data)
+    /// Dekodiert JSON-Ausgabe externer Werkzeuge. Nur dieser Weg repariert die
+    /// von MediaInfo erzeugten Lone-Surrogate-Escapes.
+    static func decodeLossyJSON(_ data: Data) -> String {
+        decodeLossy(data, repairingSurrogateEscapes: true)
+    }
+
+    /// Dekodiert Klartext oder stderr wortgetreu. Eine Ausgabe kann mit `[` oder
+    /// `{` beginnen, ohne JSON zu sein; der Aufrufer kennt den Ausgabetyp.
+    static func decodeLossyPlainText(_ data: Data) -> String {
+        decodeLossy(data, repairingSurrogateEscapes: false)
+    }
+
+    private static func decodeLossy(
+        _ data: Data,
+        repairingSurrogateEscapes: Bool
+    ) -> String {
         // Lone-Surrogates sind eine Besonderheit von MediaInfos JSON-Ausgabe.
         // In Klartext von MediaInfo, Calibre oder stderr ist `\udcfc` dagegen
         // wörtlicher Text und darf nicht zum Rohbyte 0xFC werden.
-        let repaired = looksLikeJSON(originalBytes)
+        let repaired = repairingSurrogateEscapes
             ? repairSurrogateEscapes(in: data)
             : data
         if let s = String(data: repaired, encoding: .utf8) { return s }
@@ -464,7 +479,7 @@ public enum MediaInfoReader {
         // fälschlich geteilt (Review-Fund 2026-08-20). Beide Grenzzeichen sind
         // ASCII und können deshalb nie innerhalb eines ungültigen Laufs liegen:
         // Ein Byte unter 0x80 ist immer eine gültige UTF-8-Sequenz für sich.
-        let quotesSeparateFields = looksLikeJSON(bytes)
+        let quotesSeparateFields = repairingSurrogateEscapes
         var fieldOfRun = [Int](repeating: 0, count: runs.count)
         var fieldsWithForeignBytes = Set<Int>()
         var field = 0
@@ -505,16 +520,6 @@ public enum MediaInfoReader {
             }
         }
         return out
-    }
-
-    /// Beginnt die Ausgabe — nach führendem Weißraum — mit `{` oder `[`?
-    /// Nur dann ist das Anführungszeichen eine Feldgrenze.
-    private static func looksLikeJSON(_ bytes: [UInt8]) -> Bool {
-        for byte in bytes {
-            if byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D { continue }
-            return byte == 0x7B || byte == 0x5B
-        }
-        return false
     }
 
     /// Die beiden Ein-Byte-Kodierungen, zwischen denen entschieden wird.
@@ -641,7 +646,7 @@ public enum MediaInfoReader {
     /// ("\udcfc" für Byte 0xFC, à la Python surrogateescape). JSON-Parser
     /// lehnen das ab bzw. verlieren die Information — deshalb stellen wir das
     /// ROHE Originalbyte wieder her. Es bleibt dadurch bis zur
-    /// Kodierungsentscheidung in `decodeLossy` erhalten und wird dort wie
+    /// Kodierungsentscheidung in `decodeLossyJSON` erhalten und wird dort wie
     /// jedes andere ungültige Byte als MacRoman/Latin1 gedeutet ("\udc8a" ist
     /// MacRomans "ä" und würde als vorschnelles Latin1 zum Steuerzeichen
     /// U+008A).
@@ -784,7 +789,7 @@ public enum MediaInfoReader {
             throw TagError.toolFailed(
                 name: (executable as NSString).lastPathComponent,
                 exitCode: process.terminationStatus,
-                stderr: decodeLossy(errData)
+                stderr: decodeLossyPlainText(errData)
             )
         }
         return outData

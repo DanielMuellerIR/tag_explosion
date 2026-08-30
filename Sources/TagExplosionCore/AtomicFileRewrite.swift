@@ -19,6 +19,24 @@ enum AtomicFileRewrite {
         mutate: (URL) throws -> Void,
         validate: (URL) throws -> Void
     ) throws {
+        try run(
+            url: url, expecting: stamp, replacingOriginal: true,
+            beforeReplace: {}, mutate: mutate, validate: validate)
+    }
+
+    /// Variante für Abläufe, die die fertig mutierte und geprüfte Kopie schon
+    /// vor einer Sicherung oder einer Dry-run-Antwort brauchen. Bei
+    /// `replacingOriginal == false` wird die geprüfte Kopie verworfen. Bei
+    /// einem echten Austausch läuft `beforeReplace` erst nach der Prüfung;
+    /// anschließend wird der Ausgangsstempel nochmals kontrolliert.
+    static func run(
+        url: URL,
+        expecting stamp: FileStamp? = nil,
+        replacingOriginal: Bool,
+        beforeReplace: () throws -> Void,
+        mutate: (URL) throws -> Void,
+        validate: (URL) throws -> Void
+    ) throws {
         let destination = MediaFormats.canonicalFileURL(url)
         let temp = siblingTempURL(for: destination)
         let fileManager = FileManager.default
@@ -61,6 +79,14 @@ enum AtomicFileRewrite {
         // Letzte Kontrolle direkt vor dem Austausch: Die Kopie entstand aus dem
         // Stand von vor Mutation und Pruefung. Hat sich das Original seither
         // geaendert, wuerde rename genau diese fremde Aenderung ueberschreiben.
+        try FileStamp.requireUnchanged(stamp, at: destination)
+        guard replacingOriginal else { return }
+
+        // Eine Sicherung gehört hinter Mutation und Prüfung: Ein vom Backend
+        // normalisierter, also nicht exakt wiederherstellbarer Archivwert darf
+        // weder im Dry-run als anwendbar gelten noch eine unnötige Sicherung
+        // erzeugen. Der Hook arbeitet noch vor dem atomaren Austausch.
+        try beforeReplace()
         try FileStamp.requireUnchanged(stamp, at: destination)
 
         // Beide Pfade liegen im selben Verzeichnis. POSIX rename ersetzt

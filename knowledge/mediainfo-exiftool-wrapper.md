@@ -6,13 +6,16 @@
   ID3v1/v2.3-Tags werden als Lone-Surrogates escaped (`\udcfc` = Byte 0xFC,
   à la Python surrogateescape). JSON-Parser verlieren/verweigern das →
   `MediaInfoReader.repairSurrogateEscapes` stellt unabhängig von der
-  Großschreibung der Hexziffern das ROHE Byte wieder her; erst `decodeLossy`
+  Großschreibung der Hexziffern das ROHE Byte wieder her; erst `decodeLossyJSON`
   entscheidet die Kodierung. Eine vorschnelle Latin1-Deutung machte aus
   `\udc8a` (MacRoman „ä") das Steuerzeichen U+008A.
-  Diese Reparatur gilt ausschließlich für Ausgaben, die nach führendem
-  Weißraum als JSON beginnen. In MediaInfo-/Calibre-Klartext und stderr kann
-  `\udcfc` wörtlicher Text sein; eine allgemeine Reparatur machte daraus
-  fälschlich „ü" (Review-Fund 2026-08-29).
+  Diese Reparatur gilt ausschließlich für den vom Aufrufer als JSON benannten
+  Ausgabepfad. In MediaInfo-/Calibre-Klartext und stderr kann `\udcfc`
+  wörtlicher Text sein — auch nach einer führenden `[`- oder `{`-Klammer.
+  Deshalb wählen die Aufrufer ausdrücklich `decodeLossyJSON` oder
+  `decodeLossyPlainText`; eine Heuristik anhand des ersten Zeichens machte aus
+  einer Fehlermeldung wie `[Warnung] \udcfc` fälschlich „ü"
+  (Review-Fund 2026-08-30).
 - **Kodierungs-Fallback je Textfeld, nie global:** Scheitert die strikte
   UTF-8-Dekodierung, bleiben gültige UTF-8-Sequenzen erhalten; nur die
   tatsächlich ungültigen Bytes werden dekodiert. Ein globaler Umschalter würde

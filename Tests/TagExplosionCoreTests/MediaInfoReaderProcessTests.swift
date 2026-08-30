@@ -44,10 +44,10 @@ struct MediaInfoReaderProcessTests {
     func repairsUppercaseSurrogateEscape() {
         let raw = Data(#"{"value":"B\uDCFCro"}"#.utf8)
         // Die Reparatur stellt das ROHE Byte wieder her (0xFC); erst die
-        // Kodierungsentscheidung in decodeLossy deutet es (hier: Latin1 „ü“).
+        // Kodierungsentscheidung in decodeLossyJSON deutet es (hier: Latin1 „ü“).
         let expected = Data(#"{"value":"B"#.utf8) + Data([0xFC]) + Data(#"ro"}"#.utf8)
         #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == expected)
-        #expect(MediaInfoReader.decodeLossy(raw) == #"{"value":"Büro"}"#)
+        #expect(MediaInfoReader.decodeLossyJSON(raw) == #"{"value":"Büro"}"#)
     }
 
     @Test("Surrogate-Escape eines MacRoman-Bytes erreicht den MacRoman-Fallback")
@@ -56,16 +56,16 @@ struct MediaInfoReaderProcessTests {
         // Reparatur es vorschnell als Latin1 deuten, entstünde das
         // Steuerzeichen U+008A statt des Umlauts.
         let raw = Data(#"{"value":"B\udc8ackerei"}"#.utf8)
-        #expect(MediaInfoReader.decodeLossy(raw) == #"{"value":"Bäckerei"}"#)
+        #expect(MediaInfoReader.decodeLossyJSON(raw) == #"{"value":"Bäckerei"}"#)
     }
 
     @Test("MacRoman-Steuerbereich und häufiges Latin-1 bleiben unterscheidbar")
     func decodesMacRomanBeforeLatin1() {
         // 0x8A ist in MacRoman „ä“, in Latin-1 dagegen ein Steuerzeichen.
-        #expect(MediaInfoReader.decodeLossy(Data([0x8A])) == "ä")
+        #expect(MediaInfoReader.decodeLossyPlainText(Data([0x8A])) == "ä")
         // 0xFC ist dagegen das häufige Latin-1-„ü“; MacRoman würde daraus
         // ein Cedille-Zeichen machen und darf hier nicht blind gewinnen.
-        #expect(MediaInfoReader.decodeLossy(Data([0xFC])) == "ü")
+        #expect(MediaInfoReader.decodeLossyPlainText(Data([0xFC])) == "ü")
     }
 
     @Test("Gültiges UTF-8 bleibt trotz einzelner fremd kodierter Bytes erhalten")
@@ -74,11 +74,11 @@ struct MediaInfoReaderProcessTests {
         // C1-Bereich. Ein einzelnes Latin1-Byte daneben darf den Bericht
         // nicht komplett auf MacRoman umschalten und das Emoji zerlegen.
         let raw = Data("Titel 😀 ".utf8) + Data([0xE4]) + Data(" Ende".utf8)
-        #expect(MediaInfoReader.decodeLossy(raw) == "Titel 😀 ä Ende")
+        #expect(MediaInfoReader.decodeLossyPlainText(raw) == "Titel 😀 ä Ende")
         // Und umgekehrt: Ein echtes MacRoman-Signal (C1-Byte 0x8A unter den
         // UNGÜLTIGEN Bytes) gewinnt weiterhin, ohne das Emoji anzutasten.
         let macRoman = Data("Titel 😀 ".utf8) + Data([0x8A]) + Data(" Ende".utf8)
-        #expect(MediaInfoReader.decodeLossy(macRoman) == "Titel 😀 ä Ende")
+        #expect(MediaInfoReader.decodeLossyPlainText(macRoman) == "Titel 😀 ä Ende")
     }
 
     // Swift Testing akzeptiert Zeitgrenzen bewusst nur in Minuten. Eine Minute
@@ -136,7 +136,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xFC)                      // Latin-1 „ü"
         raw.append(contentsOf: Data(#"r"}"#.utf8))
 
-        let decoded = MediaInfoReader.decodeLossy(raw)
+        let decoded = MediaInfoReader.decodeLossyJSON(raw)
 
         #expect(decoded.contains("Bäckerei"))
         #expect(decoded.contains("Tür"))
@@ -164,13 +164,27 @@ struct MediaInfoReaderProcessTests {
         #expect(MediaInfoReader.repairSurrogateEscapes(in: raw) == raw)
     }
 
-    @Test("Surrogat-Text in einer Klartextausgabe bleibt wörtlich")
-    func plainTextDoesNotRepairSurrogateSpelling() {
+    @Test("Klammer-beginnender Surrogat-Text bleibt in stderr wörtlich")
+    func bracketedPlainTextDoesNotRepairSurrogateSpelling() {
         // Lone-Surrogate-Escapes erzeugt MediaInfo nur im JSON. In einer
-        // normalen Textzeile kann dieselbe Zeichenfolge ein echter Tagwert
-        // sein; die allgemeine Ausgabedekodierung darf sie nicht umdeuten.
-        let raw = Data(#"Titel: \udcfc"#.utf8)
-        #expect(MediaInfoReader.decodeLossy(raw) == #"Titel: \udcfc"#)
+        // Fehlerzeile kann dieselbe Zeichenfolge wörtlich vorkommen und mit
+        // einer Klammer beginnen. Der Aufrufer kennt stderr als Klartext; eine
+        // Heuristik anhand des ersten Zeichens würde daraus fälschlich „ü“.
+        let expected = #"[Warnung] \udcfc"#
+        do {
+            _ = try MediaInfoReader.run(
+                "/bin/sh", ["-c", "printf '%s' '\(expected)' >&2; exit 7"])
+            Issue.record("Der Hilfsprozess muss mit Exit 7 fehlschlagen")
+        } catch let error as TagError {
+            guard case .toolFailed(_, let exitCode, let stderr) = error else {
+                Issue.record("Unerwarteter TagError: \(error)")
+                return
+            }
+            #expect(exitCode == 7)
+            #expect(stderr == expected)
+        } catch {
+            Issue.record("Unerwarteter Fehler: \(error)")
+        }
     }
 
     @Test("Ein einzelnes Byte-Escape wird weiterhin zum Rohbyte")
@@ -198,7 +212,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xFC)                      // Latin-1 „ü" im NACHBARFELD
         raw.append(contentsOf: Data(#"r"}"#.utf8))
 
-        let decoded = MediaInfoReader.decodeLossy(raw)
+        let decoded = MediaInfoReader.decodeLossyJSON(raw)
 
         #expect(decoded.contains("Bäckereistraße"))
         // Das Nachbarfeld bleibt davon unberührt — sonst wäre nur der alte
@@ -219,7 +233,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xA7)                      // MacRoman „ß"
         raw.append(contentsOf: Data("e".utf8))
 
-        let decoded = MediaInfoReader.decodeLossy(raw)
+        let decoded = MediaInfoReader.decodeLossyPlainText(raw)
 
         #expect(decoded == "Titel: Der \"Bär\" aus der Straße")
     }
@@ -234,7 +248,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xA7)                      // MacRoman „ß"
         raw.append(contentsOf: Data(#"e"}"#.utf8))
 
-        let decoded = MediaInfoReader.decodeLossy(raw)
+        let decoded = MediaInfoReader.decodeLossyJSON(raw)
 
         #expect(decoded.contains(#"Bär \" Straße"#))
     }
@@ -250,7 +264,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0x96)
         raw.append(contentsOf: Data(" Bar".utf8))
 
-        #expect(MediaInfoReader.decodeLossy(raw) == "Café – Bar")
+        #expect(MediaInfoReader.decodeLossyPlainText(raw) == "Café – Bar")
     }
 
     @Test("Ein Grossbuchstabe am Wortanfang bleibt Windows-1252")
@@ -265,7 +279,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xD6)
         raw.append(contentsOf: Data("se".utf8))
 
-        #expect(MediaInfoReader.decodeLossy(raw) == "Testkünstler Ärger Öse")
+        #expect(MediaInfoReader.decodeLossyPlainText(raw) == "Testkünstler Ärger Öse")
     }
 
     @Test("Zeilen einer Klartextausgabe entscheiden getrennt")
@@ -278,7 +292,7 @@ struct MediaInfoReaderProcessTests {
         raw.append(0xFC)                      // Latin-1 „ü"
         raw.append(contentsOf: Data("r".utf8))
 
-        let decoded = MediaInfoReader.decodeLossy(raw)
+        let decoded = MediaInfoReader.decodeLossyPlainText(raw)
 
         #expect(decoded.contains("Bär"))
         #expect(decoded.contains("Tür"))

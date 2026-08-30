@@ -63,11 +63,6 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
     case approvedTargetListChanged
     case targetChangedAfterValidation(path: String)
     case exportDestinationMatchesInput(input: String, destination: String)
-    /// Der Restore lief durch, die Datei traegt danach aber nicht die
-    /// Archivwerte. Read-back-Absicherung des Bildpfads (Review-Fund
-    /// 2026-08-17): Ein stillschweigend abgelehnter Wert darf nicht als
-    /// Erfolg durchgehen.
-    case restoreMismatch(path: String)
 
     public var errorDescription: String? {
         switch self {
@@ -85,8 +80,6 @@ public enum TagArchiveError: Error, LocalizedError, Sendable, Equatable {
             return "Archive target \(path) is no longer the file that was checked. It was not written."
         case .exportDestinationMatchesInput(let input, let destination):
             return "Export destination \(destination) matches input media file \(input). Choose a different --output path."
-        case .restoreMismatch(let path):
-            return "Archive entry \(path) was written but the file does not carry the archived values afterwards."
         }
     }
 }
@@ -293,7 +286,8 @@ public enum TagArchiveIO {
             archive, relativeTo: baseDirectory, dryRun: dryRun,
             approvedTargets: approvedTargets,
             allowExternalTargets: allowExternalTargets, afterValidation: {},
-            beforeNoopReturn: { _ in })
+            beforeNoopReturn: { _ in },
+            backUp: { try TrashBackup.shared.backUp($0) })
     }
 
     /// Testbarer Kern: Der Hook liegt exakt nach Ziel-/Identitätsprüfung und
@@ -306,7 +300,8 @@ public enum TagArchiveIO {
         approvedTargets: [URL]? = nil,
         allowExternalTargets: Bool = false,
         afterValidation: () throws -> Void,
-        beforeNoopReturn: (URL) throws -> Void = { _ in }
+        beforeNoopReturn: (URL) throws -> Void = { _ in },
+        backUp: (URL) throws -> Void = { try TrashBackup.shared.backUp($0) }
     ) throws -> TagArchiveReport {
         // Die gesamte Datei wird vor der Schleife geprüft. Damit kann kein
         // fehlerhafter Eintrag nach einer schon geschriebenen Datei auffallen.
@@ -352,7 +347,7 @@ public enum TagArchiveIO {
                 }
                 if try applyEntry(
                     entry, to: url, dryRun: dryRun, expecting: validatedStamp,
-                    beforeNoopReturn: beforeNoopReturn) {
+                    beforeNoopReturn: beforeNoopReturn, backUp: backUp) {
                     report.applied.append(entry.path)
                 } else {
                     report.unchanged.append(entry.path)
@@ -403,7 +398,8 @@ public enum TagArchiveIO {
         to url: URL,
         dryRun: Bool,
         expecting stamp: FileStamp,
-        beforeNoopReturn: (URL) throws -> Void
+        beforeNoopReturn: (URL) throws -> Void,
+        backUp: (URL) throws -> Void
     ) throws -> Bool {
         switch entry.kind {
         case .audio:
@@ -429,7 +425,7 @@ public enum TagArchiveIO {
             }
             if !dryRun {
                 try snapshot.requireCurrent(at: url)
-                try TrashBackup.shared.backUp(url)
+                try backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
                                   artworks: targetArtworks ?? current.artworks, to: url,
                                   expecting: snapshot.stamp)
@@ -444,29 +440,15 @@ public enum TagArchiveIO {
                 try snapshot.requireCurrent(at: url)
                 return false
             }
-            // Zielbezogene Prüfung VOR Dry-run-Antwort und Sicherung, aber nur
-            // auf technische SCHREIBBARKEIT. Die Wertebereiche der Oberfläche
-            // gelten hier bewusst nicht: Ein Archiv sichert den echten
-            // Dateizustand, und genau der muss zurückgeschrieben werden können
-            // — auch ein Bestandswert wie Rating 6 oder GPS 91/181, und auch
-            // dann, wenn sich das Ziel inzwischen geändert hat. Vorher scheiterte
-            // exakt dieser Restore (Review-Fund 2026-08-17). Gegen versehentlich
-            // unsinnige Archivwerte schützt der Read-back unten.
-            try ExifTool.requireWritableCoreFields(target, original: current)
-            if !dryRun {
-                try snapshot.requireCurrent(at: url)
-                try TrashBackup.shared.backUp(url)
-                try ExifTool.writeCoreFields(url: url, fields: target, original: current,
-                                             expecting: snapshot.stamp,
-                                             allowingArchivedValues: true)
-                // Read-back: Der Restore gilt erst als geglückt, wenn die Datei
-                // die Archivwerte danach wirklich trägt. Ohne diese Prüfung
-                // meldete ein stillschweigend abgelehnter Wert Erfolg.
-                let written = try ExifTool.readCoreFieldsSnapshot(url: url).value
-                guard written == target else {
-                    throw TagArchiveError.restoreMismatch(path: entry.path)
-                }
-            }
+            // Der Archivweg schreibt auch beim Dry-run zuerst auf eine
+            // Geschwisterkopie und liest sie exakt zurück. Damit meldet er
+            // Normalisierungen wie 48.1000 → 48.1 vor einer Sicherung. Beim
+            // echten Lauf setzt der atomare Rahmen genau diese geprüfte Kopie
+            // ein, statt exiftool ein zweites Mal auszuführen.
+            try ExifTool.writeArchivedCoreFields(
+                url: url, fields: target, original: current,
+                expecting: snapshot.stamp, dryRun: dryRun,
+                beforeReplace: { try backUp(url) })
             return true
         case .ebook:
             guard let target = entry.ebook else {
@@ -508,7 +490,7 @@ public enum TagArchiveIO {
                     coverUpdate = .remove
                 }
                 try snapshot.requireCurrent(at: url)
-                try TrashBackup.shared.backUp(url)
+                try backUp(url)
                 try EbookTool.write(
                     url: url, fields: target, original: current,
                     coverUpdate: coverUpdate, expecting: snapshot.stamp)

@@ -16,24 +16,49 @@ work=$(tagx_make_test_workdir tagx-install-tests)
 # zum globalen Timeout, statt mit der eigentlichen Fehlermeldung zu enden
 # (Review-Fund 2026-08-20).
 background_pids=""
-note_background() { background_pids="$background_pids $1"; }
-# Nach jedem erfolgreichen wait die PID wieder vergessen: Ein eingesammeltes
-# Kind ist weg, und das System kann dieselbe Nummer sofort an einen fremden
-# Prozess vergeben — der EXIT-Handler traefe dann den (Review-Fund 2026-08-22).
+background_identity() {
+    # Eltern-PID plus Startzeit unterscheiden unser Kind von einer später
+    # wiederverwendeten nackten PID.
+    ps -o ppid= -o lstart= -p "$1" 2>/dev/null | sed 's/^[[:space:]]*//'
+}
+note_background() {
+    local identity
+    identity=$(background_identity "$1")
+    [ -n "$identity" ] || return 1
+    printf '%s\n' "$identity" > "$work/background-$1.identity"
+    background_pids="$background_pids $1"
+}
+# Nach jedem wait die PID unabhängig vom Exit-Code sofort vergessen: Ein
+# eingesammeltes Kind ist weg, und das System kann dieselbe Nummer sofort an
+# einen fremden Prozess vergeben.
 forget_background() {
     local kept="" pid
     for pid in $background_pids; do
         [ "$pid" = "$1" ] || kept="$kept $pid"
     done
     background_pids="$kept"
+    rm -f -- "$work/background-$1.identity"
+}
+background_is_ours() {
+    local pid=$1 marker="$work/background-$1.identity" expected current
+    [ -f "$marker" ] || return 1
+    expected=$(cat "$marker")
+    current=$(background_identity "$pid")
+    [ -n "$current" ] && [ "$current" = "$expected" ]
+}
+wait_background() {
+    local pid=$1 status
+    if wait "$pid"; then status=0; else status=$?; fi
+    forget_background "$pid"
+    return "$status"
 }
 stop_background_runs() {
     [ -n "$background_pids" ] || return 0
-    # Nur Kinder beenden, die wirklich noch laufen und nicht eingesammelt
-    # wurden; alles andere ist kein Prozess von uns mehr.
+    # Nur Kinder mit derselben Eltern-PID und Startzeit beenden. `kill -0`
+    # allein würde auch eine inzwischen wiederverwendete PID akzeptieren.
     local live="" pid
     for pid in $background_pids; do
-        if kill -0 "$pid" 2>/dev/null; then live="$live $pid"; fi
+        if background_is_ours "$pid"; then live="$live $pid"; fi
     done
     background_pids=""
     [ -n "$live" ] || return 0
@@ -45,6 +70,36 @@ stop_background_runs() {
     for pid in $live; do wait "$pid" 2>/dev/null || true; done
 }
 trap 'stop_background_runs; rm -rf -- "$work"' EXIT
+
+# Der gemeinsame Wait-Helfer muss auch einen fehlgeschlagenen, bereits
+# eingesammelten Lauf sofort austragen.
+(/bin/sleep 0.1; exit 23) &
+failed_probe=$!
+note_background "$failed_probe"
+if wait_background "$failed_probe"; then
+    echo "FEHLER: fehlgeschlagener Hintergrundlauf meldete Erfolg" >&2
+    exit 1
+fi
+[ ! -f "$work/background-$failed_probe.identity" ] || {
+    echo "FEHLER: eingesammelte Hintergrund-PID blieb registriert" >&2
+    exit 1
+}
+
+# Gegenprobe für den EXIT-Handler: Stimmt die aufgezeichnete Prozessidentität
+# nicht mehr, darf die nackte PID nicht beendet werden.
+/bin/sleep 30 &
+identity_probe=$!
+note_background "$identity_probe"
+printf 'fremde Prozessidentität\n' > "$work/background-$identity_probe.identity"
+stop_background_runs
+kill -0 "$identity_probe" 2>/dev/null || {
+    echo "FEHLER: Aufräumen beendete eine PID mit fremder Identität" >&2
+    exit 1
+}
+kill "$identity_probe"
+wait "$identity_probe" 2>/dev/null || true
+rm -f -- "$work/background-$identity_probe.identity"
+
 fake_bin="$work/bin"
 mkdir -p "$fake_bin"
 
@@ -296,8 +351,10 @@ grep -q "andere Installation" "$second_output" || {
 }
 # Der erste Lauf muss unbeschadet zu Ende laufen können.
 touch "$work/release"
-wait "$first_installer"
-forget_background "$first_installer"
+if ! wait_background "$first_installer"; then
+    echo "FEHLER: erster gleichzeitiger Installer-Lauf scheiterte" >&2
+    exit 1
+fi
 assert_text new "$concurrent_root/TagExplosion.app"
 [ -z "$(find "$concurrent_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
@@ -383,11 +440,10 @@ wait_for_file "$race_marker" "Anwärter erreichte das Übernahme-Hilfslock nicht
 ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$race_root/.live-lock"
 /bin/mv "$race_root/.live-lock" "$race_root/.TagExplosion.app.lock"
 rm -f "$race_root/.TagExplosion.app.lock.takeover"
-if wait "$race_installer"; then
+if wait_background "$race_installer"; then
     echo "FEHLER: Anwärter hat eine lebende Sperre gestohlen" >&2
     exit 1
 fi
-forget_background "$race_installer"
 grep -q "andere Installation" "$race_output" || {
     echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
     cat "$race_output" >&2
@@ -433,11 +489,10 @@ wait_for_file "$inner_marker" "Anwärter erreichte die innere Besitzerprüfung n
 ln -s "$$|$(ps -o lstart= -p $$ | head -n 1)" "$inner_root/.live-lock"
 /bin/mv "$inner_root/.live-lock" "$inner_root/.TagExplosion.app.lock"
 : > "$inner_release"
-if wait "$inner_installer"; then
+if wait_background "$inner_installer"; then
     echo "FEHLER: Anwärter hat trotz innerer Prüfung eine lebende Sperre übernommen" >&2
     exit 1
 fi
-forget_background "$inner_installer"
 grep -q "andere Installation" "$inner_output" || {
     echo "FEHLER: Anwärter brach aus einem anderen Grund ab:" >&2
     cat "$inner_output" >&2

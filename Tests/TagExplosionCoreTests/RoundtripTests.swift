@@ -233,8 +233,8 @@ struct MediaInfoTests {
     func surrogateEscapeRepair() throws {
         // 0xFC = ü, 0xF6 = ö in Latin1; mediainfo schreibt "\udcfc"/"\udcf6".
         // Die Reparatur stellt die Rohbytes wieder her; die Latin1-Deutung
-        // trifft erst die Kodierungsentscheidung in decodeLossy.
+        // trifft erst die Kodierungsentscheidung in decodeLossyJSON.
         let raw = Data(#"{"a":"Ungek\udcfcrzt","b":"B\udcf6rn"}"#.utf8)
-        #expect(MediaInfoReader.decodeLossy(raw) == #"{"a":"Ungekürzt","b":"Börn"}"#)
+        #expect(MediaInfoReader.decodeLossyJSON(raw) == #"{"a":"Ungekürzt","b":"Börn"}"#)
     }
 }
