@@ -8,6 +8,24 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.23.15] — 2026-08-30
+
+### Geprüft
+
+- Die CodeQA-Folgekampagne hat die sieben durch den Review-Fix veränderten
+  Bereiche erneut geprüft: atomare Dateisicherheit, Archivimport,
+  TagLib-Roundtripgrenze, Installer-Distribution, E-Book-Schreiben,
+  Bildmetadaten sowie CLI- und Prozessausgabe. Alle 14 Bereiche und vier
+  Querschnittsthemen stehen damit wieder auf aktuellem Stand.
+- Das Schichtenmodell mit gemeinsamem portablem Core, CLI-Adaptern,
+  SwiftUI-Beobachtungsmodell und Fensterkoordinator bleibt passend, aber
+  gespannt. Die große AppModel-Zustandsschicht bleibt die begründete spätere
+  Teilungsgrenze; ein Paradigmenwechsel lohnt den Migrations- und Testaufwand
+  nicht.
+- Der Abschlusslauf bestand mit 176 Root-Tests in 14 Suites, 65 App-Tests in
+  8 Suites und der vollständigen Installer-Rollback-Suite. Ein sichtbarer
+  GUI-Lauf war für die nichtvisuellen Änderungen nicht erforderlich.
+
 ## [0.23.14] — 2026-08-30
 
 ### Behoben
