@@ -13,6 +13,12 @@ extension FileEntry {
         case .image: return PatternFields.fields(from: imageFields)
         case .ebook: return PatternFields.fields(from: ebookFields)
         case .document: return PatternFields.fields(from: documentFields)
+        case .sidecar:
+            switch sidecarContents {
+            case .nfo: return PatternFields.fields(from: nfoFields)
+            case .subtitle(let subtitle): return PatternFields.fields(from: subtitle, url: url)
+            case nil: return [:]
+            }
         case .invoice, .playlist: return [:]
         }
     }
@@ -31,6 +37,14 @@ extension FileEntry {
         case .image: try PatternFields.apply(parsed, to: &imageFields)
         case .ebook: try PatternFields.apply(parsed, to: &ebookFields)
         case .document: try PatternFields.apply(parsed, to: &documentFields)
+        case .sidecar:
+            // Nur NFO-Felder haben einen Speicherort; Untertitel tragen die
+            // Sprache im Dateinamen (Richtung „Umbenennen").
+            guard case .nfo(let nfo) = sidecarContents, !nfo.isURLOnly else {
+                throw PatternFields.ApplyError.unsupportedField(
+                    key: parsed.keys.sorted().first ?? "", kind: "subtitle")
+            }
+            try PatternFields.apply(parsed, to: &nfoFields)
         case .invoice, .playlist:
             throw PatternFields.ApplyError.unsupportedField(
                 key: parsed.keys.sorted().first ?? "", kind: kind.rawValue)

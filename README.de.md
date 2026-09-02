@@ -41,6 +41,18 @@
   (bmp, svg), erzwungen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
+- **Video-Sidecars** — Kodi/Jellyfin `.nfo` (movie, episodedetails, tvshow,
+  musicvideo, album, artist): Titel, Original-/Sortiertitel, Jahr, Premiere,
+  Handlung, Kurzbeschreibung, Tagline, Genres, Tags, Studio, Regie,
+  Drehbuch, Bewertung, Altersfreigabe, Laufzeit, Staffel/Folge; Darsteller,
+  IDs und Artwork nur zur Anzeige. Unbekannte Elemente, ihre Reihenfolge und
+  die Einrückung der Datei überstehen das Speichern; eine Nur-URL-NFO wird
+  angezeigt, nie beschrieben. Ein Video mit `<name>.nfo` daneben bekommt im
+  Editor den Abschnitt „NFO-Sidecar", der in die NFO schreibt, nie ins
+  Video. Untertitel `.srt`/`.vtt`: Anzahl Cues, Zeitspanne, Zeichensatz
+  (UTF-8/BOM/Latin-1), Sprache und Flags aus dem Dateinamen
+  (`film.en.forced.vtt`), der WebVTT-Kopf (Titel und `Language:`
+  editierbar) und die Zeitverschiebung aller Cues (`tagx subtitle shift`).
 - **Kapitel** — für Hörbücher und Podcasts: editierbare Kapitelliste (Titel,
   Beginn, Ende) mit Import/Export als JSON oder Text (`HH:MM:SS.mmm Titel`,
   eine Zeile je Kapitel). MP3 (ID3v2 CHAP/CTOC), MP4/M4A/M4B (Nero-`chpl`
@@ -202,6 +214,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (nur Sidecar) · xmp | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
+| Video-Sidecars | nfo (Kodi/Jellyfin-XML; Nur-URL-NFO nur Anzeige) · srt (nur Anzeige, Sprache über den Dateinamen) · vtt (Kopf editierbar) | NFO-Elemente (unbekannte bleiben erhalten), WebVTT-Kopf; Zeitverschiebung der Cues für srt/vtt |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
 | Playlists | cue · m3u, m3u8 · pls · xspf | Cue-Kopf/Track-Zeilen, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (Anzeige: Pfade, Existenz, Dauer; Bearbeiten: nur Beschriftung; Export: m3u8/pls/xspf) |
@@ -260,6 +273,9 @@ tagx playlist show album.cue                   # Kopf, Tracks, aufgelöste Pfade
 tagx playlist set liste.m3u8 --title "Mix" --entry-title 2="Zweites Lied"
 tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative Pfade; --absolute, --format pls|xspf
 tagx cue apply album.cue --apply               # Cue-Titel/-Interpreten/-Tracknummern in die Audiodateien schreiben
+tagx nfo set film.mkv --title "Titel" --year 2019     # schreibt film.nfo, nicht das Video
+tagx subtitle show film.de.srt --json          # Cues, Zeitspanne, Zeichensatz, Sprache
+tagx subtitle shift film.srt --seconds=-1.5    # alle Cues verschieben (negativ: mit "=")
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht

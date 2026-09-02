@@ -27,13 +27,17 @@ public struct TagArchive: Codable, Sendable, Equatable {
         /// Dokumente (Office, OpenDocument, CBZ, Markdown): Kernfelder. Das
         /// CBZ-Cover ist reine Anzeige und wird nicht archiviert.
         public var document: DocumentCoreFields?
+        /// Kodi-/Jellyfin-NFO (`kind: sidecar`): Felder der NFO. Untertitel
+        /// und Nur-URL-NFOs haben keine archivierbaren Felder und fehlen.
+        public var nfo: NFOFields?
 
         public init(path: String, kind: MediaFormats.Kind,
                     properties: [String: [String]]? = nil,
                     artworks: [Artwork]? = nil,
                     image: ImageCoreFields? = nil,
                     ebook: EbookCoreFields? = nil,
-                    document: DocumentCoreFields? = nil) {
+                    document: DocumentCoreFields? = nil,
+                    nfo: NFOFields? = nil) {
             self.path = path
             self.kind = kind
             self.properties = properties
@@ -41,6 +45,7 @@ public struct TagArchive: Codable, Sendable, Equatable {
             self.image = image
             self.ebook = ebook
             self.document = document
+            self.nfo = nfo
         }
     }
 
@@ -49,7 +54,8 @@ public struct TagArchive: Codable, Sendable, Equatable {
     /// stand −1 für beides. 3 ergänzt Dokument-Einträge (`kind: document`,
     /// Feld `document`) — ältere Programmstände lehnen ein solches Archiv
     /// damit mit einer klaren Versionsmeldung ab statt mit einem Decodierfehler.
-    public static let currentVersion = 3
+    /// 4 ergänzt NFO-Einträge (`kind: sidecar`, Feld `nfo`).
+    public static let currentVersion = 4
 
     public init(version: Int = TagArchive.currentVersion, created: String, files: [Entry]) {
         self.version = version
@@ -118,7 +124,7 @@ public enum TagArchiveIO {
     /// Schema 1 wird weiterhin importiert und beim Lesen umgerechnet, siehe
     /// `normalizingLegacyValues`; Schema 2 unterscheidet sich von 3 nur durch
     /// das Fehlen von Dokument-Einträgen und wird unverändert gelesen.
-    private static let supportedVersions: Set<Int> = [1, 2, TagArchive.currentVersion]
+    private static let supportedVersions: Set<Int> = [1, 2, 3, TagArchive.currentVersion]
 
     /// Rechnet ein Archiv des alten Schemas auf die heutige Bedeutung um.
     ///
@@ -186,6 +192,13 @@ public enum TagArchiveIO {
                 // Schreibweg — ein Archiv könnte es nie wiederherstellen.
                 entry.document = try DocumentTool.readSnapshot(
                     url: url, includeCover: false).value.fields
+            case .sidecar:
+                // Nur NFO-Felder; Untertitel und Nur-URL-NFOs tragen nichts,
+                // was ein Archiv wiederherstellen könnte (Regel: isArchivable(url:)).
+                guard SidecarTool.isNFO(url) else { continue }
+                let contents = try KodiNFOFile.readSnapshot(url: url).value
+                guard !contents.isURLOnly else { continue }
+                entry.nfo = contents.fields
             case .invoice, .playlist:
                 // E-Rechnungen sind reine Anzeige — es gibt keine editierbaren
                 // Tags, die ein Archiv sichern oder wiederherstellen könnte.
@@ -540,6 +553,28 @@ public enum TagArchiveIO {
                                        expecting: snapshot.stamp)
             }
             return true
+        case .sidecar:
+            guard let target = entry.nfo else {
+                throw TagArchiveError.incompleteEntry(
+                    path: entry.path, kind: entry.kind, missing: "nfo")
+            }
+            let snapshot = try KodiNFOFile.readSnapshot(url: url, expecting: stamp)
+            guard !snapshot.value.isURLOnly else { throw TagError.urlOnlyNFO(path: url.path) }
+            let current = snapshot.value.fields
+            guard target != current else {
+                try beforeNoopReturn(url)
+                try snapshot.requireCurrent(at: url)
+                return false
+            }
+            // Unbrauchbare Werte (Jahr, Zahlen) scheitern vor der Sicherung.
+            try KodiNFOFile.validate(target, original: current)
+            if !dryRun {
+                try snapshot.requireCurrent(at: url)
+                try backUp(url)
+                try KodiNFOFile.write(url: url, fields: target, original: current,
+                                      expecting: snapshot.stamp)
+            }
+            return true
         case .invoice, .playlist:
             // Export erzeugt solche Einträge nie (build überspringt sie);
             // ein handgebautes Archiv mit Rechnungs-/Playlist-Eintrag ist fehlerhaft.
@@ -657,6 +692,16 @@ public enum TagArchiveIO {
                 // Ob das ZIEL jedes Feld speichern kann, entscheidet erst der
                 // Import je Eintrag (DocumentTool.requireWritable) — ein
                 // Backup muss den Bestand jeder Datei sichern können.
+            case .sidecar:
+                guard entry.nfo != nil else {
+                    throw TagArchiveError.incompleteEntry(
+                        path: entry.path, kind: entry.kind, missing: "nfo")
+                }
+                guard entry.properties == nil, entry.image == nil, entry.ebook == nil,
+                      entry.document == nil, entry.artworks == nil else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "sidecar entries may only contain nfo data")
+                }
             case .invoice, .playlist:
                 // Der Export erzeugt solche Einträge nie; ein Archiv, das
                 // welche enthält, ist von Hand gebaut und fehlerhaft.

@@ -40,6 +40,17 @@
   --sidecar`); forced for RAW and for formats exiftool cannot write (bmp, svg).
 - **Video** — MP4 and Matroska tags editable; other containers shown
   read-only.
+- **Video sidecars** — Kodi/Jellyfin `.nfo` (movie, episodedetails, tvshow,
+  musicvideo, album, artist): title, original/sort title, year, premiered,
+  plot, outline, tagline, genres, tags, studio, directors, writer, rating,
+  age rating, runtime, season/episode; actors, unique ids and artwork are
+  shown read-only. Unknown elements, their order and the file's indentation
+  survive a save; a URL-only NFO is shown but never written. A video with
+  `<name>.nfo` next to it gets an "NFO sidecar" section in its editor that
+  writes to the NFO, never to the video. Subtitles `.srt`/`.vtt`: cue count,
+  time span, encoding (UTF-8/BOM/Latin-1), language and flags from the file
+  name (`film.en.forced.vtt`), the WebVTT header (title and `Language:`
+  editable) and a time shift for all cues (`tagx subtitle shift`).
 - **Chapters** — for audiobooks and podcasts: an editable chapter list
   (title, start, end) with import/export as JSON or plain text
   (`HH:MM:SS.mmm Title`, one line per chapter). MP3 (ID3v2 CHAP/CTOC),
@@ -194,6 +205,7 @@ These run on every push (see `.github/workflows/tests.yml`).
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (sidecar only) · xmp | EXIF, IPTC, XMP (MWG-harmonized) |
 | Camera RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | read embedded; write to XMP sidecar `<name>.xmp` only |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (editable) · mov, avi, ogv (view only) | MP4 atoms, Matroska tags |
+| Video sidecars | nfo (Kodi/Jellyfin XML; URL-only NFOs view only) · srt (view only, language via file name) · vtt (header editable) | NFO elements (unknown ones preserved), WebVTT header; cue time shift for srt/vtt |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 | Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
 | Playlists | cue · m3u, m3u8 · pls · xspf | Cue header/track lines, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (view: paths, existence, duration; edit: labels only; export: m3u8/pls/xspf) |
@@ -251,6 +263,9 @@ tagx playlist show album.cue                   # header, tracks, resolved paths,
 tagx playlist set list.m3u8 --title "Mix" --entry-title 2="Second song"
 tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative paths; --absolute, --format pls|xspf
 tagx cue apply album.cue --apply               # write cue titles/performers/track numbers into the audio files
+tagx nfo set movie.mkv --title "Title" --year 2019    # writes movie.nfo, not the video
+tagx subtitle show movie.en.srt --json         # cues, span, encoding, language
+tagx subtitle shift movie.srt --seconds=-1.5   # shift all cues (negative: use "=")
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report

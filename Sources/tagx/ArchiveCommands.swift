@@ -23,7 +23,7 @@ struct Export: ParsableCommand {
         // meldete "OK n file(s)" auch Dateien, die das Archiv überspringt
         // (E-Rechnungen sind reine Anzeige).
         let files = MediaFormats.expandMediaFiles(urls).filter {
-            MediaFormats.kind(of: $0).map(MediaFormats.isArchivable) == true
+            MediaFormats.isArchivable(url: $0)
         }
         guard !files.isEmpty else {
             throw ValidationError(

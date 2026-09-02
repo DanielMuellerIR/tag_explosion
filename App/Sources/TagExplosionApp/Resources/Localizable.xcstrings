@@ -221,6 +221,16 @@
         }
       }
     },
+    "0–10": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0–10"
+          }
+        }
+      }
+    },
     "Abbrechen": {
       "localizations": {
         "en": {
@@ -267,6 +277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Album Artist"
+          }
+        }
+      }
+    },
+    "Alle Cues verschieben um": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift all cues by"
           }
         }
       }
@@ -327,6 +347,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save All"
+          }
+        }
+      }
+    },
+    "Altersfreigabe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age rating"
           }
         }
       }
@@ -411,6 +441,16 @@
         }
       }
     },
+    "Aus %@ — Speichern schreibt nur die NFO, nicht das Video.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From %@ — saving writes only the NFO, not the video."
+          }
+        }
+      }
+    },
     "Aus Liste entfernen": {
       "localizations": {
         "en": {
@@ -457,6 +497,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Selected E-books"
+          }
+        }
+      }
+    },
+    "Ausstrahlung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aired"
           }
         }
       }
@@ -721,6 +771,16 @@
         }
       }
     },
+    "Cues": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cues"
+          }
+        }
+      }
+    },
     "Das Muster braucht mindestens einen Platzhalter, zum Beispiel für den Titel.": {
       "localizations": {
         "en": {
@@ -921,6 +981,16 @@
         }
       }
     },
+    "Diese NFO enthält nur Scraper-Adressen und kein XML; sie wird nicht beschrieben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This NFO contains only scraper URLs and no XML; it is never written."
+          }
+        }
+      }
+    },
     "Dieser Wert stammt aus der XMP-Sidecar-Datei, nicht aus der Bilddatei.": {
       "localizations": {
         "en": {
@@ -997,6 +1067,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Double-click opens the file in a new window. Order and paths are not edited here."
+          }
+        }
+      }
+    },
+    "Drehbuch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writer"
           }
         }
       }
@@ -1087,6 +1167,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Key facts"
+          }
+        }
+      }
+    },
+    "Eigene:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Own:"
           }
         }
       }
@@ -1321,6 +1411,16 @@
         }
       }
     },
+    "Format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format"
+          }
+        }
+      }
+    },
     "Für alte Player und Autoradios, die ID3v2.4 nicht lesen. Gilt beim Speichern von MP3, WAV, AIFF und DSF. Grenzen von v2.3: Text wird als UTF-16 statt UTF-8 abgelegt, das Datum verliert die Sekunden und das Originaldatum alles außer dem Jahr.": {
       "localizations": {
         "en": {
@@ -1381,6 +1481,16 @@
         }
       }
     },
+    "Genres": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genres"
+          }
+        }
+      }
+    },
     "Gesamt %@": {
       "localizations": {
         "en": {
@@ -1417,6 +1527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Credit note"
+          }
+        }
+      }
+    },
+    "Handlung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plot"
           }
         }
       }
@@ -1537,6 +1657,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Import…"
+          }
+        }
+      }
+    },
+    "In NFO speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save to NFO"
           }
         }
       }
@@ -1761,6 +1891,16 @@
         }
       }
     },
+    "Kein Video mit diesem Namen daneben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No video with this name next to it."
+          }
+        }
+      }
+    },
     "Keine Dateien": {
       "localizations": {
         "en": {
@@ -1841,6 +1981,26 @@
         }
       }
     },
+    "Kopfzeile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Header line"
+          }
+        }
+      }
+    },
+    "Kurzbeschreibung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outline"
+          }
+        }
+      }
+    },
     "Künstler": {
       "localizations": {
         "en": {
@@ -1871,6 +2031,26 @@
         }
       }
     },
+    "Language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "Laufzeit (min)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runtime (min)"
+          }
+        }
+      }
+    },
     "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
       "localizations": {
         "en": {
@@ -1881,12 +2061,12 @@
         }
       }
     },
-    "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)": {
+    "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige) · Kodi/Jellyfin-NFO · Untertitel srt/vtt": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "MP4 atoms · Matroska tags (mov/avi/ogv view only)"
+            "value": "MP4 atoms · Matroska tags (mov/avi/ogv view only) · Kodi/Jellyfin NFO · subtitles srt/vtt"
           }
         }
       }
@@ -2017,6 +2197,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pattern does not match:"
+          }
+        }
+      }
+    },
+    "NFO- und Untertiteldateien werden einzeln bearbeitet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NFO and subtitle files are edited one at a time."
+          }
+        }
+      }
+    },
+    "NFO-Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NFO fields"
+          }
+        }
+      }
+    },
+    "NFO-Info (nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NFO info (view only)"
+          }
+        }
+      }
+    },
+    "NFO-Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NFO sidecar"
+          }
+        }
+      }
+    },
+    "NOTE": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NOTE"
           }
         }
       }
@@ -2171,6 +2401,26 @@
         }
       }
     },
+    "Nur-URL-NFO (nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL-only NFO (view only)"
+          }
+        }
+      }
+    },
+    "Nur-URL-NFO: enthält nur Scraper-Adressen und wird nicht beschrieben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL-only NFO: contains only scraper URLs and is never written."
+          }
+        }
+      }
+    },
     "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML-Frontmatter": {
       "localizations": {
         "en": {
@@ -2187,6 +2437,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy originals to the trash before every change"
+          }
+        }
+      }
+    },
+    "Originaltitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original title"
           }
         }
       }
@@ -2311,6 +2571,16 @@
         }
       }
     },
+    "Premiere": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premiered"
+          }
+        }
+      }
+    },
     "Rechnung": {
       "localizations": {
         "en": {
@@ -2321,12 +2591,42 @@
         }
       }
     },
+    "Regie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Director"
+          }
+        }
+      }
+    },
     "Report kopieren": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Copy Report"
+          }
+        }
+      }
+    },
+    "SRT": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SRT"
+          }
+        }
+      }
+    },
+    "SRT hat keinen Kopfblock. Die Sprache steckt im Dateinamen — Umbenennen über „Dateiname ↔ Tags“ mit dem Muster ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SRT has no header block. The language lives in the file name — rename via “File name ↔ Tags” with the pattern "
           }
         }
       }
@@ -2401,6 +2701,16 @@
         }
       }
     },
+    "Sekunden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seconds"
+          }
+        }
+      }
+    },
     "Serie": {
       "localizations": {
         "en": {
@@ -2447,6 +2757,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sidecar"
+          }
+        }
+      }
+    },
+    "Sidecars einzeln auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select sidecars one at a time"
+          }
+        }
+      }
+    },
+    "Sortiertitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort title"
           }
         }
       }
@@ -2521,6 +2851,16 @@
         }
       }
     },
+    "Sprache (Dateiname)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language (file name)"
+          }
+        }
+      }
+    },
     "Später": {
       "localizations": {
         "en": {
@@ -2531,12 +2871,32 @@
         }
       }
     },
+    "Staffel / Folge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Season / episode"
+          }
+        }
+      }
+    },
     "Status": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Status"
+          }
+        }
+      }
+    },
+    "Studio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Studio"
           }
         }
       }
@@ -2577,6 +2937,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tag layers"
+          }
+        }
+      }
+    },
+    "Tagline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tagline"
+          }
+        }
+      }
+    },
+    "Tags": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags"
           }
         }
       }
@@ -2681,6 +3061,16 @@
         }
       }
     },
+    "Titel und Language-Zeile werden im Kopf gespeichert; alle Cues bleiben unverändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title and Language line are stored in the header; all cues stay untouched."
+          }
+        }
+      }
+    },
     "Tracker-Modul: Dieses Format speichert nur Titel und Kommentar (Sample-Namen); die übrigen Felder sind gesperrt.": {
       "localizations": {
         "en": {
@@ -2761,6 +3151,16 @@
         }
       }
     },
+    "Unbekannte Elemente, Reihenfolge und Einrückung der NFO bleiben beim Speichern erhalten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown elements, their order and the indentation of the NFO are preserved when saving."
+          }
+        }
+      }
+    },
     "Unbekannte Frontmatter-Schlüssel bleiben erhalten; verschachtelte Einträge werden nur durchgereicht.": {
       "localizations": {
         "en": {
@@ -2777,6 +3177,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unsaved Changes"
+          }
+        }
+      }
+    },
+    "Untertitel (nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtitle (view only)"
           }
         }
       }
@@ -2801,6 +3211,16 @@
         }
       }
     },
+    "Verschieben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift"
+          }
+        }
+      }
+    },
     "Version %@": {
       "localizations": {
         "en": {
@@ -2817,6 +3237,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Discard"
+          }
+        }
+      }
+    },
+    "Video daneben: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video next to it: %@"
           }
         }
       }
@@ -2911,6 +3341,16 @@
         }
       }
     },
+    "WebVTT-Kopf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WebVTT header"
+          }
+        }
+      }
+    },
     "Weitere Angaben (nur Anzeige)": {
       "localizations": {
         "en": {
@@ -3001,12 +3441,52 @@
         }
       }
     },
+    "Zeichensatz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encoding"
+          }
+        }
+      }
+    },
+    "Zeilenende": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line endings"
+          }
+        }
+      }
+    },
     "Zeit im Format HH:MM:SS.mmm": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Time as HH:MM:SS.mmm"
+          }
+        }
+      }
+    },
+    "Zeitspanne": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time span"
+          }
+        }
+      }
+    },
+    "Zeitversatz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time offset"
           }
         }
       }
@@ -3027,6 +3507,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recently used patterns and presets"
+          }
+        }
+      }
+    },
+    "Zurücksetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
           }
         }
       }
@@ -3137,6 +3627,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "or any tag key"
+          }
+        }
+      }
+    },
+    "s": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
           }
         }
       }
