@@ -435,7 +435,7 @@ struct TagArchiveTests {
         let report = try TagArchiveIO.apply(
             archive, relativeTo: dir, dryRun: false,
             afterValidation: {
-                _ = try FileManager.default.replaceItemAt(target, withItemAt: replacement)
+                try TestFiles.replaceAtomically(target, with: replacement)
             })
 
         #expect(report.applied.isEmpty)

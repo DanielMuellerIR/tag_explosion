@@ -921,7 +921,8 @@ struct EInvoiceTests {
 
     // MARK: - PDF
 
-    @Test("PDF: eingebettete Rechnung samt XMP-Deklaration; PDF ohne Rechnung meldet Fehler")
+    @Test("PDF: eingebettete Rechnung samt XMP-Deklaration; PDF ohne Rechnung meldet Fehler",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfExtraction() throws {
         try withTempDirectory { dir in
             let pdfURL = dir.appendingPathComponent("rechnung.pdf")
@@ -943,7 +944,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: eingebettete Order-X-Bestellung (order-x.xml) wird als Bestellung gelesen")
+    @Test("PDF: eingebettete Order-X-Bestellung (order-x.xml) wird als Bestellung gelesen",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfWithOrderX() throws {
         try withTempDirectory { dir in
             let pdfURL = dir.appendingPathComponent("bestellung.pdf")
@@ -957,7 +959,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("containsInvoice(url:) bleibt als Übergangs-API mit altem Verhalten")
+    @Test("containsInvoice(url:) bleibt als Übergangs-API mit altem Verhalten",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     @available(*, deprecated) // Absicht: Der Test ruft die veraltete Methode auf.
     func containsInvoiceCompatibilityWrapper() throws {
         try withTempDirectory { dir in
@@ -985,7 +988,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("XMP-Deklaration: Namensraum entscheidet, nicht das Präfix")
+    @Test("XMP-Deklaration: Namensraum entscheidet, nicht das Präfix",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfDeclarationResolvesAttributeNamespaces() throws {
         try withTempDirectory { dir in
             // Kurzform (Werte als Attribute) mit frei gewähltem Präfix "inv":
@@ -1029,7 +1033,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: XMP-Dateiname gewinnt; ohne Deklaration bleibt die Anhangsreihenfolge")
+    @Test("PDF: XMP-Dateiname gewinnt; ohne Deklaration bleibt die Anhangsreihenfolge",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfCandidateOrderFollowsDeclarationAndPDF() throws {
         try withTempDirectory { dir in
             let declaredXML = Self.ciiXML.replacingOccurrences(of: "R-1", with: "R-XMP")
@@ -1058,7 +1063,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Rechnung im AF-Array gewinnt gegen einen gefluteten Namensbaum")
+    @Test("PDF: Rechnung im AF-Array gewinnt gegen einen gefluteten Namensbaum",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfAFInvoiceSurvivesFloodedNameTree() throws {
         try withTempDirectory { dir in
             // 33 fremde XML-Anhänge im Namensbaum liegen ÜBER dem Dateibudget
@@ -1073,7 +1079,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Die XMP-deklarierte Datei bekommt einen reservierten Budget-Platz")
+    @Test("PDF: Die XMP-deklarierte Datei bekommt einen reservierten Budget-Platz",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfDeclaredFileBypassesFileBudget() throws {
         try withTempDirectory { dir in
             // Kein AF-Array; die deklarierte Rechnung steht als LETZTER von 34
@@ -1090,6 +1097,7 @@ struct EInvoiceTests {
     }
 
     @Test("PDF: Ein sich selbst referenzierender Namensbaum blockiert nicht",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"),
           .timeLimit(.minutes(1)))
     func pdfCyclicNameTreeTerminates() throws {
         try withTempDirectory { dir in
@@ -1113,7 +1121,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: überlange, kaskadierte oder Überlauf ankündigende Streams werden übersprungen")
+    @Test("PDF: überlange, kaskadierte oder Überlauf ankündigende Streams werden übersprungen",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfOversizedStreamsAreSkipped() throws {
         try withTempDirectory { dir in
             // CGPDFStreamCopyData dekomprimiert immer vollständig im Speicher.
@@ -1159,7 +1168,8 @@ struct EInvoiceTests {
     // MARK: - Review-Fund 2026-08-18
 
 #if canImport(CoreGraphics)
-    @Test("PDF: Auch verworfene Anhaenge verbrauchen das Entpack-Budget")
+    @Test("PDF: Auch verworfene Anhaenge verbrauchen das Entpack-Budget",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfDroppedAttachmentsConsumeBudget() throws {
         try withTempDirectory { dir in
             // Ein Anhang, der das Budget sprengt, wird nicht uebernommen —
@@ -1188,7 +1198,8 @@ struct EInvoiceTests {
     // MARK: - Review-Fund 2026-08-20
 
 #if canImport(CoreGraphics)
-    @Test("PDF: Ein zu grosser Anhang beendet die Suche nach der Rechnung nicht")
+    @Test("PDF: Ein zu grosser Anhang beendet die Suche nach der Rechnung nicht",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfOversizedAttachmentDoesNotHideInvoice() throws {
         try withTempDirectory { dir in
             // Der Angriff: EIN Fuellanhang, der allein das Anzeigebudget
@@ -1214,7 +1225,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Derselbe Stream unter vielen Namen erschoepft das Arbeitsbudget")
+    @Test("PDF: Derselbe Stream unter vielen Namen erschoepft das Arbeitsbudget",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfRepeatedStreamHitsWorkBudget() throws {
         try withTempDirectory { dir in
             // Wiederholungsschutz: Ein Filespec-Array, das vielfach auf
@@ -1258,7 +1270,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Eine unkomprimiert eingebettete Rechnung ueber 256 KiB bleibt lesbar")
+    @Test("PDF: Eine unkomprimiert eingebettete Rechnung ueber 256 KiB bleibt lesbar",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfLargeUncompressedInvoiceIsRead() throws {
         try withTempDirectory { dir in
             // /Length ist bei einem Stream OHNE /Filter bereits die entpackte
@@ -1277,7 +1290,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Ein angekuendigtes /Params/Size ueber dem uebergebenen Budget zaehlt")
+    @Test("PDF: Ein angekuendigtes /Params/Size ueber dem uebergebenen Budget zaehlt",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfParamsSizeUsesPassedBudget() throws {
         try withTempDirectory { dir in
             // Frueher pruefte dieser Pfad gegen die Konstante statt gegen das
@@ -1305,7 +1319,8 @@ struct EInvoiceTests {
 
     // MARK: - Review-Fund 2026-08-17
 
-    @Test("PDF: Ein Anhangs-Stream ohne gueltige /Length wird uebersprungen")
+    @Test("PDF: Ein Anhangs-Stream ohne gueltige /Length wird uebersprungen",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfStreamWithoutLengthIsSkipped() throws {
         try withTempDirectory { dir in
             // Fehlte die Laengenangabe oder war sie keine Ganzzahl, liess die
@@ -1339,7 +1354,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Ein uebergrosser XMP-Metadatenstrom wird gar nicht erst gelesen")
+    @Test("PDF: Ein uebergrosser XMP-Metadatenstrom wird gar nicht erst gelesen",
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfOversizedMetadataIsSkipped() throws {
         try withTempDirectory { dir in
             // `readDeclaration` las den /Metadata-Strom vorher OHNE jede
@@ -1371,7 +1387,8 @@ struct EInvoiceTests {
         }
     }
 
-    @Test("PDF: Ein breites /AF-Array bleibt im Arbeitsbudget", .timeLimit(.minutes(1)))
+    @Test("PDF: Ein breites /AF-Array bleibt im Arbeitsbudget", .timeLimit(.minutes(1)),
+          .enabled(if: EInvoiceReader.isPDFExtractionAvailable, "PDF-Extraktion braucht CoreGraphics"))
     func pdfWideAFArrayTerminates() throws {
         try withTempDirectory { dir in
             // Waechter fuer das gemeinsame Arbeitsbudget (Review-Fund

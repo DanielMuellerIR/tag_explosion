@@ -1,6 +1,6 @@
 # Roadmap — Tag Explosion
 
-Stand: 2026-09-02 (Wellen 1–3 abgeschlossen mit 0.24.0 bis 0.38.0; offen bleiben nur die zurückgestellten AP16 und AP17). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
+Stand: 2026-09-03 (Wellen 1–3 abgeschlossen mit 0.24.0 bis 0.38.0, AP16 mit 0.39.0; offen bleibt nur das zurückgestellte AP17). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
 Meilensteine) um die noch offenen Erweiterungen. Jeder Punkt ist ein
 Arbeitspaket (AP) mit Status; abgeschlossene Pakete wandern mit Version in den
 [CHANGELOG](../CHANGELOG.md) und werden hier nur noch als „✅ x.y.z" geführt.
@@ -49,7 +49,7 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 | AP13 | **Batch-Regeln als Skript:** Regeldatei (JSON) für Groß-/Kleinschreibung, Feldkopien, Suchen/Ersetzen, Leerzeichen trimmen; `tagx apply rules.json` und Regel-Editor in der App. | mittel | ✅ 0.37.0 |
 | AP14 | **Undo-Historie:** die Papierkorb-Sicherungen aus `TrashBackup` als Versionsliste pro Datei anzeigen und einzeln zurückholen. | mittel | ✅ 0.36.0 |
 | AP15 | **Online-Lookup:** MusicBrainz und Discogs (Release-Suche, Tags übernehmen), optional AcoustID-Fingerprint über `fpcalc`. Nur auf ausdrückliche Aktion, mit Datenschutzhinweis im UI; kein automatischer Netzzugriff. | groß | ✅ 0.38.0 |
-| AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (siehe Backlog in PLAN.md, Priorität niedrig). | mittel | ⏸ |
+| AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (`XDGTrash`, `scripts/linux-deps.sh`, [knowledge/linux-xdg-papierkorb.md](../knowledge/linux-xdg-papierkorb.md)). | mittel | ✅ 0.39.0 |
 | AP17 | **Finder-Integration:** Quick-Look-Vorschau der Tags und Kontextmenü „In Tag Explosion öffnen". Braucht ein Extension-Target und damit einen Xcode-Projektpfad; erst entscheiden, ob das mit dem headless-Build vereinbar bleibt. | groß | ⏸ |
 
 ## Vorgehen

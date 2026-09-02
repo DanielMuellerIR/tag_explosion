@@ -54,7 +54,8 @@ struct CoverToolCommandTests {
     }
 
     @Test("cover convert --max-size schreibt das verkleinerte Cover in die Datei",
-          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
+          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"),
+          .enabled(if: CoverTools.isConversionAvailable, "Umwandlung braucht ImageIO"))
     func convertShrinksEmbeddedCover() throws {
         let directory = try makeWorkDirectory("tagx-cover-convert")
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -119,7 +120,14 @@ struct CoverToolCommandTests {
         #expect(try TagFile.read(at: second).artworks.first?.data == jpg)
 
         // to-folder: Folder.JPG belegt den Namen folder.jpg (APFS ignoriert
-        // die Schreibweise) → ohne --force Abbruch, Datei bleibt.
+        // die Schreibweise) → ohne --force Abbruch, Datei bleibt. Auf einem
+        // Dateisystem, das Groß-/Kleinschreibung unterscheidet (ext4 unter
+        // Linux), ist folder.jpg frei — dort legen wir es ausdrücklich an,
+        // damit derselbe Schutz geprüft wird.
+        let lowercase = directory.appendingPathComponent("folder.jpg")
+        if !FileManager.default.fileExists(atPath: lowercase.path) {
+            try jpg.write(to: lowercase)
+        }
         let blocked = try runTagx(arguments: ["cover", "to-folder", first.path])
         #expect(blocked.status != 0)
         #expect(blocked.stderr.contains("already exists"))

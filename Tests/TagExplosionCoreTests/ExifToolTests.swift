@@ -199,7 +199,7 @@ struct ExifToolTests {
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
             _ = try ExifTool.readCoreFieldsSnapshot(url: url, afterRead: {
-                _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+                try TestFiles.replaceAtomically(url, with: replacement)
             })
         }
         #expect(try Data(contentsOf: url) == replacementBytes)
@@ -401,7 +401,7 @@ struct ExifToolTests {
         let url = try Fixtures.workingCopy("cover.jpg")
         let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
         let replacement = try Fixtures.workingCopy("cover.jpg")
-        _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+        try TestFiles.replaceAtomically(url, with: replacement)
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
             try ExifTool.writeCoreFields(

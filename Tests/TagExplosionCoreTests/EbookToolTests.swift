@@ -2,6 +2,10 @@
 // falls Calibre installiert ist — azw3 via ebook-meta.
 import Foundation
 import Testing
+#if canImport(FoundationXML)
+// Linux-Foundation liefert XMLDocument in einem eigenen Modul.
+import FoundationXML
+#endif
 @testable import TagExplosionCore
 import ZIPFoundation
 
@@ -86,7 +90,8 @@ struct EbookToolTests {
         let url = try Fixtures.workingCopy("book2.epub")
         let cover = try #require(try EbookTool.readCover(url: url))
         #expect(cover.resolvedMimeType == "image/jpeg")
-        #expect(cover.data == (try Fixtures.coverData("cover.jpg")))
+        let expectedCover = try Fixtures.coverData("cover.jpg")
+        #expect(cover.data == expectedCover)
 
         let replacement = try Fixtures.coverData("cover.png")
         try EbookTool.writeCover(url: url, data: replacement)
@@ -130,7 +135,7 @@ struct EbookToolTests {
             _ = try EbookTool.readSnapshot(
                 url: url, includeCover: true,
                 betweenReads: {
-                    _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+                    try TestFiles.replaceAtomically(url, with: replacement)
                 })
         }
         #expect(try Data(contentsOf: url) == replacementBytes)
@@ -141,7 +146,7 @@ struct EbookToolTests {
         let url = try Fixtures.workingCopy("book2.epub")
         let snapshot = try EbookTool.readSnapshot(url: url, includeCover: true)
         let replacement = try Fixtures.workingCopy("book2.epub")
-        _ = try FileManager.default.replaceItemAt(url, withItemAt: replacement)
+        try TestFiles.replaceAtomically(url, with: replacement)
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
             try EbookTool.write(
@@ -726,13 +731,21 @@ struct EbookToolTests {
     private func packageIdentifierValue(of url: URL, opfPath: String) throws -> String {
         let document = try XMLDocument(xmlString: try opfContents(of: url, path: opfPath))
         let package = try #require(document.rootElement())
-        let uid = try #require(package.attribute(forName: "unique-identifier")?.stringValue)
+        // Über die Attributliste statt `attribute(forName:)`: FoundationXML
+        // (Linux) findet Attribute eines Elements mit Standard-Namespace so nicht.
+        let uid = try #require(package.attributes?.first { $0.name == "unique-identifier" }?.stringValue)
         let metadata = try #require(package.elements(forName: "metadata").first)
-        let identifiers = (metadata.children ?? [])
-            .compactMap { $0 as? XMLElement }
-            .filter { ($0.name ?? "").split(separator: ":").last.map(String.init) == "identifier" }
+        // In Einzelschritten, sonst gibt der Linux-Compiler (6.0) beim
+        // Typprüfen dieser Kette auf.
+        let elements = (metadata.children ?? []).compactMap { $0 as? XMLElement }
+        let identifiers = elements.filter { element in
+            let localName = (element.name ?? "").split(separator: ":").last.map(String.init) ?? ""
+            return localName == "identifier"
+        }
         let match = try #require(
-            identifiers.first { $0.attribute(forName: "id")?.stringValue == uid })
+            identifiers.first { element in
+                element.attributes?.first { $0.name == "id" }?.stringValue == uid
+            })
         return match.stringValue ?? ""
     }
 

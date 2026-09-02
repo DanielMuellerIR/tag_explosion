@@ -84,7 +84,8 @@ struct CoverToolsTests {
 
     // MARK: - Umwandlung
 
-    @Test("Verkleinern auf 500 px hält das Seitenverhältnis")
+    @Test("Verkleinern auf 500 px hält das Seitenverhältnis",
+          .enabled(if: CoverTools.isConversionAvailable, "Umwandlung braucht ImageIO"))
     func shrinkKeepsAspectRatio() throws {
         let source = try Fixtures.coverData("cover-large.jpg")
         let result = try CoverTools.convert(source, .init(maxPixelSize: 500))
@@ -102,7 +103,8 @@ struct CoverToolsTests {
         #expect(try CoverTools.convert(source, .init()) == source)
     }
 
-    @Test("PNG → JPEG wandelt Format und MIME-Type, Alpha wird auf Weiß abgeflacht")
+    @Test("PNG → JPEG wandelt Format und MIME-Type, Alpha wird auf Weiß abgeflacht",
+          .enabled(if: CoverTools.isConversionAvailable, "Umwandlung braucht ImageIO"))
     func convertPNGToJPEG() throws {
         let artwork = Artwork(data: try Fixtures.coverData("cover-alpha.png"),
                               pictureType: "Front Cover", description: "Test")
@@ -116,7 +118,8 @@ struct CoverToolsTests {
         #expect(analysis.hasAlpha == false)
     }
 
-    @Test("JPEG → PNG und Qualitätsstufen")
+    @Test("JPEG → PNG und Qualitätsstufen",
+          .enabled(if: CoverTools.isConversionAvailable, "Umwandlung braucht ImageIO"))
     func convertJPEGToPNGAndQuality() throws {
         let source = try Fixtures.coverData("cover-large.jpg")
         let png = try CoverTools.convert(source, .init(format: .png))
@@ -141,7 +144,8 @@ struct CoverToolsTests {
         #expect(CoverTools.analyze(padded).pixelWidth == 64)
 
         let stripped = try CoverTools.stripMetadata(padded)
-        #expect(stripped == (try CoverTools.stripMetadata(original)))
+        let strippedOriginal = try CoverTools.stripMetadata(original)
+        #expect(stripped == strippedOriginal)
         #expect(!containsSegment(stripped, marker: 0xE1))
         #expect(!containsSegment(stripped, marker: 0xFE))
         #expect(CoverTools.analyze(stripped).pixelWidth == 64)

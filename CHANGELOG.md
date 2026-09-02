@@ -8,6 +8,39 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.39.0] — 2026-09-03
+
+### Hinzugefügt
+
+- Abgesicherter Modus unter Linux: Die Papierkorb-Sicherung folgt dort der
+  freedesktop-Spezifikation (`~/.local/share/Trash/files` plus `.trashinfo`,
+  auf anderen Datenträgern `.Trash/<uid>` oder `.Trash-<uid>` im
+  Einhängepunkt). Damit laufen `set`, `cover`, `import` und die anderen
+  ändernden `tagx`-Befehle unter Linux ohne `--no-backup`; die Kopie bleibt
+  wie unter macOS auf dem Datenträger des Originals. Neuer Typ `XDGTrash`
+  im Core, auf allen Plattformen testbar.
+- Linux-Job in der Test-CI (Ubuntu 24.04, TagLib 2.3.1 aus dem Quelltext
+  über `scripts/linux-deps.sh`); dasselbe Skript richtet einen lokalen
+  `swift:6.0`-Docker-Container ein.
+
+### Geändert
+
+- Freiplatz-Prüfung vor dem Schreiben nutzt unter Linux `statvfs`
+  (`attributesOfFileSystem`); die Volume-Schlüssel von `URL.resourceValues`
+  gibt es dort nicht.
+
+### Behoben
+
+- Linux: Untertitel und Kodi-NFOs in Latin-1 oder Windows-1252 mit
+  CRLF-Zeilenenden ließen sich weder lesen noch zurückschreiben
+  (Linux-Foundation kodiert und dekodiert `\r\n` in diesen Kodierungen
+  nicht; Umweg über `NSString` in `TextEncoding.swift`).
+- Linux: Die Undo-Historie bekommt jetzt auch ohne CryptoKit SHA-256-
+  Prüfsummen (`PortableSHA256`), damit „Zurückholen" die Kopie prüfen kann.
+- mediainfo-Aufruf ohne UTF-8-Locale (Container, CI, `LANG=C`) lieferte
+  Umlaute als „?"; der Wrapper gibt jetzt `LC_ALL=C.UTF-8` mit, wenn keine
+  UTF-8-Locale gesetzt ist.
+
 ## [0.38.0] — 2026-09-02
 
 ### Hinzugefügt

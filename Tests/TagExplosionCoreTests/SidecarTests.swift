@@ -22,7 +22,9 @@ struct SidecarTests {
         let url = dir.appendingPathComponent(name)
         var data = Data()
         if bom { data.append(contentsOf: [0xEF, 0xBB, 0xBF]) }
-        data.append(text.data(using: encoding)!)
+        // `encoded(as:)` statt `data(using:)`: Linux-Foundation kodiert CRLF
+        // nicht nach Latin-1 (siehe TextEncoding.swift).
+        data.append(try #require(text.encoded(as: encoding)))
         try data.write(to: url)
         return url
     }
@@ -390,14 +392,15 @@ struct SidecarTests {
         let srt = "1\r\n00:00:01,000 --> 00:00:02,500\r\nGrüße --> nicht anfassen\r\n\r\n2\r\n00:59:59,000 --> 01:00:00,000\r\nEnde\r\n"
         let url = try writeFile("film.srt", srt, in: dir, encoding: .isoLatin1)
         try SubtitleFile.shift(url: url, milliseconds: 1500)
-        let shifted = String(data: try Data(contentsOf: url), encoding: .isoLatin1)!
+        let shifted = try #require(String.decoded(try Data(contentsOf: url), as: .isoLatin1))
         #expect(shifted == srt
             .replacingOccurrences(of: "00:00:01,000 --> 00:00:02,500", with: "00:00:02,500 --> 00:00:04,000")
             .replacingOccurrences(of: "00:59:59,000 --> 01:00:00,000", with: "01:00:00,500 --> 01:00:01,500"))
         try SubtitleFile.shift(url: url, milliseconds: -1500)
-        #expect(try Data(contentsOf: url) == srt.data(using: .isoLatin1)!)
+        let latinBytes = try #require(srt.encoded(as: .isoLatin1))
+        #expect(try Data(contentsOf: url) == latinBytes)
         #expect(throws: TagError.self) { try SubtitleFile.shift(url: url, milliseconds: -1001) }
-        #expect(try Data(contentsOf: url) == srt.data(using: .isoLatin1)!)
+        #expect(try Data(contentsOf: url) == latinBytes)
 
         // VTT ohne Stundenanteil bekommt ihn erst ab einer Stunde.
         let vtt = "WEBVTT\n\n59:59.000 --> 59:59.900\nA\n"

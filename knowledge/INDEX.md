@@ -5,6 +5,10 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [dateisicherheit-schreibwege.md](dateisicherheit-schreibwege.md) — Bei jedem
   Schreibweg und beim abgesicherten Modus: atomarer Rahmen, Papierkorb-
   Sicherung, `URL.resourceValues`-Cache-Falle, Platz- und Pfad-Regeln.
+- [linux-xdg-papierkorb.md](linux-xdg-papierkorb.md) — Bei Linux-Build,
+  Linux-CI oder Arbeit an `XDGTrash`: freedesktop-Papierkorb-Regeln,
+  Linux-Foundation-Lücken (`volumeURLKey`, Volume-Kapazität), TagLib 2 aus
+  dem Quelltext, Docker-Lauf auf Popo (Git braucht dort HTTP/1.1).
 - [taglib-shim.md](taglib-shim.md) — Bei Arbeit am CTagShim/TagLib-Upgrade:
   Encoding-Default, C-API-Grenzen, PropertyMap-Verhalten, Format-Toleranzen.
 - [mediainfo-exiftool-wrapper.md](mediainfo-exiftool-wrapper.md) — Bei kaputten

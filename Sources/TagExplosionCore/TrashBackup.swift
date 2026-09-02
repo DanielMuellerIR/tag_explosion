@@ -12,6 +12,11 @@
 // das Original — auf APFS als Klon, der zunächst keinen zusätzlichen Platz
 // belegt. Jede Kopie wird zusätzlich im `BackupJournal` verzeichnet; daraus
 // entsteht die Undo-Historie (`BackupHistory`).
+//
+// Papierkorb je Plattform: macOS über `FileManager.trashItem`; Linux/BSD
+// über die freedesktop.org-Konvention in `XDGTrash` (`~/.local/share/Trash`
+// bzw. `<Einhängepunkt>/.Trash-<uid>`). Beide Wege ergeben denselben
+// Ordneraufbau, den `BackupHistory` zurückliest.
 import Foundation
 #if canImport(Darwin)
 import Darwin
@@ -28,13 +33,27 @@ public final class TrashBackup: @unchecked Sendable {
     /// sie den gemeinsamen Zustand nicht anfassen müssen. Ohne `journal`
     /// werden die Sicherungen nirgends verzeichnet (kein Eintrag im Journal
     /// des Benutzers durch Testläufe).
-    public init(journal: BackupJournal? = nil) {
+    ///
+    /// `xdgTrash` wählt den Papierkorb nach freedesktop-Konvention statt des
+    /// System-Papierkorbs. Außerhalb von macOS ist das der einzige Weg und
+    /// wird bei nil automatisch mit den Standardpfaden benutzt; unter macOS
+    /// dient der Parameter den Tests, die den Linux-Weg mit einem
+    /// Temp-Verzeichnis als Datenverzeichnis durchspielen.
+    public init(journal: BackupJournal? = nil, xdgTrash: XDGTrash? = nil) {
         self.journal = journal
+        #if os(macOS)
+        self.xdgTrash = xdgTrash
+        #else
+        self.xdgTrash = xdgTrash ?? XDGTrash()
+        #endif
     }
 
     /// Journal, in dem jede Sicherung verzeichnet wird (siehe `BackupJournal`).
     /// nil = keine Historie, nur die Kopie im Papierkorb.
     public let journal: BackupJournal?
+
+    /// Papierkorb nach freedesktop-Konvention; nil = System-Papierkorb (macOS).
+    public let xdgTrash: XDGTrash?
 
     private let lock = NSLock()
     /// Serialisiert komplette Sicherungsvorgänge: Zwei parallele `backUp`-
@@ -101,17 +120,10 @@ public final class TrashBackup: @unchecked Sendable {
     /// siehe `BackupReason`); die Historie zeigt ihn dem Nutzer an.
     public func backUp(_ urls: [URL], reason: String = BackupReason.save) throws {
         guard isEnabled else { return }
-        #if os(macOS)
         // Ein Sicherungsvorgang nach dem anderen — siehe `operationLock`.
         try operationLock.withLock {
             try serializedBackUp(urls, reason: reason)
         }
-        #else
-        // Ohne Papierkorb (Linux) schützt nur der atomare Schreibweg. Das ist
-        // eine bewusste Einschränkung, kein stiller Fehlschlag.
-        throw TagError.backupFailed(path: urls.first?.path ?? "",
-                                    reason: "trash is only available on macOS")
-        #endif
     }
 
     /// Bequemer Einzelaufruf für die Schreibwege.
@@ -119,7 +131,6 @@ public final class TrashBackup: @unchecked Sendable {
         try backUp([url], reason: reason)
     }
 
-    #if os(macOS)
     /// Eigentlicher Sicherungsvorgang; läuft immer unter `operationLock`.
     private func serializedBackUp(_ urls: [URL], reason: String) throws {
         let fileManager = FileManager.default
@@ -176,7 +187,6 @@ public final class TrashBackup: @unchecked Sendable {
             }
         }
     }
-    #endif
 
     /// Setzt die Sitzung zurück (Tests; danach entsteht ein neuer Ordner).
     public func resetSession() {
@@ -233,11 +243,12 @@ public final class TrashBackup: @unchecked Sendable {
         return candidate
     }
 
-    #if os(macOS)
     /// Legt den Sicherungsordner für den Datenträger dieser Datei an — einmal
-    /// pro Sitzung. Der Ordner entsteht in einem Temp-Verzeichnis desselben
-    /// Datenträgers und wandert sofort in dessen Papierkorb; danach wird er
-    /// direkt weiterbefüllt.
+    /// pro Sitzung. Unter macOS entsteht der Ordner in einem Temp-Verzeichnis
+    /// desselben Datenträgers und wandert sofort in dessen Papierkorb; mit
+    /// `XDGTrash` entsteht er direkt im passenden `files/`-Verzeichnis, als
+    /// wäre er neben dem Ordner der ersten gesicherten Datei gelöscht worden.
+    /// Danach wird er direkt weiterbefüllt.
     private func sessionFolder(for url: URL) throws -> URL {
         let fileManager = FileManager.default
         let key = volumeKey(for: url)
@@ -245,12 +256,20 @@ public final class TrashBackup: @unchecked Sendable {
            fileManager.fileExists(atPath: existing.path) {
             return existing
         }
+        let name = "\(folderLabel) \(sessionStamp())"
 
+        if let xdgTrash {
+            let result = try xdgTrash.createTrashedFolder(
+                named: name, originalParent: url.deletingLastPathComponent())
+            lock.withLock { folders[key] = result }
+            return result
+        }
+
+        #if os(macOS)
         let staging = try fileManager.url(for: .itemReplacementDirectory,
                                           in: .userDomainMask,
                                           appropriateFor: url,
                                           create: true)
-        let name = "\(folderLabel) \(sessionStamp())"
         let candidate = staging.appendingPathComponent(name, isDirectory: true)
         try fileManager.createDirectory(at: candidate, withIntermediateDirectories: true)
 
@@ -262,16 +281,18 @@ public final class TrashBackup: @unchecked Sendable {
         }
         lock.withLock { folders[key] = result }
         return result
+        #else
+        // Ohne System-Papierkorb gibt es hier nur den XDG-Weg oben.
+        throw TagError.backupFailed(path: url.path, reason: "no trash available")
+        #endif
     }
-    #else
-    private func sessionFolder(for url: URL) throws -> URL {
-        throw TagError.backupFailed(path: url.path, reason: "trash is only available on macOS")
-    }
-    #endif
 
     /// Kennung des Datenträgers — externe Platten brauchen ihren eigenen
     /// Papierkorb, sonst würde die Kopie quer über Datenträger geschrieben.
     private func volumeKey(for url: URL) -> String {
+        // Der XDG-Weg rechnet mit Einhängepunkten (Linux-Foundation kennt
+        // `volumeURLKey` nicht).
+        if xdgTrash != nil { return XDGTrash.mountPoint(of: url).path }
         if let values = try? url.resourceValues(forKeys: [.volumeURLKey]),
            let volume = values.volume {
             return volume.path

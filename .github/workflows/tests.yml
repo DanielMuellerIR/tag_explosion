@@ -51,3 +51,30 @@ jobs:
           Tests/verify-macos-minimums-tests.sh
           Tests/taglib-refs-tests.sh
           Tests/icon-generator-tests.sh
+
+  # Core und CLI sind Linux-portabel — das prüft nur ein Lauf, der wirklich
+  # unter Linux baut und testet (Papierkorb nach XDG, Freiplatz per statvfs).
+  # Die App bleibt macOS-only und kommt hier nicht vor.
+  test-linux:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Quelltext auschecken
+        uses: actions/checkout@v7
+
+      - name: Swift-Toolchain
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0"
+
+      # TagLib 2.3.1 aus dem Quelltext (Ubuntu liefert nur 1.13), dazu
+      # mediainfo/exiftool/ffmpeg wie im macOS-Job. Gleiches Skript wie der
+      # lokale Docker-Lauf, siehe knowledge/linux-xdg-papierkorb.md.
+      - name: Abhängigkeiten installieren
+        run: scripts/linux-deps.sh
+
+      - name: Core und CLI bauen
+        run: swift build
+
+      - name: Core- und CLI-Tests
+        run: swift test

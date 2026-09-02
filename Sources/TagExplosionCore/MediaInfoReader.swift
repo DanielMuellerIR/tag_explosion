@@ -542,7 +542,7 @@ public enum MediaInfoReader {
         case .macRoman:
             // MacRoman bildet jedes Byte ab; der Rückfall auf lossy UTF-8 ist
             // reine Vorsicht.
-            return String(data: Data(slice), encoding: .macOSRoman)
+            return String.decoded(Data(slice), as: .macOSRoman)
                 ?? String(decoding: slice, as: UTF8.self)
         case .windows1252:
             var out = ""
@@ -733,6 +733,22 @@ public enum MediaInfoReader {
 
     /// Externes Programm ausführen, stdout zurückgeben. Der optionale Timeout
     /// ist nur für Regressionstests gedacht; Produktivaufrufe übergeben nil.
+    /// Umgebung für den Werkzeugaufruf mit garantierter UTF-8-Locale.
+    /// mediainfo richtet seine Textausgabe nach `LC_ALL`/`LC_CTYPE`/`LANG`;
+    /// ohne UTF-8-Locale (Docker-Container, CI-Job, `LANG=C`) ersetzt es
+    /// jeden Umlaut durch „?" — noch vor dem JSON, das heißt unrettbar. Ist
+    /// keine UTF-8-Locale gesetzt, geben wir `C.UTF-8` mit (Linux-Glibc und
+    /// macOS kennen sie); eine vorhandene UTF-8-Locale bleibt unangetastet.
+    static func utf8Environment() -> [String: String] {
+        var environment = ProcessInfo.processInfo.environment
+        let current = environment["LC_ALL"] ?? environment["LC_CTYPE"] ?? environment["LANG"] ?? ""
+        let isUTF8 = current.lowercased().replacingOccurrences(of: "-", with: "").contains("utf8")
+        if !isUTF8 {
+            environment["LC_ALL"] = "C.UTF-8"
+        }
+        return environment
+    }
+
     static func run(
         _ executable: String,
         _ arguments: [String],
@@ -741,6 +757,7 @@ public enum MediaInfoReader {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
+        process.environment = utf8Environment()
         let stdout = Pipe()
         let stderr = Pipe()
         process.standardOutput = stdout

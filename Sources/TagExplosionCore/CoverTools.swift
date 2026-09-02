@@ -123,6 +123,16 @@ public enum CoverToolError: Error, LocalizedError, Sendable, Equatable {
 }
 
 public enum CoverTools {
+
+    /// Verkleinern und Format wechseln brauchen ImageIO (Apple-Plattformen).
+    /// Anzeigen, Prüfen, Metadaten entfernen und Ordner-Cover gehen überall.
+    public static var isConversionAvailable: Bool {
+        #if canImport(ImageIO)
+        return true
+        #else
+        return false
+        #endif
+    }
     /// Prüfgrenzen. 300 px ist die Untergrenze, ab der Cover in Listen und auf
     /// Geräten nicht mehr verwaschen wirken; 3000 px bzw. 2 MiB sind die
     /// Obergrenzen, über denen manche Player (Autoradios, alte iPods) das Bild

@@ -67,7 +67,7 @@ struct SetCommandTests {
             try TagFile.read(at: file)
         }
         #expect(!snapshot.value.properties.isEmpty)
-        _ = try FileManager.default.replaceItemAt(file, withItemAt: replacement)
+        try replaceAtomically(file, with: replacement)
 
         #expect(throws: TagError.fileChangedOnDisk(path: file.path)) {
             try snapshot.requireCurrent(at: file)

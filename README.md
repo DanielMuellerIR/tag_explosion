@@ -403,8 +403,13 @@ builds a quick test bundle that stays in the project folder. If the installed
 bundle fails its final checks, an existing installation is restored; a rejected
 first installation is removed again.
 
-The core library and CLI are kept free of AppKit/SwiftUI so they stay portable
-to Linux. See [docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
+The core library and CLI are kept free of AppKit/SwiftUI and build and test on
+Linux as well (CI job on Ubuntu 24.04; `scripts/linux-deps.sh` installs the
+dependencies and builds TagLib 2.3.1 from source because the distribution
+package is still TagLib 1.x). Safe mode works there too: the backup copy goes
+to the freedesktop trash (`~/.local/share/Trash`, or `.Trash-<uid>` on the
+file's own volume), where every file manager shows it. See
+[docs/PLAN.md](docs/PLAN.md) for architecture and milestones and
 [docs/sparkle-release.md](docs/sparkle-release.md) for the release process.
 
 ## License

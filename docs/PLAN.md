@@ -274,23 +274,16 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 - Offene Erweiterungen (neue Formate, Umbenennen, Kapitel, Werkzeuge) stehen
   als Arbeitspakete mit Status in [ROADMAP.md](ROADMAP.md).
 
-- **Linux: abgesicherter Modus blockiert jedes Schreiben** (Review 2026-08-02,
-  Maintainer-Entscheidung 2026-08-03). Stand heute: `TrashBackup.backUp`
-  (`Sources/TagExplosionCore/TrashBackup.swift`) wirft außerhalb von macOS immer
-  („trash is only available on macOS"), weil es dort keinen Papierkorb-Aufruf
-  gibt. Der abgesicherte Modus ist aber die Voreinstellung, also scheitert unter
-  Linux jeder ändernde Befehl — `set`, `cover`, `import`, `exif`, `ebook` —
-  solange nicht `--no-backup` oder `TAGX_NO_BACKUP=1` gesetzt ist. Core und CLI
-  gelten hier trotzdem als „Linux-portabel", und die CI läuft nur auf `macos-15`;
-  gebaut oder getestet wird unter Linux also nirgends.
-  Ein Wiedereinschalten bräuchte zwei Dinge: eine Papierkorb-Sicherung nach der
-  XDG-Spezifikation (`~/.local/share/Trash/files` plus `.trashinfo`, je
-  Datenträger `.Trash-$uid`) und einen Linux-Job in der CI, der die Tests dort
-  wirklich ausführt. Ohne beides bliebe es eine ungeprüfte Behauptung.
-  Priorität: **niedrig.** Maintainer-Entscheidung im Wortlaut: „Linux-Unterstützung
+- **Linux: abgesicherter Modus** — bis 0.38.0 warf `TrashBackup.backUp`
+  außerhalb von macOS immer („trash is only available on macOS"), also
+  scheiterte dort jeder ändernde Befehl ohne `--no-backup`. Seit 0.39.0
+  (AP16) sichert `XDGTrash` nach der freedesktop-Spezifikation, und ein
+  Linux-Job in `.github/workflows/tests.yml` baut und testet Core und CLI
+  unter Ubuntu 24.04 (TagLib 2.3.1 aus dem Quelltext, `scripts/linux-deps.sh`).
+  Fallen und der lokale Docker-Weg: `knowledge/linux-xdg-papierkorb.md`.
+  Maintainer-Entscheidung 2026-08-03 bleibt der Rahmen: „Linux-Unterstützung
   ist gewünscht, aber kein Muss und richtet sich auch nach der Praktikabilität."
-  Bis dahin bleibt der Code unverändert; das Werfen ist die gewollte, sichtbare
-  Einschränkung und kein stiller Fehlschlag.
+  Die App selbst bleibt macOS-only.
 
 - Effizienz-Umbauten aus dem Review 2026-07-18 (bewusst zurückgestellt):
   EPUB-Archiv einmal öffnen statt pro Operation (`EpubFile.loadOpf`-Kontext

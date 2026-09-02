@@ -419,9 +419,14 @@ Signatur bestätigen, dass das Bundle wirklich notarisiert ist;
 bleibt. Scheitert die Endprüfung der eingesetzten App, wird eine vorhandene
 Installation wiederhergestellt; eine abgelehnte Erstinstallation wird entfernt.
 
-Core-Bibliothek und CLI bleiben frei von AppKit/SwiftUI und damit
-Linux-portabel. Architektur und Meilensteine stehen in
-[docs/PLAN.md](docs/PLAN.md), der Release-Ablauf in
+Core-Bibliothek und CLI bleiben frei von AppKit/SwiftUI und bauen und testen
+auch unter Linux (CI-Job auf Ubuntu 24.04; `scripts/linux-deps.sh` installiert
+die Abhängigkeiten und baut TagLib 2.3.1 aus dem Quelltext, weil das
+Distributionspaket noch TagLib 1.x ist). Der abgesicherte Modus funktioniert
+dort ebenfalls: Die Sicherungskopie landet im freedesktop-Papierkorb
+(`~/.local/share/Trash`, auf anderen Datenträgern `.Trash-<uid>` im
+Einhängepunkt), den jeder Dateimanager anzeigt. Architektur und Meilensteine
+stehen in [docs/PLAN.md](docs/PLAN.md), der Release-Ablauf in
 [docs/sparkle-release.md](docs/sparkle-release.md).
 
 ## Lizenz

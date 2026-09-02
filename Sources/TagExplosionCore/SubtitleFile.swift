@@ -147,7 +147,7 @@ public enum SubtitleFile {
 
         /// Text wieder in den Ausgangszeichensatz bringen, BOM voran.
         func encode(_ text: String) -> Data? {
-            guard let bytes = text.data(using: encoding) else { return nil }
+            guard let bytes = text.encoded(as: encoding) else { return nil }
             var out = Data(bom)
             // Foundation stellt bei UTF-16 selbst eine BOM voran.
             if encoding == .utf16 { out = Data() }
@@ -170,7 +170,7 @@ public enum SubtitleFile {
         if let text = String(data: data, encoding: .utf8) {
             return Decoded(text: text, encoding: .utf8, bom: [], label: "UTF-8")
         }
-        let text = String(data: data, encoding: .isoLatin1) ?? ""
+        let text = String.decoded(data, as: .isoLatin1) ?? ""
         return Decoded(text: text, encoding: .isoLatin1, bom: [], label: "Latin-1")
     }
 

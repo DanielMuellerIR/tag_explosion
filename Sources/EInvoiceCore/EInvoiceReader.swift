@@ -10,6 +10,16 @@ import FoundationXML // Linux: XMLParser liegt in einem eigenen Modul
 
 public enum EInvoiceReader {
 
+    /// Rechnungen aus PDFs lesen braucht CoreGraphics (Apple-Plattformen);
+    /// XML-Rechnungen gehen überall.
+    public static var isPDFExtractionAvailable: Bool {
+        #if canImport(CoreGraphics)
+        return true
+        #else
+        return false
+        #endif
+    }
+
     /// Schneller Inhaltstest ohne Baumaufbau: Ist das eine E-Rechnung?
     /// XMLParser läuft nur bis zum ersten Start-Element und liefert dessen
     /// aufgelösten Namensraum. Dadurch dürfen Prolog und Kommentare beliebig

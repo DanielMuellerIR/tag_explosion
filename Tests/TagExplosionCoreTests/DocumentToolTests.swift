@@ -228,7 +228,8 @@ struct DocumentToolTests {
         ])
         // page-2.jpg (rot, JPEG) kommt vor page-10.png — nicht lexikografisch.
         let cover = try #require(contents.cover)
-        #expect(cover.data == (try Fixtures.coverData("cover.jpg")))
+        let expectedCover = try Fixtures.coverData("cover.jpg")
+        #expect(cover.data == expectedCover)
         #expect(cover.resolvedMimeType == "image/jpeg")
         #expect(contents.info.contains(DocumentInfoItem(label: "Pages", value: "2")))
     }

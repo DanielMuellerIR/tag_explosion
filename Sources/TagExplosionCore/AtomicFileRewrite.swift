@@ -183,6 +183,13 @@ enum VolumeSpace {
 
     static func availableBytes(at url: URL) -> Int64? {
         let directory = url.deletingLastPathComponent()
+        #if !canImport(Darwin)
+        // Linux-Foundation kennt die Volume-Schluessel von `resourceValues`
+        // nicht; `attributesOfFileSystem` (statvfs) liefert den freien Platz.
+        guard let attributes = try? FileManager.default.attributesOfFileSystem(forPath: directory.path),
+              let free = (attributes[.systemFreeSize] as? NSNumber)?.int64Value else { return nil }
+        return free
+        #else
         guard let values = try? directory.resourceValues(
             forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
         else { return nil }
@@ -194,6 +201,7 @@ enum VolumeSpace {
             return Int64(important)
         }
         return values.volumeAvailableCapacity.map(Int64.init)
+        #endif
     }
 
     /// APFS klont Dateien blockweise (Copy-on-Write) — die Kopie kostet dann

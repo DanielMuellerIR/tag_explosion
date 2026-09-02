@@ -211,22 +211,28 @@ public final class BackupJournal: @unchecked Sendable {
 
     // MARK: - Prüfsumme
 
-    /// SHA-256 einer Datei als Hex-String; nil ohne Hash-Bibliothek (Linux
-    /// ohne CryptoKit). Liest die Datei stückweise, damit auch große Dateien
-    /// nicht komplett in den Speicher müssen.
+    /// SHA-256 einer Datei als Hex-String. Unter macOS über CryptoKit, sonst
+    /// über `PortableSHA256` (reines Swift, Linux). Liest die Datei
+    /// stückweise, damit auch große Dateien nicht komplett in den Speicher
+    /// müssen. Optional bleibt der Rückgabetyp für Aufrufer, die ohne
+    /// Prüfsumme weiterarbeiten können.
     public static func sha256(of url: URL) throws -> String? {
-        #if canImport(CryptoKit)
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
+        #if canImport(CryptoKit)
         var hasher = SHA256()
+        #else
+        var hasher = PortableSHA256()
+        #endif
         while true {
             let chunk = try handle.read(upToCount: 4 * 1024 * 1024) ?? Data()
             if chunk.isEmpty { break }
             hasher.update(data: chunk)
         }
+        #if canImport(CryptoKit)
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
         #else
-        return nil
+        return hasher.finalizeHex()
         #endif
     }
 

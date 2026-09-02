@@ -181,7 +181,7 @@ public enum KodiNFOFile {
         var bytes = data
         if bytes.starts(with: [0xEF, 0xBB, 0xBF]) { bytes = bytes.dropFirst(3) }
         return String(data: bytes, encoding: .utf8)
-            ?? String(data: bytes, encoding: .isoLatin1)
+            ?? String.decoded(bytes, as: .isoLatin1)
             ?? ""
     }
 
@@ -476,7 +476,7 @@ public enum KodiNFOFile {
 
         let style = NFOWriter.Style(detectedFrom: layout.xml)
         let output = layout.prefix + NFOWriter.serialize(root, style: style) + layout.suffix
-        guard let bytes = output.data(using: layout.encoding) else {
+        guard let bytes = output.encoded(as: layout.encoding) else {
             throw TagError.saveFailed(path: originalPath)
         }
         do {

@@ -278,7 +278,13 @@ struct TagRulesTests {
             _ = try parse("{\n  \"version\": 1,\n  \"rules\": [\n")
             Issue.record("Syntaxfehler wurde nicht gemeldet")
         } catch TagRulesError.invalidJSON(let line, _) {
+            // Die Zeile stammt aus Foundations Fehlertext; Linux-Foundation
+            // nennt keine, dort bleibt sie erlaubt nil.
+            #if canImport(Darwin)
             #expect(line != nil)
+            #else
+            _ = line
+            #endif
         } catch {
             Issue.record("Unerwarteter Fehler: \(error)")
         }
