@@ -137,6 +137,9 @@ struct BatchEditorView: View {
                 // Auswahl als m3u8/pls/xspf sichern (Pfade relativ zur Playlist).
                 PlaylistExportMenu(entries: entries)
 
+                // Album bei MusicBrainz/Discogs/AcoustID nachschlagen (nur auf Klick).
+                OnlineLookupButton(entries: entries)
+
                 Spacer()
             }
             .padding(8)

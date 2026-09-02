@@ -249,6 +249,9 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
             }
 
+            // Online-Lookup: Freigabe, Discogs-Token, AcoustID-Key (Keychain).
+            OnlineLookupSettingsSection()
+
             Section {
                 Toggle("Vor Batch-Speichern Tag-Backup anlegen", isOn: $autoBackup)
                 Text("""

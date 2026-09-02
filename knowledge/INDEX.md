@@ -71,3 +71,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Video-Editor: eigener XML-Serialisierer für Einrückungserhalt, Nur-URL-NFO,
   Inhaltsprüfung der Endung, Zeitverschiebung nur auf `-->`-Zeilen,
   `--seconds=-1.5`, Sprache aus dem Dateinamen.
+- [online-lookup-dienste.md](online-lookup-dienste.md) — Bei Arbeit am
+  Online-Lookup (MusicBrainz/Discogs/AcoustID, `tagx lookup`, Sheet,
+  Einstellungen): Freigabe liegt beim Aufrufer, User-Agent und 1 Anfrage/s,
+  Token nur im Header, AcoustID per POST mit `%2B`, Discogs-Positionen und
+  Titel-Splitting, Matcher-Schwellen, Keychain statt UserDefaults.

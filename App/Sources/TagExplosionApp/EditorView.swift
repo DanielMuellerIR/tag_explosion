@@ -133,9 +133,13 @@ struct TagEditorTab: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
-                // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
-                FilenamePatternMenu(entries: [entry])
-                    .padding(.top, 4)
+                HStack(spacing: 12) {
+                    // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
+                    FilenamePatternMenu(entries: [entry])
+                    // Titel online nachschlagen (nur auf Klick, siehe Einstellungen).
+                    OnlineLookupButton(entries: [entry])
+                }
+                .padding(.top, 4)
             }
             Spacer()
         }

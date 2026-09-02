@@ -27,6 +27,16 @@
 - **Audio** — alle Tag-Felder inklusive Custom-Keys, Coverbilder und
   Batch-Bearbeitung: gemeinsame Felder, Tracks nummerieren, Titel aus
   Dateinamen, ein Cover für alle Dateien.
+- **Online nachschlagen** — „Online nachschlagen …" im Einzel- und
+  Batch-Editor fragt MusicBrainz oder Discogs nach einem Release (Interpret +
+  Album, bei einer einzelnen Datei Interpret + Titel) oder erkennt eine Datei
+  per Audio-Fingerabdruck über AcoustID (`fpcalc` aus Homebrew `chromaprint`,
+  braucht einen kostenlosen Client-Key). Kandidaten, Zuordnung Datei → Titel
+  (Tracknummer, sonst Dauer ±3 s und Titelähnlichkeit) und Vorschau je Feld
+  (alt → neu, Cover-Vorschau); „Übernehmen" füllt nur den Editor, gespeichert
+  wird wie gewohnt. Schreibt auch die Kennungen von MusicBrainz, Discogs und
+  AcoustID. Gesendet wird nichts, solange Online-Dienste nicht in den
+  Einstellungen erlaubt und der Datenschutzhinweis bestätigt sind — siehe unten.
 - **Bilder** — EXIF/IPTC/XMP nach MWG harmonisiert (Titel, Beschreibung,
   Schlagwörter, Ersteller, Copyright, Datum, Bewertung, GPS), dazu eine
   vollständige Ansicht aller rohen Metadaten-Gruppen.
@@ -218,6 +228,22 @@ abgeschnitten, Zufallsbytes, führender Bindestrich im Dateinamen) nichts
 beschädigen, und dass die Papierkorb-Kopie wirklich den Stand vor der Änderung
 enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
+## Datenschutz: Online-Dienste
+
+Tag Explosion nimmt von sich aus keinen Kontakt zu einem Server auf — kein
+automatisches Nachschlagen beim Öffnen einer Datei, keine Nutzungsdaten, keine
+Update-Suche außer der von Sparkle, der Sie selbst zustimmen. Das Nachschlagen
+ist ab Werk aus (Einstellungen → „Online-Dienste erlauben") und zeigt vor der
+ersten Anfrage, welche Daten wohin gehen: Suchbegriffe (Interpret, Album,
+Titel, Jahr, Titelanzahl) an MusicBrainz und Discogs, die Release-Kennung ans
+Cover Art Archive für Cover sowie ein Audio-Fingerabdruck (nicht das Audio)
+mit Spieldauer und Ihrem Client-Key an AcoustID. Jede Anfrage trägt den
+User-Agent `TagExplosion/<Version>` mit der Projektadresse, wie MusicBrainz es
+verlangt; je Dienst geht höchstens eine Anfrage pro Sekunde. Discogs-Token und
+AcoustID-Key liegen im macOS-Schlüsselbund, nicht in den Voreinstellungen; die
+CLI liest sie aus `TAGX_DISCOGS_TOKEN` und `TAGX_ACOUSTID_KEY` und sendet nur
+mit `TAGX_ONLINE=1` (`tagx lookup --privacy` zeigt den Hinweis).
+
 ## Unterstützte Formate
 
 | Medium | Dateiformate | Tag-Formate |
@@ -298,6 +324,9 @@ tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
 tagx invoice rechnung.pdf                      # E-Rechnung: Profil, Hinweise + alle Felder (BT-Nummern)
 tagx invoice bestellung.xml --strict           # Exit 3, wenn die Grundvalidierung Hinweise meldet
+TAGX_ONLINE=1 tagx lookup Album/*.flac         # MusicBrainz-Kandidaten + Plan (alt -> neu), nur Vorschau
+TAGX_ONLINE=1 tagx lookup --source discogs --choose 2 --apply --cover Album/*.flac   # Kandidat 2 samt Cover schreiben
+TAGX_ONLINE=1 TAGX_ACOUSTID_KEY=… tagx lookup --source acoustid song.mp3   # per Fingerabdruck erkennen (fpcalc); Exit 5 = kein Treffer
 tagx set song.mp3 -t ARTIST="X" --no-backup    # ohne Sicherungskopie im Papierkorb
 ```
 

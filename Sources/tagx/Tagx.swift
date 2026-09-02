@@ -4,8 +4,10 @@ import ArgumentParser
 import Foundation
 import TagExplosionCore
 
+// Async, weil `tagx lookup` auf Netzantworten wartet; die übrigen
+// Unterbefehle bleiben synchron und laufen unter einer Async-Wurzel unverändert.
 @main
-struct Tagx: ParsableCommand {
+struct Tagx: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "tagx",
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
@@ -13,7 +15,7 @@ struct Tagx: ParsableCommand {
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Lyrics.self, Layers.self,
                       Info.self, Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self,
                       Import.self, Rename.self, Parse.self, Playlist.self, Cue.self,
-                      Nfo.self, Subtitle.self],
+                      Nfo.self, Subtitle.self, Lookup.self],
         defaultSubcommand: Show.self
     )
 }
