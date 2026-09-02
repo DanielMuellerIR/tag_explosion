@@ -8,6 +8,26 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.25.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Weitere Audio-/Container-Endungen über TagLib: mp2, aifc, mka, 3gp/3g2
+  (Tags und Cover; Matroska ohne Cover) sowie Tracker-Module mod, s3m, xm, it
+  (Titel, Kommentar und Tracker-Name). Sun-AU (`au`) und Ogg-Video (`ogv`)
+  öffnen zur Anzeige im Technik-Tab. Was TagLib davon wirklich kann:
+  [knowledge/weitere-endungen-taglib.md](knowledge/weitere-endungen-taglib.md).
+- Fixture-Generator erzeugt die neuen Formate per ffmpeg und Tracker-Module
+  als synthetische Minimaldateien; Roundtrip-, Ablehnungs- und
+  mediainfo-Cross-Check-Tests dazu.
+
+### Geändert
+
+- Der Editor sperrt Felder, die ein Format nicht speichern kann (Tracker:
+  alles außer Titel/Kommentar), und das Cover-Feld bei Formaten ohne
+  Cover-Speicherort (Tracker, mkv/mka/webm, Anzeige-Formate), statt erst
+  beim Speichern zu scheitern.
+
 ## [0.24.0] — 2026-09-02
 
 ### Hinzugefügt
