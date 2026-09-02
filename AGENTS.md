@@ -82,6 +82,7 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 
 <!-- directory-structure: generated -->
 - [docs/PLAN.md](docs/PLAN.md) — Architekturplan und Meilensteine
+- [docs/ROADMAP.md](docs/ROADMAP.md) — offene Arbeitspakete mit Status
 - [Sources/](Sources/) — CTagShim (C++), TagExplosionCore (Swift), tagx (CLI)
 - [App/](App/) — SwiftUI-App-Quellen
 - [Tests/](Tests/) — XCTest + Fixture-Generator
