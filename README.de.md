@@ -143,9 +143,9 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
-| Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
-| Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
+| Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
 

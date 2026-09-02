@@ -71,6 +71,14 @@ struct TagEditorTab: View {
                           systemImage: "lock.fill")
                         .foregroundStyle(.orange)
                 }
+                if writableKeys != nil {
+                    // Tracker-Module: TagLib würde alle anderen Felder beim
+                    // Speichern ablehnen. Gesperrte Felder statt eines späten
+                    // Fehlers — und kein Cover-Speicherort.
+                    Label("Tracker-Modul: Dieses Format speichert nur Titel und Kommentar (Sample-Namen); die übrigen Felder sind gesperrt.",
+                          systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
+                }
                 if let error = entry.lastError {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
@@ -116,6 +124,15 @@ struct TagEditorTab: View {
             + (audio.channels == 1 ? "Mono" : String(localized: "\(audio.channels) Kanäle"))
     }
 
+    /// Felder, die das Format speichern kann; nil = alle (Regel im Core).
+    private var writableKeys: Set<String>? {
+        MediaFormats.writableTagKeys(for: entry.url)
+    }
+
+    private func isWritable(_ key: String) -> Bool {
+        writableKeys?.contains(key) ?? true
+    }
+
     // Kernfelder als zweispaltiges Formular
     private var primarySection: some View {
         GroupBox("Tags") {
@@ -131,6 +148,10 @@ struct TagEditorTab: View {
                             // Gleiche Kopier-Mechanik wie im Batch, nur für diese eine Datei.
                             CopyFromFieldMenu(entries: [entry], targetKey: field.key)
                         }
+                        // Gesperrt, wenn das Format den Schlüssel nicht kennt
+                        // (Tracker-Module): Eine Eingabe hier würde das
+                        // Speichern der ganzen Datei scheitern lassen.
+                        .disabled(!isWritable(field.key))
                     }
                 }
             }

@@ -358,13 +358,13 @@ struct DropPlaceholder: View {
             HStack(alignment: .top, spacing: 30) {
                 FormatColumn(title: "Audio", systemImage: "music.note",
                              formats: Self.audioDisplay,
-                             tagFormats: "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info")
+                             tagFormats: "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info · Matroska-Tags · Tracker-Titel (au nur Anzeige)")
                 FormatColumn(title: "Bilder", systemImage: "photo",
                              formats: Self.imageDisplay,
                              tagFormats: "EXIF · IPTC · XMP (MWG-harmonisiert)")
                 FormatColumn(title: "Video", systemImage: "film",
                              formats: Self.videoDisplay,
-                             tagFormats: "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)")
+                             tagFormats: "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)")
                 FormatColumn(title: "E-Books", systemImage: "book",
                              formats: Self.ebookDisplay,
                              tagFormats: Self.ebookTagFormats)

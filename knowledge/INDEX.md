@@ -25,6 +25,10 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
   BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
   samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [weitere-endungen-taglib.md](weitere-endungen-taglib.md) — Bei neuen
+  Endungen oder Tracker-/Matroska-/3GP-Fragen: was TagLib 2.3 wirklich liest
+  und schreibt (au/ogv gar nicht, mka ohne Cover, Tracker nur Titel/Kommentar
+  in Latin1 mit Längenlimit), Fixture-Rezepte und die MP4-Fake-JPEG-Falle.
 - [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag

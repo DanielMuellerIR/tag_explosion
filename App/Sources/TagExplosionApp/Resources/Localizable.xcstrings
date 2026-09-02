@@ -821,12 +821,12 @@
         }
       }
     },
-    "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info": {
+    "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info · Matroska-Tags · Tracker-Titel (au nur Anzeige)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "ID3v1/v2 · MP4 atoms · Vorbis Comments · APEv2 · ASF · RIFF INFO"
+            "value": "ID3v1/v2 · MP4 atoms · Vorbis Comments · APEv2 · ASF · RIFF INFO · Matroska tags · tracker titles (au view only)"
           }
         }
       }
@@ -941,6 +941,16 @@
         }
       }
     },
+    "Kein Cover\nin diesem Format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cover\nin this format"
+          }
+        }
+      }
+    },
     "Keine Dateien": {
       "localizations": {
         "en": {
@@ -1021,12 +1031,12 @@
         }
       }
     },
-    "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
+    "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "MP4 atoms · Matroska tags (mov/avi view only)"
+            "value": "MP4 atoms · Matroska tags (mov/avi/ogv view only)"
           }
         }
       }
@@ -1497,6 +1507,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Titles from File Names"
+          }
+        }
+      }
+    },
+    "Tracker-Modul: Dieses Format speichert nur Titel und Kommentar (Sample-Namen); die übrigen Felder sind gesperrt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracker module: this format stores only title and comment (sample names); the other fields are locked."
           }
         }
       }
