@@ -22,14 +22,22 @@ struct ExifShow: ParsableCommand {
 
     struct Report: Codable {
         var file: String
+        /// Zusammengeführte Kernfelder: Sidecar-Werte überlagern eingebettete.
         var core: ImageCoreFields
+        /// Pfad der XMP-Sidecar, falls eine neben dem Bild liegt.
+        var sidecar: String?
+        /// Kernfelder, deren Wert aus der Sidecar stammt.
+        var sidecarFields: [String]
+        /// Wohin `exif set` ohne `--sidecar` schreiben würde (Grund, siehe
+        /// `ImageWriteDestination.Reason`).
+        var writeTarget: String
         var groups: [MetadataGroup]?
     }
 
     /// Beide exiftool-Aufrufe als ein Lesewert, damit `FileSnapshot` sie
     /// gemeinsam gegen den Dateistempel absichern kann.
     private struct Reading: Sendable {
-        let core: ImageCoreFields
+        let core: ImageCoreReading
         let groups: [MetadataGroup]?
     }
 
@@ -41,20 +49,30 @@ struct ExifShow: ParsableCommand {
         // letzte Zeitfenster. Sonst könnte `core` aus der alten und `groups`
         // aus einer neuen Fassung stammen.
         let snapshot = try FileSnapshot.capture(at: url) {
-            let core = try ExifTool.readCoreFields(url: url)
+            let core = try ExifTool.readCoreReading(url: url)
             let groups = all ? try ExifTool.readAllGroups(url: url) : nil
             return Reading(core: core, groups: groups)
         }
         try snapshot.requireCurrent(at: url)
-        let core = snapshot.value.core
+        let reading = snapshot.value.core
+        let core = reading.fields
         let groups = snapshot.value.groups
+        let sidecarFields = ImageCoreFieldKey.allCases
+            .filter { reading.sidecarFields.contains($0) }.map(\.rawValue)
+        let destination = ExifTool.writeDestination(for: url, preferSidecar: false)
         if json {
-            try printJSON(Report(file: url.path, core: core, groups: groups))
+            try printJSON(Report(
+                file: url.path, core: core, sidecar: reading.sidecarURL?.path,
+                sidecarFields: sidecarFields, writeTarget: destination.reason.rawValue,
+                groups: groups))
             return
         }
         func line(_ label: String, _ value: String) {
             if !value.isEmpty { print("\(label)=\(value)") }
         }
+        line("SIDECAR", reading.sidecarURL?.path ?? "")
+        line("SIDECAR_FIELDS", sidecarFields.joined(separator: ","))
+        if destination.isSidecar { line("WRITE_TARGET", destination.reason.rawValue) }
         line("TITLE", core.title)
         line("DESCRIPTION", core.description)
         line("KEYWORDS", core.keywords.joined(separator: ", "))
@@ -98,6 +116,14 @@ struct ExifSet: ParsableCommand {
             rating/GPS take no free text). Groups as in `exif show --all`.
             """)
     var copy: [String] = []
+    @Flag(name: .long,
+          help: """
+          Write into the XMP sidecar <name>.xmp next to the image instead of \
+          the image itself (created if missing). Always on for camera RAW \
+          (cr2, cr3, nef, arw, raf, orf, rw2, pef), for formats exiftool \
+          cannot write (bmp, svg) and whenever a sidecar already exists.
+          """)
+    var sidecar = false
     @OptionGroup var safeMode: SafeModeOptions
 
     /// Textuelle Kernfelder, in die kopiert werden darf (Typkompatibilität:
@@ -108,7 +134,7 @@ struct ExifSet: ParsableCommand {
         safeMode.apply()
         let url = try resolveFile(file)
         let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
-        let original = snapshot.value
+        let original = snapshot.value.fields
         var fields = original
         if let title { fields.title = title }
         if let description { fields.description = description }
@@ -188,9 +214,18 @@ struct ExifSet: ParsableCommand {
             return
         }
         try snapshot.requireCurrent(at: url)
-        try TrashBackup.shared.backUp(url)
+        // Gesichert wird die Datei, die sich wirklich ändert: bei einem
+        // Sidecar-Ziel die .xmp (eine noch fehlende Sidecar überspringt die
+        // Sicherung — es gibt nichts zu sichern), sonst das Bild.
+        let destination = ExifTool.writeDestination(for: url, preferSidecar: sidecar)
+        try TrashBackup.shared.backUp(destination.url)
         try ExifTool.writeCoreFields(
-            url: url, fields: fields, original: original, expecting: snapshot.stamp)
-        print("OK \(url.lastPathComponent)")
+            url: url, fields: fields, original: original, expecting: snapshot.stamp,
+            to: destination, sidecar: snapshot.value.sidecar)
+        if destination.isSidecar {
+            print("OK \(url.lastPathComponent) -> \(destination.url.lastPathComponent) (\(destination.reason.rawValue))")
+        } else {
+            print("OK \(url.lastPathComponent)")
+        }
     }
 }

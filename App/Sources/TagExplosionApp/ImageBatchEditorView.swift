@@ -11,6 +11,8 @@ struct ImageBatchEditorView: View {
     /// Roh-Tags aller ausgewählten Bilder als Kopier-Quellen:
     /// Pfad → ("Gruppe:Tag" → Textwert). nil = wird noch geladen.
     @State private var rawTags: [String: [String: String]]?
+    /// Einstellung „Sidecar statt Original" — für den Hinweis im Kopf.
+    @AppStorage(AppModel.imageSidecarDefaultsKey) private var sidecarPreferred = false
 
     var body: some View {
         ScrollView {
@@ -42,6 +44,25 @@ struct ImageBatchEditorView: View {
                 Label("\(dirtyCount) mit ungespeicherten Änderungen", systemImage: "pencil.circle")
                     .font(.caption)
                     .foregroundStyle(.orange)
+            }
+            // Sidecar-Zustand der Auswahl: Wie viele Bilder lesen Werte aus
+            // einer Sidecar, wie viele werden beim Speichern in eine Sidecar
+            // geschrieben (RAW, nicht schreibbares Format, Einstellung)?
+            let sidecarReadCount = entries.filter { $0.imageReading.sidecarURL != nil }.count
+            let sidecarWriteCount = entries.filter {
+                ExifTool.writeDestination(for: $0.url, preferSidecar: sidecarPreferred).isSidecar
+            }.count
+            if sidecarReadCount > 0 {
+                Label("\(sidecarReadCount) mit Werten aus einer XMP-Sidecar", systemImage: "doc.badge.gearshape")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("image.batch.sidecar.present")
+            }
+            if sidecarWriteCount > 0 {
+                Label("\(sidecarWriteCount) werden in die XMP-Sidecar geschrieben, nicht in die Bilddatei", systemImage: "arrow.right.doc.on.clipboard")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("image.batch.sidecar.target")
             }
         }
     }
@@ -142,6 +163,13 @@ struct ImageBatchEditorView: View {
                         Text(entry.imageFields.keywords.joined(separator: ", "))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                        if entry.imageReading.sidecarURL != nil {
+                            Text("Sidecar")
+                                .font(.caption2)
+                                .padding(.horizontal, 5)
+                                .background(.quaternary, in: Capsule())
+                                .help("Werte dieses Bildes stammen (teils) aus der XMP-Sidecar-Datei.")
+                        }
                         if entry.isDirty {
                             Circle().fill(.orange).frame(width: 6, height: 6)
                         }

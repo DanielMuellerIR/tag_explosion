@@ -81,12 +81,32 @@
         }
       }
     },
+    "%lld mit Werten aus einer XMP-Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld with values from an XMP sidecar"
+          }
+        }
+      }
+    },
     "%lld mit ungespeicherten Änderungen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld with unsaved changes"
+          }
+        }
+      }
+    },
+    "%lld werden in die XMP-Sidecar geschrieben, nicht in die Bilddatei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld will be written to the XMP sidecar, not to the image file"
           }
         }
       }
@@ -361,6 +381,16 @@
         }
       }
     },
+    "Bild-Metadaten in XMP-Sidecar schreiben statt in die Bilddatei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write image metadata to an XMP sidecar instead of the image file"
+          }
+        }
+      }
+    },
     "Bilddatei hierher ziehen, um das Cover zu ersetzen": {
       "localizations": {
         "en": {
@@ -521,6 +551,16 @@
         }
       }
     },
+    "Dieser Wert stammt aus der XMP-Sidecar-Datei, nicht aus der Bilddatei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This value comes from the XMP sidecar file, not from the image file."
+          }
+        }
+      }
+    },
     "Dieses Archiv enthält %lld Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:": {
       "localizations": {
         "en": {
@@ -627,6 +667,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Embedded as"
+          }
+        }
+      }
+    },
+    "Einstellung: Änderungen gehen in die Sidecar %@ statt in die Bilddatei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setting: changes go to the sidecar %@ instead of the image file."
           }
         }
       }
@@ -927,6 +977,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Now available: %@."
+          }
+        }
+      }
+    },
+    "Kamera-RAW: Änderungen gehen in die Sidecar %@, das RAW bleibt unverändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera RAW: changes go to the sidecar %@; the RAW file stays untouched."
           }
         }
       }
@@ -1321,6 +1381,16 @@
         }
       }
     },
+    "Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidecar"
+          }
+        }
+      }
+    },
     "Speichere Änderungen …": {
       "localizations": {
         "en": {
@@ -1681,6 +1751,26 @@
         }
       }
     },
+    "Werte aus Sidecar: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Values from sidecar: %@"
+          }
+        }
+      }
+    },
+    "Werte dieses Bildes stammen (teils) aus der XMP-Sidecar-Datei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Values of this image come (partly) from the XMP sidecar file."
+          }
+        }
+      }
+    },
     "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)": {
       "localizations": {
         "en": {
@@ -1727,6 +1817,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open brew.sh"
+          }
+        }
+      }
+    },
+    "exiftool kann dieses Format nicht beschreiben: Änderungen gehen in die Sidecar %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exiftool cannot write this format: changes go to the sidecar %@."
           }
         }
       }
@@ -1811,6 +1911,16 @@
         }
       }
     },
+    "Änderungen an Bildern landen in einer Datei <name>.xmp neben dem Bild; das Bild selbst bleibt unverändert. Für Kamera-RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef) und Formate ohne Schreibweg (bmp, svg) gilt das immer — und sobald eine Sidecar vorhanden ist, weil ihre Werte beim Lesen Vorrang haben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes to images go into a file <name>.xmp next to the image; the image itself stays untouched. This is always the case for camera RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef), for formats that cannot be written (bmp, svg), and whenever a sidecar already exists, because its values take precedence when reading."
+          }
+        }
+      }
+    },
     "Änderungen der Auswahl speichern (⌘S)": {
       "localizations": {
         "en": {
@@ -1821,12 +1931,32 @@
         }
       }
     },
+    "Änderungen gehen in die vorhandene Sidecar %@, weil ihre Werte beim Lesen Vorrang haben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes go to the existing sidecar %@ because its values take precedence when reading."
+          }
+        }
+      }
+    },
     "Änderungen verwerfen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Discard Changes"
+          }
+        }
+      }
+    },
+    "Änderungen werden in die Bilddatei geschrieben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes are written to the image file."
           }
         }
       }

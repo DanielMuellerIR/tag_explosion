@@ -30,6 +30,15 @@
 - **Bilder** — EXIF/IPTC/XMP nach MWG harmonisiert (Titel, Beschreibung,
   Schlagwörter, Ersteller, Copyright, Datum, Bewertung, GPS), dazu eine
   vollständige Ansicht aller rohen Metadaten-Gruppen.
+- **Kamera-RAW und XMP-Sidecars** — cr2, cr3, nef, arw, raf, orf, rw2, pef
+  werden über exiftool gelesen und nie direkt beschrieben: Änderungen gehen
+  in die XMP-Sidecar `<name>.xmp` neben der Datei (wird bei Bedarf angelegt).
+  Beim Lesen überlagern Sidecar-Werte die eingebetteten feldweise, wie in
+  Lightroom und Bridge; der Editor markiert, welche Werte aus der Sidecar
+  stammen. Eine `.xmp` allein öffnet sich wie ein Bild ohne Pixel. Für alle
+  Bildformate wählbar („Sidecar statt Original schreiben", `tagx exif set
+  --sidecar`); für RAW und für Formate, die exiftool nicht schreiben kann
+  (bmp, svg), erzwungen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
@@ -144,7 +153,8 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
 | Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info |
-| Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
+| Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (nur Sidecar) · xmp | EXIF, IPTC, XMP (MWG-harmonisiert) |
+| Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
@@ -187,6 +197,8 @@ tagx set song.mp3 -t ARTIST="Miles Davis"      # Felder setzen
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
+tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
+tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei
 tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau

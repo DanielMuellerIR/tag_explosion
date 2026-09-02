@@ -96,6 +96,47 @@ enum AtomicFileRewrite {
         }
     }
 
+    /// Legt eine NEUE Datei an, die es noch nicht gibt (etwa eine erste
+    /// XMP-Sidecar): `mutate` erzeugt die Geschwister-Temp-Datei selbst,
+    /// `validate` prüft sie, danach wird sie per `link` exklusiv auf den
+    /// Zielnamen gesetzt. `link` scheitert atomar, wenn inzwischen ein
+    /// anderes Programm dieselbe Datei angelegt hat — eine bloße
+    /// `fileExists`-Prüfung vorher ließe dieses Zeitfenster offen. Bei
+    /// `replacingOriginal == false` (Dry-run) wird die geprüfte Temp-Datei
+    /// verworfen.
+    static func create(
+        url: URL,
+        replacingOriginal: Bool,
+        beforeReplace: () throws -> Void,
+        mutate: (URL) throws -> Void,
+        validate: (URL) throws -> Void
+    ) throws {
+        let destination = MediaFormats.canonicalFileURL(url)
+        let temp = siblingTempURL(for: destination)
+        let fileManager = FileManager.default
+        defer { try? fileManager.removeItem(at: temp) }
+
+        do {
+            try mutate(temp)
+            try validate(temp)
+        } catch let error as TagError {
+            throw error
+        } catch {
+            throw TagError.saveFailed(path: url.path)
+        }
+        guard replacingOriginal else { return }
+
+        try beforeReplace()
+        guard link(temp.path, destination.path) == 0 else {
+            // EEXIST: Jemand anderes hat die Datei gerade angelegt — dessen
+            // Stand bleibt unangetastet, der Aufrufer liest neu.
+            if errno == EEXIST {
+                throw TagError.fileChangedOnDisk(path: url.path)
+            }
+            throw TagError.saveFailed(path: url.path)
+        }
+    }
+
     private static func siblingTempURL(for url: URL) -> URL {
         let ext = url.pathExtension
         let stem = url.deletingPathExtension().lastPathComponent

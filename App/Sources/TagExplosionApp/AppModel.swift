@@ -39,7 +39,11 @@ final class FileEntry: Identifiable {
     var artworks: [Artwork] = []
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
+    /// `imageOriginal` ist der zusammengeführte Stand (Sidecar-Werte
+    /// überlagern eingebettete); `imageReading` trägt dazu, welche Felder
+    /// aus der Sidecar stammen und wie deren Stempel beim Lesen war.
     private(set) var imageOriginal = ImageCoreFields()
+    private(set) var imageReading = ImageCoreReading(fields: ImageCoreFields())
     var imageFields = ImageCoreFields()
 
     /// Original und Bearbeitungspuffer für E-Books (nur bei kind == .ebook).
@@ -79,7 +83,9 @@ final class FileEntry: Identifiable {
     /// den später möglicherweise veränderten UI-Feldern.
     enum SaveSnapshot: Sendable {
         case audio(properties: [TagProperty], artworks: [Artwork])
-        case image(fields: ImageCoreFields, original: ImageCoreFields)
+        /// `sidecar`: Sidecar-Zustand aus dem Lesevorgang — damit erkennt der
+        /// Schreibweg eine inzwischen fremd angelegte oder geänderte Sidecar.
+        case image(fields: ImageCoreFields, original: ImageCoreFields, sidecar: SidecarState)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
     }
 
@@ -95,10 +101,11 @@ final class FileEntry: Identifiable {
             self.original = data
             self.properties = data.properties
             self.artworks = data.artworks
-        case .image(let fields):
+        case .image(let reading):
             self.kind = .image
-            self.imageOriginal = fields
-            self.imageFields = fields
+            self.imageReading = reading
+            self.imageOriginal = reading.fields
+            self.imageFields = reading.fields
         case .ebook(let fields, let cover):
             self.kind = .ebook
             self.ebookOriginal = fields
@@ -154,9 +161,10 @@ final class FileEntry: Identifiable {
     }
 
     /// Bild-Pendant zu `acceptNewOriginal`.
-    func acceptNewImageOriginal(_ fields: ImageCoreFields) {
-        imageOriginal = fields
-        imageFields = fields
+    func acceptNewImageOriginal(_ reading: ImageCoreReading) {
+        imageReading = reading
+        imageOriginal = reading.fields
+        imageFields = reading.fields
         lastError = nil
     }
 
@@ -194,7 +202,7 @@ final class FileEntry: Identifiable {
         diskStamp = stamp
         switch loaded {
         case .audio(let data): acceptNewOriginal(data)
-        case .image(let fields): acceptNewImageOriginal(fields)
+        case .image(let reading): acceptNewImageOriginal(reading)
         case .ebook(let fields, let cover): acceptNewEbookOriginal(fields, cover: cover)
         case .invoice(let document):
             invoiceDocument = document
@@ -211,7 +219,8 @@ final class FileEntry: Identifiable {
         case .audio:
             return .audio(properties: properties, artworks: artworks)
         case .image:
-            return .image(fields: imageFields, original: imageOriginal)
+            return .image(fields: imageFields, original: imageOriginal,
+                          sidecar: imageReading.sidecar)
         case .ebook:
             return .ebook(fields: ebookFields, original: ebookOriginal,
                           cover: ebookCoverReplacement)
@@ -254,9 +263,10 @@ final class FileEntry: Identifiable {
             original = data
             if properties == savedProperties { properties = data.properties }
             if artworks == savedArtworks { artworks = data.artworks }
-        case (.image(let savedFields, _), .image(let fields)):
-            imageOriginal = fields
-            if imageFields == savedFields { imageFields = fields }
+        case (.image(let savedFields, _, _), .image(let reading)):
+            imageReading = reading
+            imageOriginal = reading.fields
+            if imageFields == savedFields { imageFields = reading.fields }
         case (.ebook(let savedFields, _, let savedCover), .ebook(let fields, let cover)):
             ebookOriginal = fields
             ebookOriginalCover = cover
@@ -349,7 +359,9 @@ final class FileEntry: Identifiable {
 /// Frisch gelesener Datei-Zustand (Audio, Bild, E-Book oder E-Rechnung).
 enum LoadedData: Sendable {
     case audio(TagData)
-    case image(ImageCoreFields)
+    /// Bilder tragen ihren Sidecar-Zustand mit: welche Felder aus der
+    /// XMP-Sidecar stammen und wie deren Stempel beim Lesen war.
+    case image(ImageCoreReading)
     /// E-Books tragen ihr Cover mit: Felder und Cover stammen aus einem
     /// gemeinsamen Lesevorgang, und nur mit dem Original-Cover im Speicher
     /// lässt sich ein gleich gebliebenes Cover als Nichts-Tun erkennen.
@@ -599,7 +611,7 @@ final class AppModel {
                 }
                 return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))
             }
-        case .image: return .image(try ExifTool.readCoreFields(url: url))
+        case .image: return .image(try ExifTool.readCoreReading(url: url))
         case .ebook:
             // Felder und Cover in einem Schnappschuss: Der Editor zeigt damit
             // garantiert das Cover derselben Dateifassung, und ein erneut
@@ -680,6 +692,18 @@ final class AppModel {
     static func applySafeMode() {
         TrashBackup.shared.isEnabled = safeModeEnabled
         TrashBackup.shared.folderLabel = String(localized: "Tag Explosion Sicherung")
+    }
+
+    /// Schlüssel der Einstellung „Bild-Metadaten in die XMP-Sidecar schreiben
+    /// statt in die Bilddatei". Voreinstellung aus; für Kamera-RAW und
+    /// Formate ohne exiftool-Schreibweg erzwingt der Core die Sidecar ohnehin.
+    nonisolated static let imageSidecarDefaultsKey = "writeImageSidecar"
+
+    /// Sidecar statt Original für alle Bildformate? (Default: aus).
+    /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest; UserDefaults
+    /// ist threadsicher.
+    nonisolated static var imageSidecarPreferred: Bool {
+        UserDefaults.standard.bool(forKey: imageSidecarDefaultsKey)
     }
 
     /// Auto-Backup vor Batch-Speichern? (Default: an)
@@ -1299,23 +1323,31 @@ final class AppModel {
         // Datei legen, und ein Serienindex ohne Serie scheiterte erst NACH
         // der Papierkorb-Kopie — jeder solche Versuch legte eine unnötige
         // Sicherung der unveränderten Datei an.
-        if case .image(let fields, let original) = snapshot {
+        if case .image(let fields, let original, _) = snapshot {
             try ExifTool.requireValidCoreFields(fields, original: original)
         }
         if case .ebook(let fields, let original, let cover) = snapshot {
             try EbookTool.requireStorableSeries(fields, original: original, url: url)
             if let cover { try EbookTool.requireSupportedCover(cover, for: url) }
         }
+        // Bilder: Kamera-RAW, Formate ohne exiftool-Schreibweg, eine schon
+        // vorhandene Sidecar und die Einstellung lenken die Änderung in die
+        // XMP-Sidecar `<name>.xmp`. Gesichert wird dann DIESE Datei; eine
+        // noch fehlende Sidecar hat nichts zu sichern (backUp überspringt sie).
+        let imageDestination: ImageWriteDestination? = kind == .image
+            ? ExifTool.writeDestination(for: url, preferSidecar: imageSidecarPreferred)
+            : nil
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
-        try TrashBackup.shared.backUp(url)
+        try TrashBackup.shared.backUp(imageDestination?.url ?? url)
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks)):
             try TagFile.write(properties: properties, artworks: artworks, to: url,
                               expecting: stamp)
-        case (.image, .image(let fields, let original)):
+        case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
-                                         expecting: stamp)
+                                         expecting: stamp, to: imageDestination,
+                                         sidecar: sidecar)
         case (.ebook, .ebook(let fields, let original, let cover)):
             try EbookTool.write(
                 url: url, fields: fields, original: original,

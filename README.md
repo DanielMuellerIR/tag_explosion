@@ -30,6 +30,14 @@
 - **Images** — EXIF/IPTC/XMP harmonized the MWG way (title, description,
   keywords, creator, copyright, date, rating, GPS), plus a complete read-only
   view of all raw metadata groups.
+- **Camera RAW and XMP sidecars** — cr2, cr3, nef, arw, raf, orf, rw2, pef
+  are read via exiftool and never written directly: changes go into the XMP
+  sidecar `<name>.xmp` next to the file (created on demand). Sidecar values
+  overlay the embedded ones per field when reading, the way Lightroom and
+  Bridge do, and the editor marks which values come from the sidecar. A
+  `.xmp` on its own opens like an image without pixels. Optional for every
+  image format ("write sidecar instead of original", `tagx exif set
+  --sidecar`); forced for RAW and for formats exiftool cannot write (bmp, svg).
 - **Video** — MP4 and Matroska tags editable; other containers shown
   read-only.
 - **E-books/documents** — the Calibre-style metadata set (title, authors,
@@ -138,7 +146,8 @@ These run on every push (see `.github/workflows/tests.yml`).
 | Media | File formats | Tag formats |
 |-------|--------------|-------------|
 | Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO |
-| Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonized) |
+| Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (sidecar only) · xmp | EXIF, IPTC, XMP (MWG-harmonized) |
+| Camera RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | read embedded; write to XMP sidecar `<name>.xmp` only |
 | Video | mp4, m4v, mkv, webm (editable) · mov, avi (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 | E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms |
@@ -180,6 +189,8 @@ tagx set song.mp3 -t ARTIST="Miles Davis"      # set fields
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # copy one tag into another
 tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
+tagx exif set IMG_0001.cr2 --rating 5        # RAW: written to IMG_0001.xmp
+tagx exif set photo.jpg --sidecar --title X  # any image: sidecar instead of file
 tagx ebook set book.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore

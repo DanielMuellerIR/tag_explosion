@@ -13,11 +13,52 @@ public enum MediaFormats {
         "tta", "dsf", "dff", "wma", "asf",
     ]
 
-    /// Bild-Endungen (Metadaten via exiftool).
-    public static let image: Set<String> = [
+    /// Bild-Endungen (Metadaten via exiftool). Enthält auch die Kamera-RAW-
+    /// Endungen, die nur über eine XMP-Sidecar-Datei beschrieben werden, die
+    /// Sidecar-Endung selbst (`xmp`, ein „Bild ohne Pixel") und Formate, die
+    /// exiftool nur lesen kann (`bmp`, `svg`; siehe `imageEmbeddedReadOnly`).
+    public static let image: Set<String> = Set([
         "jpg", "jpeg", "png", "heic", "heif", "tif", "tiff",
-        "webp", "dng", "gif",
+        "webp", "dng", "gif", "avif", "jxl", "bmp", "psd", "svg",
+        xmpSidecarExtension,
+    ]).union(rawImage)
+
+    /// Kamera-RAW-Endungen. Diese Dateien werden NIE direkt beschrieben:
+    /// Änderungen gehen in die XMP-Sidecar-Datei `<name>.xmp` daneben — so
+    /// wie Lightroom und Bridge es tun. Ein RAW ist das unveränderliche
+    /// „Negativ"; ein Schreibfehler darin wäre nicht wiedergutzumachen.
+    public static let rawImage: Set<String> = [
+        "cr2", "cr3", "nef", "arw", "raf", "orf", "rw2", "pef",
     ]
+
+    /// Bild-Endungen, in die exiftool KEINE Metadaten schreiben kann (Stand
+    /// exiftool 13.55, geprüft per `exiftool -listwf`; ein Test hält die
+    /// Liste gegen die installierte Version). Änderungen an solchen Dateien
+    /// landen ebenfalls in der Sidecar-Datei.
+    public static let imageEmbeddedReadOnly: Set<String> = ["bmp", "svg"]
+
+    /// Endung der XMP-Sidecar-Datei. Eine `.xmp` lässt sich auch alleine
+    /// öffnen und bearbeiten (gleiche Felder wie ein Bild, nur ohne Pixel).
+    public static let xmpSidecarExtension = "xmp"
+
+    /// Ist die Datei ein Kamera-RAW (Schreiben nur über Sidecar)?
+    public static func isRawImage(_ url: URL) -> Bool {
+        rawImage.contains(url.pathExtension.lowercased())
+    }
+
+    /// Ist die Datei selbst eine XMP-Sidecar-Datei?
+    public static func isXMPSidecar(_ url: URL) -> Bool {
+        url.pathExtension.lowercased() == xmpSidecarExtension
+    }
+
+    /// Pfad der XMP-Sidecar-Datei zu einem Bild: gleicher Ordner, gleicher
+    /// Name, Endung `.xmp` (Lightroom-/Bridge-Konvention). Für eine `.xmp`
+    /// selbst ist das die Datei selbst. Achtung: `foto.cr2` und `foto.jpg`
+    /// im selben Ordner teilen sich dieselbe Sidecar — auch das entspricht
+    /// den Adobe-Werkzeugen.
+    public static func sidecarURL(for url: URL) -> URL {
+        url.deletingPathExtension().appendingPathExtension(xmpSidecarExtension)
+    }
 
     /// Video-Endungen. Tags via TagLib (mp4/m4v/mkv/webm); Rest nur anzeigen.
     public static let video: Set<String> = [
@@ -116,8 +157,20 @@ public enum MediaFormats {
                 files.append(canonical)
             }
         }
-        return files.sorted {
+        return hidingSidecars(of: files).sorted {
             $0.path.localizedStandardCompare($1.path) == .orderedAscending
         }
+    }
+
+    /// Entfernt `.xmp`-Dateien, deren Bild ebenfalls in der Liste steht: Die
+    /// Sidecar wird über ihr Bild angezeigt und bearbeitet; als zweiter
+    /// Eintrag könnte sie mit dem Bild-Editor um dieselbe Datei konkurrieren.
+    /// Eine `.xmp` ohne Bild daneben bleibt als eigener Eintrag erhalten.
+    static func hidingSidecars(of files: [URL]) -> [URL] {
+        var sidecarOwners: Set<URL> = []
+        for file in files where !isXMPSidecar(file) && image.contains(file.pathExtension.lowercased()) {
+            sidecarOwners.insert(sidecarURL(for: file))
+        }
+        return files.filter { !isXMPSidecar($0) || !sidecarOwners.contains($0) }
     }
 }

@@ -52,6 +52,12 @@ genv sample.m4v
 # Testbilder: 64x64 rot (jpg) und blau (png)
 [ -f "$out/cover.jpg" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=red:size=64x64:duration=0.04" -frames:v 1 "$out/cover.jpg"
 [ -f "$out/cover.png" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=blue:size=64x64:duration=0.04" -frames:v 1 "$out/cover.png"
+# Winziges TIFF (grün): Ersatz für Kamera-RAW in den Sidecar-Tests — NEF, DNG
+# & Co. sind TIFF-Container, exiftool erkennt eine umbenannte TIFF-Datei als
+# RAW des jeweiligen Typs. Dazu ein BMP als Beispiel für ein Format, in das
+# exiftool nicht schreiben kann.
+[ -f "$out/cover.tif" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=green:size=8x8:duration=0.04" -frames:v 1 "$out/cover.tif"
+[ -f "$out/cover.bmp" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=green:size=8x8:duration=0.04" -frames:v 1 "$out/cover.bmp"
 
 # ---- E-Book-Fixtures --------------------------------------------------------
 # Minimale, handgebaute EPUBs (ZIP via zip-CLI; mimetype MUSS unkomprimiert als
