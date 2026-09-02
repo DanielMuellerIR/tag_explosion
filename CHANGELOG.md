@@ -8,6 +8,27 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.24.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Kapitel für Hörbücher und Podcasts: MP3 (ID3v2 CHAP/CTOC), MP4/M4A/M4B
+  (Nero `chpl` und QuickTime-Kapitelspur, beide werden geschrieben) und
+  Matroska/WebM lesen und schreiben. Grenzen und Fallen:
+  [knowledge/kapitel-hoerbuch.md](knowledge/kapitel-hoerbuch.md).
+- Editor-Abschnitt „Kapitel“ (nur bei Formaten mit Kapiteln): Titel, Beginn,
+  Ende bearbeiten, Kapitel hinzufügen/entfernen, Import und Export als JSON
+  oder Text (`HH:MM:SS.mmm Titel`).
+- `tagx chapters show [--json]`, `tagx chapters set --from <json|txt|->`,
+  `tagx chapters clear`; `tagx show` listet Kapitel mit.
+- Roadmap der offenen Erweiterungen in [docs/ROADMAP.md](docs/ROADMAP.md).
+
+### Geändert
+
+- Tag- und Cover-Schreiben lässt vorhandene Kapitel in allen drei Formaten
+  stehen (Test je Format).
+- Fixture-Generator erzeugt zusätzlich Kapitel-Dateien per ffmetadata.
+
 ## [0.23.15] — 2026-08-30
 
 ### Geprüft
