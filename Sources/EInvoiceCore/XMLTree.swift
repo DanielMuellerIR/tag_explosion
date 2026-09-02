@@ -53,6 +53,10 @@ public enum XMLTree {
         let uri = namespaceURI
         // UN/CEFACT CII (ZUGFeRD 2.x, Factur-X, XRechnung-CII)
         if uri.contains(":CrossIndustryInvoice:") { return "rsm" }
+        // UN/CEFACT CIO (Order-X); der Namensraum lautet
+        // urn:un:unece:uncefact:data:SCRDMCCBDACIOMessageStructure:100 —
+        // anders als bei CII OHNE das Segment "standard".
+        if uri.contains(":SCRDMCCBDACIOMessageStructure:") { return "rsm" }
         // ZUGFeRD 1.0 (Vorgänger-Schema, eigener Wurzel-Namensraum)
         if uri.hasPrefix("urn:ferd:CrossIndustryDocument") { return "rsm" }
         if uri.contains(":ReusableAggregateBusinessInformationEntity:") { return "ram" }

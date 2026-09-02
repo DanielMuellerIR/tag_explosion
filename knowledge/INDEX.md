@@ -23,8 +23,10 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   nicht sicher löschbare Cover und LC_ALL=C.
 - [e-rechnung-anzeige.md](e-rechnung-anzeige.md) — Bei Arbeit an EInvoiceCore,
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
-  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
-  samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), Dokumentart,
+  Order-X/Peppol-Bestellungen ohne BT-Nummern, Grundvalidierung (Regelcodes,
+  Toleranz, Währungsfalle), CGPDF-Extraktion samt
+  Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
 - [kapitel-hoerbuch.md](kapitel-hoerbuch.md) — Bei Arbeit an Kapiteln
   (CHAP/CTOC, MP4 Nero/QuickTime, Matroska): was TagLib 2.3 kann, Einheiten
   (ms vs. ns), fehlende MP4-Enden, welche Fremdwerkzeuge was lesen.
@@ -52,6 +54,15 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   TVSN/TVEP, keyw/ldes), warum PCST über die PropertyMap verloren geht,
   Sprache "XXX" nach jedem Textwechsel, Sidecar-Regeln, was kid3/mediainfo
   davon zeigen.
+- [id3-schichten.md](id3-schichten.md) — Bei Tag-Schichten (ID3v1/ID3v2/APE/
+  RIFF INFO/Vorbis), `tagx layers` oder der ID3v2.3-Option: welche Formate
+  welche Schichten kennen, `strip()` schreibt bei MPEG/WAV sofort, die
+  `List::erase`-Falle, FLAC-Vorbis bleibt als Hülle, was v2.3 am Datum kürzt.
+- [playlists-cue.md](playlists-cue.md) — Bei Arbeit an PlaylistTool, den
+  vier Backends (cue/m3u/pls/xspf), `tagx playlist`/`cue` oder dem
+  Playlist-Editor: zeilenweiser Erhalt statt Neuaufbau, Encoding-Fallback
+  wird beim Schreiben zu UTF-8, M3U-Anzeigetext ist ein Feld, Cue-Dauer nur
+  je Datei, `cue apply` nur bei einer Datei je Track, `/private/tmp`-Falle.
 - [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
   dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
   exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.

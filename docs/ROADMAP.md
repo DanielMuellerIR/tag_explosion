@@ -34,18 +34,18 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 
 | AP | Inhalt | Aufwand | Status |
 |----|--------|---------|--------|
-| AP6 | **ID3-Schichten und ID3v2.3-Option:** ID3v1, ID3v2, APE getrennt anzeigen und einzeln entfernen („Schicht strippen"); Schreiboption ID3v2.3 statt v2.4 für alte Player (Shim-Overload von `MPEG::File::save`). | mittel | 🔧 |
+| AP6 | **ID3-Schichten und ID3v2.3-Option:** ID3v1, ID3v2, APE getrennt anzeigen und einzeln entfernen („Schicht strippen"); Schreiboption ID3v2.3 statt v2.4 für alte Player (Shim-Overload von `MPEG::File::save`). | mittel | ✅ 0.29.0 |
 | AP7 | **Feste Felder mit Prüfung:** Lyrics (USLT) mit Sprache und synchronisierte Lyrics (SYLT / LRC-Sidecar), ReplayGain und R128-Lautheit (Wertebereich prüfen), Podcast-Felder (Episode, Season, Podcast-URL, GUID) für MP4 und ID3. | mittel | 🔧 |
-| AP8 | **Playlists und Cue-Sheets:** `.cue` anzeigen und bearbeiten (Titel, Interpret, Index); `.m3u`/`.m3u8`/`.pls`/`.xspf` anzeigen und aus einer Auswahl exportieren. | mittel | 🔧 |
+| AP8 | **Playlists und Cue-Sheets:** `.cue` anzeigen und bearbeiten (Titel, Interpret, Index); `.m3u`/`.m3u8`/`.pls`/`.xspf` anzeigen und aus einer Auswahl exportieren. | mittel | ✅ 0.31.0 |
 | AP9 | **Video-Sidecars:** Kodi/Jellyfin `.nfo` (XML) anzeigen und bearbeiten; `.srt`/`.vtt` mit Sprache und Titel anzeigen. | klein | 🔧 |
-| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | 🔧 |
+| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | ✅ 0.30.0 |
 
 ## Welle 3 — Werkzeuge rund um die Bibliothek
 
 | AP | Inhalt | Aufwand | Status |
 |----|--------|---------|--------|
-| AP11 | **Konsistenzprüfung über Ordner:** fehlende Cover, abweichende Album-Interpreten, Lücken und Dubletten in der Track-Nummerierung, uneinheitliche Jahreszahlen; Bericht in App und `tagx check --json`. | mittel | ⬜ |
-| AP12 | **Cover-Werkzeuge:** Größe/Format anzeigen und prüfen, verkleinern, nach JPEG wandeln, `folder.jpg`/`cover.jpg` übernehmen oder exportieren. | mittel | ⬜ |
+| AP11 | **Konsistenzprüfung über Ordner:** fehlende Cover, abweichende Album-Interpreten, Lücken und Dubletten in der Track-Nummerierung, uneinheitliche Jahreszahlen; Bericht in App und `tagx check --json`. | mittel | 🔧 |
+| AP12 | **Cover-Werkzeuge:** Größe/Format anzeigen und prüfen, verkleinern, nach JPEG wandeln, `folder.jpg`/`cover.jpg` übernehmen oder exportieren. | mittel | 🔧 |
 | AP13 | **Batch-Regeln als Skript:** Regeldatei (JSON) für Groß-/Kleinschreibung, Feldkopien, Suchen/Ersetzen, Leerzeichen trimmen; `tagx apply rules.json` und Regel-Editor in der App. | mittel | ⬜ |
 | AP14 | **Undo-Historie:** die Papierkorb-Sicherungen aus `TrashBackup` als Versionsliste pro Datei anzeigen und einzeln zurückholen. | mittel | ⬜ |
 | AP15 | **Online-Lookup:** MusicBrainz und Discogs (Release-Suche, Tags übernehmen), optional AcoustID-Fingerprint über `fpcalc`. Nur auf ausdrückliche Aktion, mit Datenschutzhinweis im UI; kein automatischer Netzzugriff. | groß | ⬜ |

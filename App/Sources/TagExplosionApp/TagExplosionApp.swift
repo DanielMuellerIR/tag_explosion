@@ -191,6 +191,7 @@ struct SettingsView: View {
     @AppStorage(AppModel.safeModeDefaultsKey) private var safeMode = true
     @AppStorage(AppModel.autoBackupDefaultsKey) private var autoBackup = true
     @AppStorage(AppModel.imageSidecarDefaultsKey) private var imageSidecar = false
+    @AppStorage(AppModel.id3v23DefaultsKey) private var writeID3v23 = false
     /// Wird beim Öffnen und nach jedem Speichern neu gelesen, damit die
     /// Größenangabe nicht veraltet.
     @State private var backedUpBytes: Int64 = 0
@@ -231,6 +232,18 @@ struct SettingsView: View {
                 cr3, nef, arw, raf, orf, rw2, pef) und Formate ohne Schreibweg \
                 (bmp, svg) gilt das immer — und sobald eine Sidecar vorhanden \
                 ist, weil ihre Werte beim Lesen Vorrang haben.
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("ID3v2.3 statt ID3v2.4 schreiben", isOn: $writeID3v23)
+                Text("""
+                Für alte Player und Autoradios, die ID3v2.4 nicht lesen. Gilt \
+                beim Speichern von MP3, WAV, AIFF und DSF. Grenzen von v2.3: \
+                Text wird als UTF-16 statt UTF-8 abgelegt, das Datum verliert \
+                die Sekunden und das Originaldatum alles außer dem Jahr.
                 """)
                 .font(.caption)
                 .foregroundStyle(.secondary)

@@ -8,6 +8,74 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.31.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Playlists und Cue-Sheets als neue Medienart: `.cue`, `.m3u`, `.m3u8`,
+  `.pls`, `.xspf` anzeigen (Einträge mit aufgelöstem Pfad, Existenzprüfung,
+  Gesamtdauer) und beschriften (Titel, Interpret, bei Cue-Sheets Datum und
+  Genre; Titel/Interpret je Eintrag). Fremde Zeilen, Zeilenenden und
+  Einrückung bleiben erhalten; Nicht-UTF-8-Dateien werden per
+  Latin1/MacRoman-Fallback gelesen. Fallen:
+  [knowledge/playlists-cue.md](knowledge/playlists-cue.md).
+- Playlist-Export aus einer Dateiauswahl als m3u8, pls oder xspf (Pfade
+  relativ zur Playlist, optional absolut): Menü „Playlist exportieren …“ im
+  Batch-Editor und `tagx playlist export`.
+- `tagx playlist show|set`, `tagx cue show|set` und `tagx cue apply`, das
+  Titel, Interpreten und Tracknummern eines Cue-Sheets in die referenzierten
+  Audiodateien schreibt (Probelauf als Voreinstellung, `--apply`; nur bei
+  einer Datei je Track).
+- Playlist-Editor in der App; Doppelklick auf einen Eintrag öffnet die Datei
+  in einem neuen Fenster.
+
+### Geändert
+
+- Tag-Archiv (Export/Import) und Dateinamen-Muster lassen Playlists aus, wie
+  bereits E-Rechnungen.
+
+## [0.30.0] — 2026-09-02
+
+### Hinzugefügt
+
+- E-Rechnungen: Order-X-Bestellungen (BASIC/COMFORT/EXTENDED, auch als
+  `order-x.xml` im PDF) sowie Peppol UBL Order und OrderResponse werden
+  erkannt; ihre Felder tragen Order-X-Bezeichnungen ohne BT-Nummern, weil
+  die Order-X-Nummerierung nicht verlässlich belegt werden konnte.
+- Dokumentart (Rechnung, Gutschrift, Bestellung, Bestellantwort) als eigenes
+  Feld in Ansicht und `tagx invoice --json` (`documentKind`); CII mit
+  Typcode 381 gilt als Gutschrift.
+- Grundvalidierung mit Hinweisen: fehlende Pflichtfelder nach EN 16931
+  (XRechnung: auch Leitweg-ID) und Summenrechnung BT-106 … BT-115 mit
+  Toleranz 0,01, Regelcodes der Norm (BR-…, BR-CO-…, BR-DE-15). Abschnitt
+  „Hinweise“ in der Rechnungsansicht, `WARNINGS` in `tagx invoice`;
+  `--strict` liefert Exit 3. Keine Schematron-Prüfung.
+
+### Geändert
+
+- `tagx invoice --terms-only` behält auch beschriftete Order-X-Felder.
+
+## [0.29.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Tag-Schichten: Der Audio-Editor zeigt je Datei die Schichten ID3v1, ID3v2
+  (mit Version 2.3/2.4), APEv2, RIFF INFO und Vorbis mit Feldanzahl und
+  entfernt eine einzelne Schicht nach Rückfrage; die übrigen Schichten und
+  der Audiostream bleiben unverändert (mp3/mp2, wav, aiff, flac, ape, mpc,
+  wv, tta, dsf). CLI: `tagx layers show [--json]` und
+  `tagx layers strip --layer id3v1|id3v2|ape|info|vorbis`.
+- ID3v2.3-Schreiboption für alte Player: Einstellung „ID3v2.3 statt ID3v2.4
+  schreiben“ (Voreinstellung aus) und `tagx set --id3v23` (mp3/mp2, wav,
+  aiff, dsf). Grenzen von v2.3 (UTF-16, Datum ohne Sekunden, Originaldatum
+  nur Jahr): [knowledge/id3-schichten.md](knowledge/id3-schichten.md).
+
+### Geändert
+
+- `TagData` trägt die Schichtenliste (`layers`); `TagFile.write` nimmt
+  `id3Version:` entgegen. Schichten werden nur angezeigt und entfernt, nicht
+  getrennt bearbeitet.
+
 ## [0.28.0] — 2026-09-02
 
 ### Hinzugefügt

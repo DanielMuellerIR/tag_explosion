@@ -46,6 +46,13 @@
   MP4/M4A/M4B (Nero `chpl` and QuickTime chapter track, both written) and
   Matroska/WebM chapters. MP4 stores start times only; the end of a chapter
   is derived from the next start.
+- **Tag layers** — MP3 files often carry ID3v1 *and* ID3v2 (sometimes APEv2
+  too), WAV carries ID3v2 and RIFF INFO, FLAC Vorbis plus stray ID3 tags. The
+  editor lists each layer with its version (ID3v2.3/2.4, APEv2) and field
+  count and removes a single layer on request — the other layers and the
+  audio stream stay untouched (`tagx layers show` / `tagx layers strip`).
+  Optional setting: write ID3v2.3 instead of v2.4 for old players (`tagx set
+  --id3v23`); v2.3 stores text as UTF-16 and trims dates to the minute.
 - **Lyrics, loudness, podcast fields** — fixed fields with validation:
   multi-line lyrics with language (ID3v2 USLT; MP4 `©lyr`; Vorbis/APE
   `LYRICS`), synchronized lyrics as ID3v2 SYLT with LRC import/export — for
@@ -70,10 +77,26 @@
   series/number/volume, OOXML revision, any Markdown key). All native, no
   external tools; fields a format cannot store are rejected before writing
   instead of being dropped silently.
+- **Playlists and cue sheets** — `.cue` (album header, track list with
+  INDEX times and ISRC), `.m3u`/`.m3u8`, `.pls` and `.xspf`: entries with
+  resolved paths, missing-file check and total duration. Editable are the
+  playlist/album title, performer, date and genre (where the format stores
+  them) and the title/performer of each entry; order and paths stay as they
+  are, unknown lines, line endings and indentation are preserved. Any
+  selection can be exported as m3u8/pls/xspf (paths relative to the
+  playlist), and `tagx cue apply` writes a cue sheet's titles, performers and
+  track numbers into the referenced audio files (one file per track).
 - **E-invoices (read-only)** — detects the standard and profile from the
   specification identifier (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM through
   EXTENDED), XRechnung, Peppol BIS and plain EN 16931, in both syntaxes
-  (UN/CEFACT CII and OASIS UBL, invoices and credit notes). Every populated
+  (UN/CEFACT CII and OASIS UBL, invoices and credit notes), plus orders:
+  Order-X (BASIC/COMFORT/EXTENDED, embedded as `order-x.xml`) and Peppol
+  Order/OrderResponse — order fields carry Order-X labels instead of BT
+  numbers. The document kind (invoice, credit note, order, order response)
+  is shown separately. A basic validation lists warnings: missing EN 16931
+  mandatory fields (XRechnung: also the Leitweg-ID) and the totals
+  arithmetic BT-106 … BT-115 with a tolerance of 0.01 — no full Schematron
+  check. Every populated
   field is shown with its EN 16931 business term (BT/BG number and label);
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
@@ -179,13 +202,14 @@ These run on every push (see `.github/workflows/tests.yml`).
 
 | Media | File formats | Tag formats |
 |-------|--------------|-------------|
-| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (no cover) · mod, s3m, xm, it (title and comment only) · au (view only) | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO, Matroska tags, tracker headers · chapters: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (no cover) · mod, s3m, xm, it (title and comment only) · au (view only) | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO, Matroska tags, tracker headers · chapters: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska · tag layers shown and removable per layer for mp3/mp2, wav, aiff, flac, ape, mpc, wv, tta, dsf; ID3v2.3 option for mp3/mp2, wav, aiff, dsf |
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (sidecar only) · xmp | EXIF, IPTC, XMP (MWG-harmonized) |
 | Camera RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | read embedded; write to XMP sidecar `<name>.xmp` only |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (editable) · mov, avi, ogv (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 | Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
-| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms |
+| Playlists | cue · m3u, m3u8 · pls · xspf | Cue header/track lines, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (view: paths, existence, duration; edit: labels only; export: m3u8/pls/xspf) |
+| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms; Order-X and Peppol orders with Order-X labels; basic validation warnings |
 
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*
@@ -226,6 +250,9 @@ tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx chapters show book.m4b --json             # chapters as JSON (times in ms)
 tagx chapters set book.m4b --from chapters.txt # replace chapters (JSON or "HH:MM:SS.mmm Title" lines)
 tagx chapters clear book.m4b                   # remove all chapters
+tagx layers show song.mp3 --json               # tag layers (ID3v1/ID3v2/APE …) with version and fields
+tagx layers strip song.mp3 --layer id3v1       # remove one layer, keep the others
+tagx set song.mp3 -t TITLE=X --id3v23          # write ID3v2.3 instead of v2.4 (old players)
 tagx lyrics set song.mp3 --from song.lrc --language deu   # LRC → SYLT (+ text, language)
 tagx lyrics set song.flac --from song.lrc      # no ID3v2: writes the song.lrc sidecar
 tagx lyrics show song.mp3 --lrc                # synchronized lines as LRC
@@ -237,10 +264,15 @@ tagx exif set photo.jpg --sidecar --title X  # any image: sidecar instead of fil
 tagx ebook set book.epub --series "Foundation" --series-index 2
 tagx doc set report.docx --title "Q3 report" --keywords "sales, 2026"
 tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo extra fields
+tagx playlist show album.cue                   # header, tracks, resolved paths, missing files, total duration
+tagx playlist set list.m3u8 --title "Mix" --entry-title 2="Second song"
+tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative paths; --absolute, --format pls|xspf
+tagx cue apply album.cue --apply               # write cue titles/performers/track numbers into the audio files
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
-tagx invoice invoice.pdf                       # e-invoice profile + all fields (BT terms)
+tagx invoice invoice.pdf                       # e-invoice profile, warnings + all fields (BT terms)
+tagx invoice order.xml --strict                # exit 3 if the basic validation reports warnings
 tagx set song.mp3 -t ARTIST="X" --no-backup    # skip the safety copy in the trash
 ```
 

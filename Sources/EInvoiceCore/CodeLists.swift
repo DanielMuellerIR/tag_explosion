@@ -15,6 +15,10 @@ enum CodeLists {
         "84": "Belastungsanzeige zu Finanzanpassungen",
         "102": "Steuerbescheid/-mitteilung",
         "218": "Endabrechnung",
+        // Bestell-Nachrichten (Order-X / CIO)
+        "220": "Bestellung",
+        "230": "Bestelländerung",
+        "231": "Bestellantwort",
         "219": "Abschlagsrechnung (Bauleistung)",
         "326": "Teilrechnung",
         "331": "Buchungshilfe",
@@ -106,9 +110,18 @@ enum CodeLists {
     ]
 
     /// Erläuterung eines Wertes je Business Term; nil, wenn nichts Sicheres
-    /// bekannt ist.
-    static func note(term: String?, value: String) -> String? {
-        guard let term, !value.isEmpty else { return nil }
+    /// bekannt ist. `label` ist die Order-X-Bezeichnung eines Feldes ohne
+    /// BT-Nummer (Bestellungen) — dort entscheidet sie statt des Terms.
+    static func note(term: String?, label: String? = nil, value: String) -> String? {
+        guard !value.isEmpty else { return nil }
+        if term == nil, let label {
+            switch label {
+            case OrderTerms.typeCode: return documentType[value]
+            case OrderTerms.vatCategory: return vatCategory[value]
+            default: return nil
+            }
+        }
+        guard let term else { return nil }
         switch term {
         case "BT-3":
             return documentType[value]
