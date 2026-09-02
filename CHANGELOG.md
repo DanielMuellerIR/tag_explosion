@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.27.1] — 2026-09-02
+
+### Geändert
+
+- Umbenennen aus Tags nimmt die XMP-Sidecar `<name>.xmp` eines Bildes mit auf
+  den neuen Namen; ein belegtes Sidecar-Ziel blockiert den Eintrag als
+  Konflikt. RAW+JPEG-Paare teilen sich weiterhin eine Sidecar.
+
 ## [0.27.0] — 2026-09-02
 
 ### Hinzugefügt
