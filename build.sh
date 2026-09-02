@@ -179,6 +179,21 @@ ${icon_key}
             </array>
         </dict>
         <dict>
+            <key>CFBundleTypeName</key><string>Dokument</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.openxmlformats.wordprocessingml.document</string>
+                <string>org.openxmlformats.spreadsheetml.sheet</string>
+                <string>org.openxmlformats.presentationml.presentation</string>
+                <string>org.oasis-open.opendocument.text</string>
+                <string>org.oasis-open.opendocument.spreadsheet</string>
+                <string>org.oasis-open.opendocument.presentation</string>
+                <string>net.daringfireball.markdown</string>
+            </array>
+        </dict>
+        <dict>
             <key>CFBundleTypeName</key><string>Ordner</string>
             <key>CFBundleTypeRole</key><string>Viewer</string>
             <key>LSHandlerRank</key><string>None</string>

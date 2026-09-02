@@ -55,6 +55,48 @@ struct TagArchiveTests {
         #expect(try TagFile.read(at: flac).firstValue(for: "TITLE") == "Weg")
     }
 
+    @Test("Dokumente: Export → Ändern → Import stellt Felder wieder her, unspeicherbare Felder scheitern vorab")
+    func documentRestore() throws {
+        let dir = try makeFolder(["doc.docx", "doc.odt", "comic.cbz"])
+        let docx = dir.appendingPathComponent("doc.docx")
+        let odt = dir.appendingPathComponent("doc.odt")
+        let cbz = dir.appendingPathComponent("comic.cbz")
+        let files = [docx, odt, cbz]
+        let originals = try files.map { try DocumentTool.readCoreFields(url: $0) }
+        let json = dir.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: files, to: json, includeCovers: true)
+
+        for (url, original) in zip(files, originals) {
+            var changed = original
+            changed.title = "Weg"
+            changed.authors = ["Niemand"]
+            try DocumentTool.write(url: url, fields: changed, original: original)
+        }
+        let archive = try TagArchiveIO.load(json)
+        // Das CBZ-Cover ist reine Anzeige und wird nie archiviert.
+        #expect(archive.files.allSatisfy { $0.kind == .document && $0.artworks == nil })
+
+        let preview = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: true)
+        #expect(preview.applied.sorted() == ["comic.cbz", "doc.docx", "doc.odt"])
+        #expect(try DocumentTool.readCoreFields(url: docx).title == "Weg")
+
+        let report = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(report.applied.sorted() == ["comic.cbz", "doc.docx", "doc.odt"])
+        #expect(report.failed.isEmpty)
+        for (url, original) in zip(files, originals) {
+            #expect(try DocumentTool.readCoreFields(url: url) == original)
+        }
+        #expect(try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false).unchanged.count == 3)
+
+        // Ein Archiv, das dem Ziel ein Feld ohne Speicherort zuweist, scheitert
+        // je Eintrag — vor der Sicherung, auch im Dry-run — statt Erfolg zu melden.
+        var hostile = archive
+        hostile.files[0].document?.publisher = "Kein Ort in OOXML"
+        let rejected = try TagArchiveIO.apply(hostile, relativeTo: dir, dryRun: true)
+        #expect(rejected.failed.map(\.0) == [archive.files[0].path])
+        #expect(rejected.failed.first?.1.contains("publisher") == true)
+    }
+
     @Test("Audio: Export → Ändern → Import stellt Tags und Cover wieder her")
     func audioRestore() throws {
         let dir = try makeFolder(["sample.mp3", "sample.flac"])

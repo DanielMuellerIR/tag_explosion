@@ -25,6 +25,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
   BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
   samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [dokument-container-metadaten.md](dokument-container-metadaten.md) — Bei
+  Arbeit an DocumentTool, ZipContainer, `tagx doc` oder dem Dokument-Editor:
+  ODF-`mimetype` an erster Stelle, fehlendes core.xml registrieren,
+  ODF-`dc:creator`-Semantik, ComicInfo-Reihenfolge, Frontmatter-Subset und
+  Byte-Identität des Bodys.
 - [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag

@@ -312,6 +312,45 @@ struct AppModelSaveTests {
         #expect(restored.seriesIndex == "7")
     }
 
+    @Test("Dokument: Speichern über den Produktionsweg, unspeicherbares Feld scheitert vorab",
+          .enabled(if: AudioFixture.isAvailable, "Fixtures fehlen (ffmpeg?)"))
+    func documentSavesAndRejectsUnsupportedField() async throws {
+        guard let directory = AudioFixture.directory else { return }
+        let source = directory.appendingPathComponent("doc.odt")
+        guard FileManager.default.fileExists(atPath: source.path) else { return }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-document-save-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent("doc.odt")
+        try FileManager.default.copyItem(at: source, to: copy)
+
+        let (loaded, stamp) = try AppModel.readStamped(url: copy, kind: .document)
+        let entry = FileEntry(url: copy, loaded: loaded, stamp: stamp)
+        #expect(entry.kind == .document)
+        #expect(entry.displayTitle == "Testtext")
+        entry.documentFields.title = "Aus der App"
+        entry.documentFields.setCustom("generator", "Tag Explosion Test")
+        #expect(entry.isDirty)
+
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == true)
+        #expect(entry.lastError == nil)
+        #expect(!entry.isDirty)
+        let restored = try DocumentTool.readCoreFields(url: copy)
+        #expect(restored.title == "Aus der App")
+        #expect(restored.customValue(for: "generator") == "Tag Explosion Test")
+
+        // ODF kennt keine Kategorie: Der Save scheitert vor jeder Mutation,
+        // der Puffer bleibt dirty.
+        let bytes = try Data(contentsOf: copy)
+        entry.documentFields.category = "Kein Ort"
+        #expect(await model.save(entry: entry) == false)
+        #expect(entry.lastError?.contains("category") == true)
+        #expect(entry.isDirty)
+        #expect(try Data(contentsOf: copy) == bytes)
+    }
+
     @Test("Ungültige Bild-GPS-Werte scheitern vor jeder Datei-Mutation")
     func invalidImageGPSFailsBeforeAnyMutation() async throws {
         guard let directory = AudioFixture.directory else { return }

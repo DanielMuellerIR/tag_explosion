@@ -36,6 +36,14 @@
   series, description, cover, ISBN, publisher, language, date, tags). EPUB is
   handled natively, PDF via exiftool; with Calibre installed, mobi/azw3/fb2
   are edited through its `ebook-meta` CLI.
+- **Documents** — Office (docx, xlsx, pptx: `docProps/core.xml`),
+  OpenDocument (odt, ods, odp: `meta.xml`), comic archives (cbz:
+  `ComicInfo.xml`, first page shown as cover) and Markdown with YAML front
+  matter: title, authors, subject, description, keywords, publisher,
+  language, category, dates plus format-specific extra fields (ComicInfo
+  series/number/volume, OOXML revision, any Markdown key). All native, no
+  external tools; fields a format cannot store are rejected before writing
+  instead of being dropped silently.
 - **E-invoices (read-only)** — detects the standard and profile from the
   specification identifier (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM through
   EXTENDED), XRechnung, Peppol BIS and plain EN 16931, in both syntaxes
@@ -61,7 +69,7 @@
   installs updates after you confirm.
 - **CLI `tagx`** — everything scriptable with JSON output and exit codes:
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
-  `tagx ebook`, `tagx invoice`.
+  `tagx ebook`, `tagx doc`, `tagx invoice`.
 
 The app's user interface is available in English and German (it follows the
 system language); the CLI speaks English. One exception: the e-invoice view
@@ -141,6 +149,7 @@ These run on every push (see `.github/workflows/tests.yml`).
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonized) |
 | Video | mp4, m4v, mkv, webm (editable) · mov, avi (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
+| Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
 | E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms |
 
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
@@ -181,6 +190,8 @@ tagx set song.mp3 -c ALBUMARTIST=ARTIST        # copy one tag into another
 tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
 tagx ebook set book.epub --series "Foundation" --series-index 2
+tagx doc set report.docx --title "Q3 report" --keywords "sales, 2026"
+tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo extra fields
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report

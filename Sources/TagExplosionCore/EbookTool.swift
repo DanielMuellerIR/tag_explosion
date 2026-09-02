@@ -325,7 +325,8 @@ public enum EbookTool {
                                               freeBytes: freeBytes)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
             case .propertiesRejected, .toolNotFound, .toolFailed,
-                 .unsupportedCoverData, .seriesIndexWithoutSeries: throw error
+                 .unsupportedCoverData, .seriesIndexWithoutSeries,
+                 .unsupportedDocumentField, .invalidDocumentValue: throw error
             }
         }
     }

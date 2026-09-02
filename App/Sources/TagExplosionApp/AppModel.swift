@@ -13,6 +13,7 @@ let audioExtensions = MediaFormats.audio
 let imageExtensions = MediaFormats.image
 let videoExtensions = MediaFormats.video
 let ebookExtensions = MediaFormats.ebook
+let documentExtensions = MediaFormats.document
 
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg. Direkt der
 /// Core-Typ (auch das Archiv nutzt ihn); die Zuordnung inklusive des
@@ -59,6 +60,14 @@ final class FileEntry: Identifiable {
     /// puffer: Rechnungen sind reine Anzeige.
     private(set) var invoiceDocument: EInvoiceDocument?
 
+    /// Original und Bearbeitungspuffer für Dokumente (nur bei kind == .document).
+    private(set) var documentOriginal = DocumentCoreFields()
+    var documentFields = DocumentCoreFields()
+    /// CBZ: erste Seite als Cover — reine Anzeige, kein Schreibweg.
+    private(set) var documentCover: Data?
+    /// Anzeigeinformationen (Anwendung, Seiten, Wörter …), nur lesend.
+    private(set) var documentInfo: [DocumentInfoItem] = []
+
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
     /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
@@ -81,6 +90,7 @@ final class FileEntry: Identifiable {
         case audio(properties: [TagProperty], artworks: [Artwork])
         case image(fields: ImageCoreFields, original: ImageCoreFields)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
+        case document(fields: DocumentCoreFields, original: DocumentCoreFields)
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -107,6 +117,12 @@ final class FileEntry: Identifiable {
         case .invoice(let document):
             self.kind = .invoice
             self.invoiceDocument = document
+        case .document(let fields, let cover, let info):
+            self.kind = .document
+            self.documentOriginal = fields
+            self.documentFields = fields
+            self.documentCover = cover
+            self.documentInfo = info
         }
     }
 
@@ -132,6 +148,8 @@ final class FileEntry: Identifiable {
         case .invoice:
             // Reine Anzeige — es gibt nichts zu ändern und nichts zu speichern.
             return false
+        case .document:
+            return documentFields != documentOriginal
         }
     }
 
@@ -142,6 +160,7 @@ final class FileEntry: Identifiable {
         imageFields = imageOriginal
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
+        documentFields = documentOriginal
         lastError = nil
     }
 
@@ -166,6 +185,16 @@ final class FileEntry: Identifiable {
         ebookFields = fields
         ebookOriginalCover = cover
         ebookCoverReplacement = nil
+        lastError = nil
+    }
+
+    /// Dokument-Pendant zu `acceptNewOriginal`.
+    func acceptNewDocumentOriginal(_ fields: DocumentCoreFields, cover: Data?,
+                                   info: [DocumentInfoItem]) {
+        documentOriginal = fields
+        documentFields = fields
+        documentCover = cover
+        documentInfo = info
         lastError = nil
     }
 
@@ -199,6 +228,8 @@ final class FileEntry: Identifiable {
         case .invoice(let document):
             invoiceDocument = document
             lastError = nil
+        case .document(let fields, let cover, let info):
+            acceptNewDocumentOriginal(fields, cover: cover, info: info)
         }
     }
 
@@ -219,6 +250,8 @@ final class FileEntry: Identifiable {
             // Nicht erreichbar: isDirty ist für Rechnungen immer false.
             isSaving = false
             return nil
+        case .document:
+            return .document(fields: documentFields, original: documentOriginal)
         }
     }
 
@@ -272,6 +305,11 @@ final class FileEntry: Identifiable {
             if ebookCoverReplacement == savedCover || ebookCoverReplacement == cover {
                 ebookCoverReplacement = nil
             }
+        case (.document(let savedFields, _), .document(let fields, let cover, let info)):
+            documentOriginal = fields
+            documentCover = cover
+            documentInfo = info
+            if documentFields == savedFields { documentFields = fields }
         default:
             // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
             // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
@@ -317,6 +355,7 @@ final class FileEntry: Identifiable {
         case .image: title = imageFields.title
         case .ebook: title = ebookFields.title
         case .invoice: title = invoiceDocument?.summary.invoiceNumber ?? ""
+        case .document: title = documentFields.title
         }
         return title.isEmpty ? url.lastPathComponent : title
     }
@@ -342,6 +381,8 @@ final class FileEntry: Identifiable {
             return [summary.sellerName ?? "", summary.issueDate ?? ""]
                 .filter { !$0.isEmpty }
                 .joined(separator: " · ")
+        case .document:
+            return documentFields.authors.joined(separator: ", ")
         }
     }
 }
@@ -356,6 +397,9 @@ enum LoadedData: Sendable {
     case ebook(EbookCoreFields, cover: Data?)
     /// E-Rechnung (XML) — reine Anzeige, es gibt keinen Bearbeitungspuffer.
     case invoice(EInvoiceDocument)
+    /// Dokumente: Felder, CBZ-Cover (nur Anzeige) und Anzeigeinformationen
+    /// aus einem gemeinsamen Lesevorgang.
+    case document(DocumentCoreFields, cover: Data?, info: [DocumentInfoItem])
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -623,6 +667,10 @@ final class AppModel {
         case .invoice:
             // E-Rechnung (XML): vollständig parsen — reine Anzeige.
             return .invoice(try EInvoiceReader.read(url: url))
+        case .document:
+            let contents = try DocumentTool.readSnapshot(
+                url: url, includeCover: DocumentTool.supportsCover(url: url)).value
+            return .document(contents.fields, cover: contents.cover?.data, info: contents.info)
         }
     }
 
@@ -1306,6 +1354,9 @@ final class AppModel {
             try EbookTool.requireStorableSeries(fields, original: original, url: url)
             if let cover { try EbookTool.requireSupportedCover(cover, for: url) }
         }
+        if case .document(let fields, let original) = snapshot {
+            try DocumentTool.requireWritable(fields, original: original, url: url)
+        }
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(url)
@@ -1321,6 +1372,9 @@ final class AppModel {
                 url: url, fields: fields, original: original,
                 coverUpdate: cover.map(EbookCoverUpdate.set) ?? .unchanged,
                 expecting: stamp)
+        case (.document, .document(let fields, let original)):
+            try DocumentTool.write(url: url, fields: fields, original: original,
+                                   expecting: stamp)
         default:
             throw TagError.saveFailed(path: url.path)
         }

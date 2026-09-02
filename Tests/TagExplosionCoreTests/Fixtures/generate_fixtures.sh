@@ -176,4 +176,147 @@ if [ ! -f "$out/book.azw3" ] && [ -n "$ebook_convert" ]; then
     "$ebook_convert" "$out/book2.epub" "$out/book.azw3" >/dev/null 2>&1 || true
 fi
 
+# ---- Dokument-Fixtures (AP4) -------------------------------------------------
+# Minimale, handgebaute Container: docx (OOXML), odt (OpenDocument, mimetype
+# unkomprimiert an erster Stelle), cbz (ComicInfo.xml + zwei Bildseiten).
+# Kein echtes Dokument, nur das Gerüst, das die Metadaten-IO braucht. Die
+# Markdown-Fixtures schreiben die Tests direkt (reiner Text).
+
+# docx mit core.xml und app.xml
+if [ ! -f "$out/doc.docx" ] && command -v zip >/dev/null 2>&1; then
+    tmp="$out/docx-tmp"
+    rm -rf "$tmp"
+    mkdir -p "$tmp/_rels" "$tmp/docProps" "$tmp/word"
+    cat > "$tmp/[Content_Types].xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>
+XML
+    cat > "$tmp/_rels/.rels" <<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>
+XML
+    cat > "$tmp/docProps/core.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>Testdokument</dc:title>
+  <dc:subject>Thema</dc:subject>
+  <dc:creator>Erika Beispiel; Max Muster</dc:creator>
+  <cp:keywords>Test, Fixtures</cp:keywords>
+  <dc:description>Ein kleines Testdokument.</dc:description>
+  <cp:lastModifiedBy>Max Muster</cp:lastModifiedBy>
+  <cp:revision>3</cp:revision>
+  <dcterms:created xsi:type="dcterms:W3CDTF">2020-01-01T10:00:00Z</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">2021-06-15T12:30:00Z</dcterms:modified>
+  <cp:category>Bericht</cp:category>
+  <dc:language>de-DE</dc:language>
+</cp:coreProperties>
+XML
+    cat > "$tmp/docProps/app.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Tag Explosion Fixture</Application>
+  <Pages>2</Pages>
+  <Words>42</Words>
+  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Title</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs>
+</Properties>
+XML
+    cat > "$tmp/word/document.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hallo.</w:t></w:r></w:p></w:body></w:document>
+XML
+    (cd "$tmp" && zip -rX -q ../doc.docx "[Content_Types].xml" _rels docProps word)
+    # Variante ohne core.xml: der Schreibweg muss die Datei anlegen und in
+    # [Content_Types].xml und _rels/.rels registrieren.
+    rm "$tmp/docProps/core.xml"
+    sed -i '' '/core-properties/d' "$tmp/[Content_Types].xml" "$tmp/_rels/.rels"
+    (cd "$tmp" && zip -rX -q ../doc-nocore.docx "[Content_Types].xml" _rels docProps word)
+    rm -rf "$tmp"
+fi
+
+# odt: mimetype MUSS unkomprimiert als erster Eintrag liegen (zip -X -0).
+if [ ! -f "$out/doc.odt" ] && command -v zip >/dev/null 2>&1; then
+    tmp="$out/odt-tmp"
+    rm -rf "$tmp"
+    mkdir -p "$tmp/META-INF"
+    printf 'application/vnd.oasis.opendocument.text' > "$tmp/mimetype"
+    cat > "$tmp/META-INF/manifest.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">
+  <manifest:file-entry manifest:full-path="/" manifest:version="1.3" manifest:media-type="application/vnd.oasis.opendocument.text"/>
+  <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+  <manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>
+XML
+    cat > "$tmp/meta.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" office:version="1.3">
+  <office:meta>
+    <meta:generator>Tag Explosion Fixture/1.0</meta:generator>
+    <meta:initial-creator>Erika Beispiel</meta:initial-creator>
+    <meta:creation-date>2020-01-01T10:00:00</meta:creation-date>
+    <dc:creator>Max Muster</dc:creator>
+    <dc:date>2021-06-15T12:30:00</dc:date>
+    <dc:title>Testtext</dc:title>
+    <dc:subject>Thema</dc:subject>
+    <dc:description>Ein kleiner Testtext.</dc:description>
+    <meta:keyword>Test</meta:keyword>
+    <meta:keyword>Fixtures</meta:keyword>
+    <dc:language>de-DE</dc:language>
+    <meta:editing-cycles>3</meta:editing-cycles>
+    <meta:document-statistic meta:page-count="1" meta:word-count="3" meta:character-count="17"/>
+  </office:meta>
+</office:document-meta>
+XML
+    cat > "$tmp/content.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.3"><office:body><office:text><text:p>Hallo Welt.</text:p></office:text></office:body></office:document-content>
+XML
+    (cd "$tmp" \
+        && zip -X -0 -q ../doc.odt mimetype \
+        && zip -rX -q ../doc.odt META-INF meta.xml content.xml)
+    rm -rf "$tmp"
+fi
+
+# cbz: ComicInfo.xml + Seiten, deren Namen die natürliche Sortierung prüfen
+# (page-2 vor page-10). Zweite Variante ohne ComicInfo.xml.
+if [ ! -f "$out/comic.cbz" ] && command -v zip >/dev/null 2>&1; then
+    tmp="$out/cbz-tmp"
+    rm -rf "$tmp"
+    mkdir -p "$tmp"
+    cat > "$tmp/ComicInfo.xml" <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Title>Testheft</Title>
+  <Series>Testreihe</Series>
+  <Number>2</Number>
+  <Volume>1</Volume>
+  <Summary>Ein kleines Testheft.</Summary>
+  <Year>2020</Year>
+  <Month>3</Month>
+  <Day>5</Day>
+  <Writer>Erika Beispiel, Max Muster</Writer>
+  <Penciller>Zeichnerin</Penciller>
+  <Publisher>Testverlag</Publisher>
+  <Genre>Abenteuer</Genre>
+  <PageCount>2</PageCount>
+  <LanguageISO>de</LanguageISO>
+</ComicInfo>
+XML
+    cp "$out/cover.jpg" "$tmp/page-2.jpg"
+    cp "$out/cover.png" "$tmp/page-10.png"
+    (cd "$tmp" && zip -X -q ../comic.cbz page-10.png page-2.jpg ComicInfo.xml)
+    (cd "$tmp" && zip -X -q ../comic-noinfo.cbz page-10.png page-2.jpg)
+    rm -rf "$tmp"
+fi
+
 echo "$out"
