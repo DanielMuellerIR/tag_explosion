@@ -681,6 +681,16 @@
         }
       }
     },
+    "Cover": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover"
+          }
+        }
+      }
+    },
     "Cover = erste Seite des Archivs (nur Anzeige).": {
       "localizations": {
         "en": {
@@ -987,6 +997,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "This NFO contains only scraper URLs and no XML; it is never written."
+          }
+        }
+      }
+    },
+    "Diese Version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This version"
+          }
+        }
+      }
+    },
+    "Diese Version wiederherstellen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore this version"
           }
         }
       }
@@ -1361,6 +1391,16 @@
         }
       }
     },
+    "Feld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Field"
+          }
+        }
+      }
+    },
     "Feld entfernen": {
       "localizations": {
         "en": {
@@ -1427,6 +1467,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "For old players and car radios that cannot read ID3v2.4. Applies when saving MP3, WAV, AIFF and DSF. Limits of v2.3: text is stored as UTF-16 instead of UTF-8, dates lose their seconds and the original date keeps only the year."
+          }
+        }
+      }
+    },
+    "Für diese Datei liegt keine Kopie im Papierkorb — oder der Papierkorb wurde geleert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no copy of this file in the trash — or the trash has been emptied."
           }
         }
       }
@@ -1631,6 +1681,16 @@
         }
       }
     },
+    "Import": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
+          }
+        }
+      }
+    },
     "Import fehlgeschlagen:": {
       "localizations": {
         "en": {
@@ -1757,6 +1817,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Year"
+          }
+        }
+      }
+    },
+    "Jede Zeile ist eine Kopie aus dem Papierkorb, die vor einer Änderung entstand. Wiederherstellen kopiert den jetzigen Stand vorher ebenfalls in den Papierkorb.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each row is a copy in the trash, made before a change. Restoring copies the current state to the trash first as well."
+          }
+        }
+      }
+    },
+    "Jetzt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
           }
         }
       }
@@ -1941,6 +2021,36 @@
         }
       }
     },
+    "Keine Sicherung im Papierkorb für %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No trash backup for %@"
+          }
+        }
+      }
+    },
+    "Keine Sicherungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No backups"
+          }
+        }
+      }
+    },
+    "Keine Unterschiede in den Metadaten — die Datei entspricht dieser Version.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No metadata differences — the file matches this version."
+          }
+        }
+      }
+    },
     "Keine weiteren Felder": {
       "localizations": {
         "en": {
@@ -2047,6 +2157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Runtime (min)"
+          }
+        }
+      }
+    },
+    "Letzte Änderung rückgängig": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo Last Change"
           }
         }
       }
@@ -2481,6 +2601,16 @@
         }
       }
     },
+    "Papierkorb-Kopie im Finder zeigen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show trash copy in Finder"
+          }
+        }
+      }
+    },
     "Platzhalter:": {
       "localizations": {
         "en": {
@@ -2681,6 +2811,16 @@
         }
       }
     },
+    "Schließen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
     "Schlüssel": {
       "localizations": {
         "en": {
@@ -2747,6 +2887,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sets TRACKNUMBER to n/%lld in list order"
+          }
+        }
+      }
+    },
+    "Sicherungen dieser Datei aus dem Papierkorb anzeigen und zurückholen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show this file's trash backups and restore one"
           }
         }
       }
@@ -2927,6 +3077,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tag Explosion uses %@, but neither the tools nor Homebrew were found. Please install Homebrew first — afterwards the app can set up the tools itself."
+          }
+        }
+      }
+    },
+    "Tag-Schicht": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag layer"
           }
         }
       }
@@ -3181,6 +3341,16 @@
         }
       }
     },
+    "Ungespeicherte Änderungen im Editor gehen dabei verloren.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved changes in the editor will be lost."
+          }
+        }
+      }
+    },
     "Untertitel (nur Anzeige)": {
       "localizations": {
         "en": {
@@ -3227,6 +3397,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version %@"
+          }
+        }
+      }
+    },
+    "Version auswählen, um die Unterschiede zu sehen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a version to see the differences."
+          }
+        }
+      }
+    },
+    "Version wiederherstellen fehlgeschlagen: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring the version failed: %@"
+          }
+        }
+      }
+    },
+    "Version wiederherstellen?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore version?"
+          }
+        }
+      }
+    },
+    "Versionen von %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versions of %@"
+          }
+        }
+      }
+    },
+    "Versionen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versions …"
           }
         }
       }
@@ -3427,6 +3647,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Values of this image come (partly) from the XMP sidecar file."
+          }
+        }
+      }
+    },
+    "Wiederherstellen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
           }
         }
       }
@@ -3651,6 +3881,16 @@
         }
       }
     },
+    "vor Wiederherstellung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "before restore"
+          }
+        }
+      }
+    },
     "vorhanden": {
       "localizations": {
         "en": {
@@ -3827,6 +4067,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "— mixed —"
+          }
+        }
+      }
+    },
+    "„%@“ wird auf den Stand vom %@ zurückgesetzt (%@). Der jetzige Stand wird vorher in den Papierkorb kopiert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” will be reset to the state from %2$@ (%3$@). The current state is copied to the trash first."
           }
         }
       }

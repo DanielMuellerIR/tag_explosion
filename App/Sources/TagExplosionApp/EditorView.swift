@@ -126,6 +126,8 @@ struct TagEditorTab: View {
                 // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
                 FilenamePatternMenu(entries: [entry])
                     .padding(.top, 4)
+                // Papierkorb-Sicherungen dieser Datei ansehen und zurückholen.
+                VersionHistoryButton(entry: entry)
             }
             Spacer()
         }

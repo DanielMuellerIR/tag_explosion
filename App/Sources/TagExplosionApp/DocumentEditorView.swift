@@ -55,6 +55,8 @@ struct DocumentEditorView: View {
                     .textSelection(.enabled)
                 FilenamePatternMenu(entries: [entry])
                     .padding(.top, 4)
+                // Papierkorb-Sicherungen dieser Datei ansehen und zurückholen.
+                VersionHistoryButton(entry: entry)
                 if supportsCover {
                     Text("Cover = erste Seite des Archivs (nur Anzeige).")
                         .font(.caption)

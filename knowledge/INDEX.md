@@ -65,3 +65,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Video-Editor: eigener XML-Serialisierer für Einrückungserhalt, Nur-URL-NFO,
   Inhaltsprüfung der Endung, Zeitverschiebung nur auf `-->`-Zeilen,
   `--seconds=-1.5`, Sprache aus dem Dateinamen.
+- [undo-historie-journal.md](undo-historie-journal.md) — Bei `BackupJournal`,
+  `BackupHistory`, `tagx history` oder dem Versionen-Blatt: warum die
+  Papierkorb-Kopien ein Journal brauchen, Journal-Regeln (nur `shared`
+  schreibt, Verfall, `flock`, Bruchteil-Sekunden, Prüfsummen-Limit), Restore
+  als normaler Schreibweg, XMP-Sidecar-Fall, Grenzen nach Umbenennen.

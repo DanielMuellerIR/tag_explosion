@@ -94,6 +94,8 @@ struct EbookEditorView: View {
                     .textSelection(.enabled)
                 FilenamePatternMenu(entries: [entry])
                     .padding(.top, 4)
+                // Papierkorb-Sicherungen dieser Datei ansehen und zurückholen.
+                VersionHistoryButton(entry: entry)
                 if supportsCover {
                     Button("Cover auswählen …") { presentCoverPanel() }
                         .padding(.top, 6)

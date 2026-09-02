@@ -12,7 +12,8 @@ struct Tagx: ParsableCommand {
         version: tagxVersion,
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Layers.self, Info.self,
                       Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
-                      Rename.self, Parse.self, Playlist.self, Cue.self, Nfo.self, Subtitle.self],
+                      Rename.self, Parse.self, Playlist.self, Cue.self, Nfo.self, Subtitle.self,
+                      History.self],
         defaultSubcommand: Show.self
     )
 }
@@ -248,7 +249,7 @@ struct Set: ParsableCommand {
             return
         }
         try snapshot.requireCurrent(at: url)
-        try TrashBackup.shared.backUp(url)
+        try TrashBackup.shared.backUp(url, reason: BackupReason.tags)
         try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp,
                           id3Version: id3v23 ? .v23 : .v24)
         print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
@@ -337,7 +338,7 @@ struct Cover: ParsableCommand {
             }
             let artwork = Artwork(data: imageData, pictureType: "Front Cover")
             try FileStamp.requireUnchanged(stamp, at: url)
-            try TrashBackup.shared.backUp(url)
+            try TrashBackup.shared.backUp(url, reason: BackupReason.cover)
             try TagFile.write(artworks: [artwork], to: url, expecting: stamp)
             print("OK \(url.lastPathComponent): cover set (\(imageData.count) bytes)")
         }
@@ -358,7 +359,7 @@ struct Cover: ParsableCommand {
             guard let stamp = FileStamp.current(of: url) else {
                 throw TagError.cannotOpen(path: url.path)
             }
-            try TrashBackup.shared.backUp(url)
+            try TrashBackup.shared.backUp(url, reason: BackupReason.cover)
             try TagFile.write(artworks: [], to: url, expecting: stamp)
             print("OK \(url.lastPathComponent): images removed")
         }

@@ -1457,7 +1457,7 @@ final class AppModel {
             let (reloaded, newStamp) = try await Task.detached(priority: .userInitiated) {
                 // Fremde Änderung seit dem Öffnen? Dann nicht anfassen.
                 try FileStamp.requireUnchanged(stamp, at: url)
-                try TrashBackup.shared.backUp(url)
+                try TrashBackup.shared.backUp(url, reason: BackupReason.layers)
                 try TagFile.stripLayers([kind], from: url, expecting: stamp)
                 return try Self.readStamped(url: url, kind: .audio)
             }.value
@@ -1652,7 +1652,7 @@ final class AppModel {
             : nil
         // Abgesicherter Modus: erst die unveränderte Kopie in den Papierkorb,
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
-        try TrashBackup.shared.backUp(imageDestination?.url ?? url)
+        try TrashBackup.shared.backUp(imageDestination?.url ?? url, reason: snapshot.backupReason)
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks, let chapters)):
             try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
