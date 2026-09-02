@@ -376,7 +376,11 @@ XML
     # Variante ohne core.xml: der Schreibweg muss die Datei anlegen und in
     # [Content_Types].xml und _rels/.rels registrieren.
     rm "$tmp/docProps/core.xml"
-    sed -i '' '/core-properties/d' "$tmp/[Content_Types].xml" "$tmp/_rels/.rels"
+    # Ohne `sed -i`: BSD-sed (macOS) verlangt `-i ''`, GNU-sed (Linux) liest
+    # das leere Argument als Skript — portabel ist nur der Umweg über eine Datei.
+    for f in "$tmp/[Content_Types].xml" "$tmp/_rels/.rels"; do
+        sed '/core-properties/d' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+    done
     (cd "$tmp" && zip -rX -q ../doc-nocore.docx "[Content_Types].xml" _rels docProps word)
     rm -rf "$tmp"
 fi
