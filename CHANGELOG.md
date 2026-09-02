@@ -8,6 +8,34 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.33.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Lyrics als eigenes mehrzeiliges Feld mit Sprache (ID3v2 USLT);
+  synchronisierte Lyrics als ID3v2 SYLT mit LRC-Import/-Export, für Formate
+  ohne ID3v2 als Sidecar `<name>.lrc`; `tagx lyrics show|set|export|clear`.
+- ReplayGain (Track/Album Gain und Peak) und Opus-R128 als geprüfte Felder
+  mit Wertebereich; R128 wird als dB angezeigt. Ungültige Werte werden mit
+  Feldname abgelehnt, bevor etwas gesichert oder geschrieben wird
+  (`tagx set` Exit 1). Lautheit wird nicht berechnet, nur gelesen,
+  geschrieben und geprüft.
+- Podcast-Felder für MP3 und MP4 (Flag, Feed-URL, GUID, Kategorie,
+  Stichwörter, Staffel, Episode, Beschreibungen) mit eigenem Abschnitt im
+  Editor; der Batch-Editor setzt die Album-Lautheit für alle Dateien.
+  Fallen: [knowledge/feste-felder-lyrics-lautheit-podcast.md](knowledge/feste-felder-lyrics-lautheit-podcast.md).
+
+### Geändert
+
+- Podcast-Flag, Stichwörter, Staffel/Episode (ID3) und lange Beschreibung
+  (MP4) laufen als Frame/Atom statt über TagLibs PropertyMap; dort ging das
+  PCST-Flag beim nächsten Speichern verloren.
+
+### Bekannte Grenzen
+
+- Umbenennen nimmt die `.lrc`-Sidecar noch nicht mit; die Sidecar hat keinen
+  Stempel-Konfliktschutz.
+
 ## [0.32.0] — 2026-09-02
 
 ### Hinzugefügt
