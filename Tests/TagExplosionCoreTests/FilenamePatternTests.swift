@@ -211,6 +211,80 @@ struct FileRenamerTests {
         }
     }
 
+    @Test("XMP-Sidecar eines Bildes wandert mit; belegtes Sidecar-Ziel ist ein Konflikt")
+    func sidecarFollowsImageRename() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let raw = directory.appendingPathComponent("IMG_1.nef")
+        let sidecar = directory.appendingPathComponent("IMG_1.xmp")
+        let jpg = directory.appendingPathComponent("IMG_1.jpg")   // teilt sich die Sidecar
+        let lone = directory.appendingPathComponent("notiz.xmp")  // .xmp als eigenes Format
+        let audio = directory.appendingPathComponent("song.mp3")
+        for url in [raw, sidecar, jpg, lone, audio] { try touch(url) }
+        let pattern = try FilenamePattern("%{title}")
+
+        let plan = FileRenamer.plan([
+            .init(url: raw, fields: ["TITLE": "Strand"]),
+            .init(url: jpg, fields: ["TITLE": "Strand"]),
+            .init(url: lone, fields: ["TITLE": "Notiz"]),
+            .init(url: audio, fields: ["TITLE": "Lied"]),
+        ], pattern: pattern)
+        #expect(!plan.hasConflicts)
+        #expect(plan.items[0].sidecarSource == sidecar.path)
+        #expect(plan.items[0].sidecarTarget == "Strand.xmp")
+        // Das JPEG derselben Aufnahme nimmt die Sidecar nicht ein zweites Mal
+        // mit — gleicher Zielname, also kein Konflikt.
+        #expect(plan.items[1].status == .rename && plan.items[1].sidecarSource == nil)
+        // Eine .xmp selbst und Audio kennen keine Sidecar.
+        #expect(plan.items[2].sidecarSource == nil && plan.items[3].sidecarSource == nil)
+
+        let outcomes = try FileRenamer.apply(plan)
+        #expect(outcomes.allSatisfy { $0.succeeded })
+        #expect(outcomes[0].sidecarTarget == directory.appendingPathComponent("Strand.xmp").path)
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.nef").path))
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.xmp").path))
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Notiz.xmp").path))
+        #expect(!FileManager.default.fileExists(atPath: sidecar.path))
+    }
+
+    @Test("Sidecar-Konflikte: belegtes Ziel, geteilte Sidecar mit zwei Namen, Zielname eines anderen Eintrags")
+    func sidecarConflicts() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let raw = directory.appendingPathComponent("IMG_1.nef")
+        let sidecar = directory.appendingPathComponent("IMG_1.xmp")
+        let occupied = directory.appendingPathComponent("Strand.xmp")
+        for url in [raw, sidecar, occupied] { try touch(url) }
+        let pattern = try FilenamePattern("%{title}")
+
+        // Sidecar-Ziel liegt schon auf der Platte → ganzer Eintrag Konflikt.
+        let blocked = FileRenamer.plan([.init(url: raw, fields: ["TITLE": "Strand"])], pattern: pattern)
+        #expect(blocked.items[0].status == .conflict)
+        #expect(blocked.items[0].reason?.contains("sidecar") == true)
+        #expect(throws: FileRenamer.RenameError.planHasConflicts) { try FileRenamer.apply(blocked) }
+        #expect(FileManager.default.fileExists(atPath: raw.path) && FileManager.default.fileExists(atPath: sidecar.path))
+
+        // Sidecar-Ziel kollidiert mit dem Ziel eines anderen Eintrags.
+        let lone = directory.appendingPathComponent("notiz.xmp")
+        try touch(lone)
+        let clash = FileRenamer.plan([
+            .init(url: lone, fields: ["TITLE": "Meer"]),
+            .init(url: raw, fields: ["TITLE": "Meer"]),
+        ], pattern: pattern)
+        #expect(clash.items[0].status == .rename && clash.items[1].status == .conflict)
+
+        // RAW+JPEG-Paar mit verschiedenen Zielnamen → die geteilte Sidecar
+        // kann nur einen Namen bekommen.
+        let jpg = directory.appendingPathComponent("IMG_1.jpg")
+        try touch(jpg)
+        let shared = FileRenamer.plan([
+            .init(url: raw, fields: ["TITLE": "Meer"]),
+            .init(url: jpg, fields: ["TITLE": "Küste"]),
+        ], pattern: pattern)
+        #expect(shared.items[0].status == .rename && shared.items[1].status == .conflict)
+        #expect(shared.items[1].reason?.contains("shared") == true)
+    }
+
     @Test("Zwei Dateien mit nur anders geschriebenem Ziel kollidieren auf case-insensitivem Volume")
     func caseOnlyDuplicatesCollideOnCaseInsensitiveVolume() throws {
         let directory = try makeDirectory()

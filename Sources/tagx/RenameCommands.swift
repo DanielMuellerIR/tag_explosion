@@ -106,7 +106,11 @@ struct Rename: ParsableCommand {
                 if let error = outcome.error {
                     print("FAILED \(outcome.source): \(error)")
                 } else {
-                    print("OK \(outcome.source) -> \(URL(fileURLWithPath: outcome.target).lastPathComponent)")
+                    var line = "OK \(outcome.source) -> \(URL(fileURLWithPath: outcome.target).lastPathComponent)"
+                    if let sidecar = outcome.sidecarTarget {
+                        line += " (+ sidecar \(URL(fileURLWithPath: sidecar).lastPathComponent))"
+                    }
+                    print(line)
                 }
             }
             print("Renamed \(outcomes.filter(\.succeeded).count) of \(outcomes.count) file(s)")
@@ -117,7 +121,12 @@ struct Rename: ParsableCommand {
     private func printPlan(_ plan: FileRenamer.Plan) {
         for item in plan.items {
             switch item.status {
-            case .rename: print("RENAME \(item.source) -> \(item.target)")
+            case .rename:
+                var line = "RENAME \(item.source) -> \(item.target)"
+                if let sidecarSource = item.sidecarSource, let sidecarTarget = item.sidecarTarget {
+                    line += " (+ sidecar \(URL(fileURLWithPath: sidecarSource).lastPathComponent) -> \(sidecarTarget))"
+                }
+                print(line)
             case .unchanged: print("KEEP \(item.source)")
             case .conflict: print("CONFLICT \(item.source) -> \(item.target): \(item.reason ?? "")")
             }

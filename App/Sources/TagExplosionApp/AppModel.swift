@@ -136,8 +136,14 @@ final class FileEntry: Identifiable {
     /// Bearbeitungspuffer, Cover-Auswahl und Plattenstempel unverändert:
     /// Umbenennen ändert weder Inhalt noch Inode noch Änderungszeit der
     /// Datei, der alte Stempel bleibt also gültig.
-    convenience init?(relocating other: FileEntry, to url: URL) {
-        guard let loaded = other.loadedState else { return nil }
+    /// `sidecar`: neuer Pfad der mit umbenannten XMP-Sidecar (Bilder); nil
+    /// lässt den gelesenen Sidecar-Pfad, wie er ist.
+    convenience init?(relocating other: FileEntry, to url: URL, sidecar: URL? = nil) {
+        guard var loaded = other.loadedState else { return nil }
+        if let sidecar, case .image(var reading) = loaded {
+            reading.sidecarURL = sidecar
+            loaded = .image(reading)
+        }
         self.init(url: url, loaded: loaded, stamp: other.diskStamp)
         properties = other.properties
         artworks = other.artworks

@@ -114,6 +114,38 @@ struct RenameCommandTests {
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("02 Zwei.mp3").path))
     }
 
+    @Test("rename: XMP-Sidecar eines Bildes erscheint im JSON und wird mit umbenannt",
+          .enabled(if: TagxFixtures.trackedCoverIsAvailable && (try? ExifTool.locateExecutable()) != nil,
+                   "Getrackte Bild-Fixture oder exiftool fehlt"))
+    func renameCarriesImageSidecar() throws {
+        let directory = try makeDirectory("sidecar")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let image = directory.appendingPathComponent("bild.jpg")
+        try FileManager.default.copyItem(at: TagxFixtures.trackedCover, to: image)
+        // Titel in die Sidecar schreiben — daraus entsteht der neue Name.
+        let set = try runTagx(arguments: [
+            "exif", "set", image.path, "--sidecar", "--title", "Strand", "--no-backup",
+        ])
+        #expect(set.status == 0, Comment(rawValue: set.stderr))
+
+        let preview = try runTagx(arguments: ["rename", "-p", "%{title}", image.path, "--json"])
+        #expect(preview.status == 0, Comment(rawValue: preview.stderr))
+        let report = try JSONSerialization.jsonObject(with: Data(preview.stdout.utf8)) as? [String: Any]
+        let item = (report?["items"] as? [[String: Any]])?.first
+        #expect(item?["target"] as? String == "Strand.jpg")
+        #expect((item?["sidecarSource"] as? String)?.hasSuffix("/bild.xmp") == true)
+        #expect(item?["sidecarTarget"] as? String == "Strand.xmp")
+
+        let applied = try runTagx(arguments: ["rename", "-p", "%{title}", image.path, "--apply", "--json"])
+        #expect(applied.status == 0, Comment(rawValue: applied.stderr))
+        let result = try JSONSerialization.jsonObject(with: Data(applied.stdout.utf8)) as? [String: Any]
+        let outcome = (result?["results"] as? [[String: Any]])?.first
+        #expect((outcome?["sidecarTarget"] as? String)?.hasSuffix("/Strand.xmp") == true)
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.jpg").path))
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.xmp").path))
+        #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("bild.xmp").path))
+    }
+
     @Test("rename: Muster mit Ordnertrenner wird als Eingabefehler abgelehnt")
     func renameRejectsPathInPattern() throws {
         let directory = try makeDirectory("rename-pattern")

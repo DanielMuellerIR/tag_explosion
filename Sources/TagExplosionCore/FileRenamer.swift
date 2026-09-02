@@ -34,10 +34,31 @@ public enum FileRenamer {
         public var status: Status
         /// Konfliktgrund in Klartext (englisch, wie alle Core-Fehlertexte).
         public var reason: String?
+        /// XMP-Sidecar `<name>.xmp`, die neben einem Bild liegt und im selben
+        /// Zug auf `<neuername>.xmp` umbenannt wird (Pfad); nil = keine
+        /// Sidecar, Datei ist selbst eine `.xmp`, oder ein früherer Eintrag
+        /// des Plans nimmt dieselbe Sidecar schon mit (RAW+JPEG-Paar).
+        public var sidecarSource: String?
+        /// Neuer Name der Sidecar (nur Dateiname, gleicher Ordner).
+        public var sidecarTarget: String?
+
+        public init(source: String, target: String, status: Status, reason: String? = nil,
+                    sidecarSource: String? = nil, sidecarTarget: String? = nil) {
+            self.source = source
+            self.target = target
+            self.status = status
+            self.reason = reason
+            self.sidecarSource = sidecarSource
+            self.sidecarTarget = sidecarTarget
+        }
 
         public var sourceURL: URL { URL(fileURLWithPath: source) }
         public var targetURL: URL {
             URL(fileURLWithPath: source).deletingLastPathComponent().appendingPathComponent(target)
+        }
+        public var sidecarSourceURL: URL? { sidecarSource.map { URL(fileURLWithPath: $0) } }
+        public var sidecarTargetURL: URL? {
+            sidecarTarget.map { sourceURL.deletingLastPathComponent().appendingPathComponent($0) }
         }
     }
 
@@ -67,6 +88,15 @@ public enum FileRenamer {
         public var target: String
         /// nil = umbenannt; sonst der Fehlertext.
         public var error: String?
+        /// Neuer Pfad der mit umbenannten XMP-Sidecar; nil = keine dabei.
+        public var sidecarTarget: String?
+
+        public init(source: String, target: String, error: String? = nil, sidecarTarget: String? = nil) {
+            self.source = source
+            self.target = target
+            self.error = error
+            self.sidecarTarget = sidecarTarget
+        }
 
         public var succeeded: Bool { error == nil }
     }
@@ -88,10 +118,18 @@ public enum FileRenamer {
     /// - Am Zielnamen liegt schon eine andere Datei. Ausnahme: Das Ziel ist
     ///   dieselbe Datei in anderer Schreibweise (song.mp3 → Song.mp3) — das
     ///   ist eine gewöhnliche Umbenennung, kein Konflikt.
+    /// - Liegt neben einem Bild eine XMP-Sidecar `<name>.xmp`, wandert sie
+    ///   im selben Eintrag auf `<neuername>.xmp`; ist DIESER Name belegt oder
+    ///   schon vergeben, gilt der ganze Eintrag als Konflikt. Sonst verlöre
+    ///   das Bild seine Sidecar-Werte (Lightroom findet sie nur namensgleich).
     public static func plan(_ requests: [Request], pattern: FilenamePattern) -> Plan {
         var items: [Item] = []
         // Zielnamen je Ordner, schon vergeben durch frühere Einträge des Plans.
         var claimed: [URL: [String: String]] = [:]   // Ordner → Vergleichsname → Quelle
+        // Sidecars, die ein früherer Eintrag schon mitnimmt: Quelle → Zielname.
+        // Ein RAW+JPEG-Paar teilt sich eine Sidecar; gleiche Zielnamen sind
+        // dann in Ordnung, verschiedene ein Konflikt.
+        var sidecarMoves: [String: String] = [:]
         var caseSensitivity: [URL: Bool] = [:]
 
         for request in requests {
@@ -130,11 +168,44 @@ public enum FileRenamer {
                 item.reason = "A file with this name already exists"
             }
 
+            // Sidecar eines Bildes: gleicher Stamm wie das neue Ziel. Eine
+            // `.xmp` selbst hat keine Sidecar (sie IST eine).
+            if item.status == .rename,
+               MediaFormats.image.contains(source.pathExtension.lowercased()),
+               !MediaFormats.isXMPSidecar(source) {
+                let sidecar = MediaFormats.sidecarURL(for: source)
+                if FileManager.default.fileExists(atPath: sidecar.path) {
+                    let sidecarTarget = MediaFormats.sidecarURL(for: item.targetURL).lastPathComponent
+                    if let earlier = sidecarMoves[sidecar.path] {
+                        // Dieselbe Sidecar nimmt schon ein früherer Eintrag mit.
+                        if comparable(earlier) != comparable(sidecarTarget) {
+                            item.status = .conflict
+                            item.reason = "Sidecar \(sidecar.lastPathComponent) is shared and would get two different names"
+                        }
+                    } else if let other = claimed[directory]?[comparable(sidecarTarget)] {
+                        item.status = .conflict
+                        item.reason = "Sidecar target \(sidecarTarget) has the same name as \(other)"
+                    } else if comparable(sidecarTarget) != comparable(sidecar.lastPathComponent),
+                              FileManager.default.fileExists(
+                                atPath: directory.appendingPathComponent(sidecarTarget).path) {
+                        item.status = .conflict
+                        item.reason = "A file named \(sidecarTarget) already exists (sidecar target)"
+                    } else {
+                        item.sidecarSource = sidecar.path
+                        item.sidecarTarget = sidecarTarget
+                    }
+                }
+            }
+
             // Auch unveränderte Namen belegen ihren Platz: Ein zweiter Eintrag
             // darf nicht auf den Namen einer Datei umbenannt werden, die
             // unverändert bleibt.
             if item.status != .conflict {
                 claimed[directory, default: [:]][comparable(target)] = source.lastPathComponent
+                if let sidecarSource = item.sidecarSource, let sidecarTarget = item.sidecarTarget {
+                    claimed[directory, default: [:]][comparable(sidecarTarget)] = sidecarSource
+                    sidecarMoves[sidecarSource] = sidecarTarget
+                }
             }
             items.append(item)
         }
@@ -159,22 +230,43 @@ public enum FileRenamer {
             let targetURL = item.targetURL
             var outcome = Outcome(source: item.source, target: targetURL.path, error: nil)
             do {
-                guard fm.fileExists(atPath: sourceURL.path) else {
-                    throw RenameError.sourceMissing(path: sourceURL.path)
+                try requireMovable(from: sourceURL, to: targetURL)
+                if let sidecarSource = item.sidecarSourceURL, let sidecarTarget = item.sidecarTargetURL {
+                    // Beide Ziele vorher prüfen, dann Bild und Sidecar bewegen.
+                    // Scheitert die Sidecar, geht das Bild zurück — Bild und
+                    // Sidecar sollen nie unter verschiedenen Namen liegen.
+                    try requireMovable(from: sidecarSource, to: sidecarTarget)
+                    try fm.moveItem(at: sourceURL, to: targetURL)
+                    do {
+                        try fm.moveItem(at: sidecarSource, to: sidecarTarget)
+                        outcome.sidecarTarget = sidecarTarget.path
+                    } catch {
+                        try? fm.moveItem(at: targetURL, to: sourceURL)
+                        throw error
+                    }
+                } else {
+                    try fm.moveItem(at: sourceURL, to: targetURL)
                 }
-                let sameFile = FileStamp.current(of: sourceURL).flatMap { sourceStamp in
-                    FileStamp.current(of: targetURL).map { sourceStamp.hasSameFileIdentity(as: $0) }
-                } ?? false
-                if !sameFile, fm.fileExists(atPath: targetURL.path) {
-                    throw RenameError.targetExists(path: targetURL.path)
-                }
-                try fm.moveItem(at: sourceURL, to: targetURL)
             } catch {
                 outcome.error = error.localizedDescription
             }
             outcomes.append(outcome)
         }
         return outcomes
+    }
+
+    /// Quelle vorhanden, Ziel frei (oder dieselbe Datei in anderer Schreibweise).
+    private static func requireMovable(from sourceURL: URL, to targetURL: URL) throws {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: sourceURL.path) else {
+            throw RenameError.sourceMissing(path: sourceURL.path)
+        }
+        let sameFile = FileStamp.current(of: sourceURL).flatMap { sourceStamp in
+            FileStamp.current(of: targetURL).map { sourceStamp.hasSameFileIdentity(as: $0) }
+        } ?? false
+        if !sameFile, fm.fileExists(atPath: targetURL.path) {
+            throw RenameError.targetExists(path: targetURL.path)
+        }
     }
 
     public enum RenameError: Error, LocalizedError, Equatable, Sendable {

@@ -131,6 +131,16 @@
         }
       }
     },
+    "+ Sidecar %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+ sidecar %@"
+          }
+        }
+      }
+    },
     "+%lld weitere": {
       "localizations": {
         "en": {
