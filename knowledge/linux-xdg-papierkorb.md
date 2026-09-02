@@ -98,15 +98,15 @@ SwiftPM) nach `/usr/local` und ruft `ldconfig`. Pakete dazu: `cmake`,
 `build-essential`, `pkg-config`, `zlib1g-dev`, `libutfcpp-dev`. Dasselbe
 Skript läuft im CI-Job und im lokalen Container.
 
-## Lokaler Linux-Lauf auf Popo (Docker)
+## Lokaler Linux-Lauf auf einem Linux-Rechner (Docker)
 
-Popo (`ssh popo`, Linux Mint 22.2) hat Docker, aber keine Swift-Toolchain;
-Details in theplan `knowledge/popo-linux-testhost.md`. Bewährter Ablauf:
+Ein Linux-Rechner mit Docker (hier `linuxbox` als SSH-Alias, Ubuntu-24.04-
+Basis) genügt; eine Swift-Toolchain braucht er nicht. Bewährter Ablauf:
 
 ```bash
-rsync -a --delete --exclude .build --exclude App/.build --exclude build --exclude .git ./ popo:tmp/tagx-linux/
-ssh popo 'docker run -d --name tagx-linux -v $HOME/tmp/tagx-linux:/src -w /src swift:6.0 sleep infinity'
-ssh popo 'docker exec tagx-linux sh -c "scripts/linux-deps.sh && git config --global http.version HTTP/1.1 && swift test"'
+rsync -a --delete --exclude .build --exclude App/.build --exclude build --exclude .git ./ linuxbox:tmp/tagx-linux/
+ssh linuxbox 'docker run -d --name tagx-linux -v $HOME/tmp/tagx-linux:/src -w /src swift:6.0 sleep infinity'
+ssh linuxbox 'docker exec tagx-linux sh -c "scripts/linux-deps.sh && git config --global http.version HTTP/1.1 && swift test"'
 ```
 
 - **Falle: SwiftPM kann im Container nicht von GitHub klonen** („could not
@@ -117,4 +117,4 @@ ssh popo 'docker exec tagx-linux sh -c "scripts/linux-deps.sh && git config --gl
 - Der Container läuft als root auf einem Bind-Mount von `dm` → bei Git-
   Meldungen zu „dubious ownership" `git config --global safe.directory '*'`.
 - Aufräumen danach: `docker rm -f tagx-linux` und `rm -rf ~/tmp/tagx-linux`
-  auf Popo.
+  auf dem Linux-Rechner.
