@@ -10,9 +10,10 @@ struct Tagx: ParsableCommand {
         commandName: "tagx",
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
-        subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Layers.self, Info.self,
-                      Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
-                      Rename.self, Parse.self, Playlist.self, Cue.self, Nfo.self, Subtitle.self],
+        subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Lyrics.self, Layers.self,
+                      Info.self, Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self,
+                      Import.self, Rename.self, Parse.self, Playlist.self, Cue.self,
+                      Nfo.self, Subtitle.self],
         defaultSubcommand: Show.self
     )
 }
@@ -96,6 +97,10 @@ struct Show: ParsableCommand {
         var artworks: [ArtworkMeta]
         /// Kapitel (ms); leer bei Formaten ohne Kapitel — Details `tagx chapters`.
         var chapters: [Chapter]
+        /// Sprache der Lyrics (ISO 639-2, nur ID3v2) und SYLT-Zeilen —
+        /// Details und Sidecar: `tagx lyrics`.
+        var lyricsLanguage: String
+        var syncedLyrics: [SyncedLyricLine]
     }
 
     func run() throws {
@@ -112,7 +117,9 @@ struct Show: ParsableCommand {
                     .init(mimeType: $0.resolvedMimeType, pictureType: $0.pictureType,
                           description: $0.description, bytes: $0.data.count)
                 },
-                chapters: data.chapters
+                chapters: data.chapters,
+                lyricsLanguage: data.lyricsLanguage,
+                syncedLyrics: data.syncedLyrics
             )
             reports.append(report)
         }
@@ -131,6 +138,17 @@ struct Show: ParsableCommand {
             }
             for prop in report.properties {
                 print("\(prop.key)=\(prop.value)")
+                // R128 ist eine Q7.8-Ganzzahl — den dB-Wert daneben zeigen.
+                if [FixedFields.r128TrackGain, FixedFields.r128AlbumGain].contains(prop.key),
+                   let raw = Loudness.parseR128(prop.value) {
+                    print("# \(prop.key) = \(Loudness.formatGain(Loudness.r128ToDecibel(raw)))")
+                }
+            }
+            if !report.lyricsLanguage.isEmpty {
+                print("LYRICS-LANGUAGE: \(report.lyricsLanguage)")
+            }
+            for line in report.syncedLyrics {
+                print("SYNCED: [\(LRC.formatTimestamp(line.milliseconds))] \(line.text)")
             }
             for art in report.artworks {
                 print("COVER: \(art.pictureType.isEmpty ? "?" : art.pictureType) · \(art.mimeType) · \(art.bytes) bytes")
@@ -189,7 +207,13 @@ struct Set: ParsableCommand {
                 throw ValidationError("Invalid assignment (the key must not be empty): \(assignment)")
             }
             let key = rawKey.uppercased()
-            let value = String(assignment[assignment.index(after: eq)...])
+            var value = String(assignment[assignment.index(after: eq)...])
+            // Feste Felder (ReplayGain, R128, Podcast) prüfen und in die
+            // Speicherform bringen — ein ungültiger Wert endet hier mit
+            // Feldname und Exit 1, bevor Sicherung oder Datei angefasst werden.
+            if !value.isEmpty {
+                value = try FixedFields.normalized(key: key, value: value)
+            }
             // Bestehende Werte des Keys entfernen; nicht-leerer Wert wird neu gesetzt.
             properties.removeAll { $0.key == key }
             if !value.isEmpty {

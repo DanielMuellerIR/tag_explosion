@@ -141,6 +141,26 @@
         }
       }
     },
+    "%lld synchronisierte Zeilen (SYLT in der Datei)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld synchronized lines (SYLT in the file)"
+          }
+        }
+      }
+    },
+    "%lld synchronisierte Zeilen (Sidecar %@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld synchronized lines (sidecar %@)"
+          }
+        }
+      }
+    },
     "%lld umbenennen · %lld unverändert · %lld Konflikte": {
       "localizations": {
         "en": {
@@ -267,6 +287,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Album"
+          }
+        }
+      }
+    },
+    "Album-Gain": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album gain"
+          }
+        }
+      }
+    },
+    "Album-Peak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album peak"
           }
         }
       }
@@ -1081,6 +1121,26 @@
         }
       }
     },
+    "Drei Buchstaben nach ISO 639-2 (z.B. deu, eng)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Three letters per ISO 639-2 (e.g. deu, eng)"
+          }
+        }
+      }
+    },
+    "Drei Buchstaben nach ISO 639-2, z.B. deu, eng; leer = unbekannt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Three letters per ISO 639-2, e.g. deu, eng; empty = unknown"
+          }
+        }
+      }
+    },
     "E-Books": {
       "localizations": {
         "en": {
@@ -1271,6 +1331,26 @@
         }
       }
     },
+    "Episode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Episode"
+          }
+        }
+      }
+    },
+    "Episoden-GUID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Episode GUID"
+          }
+        }
+      }
+    },
     "Ersteller": {
       "localizations": {
         "en": {
@@ -1347,6 +1427,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "FIELD"
+          }
+        }
+      }
+    },
+    "Feed-URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed URL"
           }
         }
       }
@@ -1447,6 +1537,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "GPS Longitude"
+          }
+        }
+      }
+    },
+    "Gain −60 … +60 dB, Peak 0 … 10, R128 als Q7.8-Ganzzahl (−32768 … 32767 = Wert/256 dB). Werte werden nur geprüft und gespeichert, nicht aus dem Audio berechnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gain −60 … +60 dB, peak 0 … 10, R128 as a Q7.8 integer (−32768 … 32767 = value/256 dB). Values are only checked and stored, not calculated from the audio."
+          }
+        }
+      }
+    },
+    "Gain −60 … +60 dB, Peak 0 … 10. Werte werden nur geprüft und gespeichert, nicht aus dem Audio berechnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gain −60 … +60 dB, peak 0 … 10. Values are only checked and stored, not calculated from the audio."
           }
         }
       }
@@ -1941,6 +2051,26 @@
         }
       }
     },
+    "Keine synchronisierten Lyrics (SYLT)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No synchronized lyrics (SYLT)"
+          }
+        }
+      }
+    },
+    "Keine synchronisierten Lyrics — dieses Format hat kein SYLT; eine LRC-Datei wird als %@ neben der Datei gespeichert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No synchronized lyrics — this format has no SYLT; an LRC file is stored as %@ next to the file."
+          }
+        }
+      }
+    },
     "Keine weiteren Felder": {
       "localizations": {
         "en": {
@@ -2011,6 +2141,46 @@
         }
       }
     },
+    "LRC exportieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export LRC …"
+          }
+        }
+      }
+    },
+    "LRC importieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import LRC …"
+          }
+        }
+      }
+    },
+    "LRC-Datei auswählen ([mm:ss.xx] Text je Zeile)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an LRC file ([mm:ss.xx] text per line)"
+          }
+        }
+      }
+    },
+    "LRC-Datei konnte nicht gelesen werden: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The LRC file could not be read: %@"
+          }
+        }
+      }
+    },
     "Lade Metadaten …": {
       "localizations": {
         "en": {
@@ -2027,6 +2197,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loading …"
+          }
+        }
+      }
+    },
+    "Lange Beschreibung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long description"
           }
         }
       }
@@ -2051,12 +2231,52 @@
         }
       }
     },
+    "Lautheit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loudness"
+          }
+        }
+      }
+    },
+    "Lautheit (Album, für alle setzen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loudness (album, set for all)"
+          }
+        }
+      }
+    },
+    "Lyrics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyrics"
+          }
+        }
+      }
+    },
     "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "MP4 atoms · Matroska tags (mov/avi view only)"
+          }
+        }
+      }
+    },
+    "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MP4 atoms · Matroska tags (mov/avi/ogv view only)"
           }
         }
       }
@@ -2571,12 +2791,52 @@
         }
       }
     },
+    "Podcast": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podcast"
+          }
+        }
+      }
+    },
+    "Podcast (Flag)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podcast (flag)"
+          }
+        }
+      }
+    },
     "Premiere": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Premiered"
+          }
+        }
+      }
+    },
+    "R128 Album": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R128 album"
+          }
+        }
+      }
+    },
+    "R128 Track": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R128 track"
           }
         }
       }
@@ -2861,12 +3121,32 @@
         }
       }
     },
+    "Sprache (ISO 639-2)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language (ISO 639-2)"
+          }
+        }
+      }
+    },
     "Später": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Later"
+          }
+        }
+      }
+    },
+    "Staffel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Season"
           }
         }
       }
@@ -2891,12 +3171,42 @@
         }
       }
     },
+    "Stichwörter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keywords"
+          }
+        }
+      }
+    },
     "Studio": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Studio"
+          }
+        }
+      }
+    },
+    "Synchronisierte Lyrics als LRC exportieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export synchronized lyrics as LRC"
+          }
+        }
+      }
+    },
+    "Synchronisierte Lyrics entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove synchronized lyrics"
           }
         }
       }
@@ -3067,6 +3377,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Title and Language line are stored in the header; all cues stay untouched."
+          }
+        }
+      }
+    },
+    "Track-Gain": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track gain"
+          }
+        }
+      }
+    },
+    "Track-Peak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track peak"
           }
         }
       }

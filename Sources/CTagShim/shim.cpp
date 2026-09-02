@@ -770,3 +770,218 @@ const char* tx_taglib_version(void) {
 }
 
 } // extern "C"
+
+// ---- Lyrics und feste Felder außerhalb der PropertyMap ------------------------
+
+#include <unsynchronizedlyricsframe.h>
+#include <synchronizedlyricsframe.h>
+#include <podcastframe.h>
+#include <wavfile.h>
+#include <aifffile.h>
+#include <dsffile.h>
+#include <mp4tag.h>
+#include <mp4item.h>
+
+namespace {
+
+// Der ID3v2-Tag der Datei, falls das Format einen tragen kann. `create`
+// legt bei MP3 einen neuen Tag an; WAV, AIFF und DSF liefern ihren Tag
+// immer (TagLib erzeugt ihn dort intern erst beim Speichern, wenn er Frames
+// hat). nullptr = Format ohne ID3v2.
+TagLib::ID3v2::Tag* id3v2_tag(tx_file* f, bool create) {
+    if (auto* mpeg = file_as<TagLib::MPEG::File>(f)) return mpeg->ID3v2Tag(create);
+    if (auto* wav = file_as<TagLib::RIFF::WAV::File>(f)) return wav->ID3v2Tag();
+    if (auto* aiff = file_as<TagLib::RIFF::AIFF::File>(f)) return aiff->tag();
+    if (auto* dsf = file_as<TagLib::DSF::File>(f)) return dsf->tag();
+    return nullptr;
+}
+
+// Der MP4-Tag der Datei (nullptr = kein MP4-Container).
+TagLib::MP4::Tag* mp4_tag(tx_file* f) {
+    auto* mp4 = file_as<TagLib::MP4::File>(f);
+    return mp4 ? mp4->tag() : nullptr;
+}
+
+// ID3v2 verlangt genau drei Buchstaben (ISO 639-2); "XXX" = unbekannt.
+bool valid_language(const char* language) {
+    return language && std::strlen(language) == 3;
+}
+
+TagLib::ByteVector language_bytes(const char* language) {
+    return TagLib::ByteVector(valid_language(language) ? language : "XXX", 3);
+}
+
+// Erster Frame eines Typs im Tag (nullptr, wenn keiner da ist).
+template <typename FrameType>
+FrameType* first_frame(TagLib::ID3v2::Tag* tag, const char* frameId) {
+    for (auto* frame : tag->frameList(frameId)) {
+        if (auto* typed = dynamic_cast<FrameType*>(frame)) return typed;
+    }
+    return nullptr;
+}
+
+bool has_text(const char* value) { return value && value[0]; }
+
+} // namespace
+
+extern "C" {
+
+int tx_id3v2_supported(tx_file* f) {
+    if (!f || f->ref.isNull()) return 0;
+    return (file_as<TagLib::MPEG::File>(f) || file_as<TagLib::RIFF::WAV::File>(f)
+            || file_as<TagLib::RIFF::AIFF::File>(f) || file_as<TagLib::DSF::File>(f)) ? 1 : 0;
+}
+
+char* tx_get_lyrics_language(tx_file* f) {
+    TagLib::ID3v2::Tag* tag = id3v2_tag(f, false);
+    if (!tag) return nullptr;
+    auto* uslt = first_frame<TagLib::ID3v2::UnsynchronizedLyricsFrame>(tag, "USLT");
+    if (!uslt) return nullptr;
+    // Die Sprache liegt als drei Rohbytes vor; ein leeres Feld gilt als "XXX".
+    const TagLib::ByteVector language = uslt->language();
+    return dup_string(language.size() == 3 ? TagLib::String(language) : TagLib::String("XXX"));
+}
+
+int tx_set_lyrics_language(tx_file* f, const char* language) {
+    if (!valid_language(language)) return 0;
+    TagLib::ID3v2::Tag* tag = id3v2_tag(f, false);
+    if (!tag) return 0;
+    for (auto* frame : tag->frameList("USLT")) {
+        if (auto* uslt = dynamic_cast<TagLib::ID3v2::UnsynchronizedLyricsFrame*>(frame))
+            uslt->setLanguage(language_bytes(language));
+    }
+    return 1;
+}
+
+tx_synced_line* tx_get_synced_lyrics(tx_file* f, int32_t* out_count, char** out_language) {
+    if (out_language) *out_language = nullptr;
+    if (out_count) *out_count = -1;
+    if (!f || f->ref.isNull() || !out_count) return nullptr;
+    TagLib::ID3v2::Tag* tag = id3v2_tag(f, false);
+    if (!tag) { *out_count = 0; return nullptr; }
+    auto* sylt = first_frame<TagLib::ID3v2::SynchronizedLyricsFrame>(tag, "SYLT");
+    if (!sylt) { *out_count = 0; return nullptr; }
+
+    // SYLT kann statt Millisekunden auch MPEG-Frames zählen; das rechnen wir
+    // nicht um (dafür fehlt die Frame-Dauer), sondern melden keine Zeilen.
+    if (sylt->timestampFormat() != TagLib::ID3v2::SynchronizedLyricsFrame::AbsoluteMilliseconds) {
+        *out_count = 0;
+        return nullptr;
+    }
+    std::vector<TagLib::ID3v2::SynchronizedLyricsFrame::SynchedText> lines;
+    for (const auto& entry : sylt->synchedText()) lines.push_back(entry);
+    std::stable_sort(lines.begin(), lines.end(),
+                     [](const auto& a, const auto& b) { return a.time < b.time; });
+
+    if (out_language) {
+        // Die Sprache liegt als drei Rohbytes ohne Nullterminierung vor.
+        const TagLib::ByteVector language = sylt->language();
+        *out_language = dup_string(language.size() == 3 ? TagLib::String(language) : TagLib::String("XXX"));
+    }
+    *out_count = static_cast<int32_t>(lines.size());
+    if (lines.empty()) return nullptr;
+    auto* out = static_cast<tx_synced_line*>(std::calloc(lines.size(), sizeof(tx_synced_line)));
+    if (!out) { *out_count = -1; return nullptr; }
+    for (size_t i = 0; i < lines.size(); ++i) {
+        out[i].text = dup_string(lines[i].text);
+        out[i].time_ms = lines[i].time;
+    }
+    return out;
+}
+
+void tx_free_synced_lyrics(tx_synced_line* lines, int32_t count) {
+    if (!lines) return;
+    for (int32_t i = 0; i < count; ++i) std::free(lines[i].text);
+    std::free(lines);
+}
+
+int tx_set_synced_lyrics(tx_file* f, const tx_synced_line* lines, int32_t count,
+                         const char* language) {
+    if (!f || f->ref.isNull() || (count > 0 && !lines)) return 0;
+    // Beim Entfernen keinen leeren ID3v2-Tag anlegen.
+    TagLib::ID3v2::Tag* tag = id3v2_tag(f, count > 0);
+    if (!tag) return tx_id3v2_supported(f) ? 1 : 0;
+    tag->removeFrames("SYLT");
+    if (count == 0) return 1;
+
+    auto* sylt = new TagLib::ID3v2::SynchronizedLyricsFrame(TagLib::String::UTF8);
+    sylt->setLanguage(language_bytes(language));
+    sylt->setTimestampFormat(TagLib::ID3v2::SynchronizedLyricsFrame::AbsoluteMilliseconds);
+    sylt->setType(TagLib::ID3v2::SynchronizedLyricsFrame::Lyrics);
+    TagLib::ID3v2::SynchronizedLyricsFrame::SynchedTextList list;
+    for (int32_t i = 0; i < count; ++i) {
+        list.append(TagLib::ID3v2::SynchronizedLyricsFrame::SynchedText(
+            clamp_u32(lines[i].time_ms),
+            TagLib::String(lines[i].text ? lines[i].text : "", TagLib::String::UTF8)));
+    }
+    sylt->setSynchedText(list);
+    tag->addFrame(sylt); // der Tag übernimmt das Eigentum
+    return 1;
+}
+
+int tx_native_field_supported(tx_file* f, const char* id3_frame, const char* mp4_atom) {
+    if (!f || f->ref.isNull()) return 0;
+    if (has_text(id3_frame) && tx_id3v2_supported(f)) return 1;
+    if (has_text(mp4_atom) && mp4_tag(f)) return 1;
+    return 0;
+}
+
+char* tx_get_native_field(tx_file* f, const char* id3_frame, const char* mp4_atom) {
+    if (!f || f->ref.isNull()) return nullptr;
+    if (has_text(id3_frame)) {
+        if (TagLib::ID3v2::Tag* tag = id3v2_tag(f, false)) {
+            const auto& frames = tag->frameList(id3_frame);
+            if (frames.isEmpty()) return nullptr;
+            // Das Podcast-Flag hat keinen Text — Vorhandensein heißt gesetzt.
+            if (std::strcmp(id3_frame, "PCST") == 0) return dup_string("1");
+            return dup_string(frames.front()->toString());
+        }
+    }
+    if (has_text(mp4_atom)) {
+        if (TagLib::MP4::Tag* tag = mp4_tag(f)) {
+            if (!tag->contains(mp4_atom)) return nullptr;
+            const TagLib::MP4::Item item = tag->item(mp4_atom);
+            if (std::strcmp(mp4_atom, "pcst") == 0) return item.toBool() ? dup_string("1") : nullptr;
+            return dup_string(item.toStringList().toString(", "));
+        }
+    }
+    return nullptr;
+}
+
+int tx_set_native_field(tx_file* f, const char* id3_frame, const char* mp4_atom,
+                        const char* value) {
+    if (!f || f->ref.isNull()) return 0;
+    const bool remove = !has_text(value);
+    if (has_text(id3_frame) && tx_id3v2_supported(f)) {
+        // Beim Entfernen keinen leeren Tag anlegen: ohne Tag gibt es nichts
+        // zu entfernen.
+        TagLib::ID3v2::Tag* tag = id3v2_tag(f, !remove);
+        if (!tag) return 1;
+        tag->removeFrames(id3_frame);
+        if (remove) return 1;
+        if (std::strcmp(id3_frame, "PCST") == 0) {
+            tag->addFrame(new TagLib::ID3v2::PodcastFrame());
+        } else {
+            auto* frame = new TagLib::ID3v2::TextIdentificationFrame(
+                TagLib::ByteVector(id3_frame, 4), TagLib::String::UTF8);
+            frame->setText(TagLib::String(value, TagLib::String::UTF8));
+            tag->addFrame(frame); // der Tag übernimmt das Eigentum
+        }
+        return 1;
+    }
+    if (has_text(mp4_atom)) {
+        if (TagLib::MP4::Tag* tag = mp4_tag(f)) {
+            if (remove) { tag->removeItem(mp4_atom); return 1; }
+            if (std::strcmp(mp4_atom, "pcst") == 0) {
+                tag->setItem(mp4_atom, TagLib::MP4::Item(true));
+            } else {
+                tag->setItem(mp4_atom, TagLib::MP4::Item(
+                    TagLib::StringList(TagLib::String(value, TagLib::String::UTF8))));
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+} // extern "C"

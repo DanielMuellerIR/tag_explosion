@@ -324,12 +324,14 @@ public enum EbookTool {
                 throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
                                               freeBytes: freeBytes)
             case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
+            case .syncedLyricsUnsupported: throw TagError.syncedLyricsUnsupported(path: url.path)
             case .layerUnsupported(_, let layer):
                 throw TagError.layerUnsupported(path: url.path, layer: layer)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
             case .propertiesRejected, .toolNotFound, .toolFailed,
                  .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
                  .unsupportedDocumentField, .invalidDocumentValue,
+                 .invalidFieldValue, .invalidLyrics,
                  .invalidSubtitleShift: throw error
             case .urlOnlyNFO: throw TagError.urlOnlyNFO(path: url.path)
             }

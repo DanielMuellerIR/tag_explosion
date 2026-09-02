@@ -14,6 +14,9 @@ struct BatchEditorView: View {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 batchFieldsSection
+                if entries.allSatisfy({ FixedFields.supportsLoudness($0.url) }) {
+                    BatchLoudnessSection(entries: entries)
+                }
                 actionsSection
                 ArchiveButtons(entries: entries)
                 fileListSection

@@ -48,6 +48,12 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
   vor Sicherung/Dry-run; Backend-Verträge für Serie und Coverformate.
+- [feste-felder-lyrics-lautheit-podcast.md](feste-felder-lyrics-lautheit-podcast.md) —
+  Bei Arbeit an Lyrics (USLT/SYLT/LRC), ReplayGain/R128 oder Podcast-Feldern:
+  welche Schlüssel TagLibs PropertyMap kennt und welche nicht (PCST, TKWD,
+  TVSN/TVEP, keyw/ldes), warum PCST über die PropertyMap verloren geht,
+  Sprache "XXX" nach jedem Textwechsel, Sidecar-Regeln, was kid3/mediainfo
+  davon zeigen.
 - [id3-schichten.md](id3-schichten.md) — Bei Tag-Schichten (ID3v1/ID3v2/APE/
   RIFF INFO/Vorbis), `tagx layers` oder der ID3v2.3-Option: welche Formate
   welche Schichten kennen, `strip()` schreibt bei MPEG/WAV sofort, die

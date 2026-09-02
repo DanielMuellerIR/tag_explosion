@@ -19,7 +19,7 @@ let primaryFields: [(key: String, label: String)] = [
 
 /// Vorschläge fürs Hinzufügen weiterer Felder.
 let suggestedExtraKeys: [String] = [
-    "LYRICS", "LYRICIST", "CONDUCTOR", "REMIXER", "BPM", "COPYRIGHT",
+    "LYRICIST", "CONDUCTOR", "REMIXER", "BPM", "COPYRIGHT",
     "ENCODEDBY", "LANGUAGE", "ISRC", "LABEL", "COMPILATION", "SUBTITLE",
     "ORIGINALDATE", "MOOD", "MEDIA", "SORTALBUM", "SORTARTIST", "SORTTITLE",
 ]
@@ -86,6 +86,16 @@ struct TagEditorTab: View {
 
                 primarySection
                 extraSection
+                // Feste Felder mit Prüfung — nur, wenn das Format sie trägt.
+                if showsLyrics {
+                    LyricsSection(entry: entry)
+                }
+                if showsLoudness {
+                    LoudnessSection(entry: entry)
+                }
+                if showsPodcast {
+                    PodcastSection(entry: entry)
+                }
                 if entry.supportsChapters {
                     ChapterSection(entry: entry)
                 }
@@ -147,6 +157,22 @@ struct TagEditorTab: View {
         writableKeys?.contains(key) ?? true
     }
 
+    // Abschnitte für feste Felder — nur wenn das Format sie speichern kann
+    // und die Datei überhaupt bearbeitbar ist.
+    private var showsLyrics: Bool { !entry.isReadOnly && FixedFields.supportsLyrics(entry.url) }
+    private var showsLoudness: Bool { !entry.isReadOnly && FixedFields.supportsLoudness(entry.url) }
+    private var showsPodcast: Bool { !entry.isReadOnly && FixedFields.supportsPodcast(entry.url) }
+
+    /// Schlüssel, die ein eigener Abschnitt zeigt und die deshalb nicht noch
+    /// einmal unter „Weitere Felder" auftauchen.
+    private var sectionKeys: Set<String> {
+        var keys: Set<String> = []
+        if showsLyrics { keys.formUnion([FixedFields.lyrics, FixedFields.lyricsAlternate]) }
+        if showsLoudness { keys.formUnion(FixedFields.loudnessKeys) }
+        if showsPodcast { keys.formUnion(FixedFields.podcastKeys) }
+        return keys
+    }
+
     // Kernfelder als zweispaltiges Formular
     private var primarySection: some View {
         GroupBox("Tags") {
@@ -183,7 +209,7 @@ struct TagEditorTab: View {
 
     // Alle übrigen Felder generisch, editierbar, lösch- und ergänzbar
     private var extraSection: some View {
-        let primaryKeys = Set(primaryFields.map(\.key))
+        let primaryKeys = Set(primaryFields.map(\.key)).union(sectionKeys)
         let extraIndices = entry.properties.indices.filter {
             !primaryKeys.contains(entry.properties[$0].key)
         }

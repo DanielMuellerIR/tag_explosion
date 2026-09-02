@@ -49,18 +49,77 @@ public final class TagFile {
 
     // MARK: - Lesen
 
+    /// Alle Textfelder. Felder mit eigenem Speicherort außerhalb der
+    /// PropertyMap (`FixedFields.nativeSlots`, z.B. das Podcast-Flag oder
+    /// TKWD/keyw) kommen aus dem Frame/Atom und verdrängen einen gleichnamigen
+    /// PropertyMap-Wert.
     public func properties() throws -> [TagProperty] {
         let h = try requireHandle()
         var count: Int32 = 0
         let raw = tx_get_properties(h, &count)
         defer { tx_free_properties(raw, count) }
         guard count >= 0 else { throw TagError.cannotOpen(path: path) }
+        var result: [TagProperty] = []
+        if let raw, count > 0 {
+            result = (0..<Int(count)).map { i in
+                TagProperty(
+                    key: String(cString: raw[i].key),
+                    value: String(cString: raw[i].value)
+                )
+            }
+        }
+        for slot in supportedNativeSlots() {
+            result.removeAll { $0.key == slot.key }
+            if let value = nativeValue(slot) {
+                result.append(TagProperty(key: slot.key, value: value))
+            }
+        }
+        return result
+    }
+
+    /// Die festen Felder, die diese Datei als Frame/Atom statt über die
+    /// PropertyMap führt (leer bei Formaten ohne ID3v2/MP4).
+    private func supportedNativeSlots() -> [FixedFields.NativeSlot] {
+        guard let h = handle else { return [] }
+        return FixedFields.nativeSlots.filter {
+            tx_native_field_supported(h, $0.id3Frame, $0.mp4Atom) == 1
+        }
+    }
+
+    private func nativeValue(_ slot: FixedFields.NativeSlot) -> String? {
+        guard let h = handle, let raw = tx_get_native_field(h, slot.id3Frame, slot.mp4Atom) else {
+            return nil
+        }
+        defer { free(raw) }
+        return String(cString: raw)
+    }
+
+    // MARK: - Lyrics
+
+    /// Ob die Datei einen ID3v2-Tag trägt — nur dort gibt es SYLT und die
+    /// Sprache der Lyrics (MP3/MP2, WAV, AIFF, DSF).
+    public var supportsSyncedLyrics: Bool {
+        guard let h = handle else { return false }
+        return tx_id3v2_supported(h) != 0
+    }
+
+    /// Sprache der unsynchronisierten Lyrics (USLT); leer = unbekannt/keine.
+    public func lyricsLanguage() -> String {
+        guard let h = handle, let raw = tx_get_lyrics_language(h) else { return "" }
+        defer { free(raw) }
+        return FixedFields.normalizedLanguage(String(cString: raw))
+    }
+
+    /// Synchronisierte Lyrics (SYLT) in Zeitreihenfolge; leer ohne SYLT.
+    public func syncedLyrics() throws -> [SyncedLyricLine] {
+        let h = try requireHandle()
+        var count: Int32 = 0
+        let raw = tx_get_synced_lyrics(h, &count, nil)
+        defer { tx_free_synced_lyrics(raw, count) }
+        guard count >= 0 else { throw TagError.cannotOpen(path: path) }
         guard let raw, count > 0 else { return [] }
         return (0..<Int(count)).map { i in
-            TagProperty(
-                key: String(cString: raw[i].key),
-                value: String(cString: raw[i].value)
-            )
+            SyncedLyricLine(milliseconds: Int(raw[i].time_ms), text: String(cString: raw[i].text))
         }
     }
 
@@ -160,7 +219,10 @@ public final class TagFile {
             isReadOnly: isReadOnly,
             chapters: try chapters(),
             supportsChapters: supportsChapters,
-            layers: try layers()
+            layers: try layers(),
+            lyricsLanguage: lyricsLanguage(),
+            syncedLyrics: try syncedLyrics(),
+            supportsSyncedLyrics: supportsSyncedLyrics
         )
     }
 
@@ -176,10 +238,15 @@ public final class TagFile {
     /// auf ein Original loszulassen.
     func setProperties(_ properties: [TagProperty]) throws {
         let h = try requireHandle()
+        // Felder mit eigenem Frame/Atom gehen nicht durch die PropertyMap —
+        // dort würden sie als TXXX/Freeform landen oder (PCST) verloren gehen.
+        let nativeSlots = supportedNativeSlots()
+        let nativeKeys = Set(nativeSlots.map(\.key))
+        let plain = properties.filter { !nativeKeys.contains($0.key) }
         var cProps: [tx_prop] = []
         // C-Strings müssen bis zum Aufruf gültig bleiben — strdup + explizites free.
-        cProps.reserveCapacity(properties.count)
-        for prop in properties {
+        cProps.reserveCapacity(plain.count)
+        for prop in plain {
             cProps.append(tx_prop(key: strdup(prop.key), value: strdup(prop.value)))
         }
         defer {
@@ -187,7 +254,42 @@ public final class TagFile {
         }
         let rejected = tx_set_properties(h, cProps, Int32(cProps.count))
         guard rejected >= 0 else { throw TagError.cannotOpen(path: path) }
+        // Erst nach der PropertyMap, weil TagLib dort Frames ohne Schlüssel in
+        // der neuen Map entfernt (das PCST-Flag) — der eigene Weg setzt sie
+        // anschließend wieder. Ein fehlender Schlüssel entfernt das Feld.
+        for slot in nativeSlots {
+            let value = properties.first { $0.key == slot.key }?.value ?? ""
+            guard tx_set_native_field(h, slot.id3Frame, slot.mp4Atom, value) == 1 else {
+                throw TagError.saveFailed(path: path)
+            }
+        }
         if rejected > 0 { throw TagError.propertiesRejected(count: Int(rejected)) }
+    }
+
+    /// Ersetzt alle SYLT-Frames (leer = entfernen); nicht public — siehe
+    /// `setProperties`. `language`: ISO 639-2 oder leer (= "XXX").
+    func setSyncedLyrics(_ lines: [SyncedLyricLine], language: String) throws {
+        let h = try requireHandle()
+        guard supportsSyncedLyrics else { throw TagError.syncedLyricsUnsupported(path: path) }
+        var cLines: [tx_synced_line] = []
+        cLines.reserveCapacity(lines.count)
+        for line in lines {
+            cLines.append(tx_synced_line(text: strdup(line.text), time_ms: Int64(line.milliseconds)))
+        }
+        defer { for line in cLines { free(line.text) } }
+        let lang = language.isEmpty ? "XXX" : language
+        guard tx_set_synced_lyrics(h, cLines, Int32(cLines.count), lang) == 1 else {
+            throw TagError.saveFailed(path: path)
+        }
+    }
+
+    /// Setzt die Sprache aller USLT-Frames (leer = "XXX"). Ohne USLT-Frame
+    /// passiert nichts; Formate ohne ID3v2 ignorieren den Aufruf.
+    func setLyricsLanguage(_ language: String) throws {
+        let h = try requireHandle()
+        guard supportsSyncedLyrics else { return }
+        let lang = language.isEmpty ? "XXX" : language
+        guard tx_set_lyrics_language(h, lang) == 1 else { throw TagError.saveFailed(path: path) }
     }
 
     /// Ersetzt alle eingebetteten Bilder (noch nicht persistent — `save()`
@@ -300,12 +402,19 @@ public final class TagFile {
     /// das Schreiben mit `fileChangedOnDisk` ab, statt die fremde Änderung zu
     /// überschreiben.
     ///
+    /// `syncedLyrics` (nil = unverändert, `[]` = SYLT entfernen) und
+    /// `lyricsLanguage` (nil = bisherige Sprache behalten) gibt es nur bei
+    /// ID3v2-Trägern; andere Formate lehnen `syncedLyrics` ab und ignorieren
+    /// die Sprache. Feste Felder (`FixedFields`) werden vor der Sicherung
+    /// geprüft; ein ungültiger Wert lässt die Datei unangetastet.
     /// `id3Version`: ID3v2.4 (Standard) oder v2.3 für alte Player. Wirkt nur
     /// bei Formaten mit ID3v2 (MP3/MP2, WAV, AIFF, DSF); andere ignorieren sie.
     public static func write(
         properties: [TagProperty]? = nil,
         artworks: [Artwork]? = nil,
         chapters: [Chapter]? = nil,
+        syncedLyrics: [SyncedLyricLine]? = nil,
+        lyricsLanguage: String? = nil,
         to url: URL,
         expecting stamp: FileStamp? = nil,
         id3Version: ID3Version = .v24
@@ -313,22 +422,39 @@ public final class TagFile {
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
         if before.isReadOnly { throw TagError.readOnly(path: url.path) }
-        // Unstimmige Kapitel vor Kopie und Sicherung ablehnen — ein Fehler
-        // NACH der Papierkorb-Kopie hinterließe eine sinnlose Sicherung.
+        // Unstimmige Kapitel und Werte vor Kopie und Sicherung ablehnen — ein
+        // Fehler NACH der Papierkorb-Kopie hinterließe eine sinnlose Sicherung.
         if let chapters {
             guard before.supportsChapters else { throw TagError.chaptersUnsupported(path: url.path) }
             try ChapterList.validate(chapters)
         }
+        if let properties {
+            try FixedFields.validate(properties, changedFrom: before.properties)
+        }
+        if let syncedLyrics {
+            guard before.supportsSyncedLyrics else { throw TagError.syncedLyricsUnsupported(path: url.path) }
+            try LRC.validate(syncedLyrics)
+        }
+        if let lyricsLanguage, !FixedFields.isValidLanguage(lyricsLanguage) {
+            throw TagError.invalidFieldValue(
+                field: "LYRICS language", reason: "expected three letters (ISO 639-2), got \"\(lyricsLanguage)\"")
+        }
+        let language = lyricsLanguage.map(FixedFields.normalizedLanguage) ?? before.lyricsLanguage
 
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             let file = try TagFile(url: temp)
             defer { file.close() }
             if let properties { try file.setProperties(properties) }
+            // Ein neuer Lyrics-Text bekommt von TagLib die Sprache "XXX" —
+            // die gewünschte bzw. bisherige Sprache danach wieder setzen.
+            if properties != nil || lyricsLanguage != nil { try file.setLyricsLanguage(language) }
             if let artworks { try file.setArtworks(artworks) }
             if let chapters { try file.setChapters(chapters) }
+            if let syncedLyrics { try file.setSyncedLyrics(syncedLyrics, language: language) }
             try file.save(id3Version: id3Version)
         } validate: { temp in
             try validateWriteResult(at: temp, expecting: artworks, chapters: chapters,
+                                    syncedLyrics: syncedLyrics,
                                     comparedTo: before.audio, originalPath: url.path)
         }
     }
@@ -386,11 +512,16 @@ public final class TagFile {
     /// beschädigt — dann bleibt das Original stehen.
     private static func validateWriteResult(
         at url: URL, expecting artworks: [Artwork]?, chapters: [Chapter]?,
+        syncedLyrics: [SyncedLyricLine]? = nil,
         comparedTo before: AudioInfo?, originalPath: String
     ) throws {
         let file = try TagFile(url: url) // muss überhaupt wieder lesbar sein
         defer { file.close() }
         _ = try file.properties()
+
+        if let syncedLyrics, (try file.syncedLyrics()) != syncedLyrics {
+            throw TagError.saveFailed(path: originalPath)
+        }
 
         if let artworks, (try file.artworks()).count != artworks.count {
             throw TagError.saveFailed(path: originalPath)

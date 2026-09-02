@@ -67,6 +67,18 @@
   `tagx layers strip`). Optionale Einstellung: ID3v2.3 statt v2.4 schreiben
   für alte Player (`tagx set --id3v23`); v2.3 speichert Text als UTF-16 und
   kürzt Datumsangaben auf die Minute.
+- **Lyrics, Lautheit, Podcast-Felder** — feste Felder mit Prüfung:
+  mehrzeilige Lyrics mit Sprache (ID3v2 USLT; MP4 `©lyr`; Vorbis/APE
+  `LYRICS`), synchronisierte Lyrics als ID3v2 SYLT mit LRC-Import/-Export —
+  Formate ohne ID3v2 bekommen eine Sidecar `<name>.lrc` neben der Datei;
+  ReplayGain Track/Album Gain und Peak (`-6.50 dB`, `0.987654`) und Opus R128
+  (Q7.8-Ganzzahl, als dB angezeigt) mit Wertebereichsprüfung (Gain −60…+60
+  dB, Peak 0…10, R128 −32768…32767) — ein ungültiger Wert wird mit Feldname
+  abgelehnt, bevor etwas geschrieben wird; Podcast-Felder für MP3 und MP4
+  (Flag, Feed-URL, Episoden-GUID, Kategorie, Stichwörter, Staffel, Episode,
+  Beschreibung; ID3v2 PCST/WFED/TGID/TCAT/TKWD/TVSN/TVEP/TDES, MP4
+  pcst/purl/egid/catg/keyw/tvsn/tves/desc/ldes). Lautheitswerte werden nur
+  gespeichert und geprüft, nicht aus dem Audio berechnet.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
@@ -263,6 +275,11 @@ tagx chapters clear buch.m4b                   # alle Kapitel entfernen
 tagx layers show song.mp3 --json               # Tag-Schichten (ID3v1/ID3v2/APE …) mit Version und Feldern
 tagx layers strip song.mp3 --layer id3v1       # eine Schicht entfernen, die anderen bleiben
 tagx set song.mp3 -t TITLE=X --id3v23          # ID3v2.3 statt v2.4 schreiben (alte Player)
+tagx lyrics set song.mp3 --from song.lrc --language deu   # LRC → SYLT (+ Text, Sprache)
+tagx lyrics set song.flac --from song.lrc      # ohne ID3v2: schreibt die Sidecar song.lrc
+tagx lyrics show song.mp3 --lrc                # synchronisierte Zeilen als LRC
+tagx lyrics export song.mp3                    # → song.lrc (ohne Sync: .txt)
+tagx set song.mp3 -t REPLAYGAIN_TRACK_GAIN="-6.50 dB" PODCAST=1 TVSEASON=2   # geprüft, Exit 1 bei ungültigem Wert
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
 tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei

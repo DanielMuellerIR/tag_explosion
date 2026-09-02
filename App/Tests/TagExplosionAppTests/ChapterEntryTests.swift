@@ -36,7 +36,7 @@ struct ChapterEntryTests {
             url: URL(fileURLWithPath: "/tmp/kapitel.mp3"),
             loaded: .audio(TagData(properties: [], artworks: [], audio: nil, supportsChapters: true)))
         supported.chapters = sample
-        guard case .audio(_, _, let chapters)? = supported.beginSaving() else {
+        guard case .audio(let snapshot)? = supported.beginSaving(), let chapters = snapshot.chapters else {
             Issue.record("Snapshot fehlt")
             return
         }
@@ -50,7 +50,7 @@ struct ChapterEntryTests {
             loaded: .audio(TagData(properties: [], artworks: [], audio: nil, supportsChapters: false)))
         #expect(!unsupported.supportsChapters)
         unsupported.properties = [TagProperty(key: "TITLE", value: "dirty")]
-        guard case .audio(_, _, let none)? = unsupported.beginSaving() else {
+        guard case .audio(let snapshot)? = unsupported.beginSaving(), case let none = snapshot.chapters else {
             Issue.record("Snapshot fehlt")
             return
         }
@@ -68,7 +68,7 @@ struct ChapterEntryTests {
         let readBack = TagData(properties: [], artworks: [], audio: nil,
                                chapters: sample, supportsChapters: true)
         let saved = await model.save(entry: entry) { snapshot in
-            guard case .audio(_, _, let chapters) = snapshot, chapters == self.sample else {
+            guard case .audio(let audio) = snapshot, audio.chapters == self.sample else {
                 throw TagError.saveFailed(path: "snapshot")
             }
             return (.audio(readBack), nil)
