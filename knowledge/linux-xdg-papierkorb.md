@@ -81,6 +81,12 @@ Konvention, die Nautilus, Nemo, Dolphin, Thunar und `gio trash` teilen
   gibt `LC_ALL=C.UTF-8` mit, wenn keine UTF-8-Locale gesetzt ist.
 - Foundations JSON-Fehlertext nennt unter Linux keine Zeilennummer;
   `TagRulesError.invalidJSON(line:)` bleibt dort nil (Test erlaubt es).
+- **Fixture-Skripte müssen mit GNU sed laufen:** `sed -i ''` ist BSD-Syntax;
+  GNU sed liest das leere Argument als Skript und die Regel als Dateinamen
+  („can't read /…/d"). Portabel ist nur `sed … "$f" > "$f.tmp" && mv`.
+  Im Docker-Lauf fiel das nicht auf, weil `rsync` die auf dem Mac erzeugten
+  Fixtures mitspiegelte — beim Linux-Lauf deshalb `Fixtures/generated`
+  ausschließen oder vorher löschen, damit das Skript wirklich dort läuft.
 - `XMLDocument` liegt unter Linux im Modul `FoundationXML` (in jeder Datei
   `#if canImport(FoundationXML) import FoundationXML #endif`).
 - Swift 6.0 (Linux-CI) ist strenger als das lokale Xcode-Swift: `#expect(a ==
@@ -104,7 +110,7 @@ Ein Linux-Rechner mit Docker (hier `linuxbox` als SSH-Alias, Ubuntu-24.04-
 Basis) genügt; eine Swift-Toolchain braucht er nicht. Bewährter Ablauf:
 
 ```bash
-rsync -a --delete --exclude .build --exclude App/.build --exclude build --exclude .git ./ linuxbox:tmp/tagx-linux/
+rsync -a --delete --exclude .build --exclude App/.build --exclude build --exclude .git --exclude Tests/TagExplosionCoreTests/Fixtures/generated ./ linuxbox:tmp/tagx-linux/
 ssh linuxbox 'docker run -d --name tagx-linux -v $HOME/tmp/tagx-linux:/src -w /src swift:6.0 sleep infinity'
 ssh linuxbox 'docker exec tagx-linux sh -c "scripts/linux-deps.sh && git config --global http.version HTTP/1.1 && swift test"'
 ```
