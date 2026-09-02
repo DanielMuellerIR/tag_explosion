@@ -14,6 +14,7 @@ let imageExtensions = MediaFormats.image
 let videoExtensions = MediaFormats.video
 let ebookExtensions = MediaFormats.ebook
 let documentExtensions = MediaFormats.document
+let playlistExtensions = MediaFormats.playlist
 
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg. Direkt der
 /// Core-Typ (auch das Archiv nutzt ihn); die Zuordnung inklusive des
@@ -74,6 +75,14 @@ final class FileEntry: Identifiable {
     /// Anzeigeinformationen (Anwendung, Seiten, Wörter …), nur lesend.
     private(set) var documentInfo: [DocumentInfoItem] = []
 
+    /// Playlist/Cue-Sheet (nur bei kind == .playlist): Anzeigeinhalt mit
+    /// aufgelösten Einträgen, dazu Original und Bearbeitungspuffer der
+    /// Beschriftung (Kopffelder, Titel/Interpret je Eintrag).
+    private(set) var playlistContents = PlaylistContents(
+        format: .m3u, fields: PlaylistCoreFields(), entries: [])
+    private(set) var playlistOriginal = PlaylistCoreFields()
+    var playlistFields = PlaylistCoreFields()
+
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
     /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
@@ -101,6 +110,7 @@ final class FileEntry: Identifiable {
         case image(fields: ImageCoreFields, original: ImageCoreFields, sidecar: SidecarState)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
         case document(fields: DocumentCoreFields, original: DocumentCoreFields)
+        case playlist(fields: PlaylistCoreFields, original: PlaylistCoreFields)
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -135,6 +145,11 @@ final class FileEntry: Identifiable {
             self.documentFields = fields
             self.documentCover = cover
             self.documentInfo = info
+        case .playlist(let contents):
+            self.kind = .playlist
+            self.playlistContents = contents
+            self.playlistOriginal = contents.fields
+            self.playlistFields = contents.fields
         }
     }
 
@@ -167,6 +182,7 @@ final class FileEntry: Identifiable {
         ebookFields = other.ebookFields
         ebookCoverReplacement = other.ebookCoverReplacement
         documentFields = other.documentFields
+        playlistFields = other.playlistFields
         lastError = other.lastError
     }
 
@@ -181,6 +197,8 @@ final class FileEntry: Identifiable {
         case .invoice: return invoiceDocument.map(LoadedData.invoice)
         case .document:
             return .document(documentOriginal, cover: documentCover, info: documentInfo)
+        case .playlist:
+            return .playlist(playlistContents)
         }
     }
 
@@ -204,6 +222,8 @@ final class FileEntry: Identifiable {
             return false
         case .document:
             return documentFields != documentOriginal
+        case .playlist:
+            return playlistFields != playlistOriginal
         }
     }
 
@@ -216,6 +236,7 @@ final class FileEntry: Identifiable {
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
         documentFields = documentOriginal
+        playlistFields = playlistOriginal
         lastError = nil
     }
 
@@ -255,6 +276,14 @@ final class FileEntry: Identifiable {
         lastError = nil
     }
 
+    /// Playlist-Pendant zu `acceptNewOriginal`.
+    func acceptNewPlaylistOriginal(_ contents: PlaylistContents) {
+        playlistContents = contents
+        playlistOriginal = contents.fields
+        playlistFields = contents.fields
+        lastError = nil
+    }
+
     /// Ein ausgewähltes Cover zählt nur als Änderung, wenn es sich von dem in
     /// der Datei unterscheidet. Dieselbe Bilddatei noch einmal auszuwählen ist
     /// inhaltlich ein Nichts-Tun und darf keinen Schreibvorgang auslösen: Der
@@ -287,6 +316,8 @@ final class FileEntry: Identifiable {
             lastError = nil
         case .document(let fields, let cover, let info):
             acceptNewDocumentOriginal(fields, cover: cover, info: info)
+        case .playlist(let contents):
+            acceptNewPlaylistOriginal(contents)
         }
     }
 
@@ -311,6 +342,8 @@ final class FileEntry: Identifiable {
             return nil
         case .document:
             return .document(fields: documentFields, original: documentOriginal)
+        case .playlist:
+            return .playlist(fields: playlistFields, original: playlistOriginal)
         }
     }
 
@@ -371,6 +404,10 @@ final class FileEntry: Identifiable {
             documentCover = cover
             documentInfo = info
             if documentFields == savedFields { documentFields = fields }
+        case (.playlist(let savedFields, _), .playlist(let contents)):
+            playlistContents = contents
+            playlistOriginal = contents.fields
+            if playlistFields == savedFields { playlistFields = contents.fields }
         default:
             // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
             // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
@@ -417,6 +454,7 @@ final class FileEntry: Identifiable {
         case .ebook: title = ebookFields.title
         case .invoice: title = invoiceDocument?.summary.invoiceNumber ?? ""
         case .document: title = documentFields.title
+        case .playlist: title = playlistFields.title
         }
         return title.isEmpty ? url.lastPathComponent : title
     }
@@ -444,6 +482,11 @@ final class FileEntry: Identifiable {
                 .joined(separator: " · ")
         case .document:
             return documentFields.authors.joined(separator: ", ")
+        case .playlist:
+            let count = playlistContents.entries.count
+            let performer = playlistFields.performer
+            let entries = String(localized: "\(count) Einträge")
+            return performer.isEmpty ? entries : "\(performer) · \(entries)"
         }
     }
 }
@@ -463,6 +506,9 @@ enum LoadedData: Sendable {
     /// Dokumente: Felder, CBZ-Cover (nur Anzeige) und Anzeigeinformationen
     /// aus einem gemeinsamen Lesevorgang.
     case document(DocumentCoreFields, cover: Data?, info: [DocumentInfoItem])
+    /// Playlist/Cue-Sheet: Anzeigeinhalt (Einträge mit aufgelösten Pfaden)
+    /// samt der bearbeitbaren Beschriftung in `fields`.
+    case playlist(PlaylistContents)
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -734,6 +780,8 @@ final class AppModel {
             let contents = try DocumentTool.readSnapshot(
                 url: url, includeCover: DocumentTool.supportsCover(url: url)).value
             return .document(contents.fields, cover: contents.cover?.data, info: contents.info)
+        case .playlist:
+            return .playlist(try PlaylistTool.readSnapshot(url: url).value)
         }
     }
 
@@ -1432,6 +1480,9 @@ final class AppModel {
         if case .document(let fields, let original) = snapshot {
             try DocumentTool.requireWritable(fields, original: original, url: url)
         }
+        if case .playlist(let fields, let original) = snapshot {
+            try PlaylistTool.requireWritable(fields, original: original, url: url)
+        }
         // Bilder: Kamera-RAW, Formate ohne exiftool-Schreibweg, eine schon
         // vorhandene Sidecar und die Einstellung lenken die Änderung in die
         // XMP-Sidecar `<name>.xmp`. Gesichert wird dann DIESE Datei; eine
@@ -1457,6 +1508,9 @@ final class AppModel {
                 expecting: stamp)
         case (.document, .document(let fields, let original)):
             try DocumentTool.write(url: url, fields: fields, original: original,
+                                   expecting: stamp)
+        case (.playlist, .playlist(let fields, let original)):
+            try PlaylistTool.write(url: url, fields: fields, original: original,
                                    expecting: stamp)
         default:
             throw TagError.saveFailed(path: url.path)

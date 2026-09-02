@@ -136,6 +136,14 @@ final class WindowSessions {
         openInModel(target, urls)
     }
 
+    /// Dateien für das NÄCHSTE Fenster vormerken, das sich anmeldet. Der
+    /// Aufrufer (Playlist-Editor: Doppelklick auf einen Eintrag) öffnet das
+    /// Fenster danach selbst über SwiftUIs `openWindow`; `register` liefert
+    /// die Dateien dann über den gewohnten Öffnen-Weg des Modells aus.
+    func queueForNextWindow(urls: [URL]) {
+        pendingURLs.append(contentsOf: urls)
+    }
+
     /// Öffnen-Dialog aus dem Menü. Er funktioniert auch ohne Fenster — dann
     /// legt das Öffnen selbst eines an.
     func presentOpenPanel() {
@@ -290,7 +298,7 @@ enum MediaOpenPanel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, Dokument, E-Rechnung) oder Ordner auswählen")
+        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, Dokument, Playlist, E-Rechnung) oder Ordner auswählen")
         return panel.runModal() == .OK ? panel.urls : nil
     }
 }

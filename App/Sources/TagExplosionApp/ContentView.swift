@@ -33,6 +33,9 @@ struct ContentView: View {
                 case .document:
                     DocumentEditorView(entry: entry)
                         .id(entry.url)
+                case .playlist:
+                    PlaylistEditorView(entry: entry)
+                        .id(entry.url)
                 }
             } else if model.selectedEntries.count > 1 {
                 let selected = model.selectedEntries
@@ -55,6 +58,14 @@ struct ContentView: View {
                         "E-Rechnungen einzeln auswählen",
                         systemImage: "doc.text.magnifyingglass",
                         description: Text("E-Rechnungen werden nur angezeigt und einzeln geöffnet.")
+                    )
+                } else if selected.allSatisfy({ $0.kind == .playlist }) {
+                    // Jede Playlist hat ihre eigene Eintragsliste — eine
+                    // Stapelbearbeitung über mehrere Listen ergibt keinen Sinn.
+                    ContentUnavailableView(
+                        "Playlists einzeln auswählen",
+                        systemImage: "music.note.list",
+                        description: Text("Playlists und Cue-Sheets werden einzeln bearbeitet.")
                     )
                 } else {
                     ContentUnavailableView(
@@ -339,6 +350,7 @@ struct DropPlaceholder: View {
     private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
     private static let ebookDisplay = ebookExtensions.sorted()
     private static let documentDisplay = documentExtensions.sorted()
+    private static let playlistDisplay = playlistExtensions.sorted()
     /// pdf zusätzlich zeigen: ZUGFeRD-/Factur-X-Rechnungen stecken in PDFs
     /// (geöffnet werden sie über die E-Book-Schiene, der Rechnungsteil
     /// erscheint dort als eigener Tab).
@@ -357,7 +369,7 @@ struct DropPlaceholder: View {
             VStack(spacing: 8) {
                 Text("Tag Explosion")
                     .font(.title2.bold())
-                Text("Audio-, Bild-, Video-, E-Book-, Dokument- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
+                Text("Audio-, Bild-, Video-, E-Book-, Dokument-, Playlist- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
@@ -378,6 +390,9 @@ struct DropPlaceholder: View {
                 FormatColumn(title: "Dokumente", systemImage: "doc.richtext",
                              formats: Self.documentDisplay,
                              tagFormats: "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML-Frontmatter")
+                FormatColumn(title: "Playlists", systemImage: "music.note.list",
+                             formats: Self.playlistDisplay,
+                             tagFormats: "Cue-Sheet · Extended M3U · PLS · XSPF (Beschriftung editierbar)")
                 FormatColumn(title: "E-Rechnungen", systemImage: "doc.text.magnifyingglass",
                              formats: Self.invoiceDisplay,
                              tagFormats: "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)")

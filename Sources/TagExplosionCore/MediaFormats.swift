@@ -128,6 +128,10 @@ public enum MediaFormats {
     /// externe Programme (siehe DocumentTool).
     public static let document: Set<String> = DocumentTool.extensions
 
+    /// Playlist-Endungen: Cue-Sheets und Playlists (m3u, m3u8, pls, xspf) —
+    /// nativ gelesen und beschriftet (PlaylistTool).
+    public static let playlist: Set<String> = PlaylistTool.extensions
+
     /// Grobe Medienart — bestimmt Lese-/Schreibweg. Video läuft über den
     /// TagLib-Weg wie Audio (PropertyMap).
     public enum Kind: String, Sendable, Codable {
@@ -138,14 +142,19 @@ public enum MediaFormats {
         case invoice
         /// Office, OpenDocument, Comic-Archiv, Markdown (DocumentTool).
         case document
+        /// Cue-Sheet oder Playlist (PlaylistTool): Beschriftung editierbar,
+        /// Einträge selbst nicht.
+        case playlist
     }
 
     /// Kann diese Medienart in ein Tag-Archiv (Export/Import)? E-Rechnungen
     /// sind reine Anzeige — es gibt keine editierbaren Tags zu sichern.
+    /// Playlists beschreiben fremde Dateien statt eigener Tags; ein Archiv
+    /// könnte ihre Einträge nicht sinnvoll wiederherstellen.
     /// Die Regel liegt zentral, damit App und CLI gleich filtern und ihre
     /// Erfolgsmeldungen dieselben Dateien zählen wie das Archiv selbst.
     public static func isArchivable(_ kind: Kind) -> Bool {
-        kind != .invoice
+        kind != .invoice && kind != .playlist
     }
 
     public static func kind(of url: URL) -> Kind? {
@@ -155,6 +164,7 @@ public enum MediaFormats {
         if ebook.contains(ext) { return .ebook }
         if video.contains(ext) { return .audio }
         if document.contains(ext) { return .document }
+        if playlist.contains(ext) { return .playlist }
         // XML nur annehmen, wenn der Inhalt tatsächlich eine E-Rechnung ist —
         // sonst zöge ein Ordner-Drop beliebige Fremd-XMLs in die Liste.
         if invoice.contains(ext), isInvoiceXML(url) { return .invoice }

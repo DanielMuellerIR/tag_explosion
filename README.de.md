@@ -59,6 +59,15 @@
   Serie/Nummer/Band, OOXML-Revision, beliebige Markdown-Schlüssel). Alles
   nativ ohne externe Programme; Felder, die ein Format nicht speichern kann,
   werden vor dem Schreiben abgelehnt statt still verworfen.
+- **Playlists und Cue-Sheets** — `.cue` (Album-Kopf, Trackliste mit
+  INDEX-Zeiten und ISRC), `.m3u`/`.m3u8`, `.pls` und `.xspf`: Einträge mit
+  aufgelöstem Pfad, Prüfung auf fehlende Dateien und Gesamtdauer. Bearbeitbar
+  sind Titel, Interpret, Datum und Genre der Liste (soweit das Format sie
+  speichert) sowie Titel/Interpret je Eintrag; Reihenfolge und Pfade bleiben,
+  ebenso fremde Zeilen, Zeilenenden und Einrückung. Jede Auswahl lässt sich
+  als m3u8/pls/xspf exportieren (Pfade relativ zur Playlist), und `tagx cue
+  apply` schreibt Titel, Interpreten und Tracknummern eines Cue-Sheets in die
+  referenzierten Audiodateien (eine Datei je Track).
 - **E-Rechnungen (nur Anzeige)** — erkennt Standard und Profil aus der
   Spezifikationskennung (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM bis EXTENDED),
   XRechnung, Peppol BIS und reine EN 16931, in beiden Syntaxen (UN/CEFACT CII
@@ -180,6 +189,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
+| Playlists | cue · m3u, m3u8 · pls · xspf | Cue-Kopf/Track-Zeilen, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (Anzeige: Pfade, Existenz, Dauer; Bearbeiten: nur Beschriftung; Export: m3u8/pls/xspf) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
@@ -228,6 +238,10 @@ tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei
 tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx doc set bericht.docx --title "Q3-Bericht" --keywords "Vertrieb, 2026"
 tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo-Zusatzfelder
+tagx playlist show album.cue                   # Kopf, Tracks, aufgelöste Pfade, fehlende Dateien, Gesamtdauer
+tagx playlist set liste.m3u8 --title "Mix" --entry-title 2="Zweites Lied"
+tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative Pfade; --absolute, --format pls|xspf
+tagx cue apply album.cue --apply               # Cue-Titel/-Interpreten/-Tracknummern in die Audiodateien schreiben
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht

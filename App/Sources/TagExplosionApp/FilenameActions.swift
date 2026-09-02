@@ -13,13 +13,13 @@ extension FileEntry {
         case .image: return PatternFields.fields(from: imageFields)
         case .ebook: return PatternFields.fields(from: ebookFields)
         case .document: return PatternFields.fields(from: documentFields)
-        case .invoice: return [:]
+        case .invoice, .playlist: return [:]
         }
     }
 
-    /// Rechnungen sind reine Anzeige: kein Umbenennen aus Tags, keine Tags
-    /// aus dem Dateinamen.
-    var supportsFilenamePatterns: Bool { kind != .invoice }
+    /// Rechnungen sind reine Anzeige, Playlists tragen keine Tags im Sinne
+    /// der Muster: kein Umbenennen aus Tags, keine Tags aus dem Dateinamen.
+    var supportsFilenamePatterns: Bool { kind != .invoice && kind != .playlist }
 
     /// Überträgt aus dem Dateinamen geparste Werte in den Bearbeitungspuffer.
     /// Der Eintrag wird dadurch „dirty" und läuft beim Speichern über den
@@ -31,9 +31,9 @@ extension FileEntry {
         case .image: try PatternFields.apply(parsed, to: &imageFields)
         case .ebook: try PatternFields.apply(parsed, to: &ebookFields)
         case .document: try PatternFields.apply(parsed, to: &documentFields)
-        case .invoice:
+        case .invoice, .playlist:
             throw PatternFields.ApplyError.unsupportedField(
-                key: parsed.keys.sorted().first ?? "", kind: "invoice")
+                key: parsed.keys.sorted().first ?? "", kind: kind.rawValue)
         }
     }
 }

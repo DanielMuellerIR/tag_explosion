@@ -37,7 +37,7 @@ func readPatternFields(at url: URL) throws -> [String: String] {
     case .document:
         return PatternFields.fields(
             from: try DocumentTool.readSnapshot(url: url, includeCover: false).value.fields)
-    case .invoice, nil:
+    case .invoice, .playlist, nil:
         throw ValidationError("Not a taggable media file: \(url.path)")
     }
 }
@@ -184,7 +184,7 @@ struct Parse: ParsableCommand {
         var items: [Item] = []
         for path in files {
             let url = try resolveFile(path)
-            guard MediaFormats.kind(of: url) != nil, MediaFormats.kind(of: url) != .invoice else {
+            guard let kind = MediaFormats.kind(of: url), kind != .invoice, kind != .playlist else {
                 throw ValidationError("Not a taggable media file: \(url.path)")
             }
             let stem = url.deletingPathExtension().lastPathComponent
@@ -346,7 +346,7 @@ struct Parse: ParsableCommand {
                                    expecting: snapshot.stamp)
             return parsed.count
 
-        case .invoice, nil:
+        case .invoice, .playlist, nil:
             throw ValidationError("Not a taggable media file: \(url.path)")
         }
     }

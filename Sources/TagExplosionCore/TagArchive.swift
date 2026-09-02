@@ -186,9 +186,10 @@ public enum TagArchiveIO {
                 // Schreibweg — ein Archiv könnte es nie wiederherstellen.
                 entry.document = try DocumentTool.readSnapshot(
                     url: url, includeCover: false).value.fields
-            case .invoice:
+            case .invoice, .playlist:
                 // E-Rechnungen sind reine Anzeige — es gibt keine editierbaren
                 // Tags, die ein Archiv sichern oder wiederherstellen könnte.
+                // Playlists beschriften fremde Dateien (siehe isArchivable).
                 continue
             }
             entries.append(entry)
@@ -539,11 +540,11 @@ public enum TagArchiveIO {
                                        expecting: snapshot.stamp)
             }
             return true
-        case .invoice:
+        case .invoice, .playlist:
             // Export erzeugt solche Einträge nie (build überspringt sie);
-            // ein handgebautes Archiv mit Rechnungseintrag ist fehlerhaft.
+            // ein handgebautes Archiv mit Rechnungs-/Playlist-Eintrag ist fehlerhaft.
             throw TagArchiveError.inconsistentEntry(
-                path: entry.path, detail: "invoices are display-only and cannot be archived")
+                path: entry.path, detail: "invoices and playlists cannot be archived")
         }
     }
 
@@ -656,12 +657,12 @@ public enum TagArchiveIO {
                 // Ob das ZIEL jedes Feld speichern kann, entscheidet erst der
                 // Import je Eintrag (DocumentTool.requireWritable) — ein
                 // Backup muss den Bestand jeder Datei sichern können.
-            case .invoice:
+            case .invoice, .playlist:
                 // Der Export erzeugt solche Einträge nie; ein Archiv, das
                 // welche enthält, ist von Hand gebaut und fehlerhaft.
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path,
-                    detail: "invoices are display-only and cannot be archived")
+                    detail: "invoices and playlists cannot be archived")
             }
         }
     }

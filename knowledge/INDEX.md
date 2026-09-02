@@ -46,6 +46,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
   vor Sicherung/Dry-run; Backend-Verträge für Serie und Coverformate.
+- [playlists-cue.md](playlists-cue.md) — Bei Arbeit an PlaylistTool, den
+  vier Backends (cue/m3u/pls/xspf), `tagx playlist`/`cue` oder dem
+  Playlist-Editor: zeilenweiser Erhalt statt Neuaufbau, Encoding-Fallback
+  wird beim Schreiben zu UTF-8, M3U-Anzeigetext ist ein Feld, Cue-Dauer nur
+  je Datei, `cue apply` nur bei einer Datei je Track, `/private/tmp`-Falle.
 - [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
   dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
   exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.
