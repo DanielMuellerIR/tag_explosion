@@ -37,6 +37,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
   Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
   lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen.
+- [dokument-container-metadaten.md](dokument-container-metadaten.md) — Bei
+  Arbeit an DocumentTool, ZipContainer, `tagx doc` oder dem Dokument-Editor:
+  ODF-`mimetype` an erster Stelle, fehlendes core.xml registrieren,
+  ODF-`dc:creator`-Semantik, ComicInfo-Reihenfolge, Frontmatter-Subset und
+  Byte-Identität des Bodys.
 - [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag

@@ -123,6 +123,11 @@ public enum MediaFormats {
     /// laufen weiter als E-Book — dort ergänzt die Anzeige den Rechnungsteil.
     public static let invoice: Set<String> = ["xml"]
 
+    /// Dokument-Endungen: Office (docx/xlsx/pptx), OpenDocument (odt/ods/odp),
+    /// Comic-Archive (cbz) und Markdown mit Frontmatter — alle nativ, ohne
+    /// externe Programme (siehe DocumentTool).
+    public static let document: Set<String> = DocumentTool.extensions
+
     /// Grobe Medienart — bestimmt Lese-/Schreibweg. Video läuft über den
     /// TagLib-Weg wie Audio (PropertyMap).
     public enum Kind: String, Sendable, Codable {
@@ -131,6 +136,8 @@ public enum MediaFormats {
         case ebook
         /// E-Rechnung (XML) — reine Anzeige, kein Schreibweg.
         case invoice
+        /// Office, OpenDocument, Comic-Archiv, Markdown (DocumentTool).
+        case document
     }
 
     /// Kann diese Medienart in ein Tag-Archiv (Export/Import)? E-Rechnungen
@@ -147,6 +154,7 @@ public enum MediaFormats {
         if image.contains(ext) { return .image }
         if ebook.contains(ext) { return .ebook }
         if video.contains(ext) { return .audio }
+        if document.contains(ext) { return .document }
         // XML nur annehmen, wenn der Inhalt tatsächlich eine E-Rechnung ist —
         // sonst zöge ein Ordner-Drop beliebige Fremd-XMLs in die Liste.
         if invoice.contains(ext), isInvoiceXML(url) { return .invoice }

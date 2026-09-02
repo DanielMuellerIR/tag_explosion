@@ -51,6 +51,14 @@
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
   werden mobi/azw3/fb2 über dessen CLI `ebook-meta` bearbeitet.
+- **Dokumente** — Office (docx, xlsx, pptx: `docProps/core.xml`),
+  OpenDocument (odt, ods, odp: `meta.xml`), Comic-Archive (cbz:
+  `ComicInfo.xml`, erste Seite als Cover) und Markdown mit YAML-Frontmatter:
+  Titel, Autoren, Thema, Beschreibung, Schlagwörter, Verlag, Sprache,
+  Kategorie, Daten plus formatspezifische Zusatzfelder (ComicInfo
+  Serie/Nummer/Band, OOXML-Revision, beliebige Markdown-Schlüssel). Alles
+  nativ ohne externe Programme; Felder, die ein Format nicht speichern kann,
+  werden vor dem Schreiben abgelehnt statt still verworfen.
 - **E-Rechnungen (nur Anzeige)** — erkennt Standard und Profil aus der
   Spezifikationskennung (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM bis EXTENDED),
   XRechnung, Peppol BIS und reine EN 16931, in beiden Syntaxen (UN/CEFACT CII
@@ -85,7 +93,7 @@
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
   `tagx show --json`, `tagx set`, `tagx cover`, `tagx chapters`, `tagx info`, `tagx exif`,
-  `tagx ebook`, `tagx invoice`.
+  `tagx ebook`, `tagx doc`, `tagx invoice`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
 die CLI spricht Englisch. Eine Ausnahme: Die E-Rechnungs-Anzeige beschriftet
@@ -171,6 +179,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
+| Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
@@ -217,6 +226,8 @@ tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
 tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei
 tagx ebook set buch.epub --series "Foundation" --series-index 2
+tagx doc set bericht.docx --title "Q3-Bericht" --keywords "Vertrieb, 2026"
+tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo-Zusatzfelder
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht

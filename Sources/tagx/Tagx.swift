@@ -11,7 +11,8 @@ struct Tagx: ParsableCommand {
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Info.self, Exif.self,
-                      Ebook.self, Invoice.self, Export.self, Import.self, Rename.self, Parse.self],
+                      Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
+                      Rename.self, Parse.self],
         defaultSubcommand: Show.self
     )
 }

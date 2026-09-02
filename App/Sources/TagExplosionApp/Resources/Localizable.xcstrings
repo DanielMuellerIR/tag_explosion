@@ -51,6 +51,16 @@
         }
       }
     },
+    "%lld Dokumente ausgewählt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documents selected"
+          }
+        }
+      }
+    },
     "%lld E-Books ausgewählt": {
       "localizations": {
         "en": {
@@ -271,12 +281,12 @@
         }
       }
     },
-    "Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
+    "Audio, Bilder, E-Books und Dokumente bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Please select audio, images, and e-books separately\nto edit them together."
+            "value": "Please select audio, images, e-books, and documents separately\nto edit them together."
           }
         }
       }
@@ -291,12 +301,12 @@
         }
       }
     },
-    "Audio-, Bild-, Video-, E-Book- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
+    "Audio-, Bild-, Video-, E-Book-, Dokument- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drop audio, image, video, e-book, and e-invoice files or folders here\nto view and edit metadata."
+            "value": "Drop audio, image, video, e-book, document, and e-invoice files or folders here\nto view and edit metadata."
           }
         }
       }
@@ -337,6 +347,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Selected Files"
+          }
+        }
+      }
+    },
+    "Ausgewählte Dokumente": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected documents"
           }
         }
       }
@@ -497,6 +517,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disc"
+          }
+        }
+      }
+    },
+    "Cover = erste Seite des Archivs (nur Anzeige).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover = first page of the archive (view only)."
           }
         }
       }
@@ -681,6 +711,16 @@
         }
       }
     },
+    "Die ausgewählten Formate haben kein gemeinsames Stapel-Feld.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected formats share no batch field."
+          }
+        }
+      }
+    },
     "Die gelesenen Werte landen in den Feldern; geschrieben wird erst beim Speichern.": {
       "localizations": {
         "en": {
@@ -717,6 +757,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "This archive contains %lld target(s) outside its folder. All resolved targets:"
+          }
+        }
+      }
+    },
+    "Dokument-Info (nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Document info (view only)"
+          }
+        }
+      }
+    },
+    "Dokument-Metadaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Document metadata"
+          }
+        }
+      }
+    },
+    "Dokumente": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documents"
           }
         }
       }
@@ -881,6 +951,16 @@
         }
       }
     },
+    "Erstellt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created"
+          }
+        }
+      }
+    },
     "Export fehlgeschlagen:": {
       "localizations": {
         "en": {
@@ -1041,12 +1121,32 @@
         }
       }
     },
+    "Geändert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified"
+          }
+        }
+      }
+    },
     "Hinweis": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Notice"
+          }
+        }
+      }
+    },
+    "Hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
           }
         }
       }
@@ -1281,6 +1381,16 @@
         }
       }
     },
+    "Kategorie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
+          }
+        }
+      }
+    },
     "Kein Cover": {
       "localizations": {
         "en": {
@@ -1327,6 +1437,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No chapters"
+          }
+        }
+      }
+    },
+    "Keine Seite": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No page"
           }
         }
       }
@@ -1441,12 +1561,12 @@
         }
       }
     },
-    "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen": {
+    "Mediendateien (Audio, Bild, Video, E-Book, Dokument, E-Rechnung) oder Ordner auswählen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose media files (audio, image, video, e-book, e-invoice) or folders"
+            "value": "Select media files (audio, image, video, e-book, document, e-invoice) or folders"
           }
         }
       }
@@ -1661,6 +1781,16 @@
         }
       }
     },
+    "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML-Frontmatter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML front matter"
+          }
+        }
+      }
+    },
     "Originale vor jeder Änderung in den Papierkorb kopieren": {
       "localizations": {
         "en": {
@@ -1727,6 +1857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keywords"
+          }
+        }
+      }
+    },
+    "Schlüssel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key"
           }
         }
       }
@@ -1981,6 +2121,16 @@
         }
       }
     },
+    "Thema": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subject"
+          }
+        }
+      }
+    },
     "Titel": {
       "localizations": {
         "en": {
@@ -2077,6 +2227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Renaming failed:"
+          }
+        }
+      }
+    },
+    "Unbekannte Frontmatter-Schlüssel bleiben erhalten; verschachtelte Einträge werden nur durchgereicht.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown front matter keys are preserved; nested entries are passed through untouched."
           }
         }
       }
@@ -2557,6 +2717,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Changes apply to all selected files."
+          }
+        }
+      }
+    },
+    "Änderungen wirken auf alle ausgewählten Dokumente. Gezeigt werden nur Felder, die jedes Format speichern kann.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to all selected documents. Only fields every format can store are shown."
           }
         }
       }

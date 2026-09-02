@@ -30,6 +30,9 @@ struct ContentView: View {
                 case .invoice:
                     InvoiceView(entry: entry)
                         .id(entry.url)
+                case .document:
+                    DocumentEditorView(entry: entry)
+                        .id(entry.url)
                 }
             } else if model.selectedEntries.count > 1 {
                 let selected = model.selectedEntries
@@ -41,6 +44,9 @@ struct ContentView: View {
                         .id(model.selection)
                 } else if selected.allSatisfy({ $0.kind == .ebook }) {
                     EbookBatchEditorView(entries: selected)
+                        .id(model.selection)
+                } else if selected.allSatisfy({ $0.kind == .document }) {
+                    DocumentBatchEditorView(entries: selected)
                         .id(model.selection)
                 } else if selected.allSatisfy({ $0.kind == .invoice }) {
                     // Rechnungen sind reine Anzeige — eine Stapelbearbeitung
@@ -54,7 +60,7 @@ struct ContentView: View {
                     ContentUnavailableView(
                         "Gemischte Auswahl",
                         systemImage: "rectangle.on.rectangle.slash",
-                        description: Text("Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
+                        description: Text("Audio, Bilder, E-Books und Dokumente bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
                     )
                 }
             } else {
@@ -332,6 +338,7 @@ struct DropPlaceholder: View {
     private static let imageDisplay = imageExtensions.sorted()
     private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
     private static let ebookDisplay = ebookExtensions.sorted()
+    private static let documentDisplay = documentExtensions.sorted()
     /// pdf zusätzlich zeigen: ZUGFeRD-/Factur-X-Rechnungen stecken in PDFs
     /// (geöffnet werden sie über die E-Book-Schiene, der Rechnungsteil
     /// erscheint dort als eigener Tab).
@@ -350,7 +357,7 @@ struct DropPlaceholder: View {
             VStack(spacing: 8) {
                 Text("Tag Explosion")
                     .font(.title2.bold())
-                Text("Audio-, Bild-, Video-, E-Book- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
+                Text("Audio-, Bild-, Video-, E-Book-, Dokument- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
@@ -368,6 +375,9 @@ struct DropPlaceholder: View {
                 FormatColumn(title: "E-Books", systemImage: "book",
                              formats: Self.ebookDisplay,
                              tagFormats: Self.ebookTagFormats)
+                FormatColumn(title: "Dokumente", systemImage: "doc.richtext",
+                             formats: Self.documentDisplay,
+                             tagFormats: "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML-Frontmatter")
                 FormatColumn(title: "E-Rechnungen", systemImage: "doc.text.magnifyingglass",
                              formats: Self.invoiceDisplay,
                              tagFormats: "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)")

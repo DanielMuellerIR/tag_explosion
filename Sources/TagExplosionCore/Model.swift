@@ -166,6 +166,12 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Eine Kapitelliste ist in sich unstimmig (Ende vor Beginn, Überlappung,
     /// negative Zeit) oder eine Import-Datei ließ sich nicht lesen.
     case invalidChapters(reason: String)
+    /// Ein Dokumentfeld (oder Zusatzschlüssel), das dieses Dateiformat nicht
+    /// speichern kann — wird vor jeder Mutation abgelehnt statt still verworfen.
+    case unsupportedDocumentField(name: String)
+    /// Ein Wert, den das Zielformat so nicht ablegen kann (z.B. ein Datum
+    /// außerhalb von ISO 8601 oder ein Trennzeichen im Autorennamen).
+    case invalidDocumentValue(field: String, reason: String)
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -198,6 +204,10 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "Chapters are not supported for this file format (MP3, MP4, Matroska only): \(path)"
         case .invalidChapters(let reason):
             return "Invalid chapter list: \(reason)"
+        case .unsupportedDocumentField(let name):
+            return "This document format cannot store the field: \(name)"
+        case .invalidDocumentValue(let field, let reason):
+            return "Invalid value for \(field): \(reason)"
         }
     }
 }

@@ -326,7 +326,8 @@ public enum EbookTool {
             case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
             case .propertiesRejected, .toolNotFound, .toolFailed,
-                 .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters: throw error
+                 .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
+                 .unsupportedDocumentField, .invalidDocumentValue: throw error
             }
         }
     }

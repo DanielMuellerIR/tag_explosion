@@ -24,25 +24,32 @@ public struct TagArchive: Codable, Sendable, Equatable {
         public var image: ImageCoreFields?
         /// E-Books: Kernfelder.
         public var ebook: EbookCoreFields?
+        /// Dokumente (Office, OpenDocument, CBZ, Markdown): Kernfelder. Das
+        /// CBZ-Cover ist reine Anzeige und wird nicht archiviert.
+        public var document: DocumentCoreFields?
 
         public init(path: String, kind: MediaFormats.Kind,
                     properties: [String: [String]]? = nil,
                     artworks: [Artwork]? = nil,
                     image: ImageCoreFields? = nil,
-                    ebook: EbookCoreFields? = nil) {
+                    ebook: EbookCoreFields? = nil,
+                    document: DocumentCoreFields? = nil) {
             self.path = path
             self.kind = kind
             self.properties = properties
             self.artworks = artworks
             self.image = image
             self.ebook = ebook
+            self.document = document
         }
     }
 
     /// Aktuelles Schema. 2 unterscheidet beim Bild-Rating „kein Tag" (Feld
     /// fehlt beziehungsweise null) von „Tag mit dem Wert −1"; in Schema 1
-    /// stand −1 für beides.
-    public static let currentVersion = 2
+    /// stand −1 für beides. 3 ergänzt Dokument-Einträge (`kind: document`,
+    /// Feld `document`) — ältere Programmstände lehnen ein solches Archiv
+    /// damit mit einer klaren Versionsmeldung ab statt mit einem Decodierfehler.
+    public static let currentVersion = 3
 
     public init(version: Int = TagArchive.currentVersion, created: String, files: [Entry]) {
         self.version = version
@@ -109,8 +116,9 @@ public enum TagArchiveIO {
     /// Verstandene Archivschemata. Neue Schemata dürfen nicht versehentlich
     /// wie alte gelesen werden, weil dabei Felder verloren gehen könnten.
     /// Schema 1 wird weiterhin importiert und beim Lesen umgerechnet, siehe
-    /// `normalizingLegacyValues`.
-    private static let supportedVersions: Set<Int> = [1, TagArchive.currentVersion]
+    /// `normalizingLegacyValues`; Schema 2 unterscheidet sich von 3 nur durch
+    /// das Fehlen von Dokument-Einträgen und wird unverändert gelesen.
+    private static let supportedVersions: Set<Int> = [1, 2, TagArchive.currentVersion]
 
     /// Rechnet ein Archiv des alten Schemas auf die heutige Bedeutung um.
     ///
@@ -173,6 +181,11 @@ public enum TagArchiveIO {
                     // ein späterer Import ein vorhandenes Cover löschen.
                     entry.artworks = snapshot.value.cover.map { [$0] } ?? []
                 }
+            case .document:
+                // Ohne Cover: Das CBZ-Cover ist die erste Seite und hat keinen
+                // Schreibweg — ein Archiv könnte es nie wiederherstellen.
+                entry.document = try DocumentTool.readSnapshot(
+                    url: url, includeCover: false).value.fields
             case .invoice:
                 // E-Rechnungen sind reine Anzeige — es gibt keine editierbaren
                 // Tags, die ein Archiv sichern oder wiederherstellen könnte.
@@ -502,6 +515,30 @@ public enum TagArchiveIO {
                     coverUpdate: coverUpdate, expecting: snapshot.stamp)
             }
             return true
+        case .document:
+            guard let target = entry.document else {
+                throw TagArchiveError.incompleteEntry(
+                    path: entry.path, kind: entry.kind, missing: "document")
+            }
+            let snapshot = try DocumentTool.readSnapshot(
+                url: url, includeCover: false, expecting: stamp)
+            let current = snapshot.value.fields
+            guard target != current else {
+                try beforeNoopReturn(url)
+                try snapshot.requireCurrent(at: url)
+                return false
+            }
+            // Was das Zielformat nicht speichern kann (Feld ohne Speicherort,
+            // Datumsform), scheitert für Dry-run und Import gleich — vor der
+            // Papierkorb-Sicherung.
+            try DocumentTool.requireWritable(target, original: current, url: url)
+            if !dryRun {
+                try snapshot.requireCurrent(at: url)
+                try backUp(url)
+                try DocumentTool.write(url: url, fields: target, original: current,
+                                       expecting: snapshot.stamp)
+            }
+            return true
         case .invoice:
             // Export erzeugt solche Einträge nie (build überspringt sie);
             // ein handgebautes Archiv mit Rechnungseintrag ist fehlerhaft.
@@ -548,16 +585,17 @@ public enum TagArchiveIO {
                         path: entry.path,
                         detail: "audio property \(emptyKey) has no values")
                 }
-                guard entry.image == nil, entry.ebook == nil else {
+                guard entry.image == nil, entry.ebook == nil, entry.document == nil else {
                     throw TagArchiveError.inconsistentEntry(
-                        path: entry.path, detail: "audio entries may not contain image or ebook data")
+                        path: entry.path, detail: "audio entries may not contain image, ebook or document data")
                 }
             case .image:
                 guard entry.image != nil else {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "image")
                 }
-                guard entry.properties == nil, entry.ebook == nil, entry.artworks == nil else {
+                guard entry.properties == nil, entry.ebook == nil, entry.artworks == nil,
+                      entry.document == nil else {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "image entries may only contain image data")
                 }
@@ -574,9 +612,9 @@ public enum TagArchiveIO {
                     throw TagArchiveError.incompleteEntry(
                         path: entry.path, kind: entry.kind, missing: "ebook")
                 }
-                guard entry.properties == nil, entry.image == nil else {
+                guard entry.properties == nil, entry.image == nil, entry.document == nil else {
                     throw TagArchiveError.inconsistentEntry(
-                        path: entry.path, detail: "ebook entries may not contain properties or image data")
+                        path: entry.path, detail: "ebook entries may not contain properties, image or document data")
                 }
                 guard (entry.artworks?.count ?? 0) <= 1 else {
                     throw TagArchiveError.inconsistentEntry(
@@ -605,6 +643,19 @@ public enum TagArchiveIO {
                             detail: "ebook cover data is not a recognizable image")
                     }
                 }
+            case .document:
+                guard entry.document != nil else {
+                    throw TagArchiveError.incompleteEntry(
+                        path: entry.path, kind: entry.kind, missing: "document")
+                }
+                guard entry.properties == nil, entry.image == nil, entry.ebook == nil,
+                      entry.artworks == nil else {
+                    throw TagArchiveError.inconsistentEntry(
+                        path: entry.path, detail: "document entries may only contain document data")
+                }
+                // Ob das ZIEL jedes Feld speichern kann, entscheidet erst der
+                // Import je Eintrag (DocumentTool.requireWritable) — ein
+                // Backup muss den Bestand jeder Datei sichern können.
             case .invoice:
                 // Der Export erzeugt solche Einträge nie; ein Archiv, das
                 // welche enthält, ist von Hand gebaut und fehlerhaft.

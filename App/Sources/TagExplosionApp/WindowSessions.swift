@@ -290,7 +290,7 @@ enum MediaOpenPanel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen")
+        panel.message = String(localized: "Mediendateien (Audio, Bild, Video, E-Book, Dokument, E-Rechnung) oder Ordner auswählen")
         return panel.runModal() == .OK ? panel.urls : nil
     }
 }

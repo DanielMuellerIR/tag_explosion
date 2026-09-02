@@ -369,6 +369,34 @@ public enum PatternFields {
     }
 
     /// Fehler beim Übertragen geparster Werte in ein Modell.
+    /// Dokumente (Office, OpenDocument, CBZ, Markdown): gemeinsamer Feldsatz;
+    /// Zusatzfelder (z.B. ComicInfo „Series“) sind über ihren Schlüssel in
+    /// Großbuchstaben erreichbar.
+    public static func fields(from document: DocumentCoreFields) -> [String: String] {
+        let authors = document.authors.joined(separator: ", ")
+        var fields: [String: String] = [
+            "TITLE": document.title,
+            "AUTHOR": authors,
+            "AUTHORS": authors,
+            "ARTIST": authors,
+            "SUBJECT": document.subject,
+            "DESCRIPTION": document.description,
+            "KEYWORDS": document.keywords.joined(separator: ", "),
+            "SUBJECTS": document.keywords.joined(separator: ", "),
+            "GENRE": document.keywords.joined(separator: ", "),
+            "PUBLISHER": document.publisher,
+            "LANGUAGE": document.language,
+            "CATEGORY": document.category,
+            "DATE": document.created,
+            "CREATED": document.created,
+            "MODIFIED": document.modified,
+        ]
+        for custom in document.custom where fields[custom.key.uppercased()] == nil {
+            fields[custom.key.uppercased()] = custom.value
+        }
+        return fields
+    }
+
     public enum ApplyError: Error, LocalizedError, Equatable, Sendable {
         /// Die Medienart hat kein Feld für diesen Schlüssel.
         case unsupportedField(key: String, kind: String)
@@ -421,6 +449,26 @@ public enum PatternFields {
             case "DATE": ebook.date = value
             case "SUBJECTS", "GENRE": ebook.subjects = value.splitCommaList()
             default: throw ApplyError.unsupportedField(key: key, kind: "e-book")
+            }
+        }
+    }
+
+    /// Dokumente: nur der gemeinsame Feldsatz — ob das Zielformat das Feld
+    /// speichern kann, prüft beim Speichern `DocumentTool.requireWritable`.
+    public static func apply(_ parsed: [String: String], to document: inout DocumentCoreFields) throws {
+        for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
+            switch key {
+            case "TITLE": document.title = value
+            case "AUTHOR", "AUTHORS", "ARTIST": document.authors = value.splitCommaList()
+            case "SUBJECT": document.subject = value
+            case "DESCRIPTION": document.description = value
+            case "KEYWORDS", "SUBJECTS", "GENRE": document.keywords = value.splitCommaList()
+            case "PUBLISHER": document.publisher = value
+            case "LANGUAGE": document.language = value
+            case "CATEGORY": document.category = value
+            case "DATE", "CREATED": document.created = value
+            case "MODIFIED": document.modified = value
+            default: throw ApplyError.unsupportedField(key: key, kind: "document")
             }
         }
     }

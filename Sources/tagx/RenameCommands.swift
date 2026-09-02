@@ -19,7 +19,9 @@ private let patternHelp = """
     (%{isrc}). %{track:2} pads numbers with zeros. Images: %{title}, %{creator} \
     (also %{artist}), %{description}, %{keywords}, %{copyright}, %{date}/%{year}. \
     E-books: %{title}, %{author}, %{series}, %{seriesindex} (also %{track}), \
-    %{publisher}, %{language}, %{isbn}, %{date}/%{year}, %{subjects} (also %{genre}).
+    %{publisher}, %{language}, %{isbn}, %{date}/%{year}, %{subjects} (also %{genre}). \
+    Documents: %{title}, %{author}, %{subject}, %{keywords}, %{publisher}, %{language}, \
+    %{category}, %{created}/%{date}, %{modified}, plus custom fields by key (%{series}).
     """
 
 /// Liest die Feldwerte einer Datei passend zu ihrer Medienart.
@@ -32,6 +34,9 @@ func readPatternFields(at url: URL) throws -> [String: String] {
     case .ebook:
         return PatternFields.fields(
             from: try EbookTool.readSnapshot(url: url, includeCover: false).value.fields)
+    case .document:
+        return PatternFields.fields(
+            from: try DocumentTool.readSnapshot(url: url, includeCover: false).value.fields)
     case .invoice, nil:
         throw ValidationError("Not a taggable media file: \(url.path)")
     }
@@ -312,6 +317,33 @@ struct Parse: ParsableCommand {
             try TrashBackup.shared.backUp(url)
             try EbookTool.write(url: url, fields: fields, original: original,
                                 coverUpdate: .unchanged, expecting: snapshot.stamp)
+            return parsed.count
+
+        case .document:
+            let snapshot = try DocumentTool.readSnapshot(url: url, includeCover: false)
+            let original = snapshot.value.fields
+            var fields = original
+            do {
+                try PatternFields.apply(parsed, to: &fields)
+                // Felder ohne Speicherort im Zielformat vor Sicherung ablehnen.
+                try DocumentTool.requireWritable(fields, original: original, url: url)
+            } catch let error as PatternFields.ApplyError {
+                throw ValidationError(error.localizedDescription)
+            } catch let error as TagError {
+                switch error {
+                case .unsupportedDocumentField, .invalidDocumentValue:
+                    throw ValidationError(error.localizedDescription)
+                default: throw error
+                }
+            }
+            guard fields != original else {
+                try snapshot.requireCurrent(at: url)
+                return 0
+            }
+            try snapshot.requireCurrent(at: url)
+            try TrashBackup.shared.backUp(url)
+            try DocumentTool.write(url: url, fields: fields, original: original,
+                                   expecting: snapshot.stamp)
             return parsed.count
 
         case .invoice, nil:

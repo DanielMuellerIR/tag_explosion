@@ -12,6 +12,7 @@ extension FileEntry {
         case .audio: return PatternFields.fields(from: properties)
         case .image: return PatternFields.fields(from: imageFields)
         case .ebook: return PatternFields.fields(from: ebookFields)
+        case .document: return PatternFields.fields(from: documentFields)
         case .invoice: return [:]
         }
     }
@@ -29,6 +30,7 @@ extension FileEntry {
         case .audio: PatternFields.apply(parsed, to: &properties)
         case .image: try PatternFields.apply(parsed, to: &imageFields)
         case .ebook: try PatternFields.apply(parsed, to: &ebookFields)
+        case .document: try PatternFields.apply(parsed, to: &documentFields)
         case .invoice:
             throw PatternFields.ApplyError.unsupportedField(
                 key: parsed.keys.sorted().first ?? "", kind: "invoice")
