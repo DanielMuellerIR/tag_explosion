@@ -171,12 +171,42 @@
         }
       }
     },
+    "%lld Änderungen in %lld Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld changes in %lld files"
+          }
+        }
+      }
+    },
     "(+%lld unbekannt)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "(+%lld unknown)"
+          }
+        }
+      }
+    },
+    "(entfernen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(remove)"
+          }
+        }
+      }
+    },
+    "* steht für alle Felder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "* stands for all fields."
           }
         }
       }
@@ -251,6 +281,16 @@
         }
       }
     },
+    "Aktion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Action"
+          }
+        }
+      }
+    },
     "Aktionen": {
       "localizations": {
         "en": {
@@ -281,6 +321,16 @@
         }
       }
     },
+    "Albumkünstler aus Künstler (wenn leer)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album artist from artist (when empty)"
+          }
+        }
+      }
+    },
     "Alle Cues verschieben um": {
       "localizations": {
         "en": {
@@ -297,6 +347,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remove all chapters"
+          }
+        }
+      }
+    },
+    "Alle Medienarten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All media kinds"
           }
         }
       }
@@ -371,6 +431,16 @@
         }
       }
     },
+    "Anwenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
+          }
+        }
+      }
+    },
     "Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
       "localizations": {
         "en": {
@@ -431,6 +501,16 @@
         }
       }
     },
+    "Audio/Video": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio/Video"
+          }
+        }
+      }
+    },
     "Aufnahmedatum": {
       "localizations": {
         "en": {
@@ -447,6 +527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "From %@ — saving writes only the NFO, not the video."
+          }
+        }
+      }
+    },
+    "Aus Feld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From field"
           }
         }
       }
@@ -941,6 +1031,16 @@
         }
       }
     },
+    "Die Regeln laufen der Reihe nach über alle ausgewählten Dateien. Anwenden schreibt die Änderungen über den gewohnten Speichern-Weg (Sicherung, atomarer Austausch).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rules run in order over all selected files. Apply writes the changes through the usual save path (safety copy, atomic replace)."
+          }
+        }
+      }
+    },
     "Die Schicht wird aus der Datei entfernt; die anderen Schichten bleiben. Im abgesicherten Modus liegt vorher eine Kopie im Papierkorb.": {
       "localizations": {
         "en": {
@@ -1271,6 +1371,46 @@
         }
       }
     },
+    "Entfernt Leerzeichen und Steuerzeichen am Rand und zieht Mehrfach-Leerzeichen zusammen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removes spaces and control characters at both ends and collapses repeated spaces."
+          }
+        }
+      }
+    },
+    "Ersetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace"
+          }
+        }
+      }
+    },
+    "Ersetzen durch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace with"
+          }
+        }
+      }
+    },
+    "Erste Nummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First number"
+          }
+        }
+      }
+    },
     "Ersteller": {
       "localizations": {
         "en": {
@@ -1361,6 +1501,16 @@
         }
       }
     },
+    "Feld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Field"
+          }
+        }
+      }
+    },
     "Feld entfernen": {
       "localizations": {
         "en": {
@@ -1377,6 +1527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add Field"
+          }
+        }
+      }
+    },
+    "Feld-Bedingung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Field condition"
           }
         }
       }
@@ -1451,6 +1611,16 @@
         }
       }
     },
+    "GROSSBUCHSTABEN": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UPPERCASE"
+          }
+        }
+      }
+    },
     "Gelesene Felder": {
       "localizations": {
         "en": {
@@ -1501,6 +1671,16 @@
         }
       }
     },
+    "Gesamtzahl anhängen (3/12)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Append total (3/12)"
+          }
+        }
+      }
+    },
     "Geschäftsprozess (BT-23)": {
       "localizations": {
         "en": {
@@ -1517,6 +1697,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modified"
+          }
+        }
+      }
+    },
+    "Groß-/Kleinschreibung ignorieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignore case"
           }
         }
       }
@@ -1951,6 +2141,26 @@
         }
       }
     },
+    "Kleine Wörter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small words"
+          }
+        }
+      }
+    },
+    "Kommagetrennt; leer = Standardliste (Englisch und Deutsch).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comma-separated; empty = default list (English and German)."
+          }
+        }
+      }
+    },
     "Kommentar": {
       "localizations": {
         "en": {
@@ -1987,6 +2197,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Header line"
+          }
+        }
+      }
+    },
+    "Kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
           }
         }
       }
@@ -2031,6 +2251,16 @@
         }
       }
     },
+    "Laden …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load…"
+          }
+        }
+      }
+    },
     "Language": {
       "localizations": {
         "en": {
@@ -2047,6 +2277,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Runtime (min)"
+          }
+        }
+      }
+    },
+    "Leerzeichen in allen Feldern trimmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim whitespace in all fields"
+          }
+        }
+      }
+    },
+    "Löscht das Feld in jeder passenden Datei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes the field in every matching file."
           }
         }
       }
@@ -2077,6 +2327,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "MediaInfo not available"
+          }
+        }
+      }
+    },
+    "Medienart": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media kind"
           }
         }
       }
@@ -2161,6 +2421,16 @@
         }
       }
     },
+    "Mindestbreite (führende Nullen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimum width (leading zeros)"
+          }
+        }
+      }
+    },
     "Mit Homebrew installieren": {
       "localizations": {
         "en": {
@@ -2197,6 +2467,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pattern does not match:"
+          }
+        }
+      }
+    },
+    "NFO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NFO"
           }
         }
       }
@@ -2371,12 +2651,32 @@
         }
       }
     },
+    "Noch keine Regeldatei benutzt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rules file used yet"
+          }
+        }
+      }
+    },
     "Nr.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "No."
+          }
+        }
+      }
+    },
+    "Nummerieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number"
           }
         }
       }
@@ -2397,6 +2697,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show only fields and groups with a BT/BG mapping"
+          }
+        }
+      }
+    },
+    "Nur wenn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only when"
+          }
+        }
+      }
+    },
+    "Nur wenn das Ziel leer ist": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only when the target is empty"
           }
         }
       }
@@ -2477,6 +2797,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Trash"
+          }
+        }
+      }
+    },
+    "Platzhalter wie in Dateinamen-Mustern, zum Beispiel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Placeholders as in file name patterns, for example"
           }
         }
       }
@@ -2581,6 +2911,16 @@
         }
       }
     },
+    "Prüfung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test"
+          }
+        }
+      }
+    },
     "Rechnung": {
       "localizations": {
         "en": {
@@ -2591,12 +2931,152 @@
         }
       }
     },
+    "Regel auswählen oder mit + hinzufügen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a rule or add one with +."
+          }
+        }
+      }
+    },
+    "Regel entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove rule"
+          }
+        }
+      }
+    },
+    "Regel hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add rule"
+          }
+        }
+      }
+    },
+    "Regel nach oben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move rule up"
+          }
+        }
+      }
+    },
+    "Regel nach unten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move rule down"
+          }
+        }
+      }
+    },
+    "Regeldatei (JSON) öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open rules file (JSON)"
+          }
+        }
+      }
+    },
+    "Regeldatei konnte nicht geladen werden:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rules file could not be loaded:"
+          }
+        }
+      }
+    },
+    "Regeldatei konnte nicht gesichert werden:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rules file could not be saved:"
+          }
+        }
+      }
+    },
+    "Regeln als JSON sichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save rules as JSON"
+          }
+        }
+      }
+    },
+    "Regeln anwenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply Rules"
+          }
+        }
+      }
+    },
+    "Regeln anwenden …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply Rules…"
+          }
+        }
+      }
+    },
+    "Regeln konnten nicht angewendet werden:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rules could not be applied:"
+          }
+        }
+      }
+    },
+    "Regeln wie Titel-Schreibweise, Trimmen oder Feld-Kopien auf alle ausgewählten Dateien anwenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply rules such as title case, trimming or field copies to all selected files"
+          }
+        }
+      }
+    },
     "Regie": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Director"
+          }
+        }
+      }
+    },
+    "Regulärer Ausdruck (Gruppen als $1, $2 …)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regular expression (groups as $1, $2 …)"
           }
         }
       }
@@ -2627,6 +3107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "SRT has no header block. The language lives in the file name — rename via “File name ↔ Tags” with the pattern "
+          }
+        }
+      }
+    },
+    "Satz-Schreibweise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentence case"
           }
         }
       }
@@ -2701,6 +3191,16 @@
         }
       }
     },
+    "Schreibweise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Case"
+          }
+        }
+      }
+    },
     "Sekunden": {
       "localizations": {
         "en": {
@@ -2727,6 +3227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Series Index"
+          }
+        }
+      }
+    },
+    "Setzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set"
           }
         }
       }
@@ -2767,6 +3277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Select sidecars one at a time"
+          }
+        }
+      }
+    },
+    "Sortieren nach": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort by"
           }
         }
       }
@@ -2817,6 +3337,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Saving failed: %@"
+          }
+        }
+      }
+    },
+    "Speichern …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save…"
           }
         }
       }
@@ -2897,6 +3427,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Studio"
+          }
+        }
+      }
+    },
+    "Suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
           }
         }
       }
@@ -3071,6 +3611,26 @@
         }
       }
     },
+    "Titel-Schreibweise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title case"
+          }
+        }
+      }
+    },
+    "Titel-Schreibweise für Titel und Album": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title case for title and album"
+          }
+        }
+      }
+    },
     "Tracker-Modul: Dieses Format speichert nur Titel und Kommentar (Sample-Namen); die übrigen Felder sind gesperrt.": {
       "localizations": {
         "en": {
@@ -3081,12 +3641,32 @@
         }
       }
     },
+    "Tracks nach Dateiname nummerieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number tracks by file name"
+          }
+        }
+      }
+    },
     "Tracks nummerieren (1–%lld)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Number Tracks (1–%lld)"
+          }
+        }
+      }
+    },
+    "Trimmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim"
           }
         }
       }
@@ -3341,6 +3921,16 @@
         }
       }
     },
+    "Vorlagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Templates"
+          }
+        }
+      }
+    },
     "WebVTT-Kopf": {
       "localizations": {
         "en": {
@@ -3561,6 +4151,16 @@
         }
       }
     },
+    "enthält": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contains"
+          }
+        }
+      }
+    },
     "exiftool kann dieses Format nicht beschreiben: Änderungen gehen in die Sidecar %@.": {
       "localizations": {
         "en": {
@@ -3601,12 +4201,62 @@
         }
       }
     },
+    "gesamt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "total"
+          }
+        }
+      }
+    },
+    "ist gleich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "equals"
+          }
+        }
+      }
+    },
+    "ist leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "is empty"
+          }
+        }
+      }
+    },
+    "ist nicht leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "is not empty"
+          }
+        }
+      }
+    },
     "keine": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "none"
+          }
+        }
+      }
+    },
+    "kleinbuchstaben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lowercase"
           }
         }
       }
@@ -3627,6 +4277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "or any tag key"
+          }
+        }
+      }
+    },
+    "passt auf Regex": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "matches regex"
           }
         }
       }
@@ -3827,6 +4487,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "— mixed —"
+          }
+        }
+      }
+    },
+    "„filename“ (natürlich sortiert) oder ein Feld wie TRACKNUMBER.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“filename” (natural sort) or a field such as TRACKNUMBER."
           }
         }
       }

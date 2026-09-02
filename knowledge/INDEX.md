@@ -60,6 +60,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
   dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
   exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.
+- [batch-regeln.md](batch-regeln.md) — Bei Arbeit an `TagRules.swift`,
+  `tagx apply` oder dem Regel-Editor: Engine sieht nur den ersten Wert je
+  Schlüssel, Medienart-Grenzen greifen erst beim Schreiben, Titel-Schreibweise
+  und Abkürzungen, Zeilenangabe im JSON per eigenem Scanner, `%{` in
+  lokalisierten Texten, `number` über alle Dateien.
 - [kodi-nfo-untertitel.md](kodi-nfo-untertitel.md) — Bei Kodi-/Jellyfin-
   NFO, `.srt`/`.vtt`, `tagx nfo`/`subtitle` oder dem NFO-Abschnitt im
   Video-Editor: eigener XML-Serialisierer für Einrückungserhalt, Nur-URL-NFO,

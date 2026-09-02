@@ -112,6 +112,20 @@
   gespeichert. Für Audio, Video, Bilder (`%{creator}`, `%{date}`) und E-Books
   (`%{author}`, `%{series}`), in den Editoren und als `tagx rename` /
   `tagx parse` (Probelauf per Voreinstellung, `--apply`, `--json`).
+- **Batch-Regeln als Skript** — eine JSON-Regeldatei, die der Reihe nach
+  über eine Auswahl läuft: `set` (mit Platzhaltern wie `%{artist}`), `copy`
+  (wahlweise nur in leere Felder), `replace` (wörtlich oder Regex mit
+  `$1`-Gruppen), `case` (Groß, Klein, Titel-Schreibweise mit einstellbarer
+  Liste kleiner Wörter, Satz-Schreibweise), `trim`, `remove` und `number`
+  (Tracknummern nach Dateiname oder Feld, wahlweise als `n/gesamt`). Jede
+  Regel lässt sich auf Medienarten und eine Feld-Bedingung (leer, nicht
+  leer, gleich, enthält, Regex) einschränken. Im Batch-Editor gibt es dafür
+  einen Regel-Editor mit Vorlagen, Laden/Speichern, zuletzt benutzten
+  Dateien und Vorschautabelle (Datei, Feld, alt → neu); in der CLI
+  `tagx apply regeln.json [--apply] [--json] <Dateien|Ordner>` (Probelauf
+  per Voreinstellung, `--example` gibt eine kommentierte Beispieldatei aus,
+  Exit 64 bei ungültiger Regeldatei). Geschrieben wird über den gewohnten
+  sicheren Weg.
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
@@ -276,6 +290,9 @@ tagx cue apply album.cue --apply               # Cue-Titel/-Interpreten/-Tracknu
 tagx nfo set film.mkv --title "Titel" --year 2019     # schreibt film.nfo, nicht das Video
 tagx subtitle show film.de.srt --json          # Cues, Zeitspanne, Zeichensatz, Sprache
 tagx subtitle shift film.srt --seconds=-1.5    # alle Cues verschieben (negativ: mit "=")
+tagx apply --example > regeln.json             # kommentierte Beispiel-Regeldatei
+tagx apply regeln.json Album/                  # Vorschau: FELD: alt -> neu je Datei
+tagx apply regeln.json --apply Album/          # Änderungen schreiben (Papierkorb-Kopie, atomarer Austausch)
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht

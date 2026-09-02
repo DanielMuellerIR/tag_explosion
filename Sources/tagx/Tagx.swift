@@ -12,7 +12,8 @@ struct Tagx: ParsableCommand {
         version: tagxVersion,
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Layers.self, Info.self,
                       Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
-                      Rename.self, Parse.self, Playlist.self, Cue.self, Nfo.self, Subtitle.self],
+                      Rename.self, Parse.self, Apply.self, Playlist.self, Cue.self, Nfo.self,
+                      Subtitle.self],
         defaultSubcommand: Show.self
     )
 }

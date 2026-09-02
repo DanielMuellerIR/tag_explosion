@@ -109,6 +109,18 @@
   video, images (`%{creator}`, `%{date}`) and e-books (`%{author}`,
   `%{series}`), in the editors and as `tagx rename` / `tagx parse` (dry run by
   default, `--apply`, `--json`).
+- **Batch rules as a script** — a JSON rules file that runs in order over a
+  selection: `set` (with `%{artist}`-style placeholders), `copy` (optionally
+  only into empty fields), `replace` (literal or regex with `$1` groups),
+  `case` (upper, lower, title case with a configurable list of small words,
+  sentence case), `trim`, `remove` and `number` (track numbers in file name
+  or field order, optionally as `n/total`). Each rule can be limited to
+  media kinds and a field condition (empty, not empty, equals, contains,
+  matches). The batch editor has a rule editor with templates, load/save,
+  recent files and a preview table (file, field, old → new); the CLI is
+  `tagx apply rules.json [--apply] [--json] <files|folders>` (dry run by
+  default, `--example` prints a commented sample file, exit 64 for an
+  invalid rules file). Writing goes through the usual safe path.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
@@ -266,6 +278,9 @@ tagx cue apply album.cue --apply               # write cue titles/performers/tra
 tagx nfo set movie.mkv --title "Title" --year 2019    # writes movie.nfo, not the video
 tagx subtitle show movie.en.srt --json         # cues, span, encoding, language
 tagx subtitle shift movie.srt --seconds=-1.5   # shift all cues (negative: use "=")
+tagx apply --example > rules.json              # commented sample rules file
+tagx apply rules.json Album/                   # preview: FIELD: old -> new per file
+tagx apply rules.json --apply Album/           # write the changes (trash copy, atomic replace)
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
