@@ -68,7 +68,14 @@
 - **E-invoices (read-only)** — detects the standard and profile from the
   specification identifier (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM through
   EXTENDED), XRechnung, Peppol BIS and plain EN 16931, in both syntaxes
-  (UN/CEFACT CII and OASIS UBL, invoices and credit notes). Every populated
+  (UN/CEFACT CII and OASIS UBL, invoices and credit notes), plus orders:
+  Order-X (BASIC/COMFORT/EXTENDED, embedded as `order-x.xml`) and Peppol
+  Order/OrderResponse — order fields carry Order-X labels instead of BT
+  numbers. The document kind (invoice, credit note, order, order response)
+  is shown separately. A basic validation lists warnings: missing EN 16931
+  mandatory fields (XRechnung: also the Leitweg-ID) and the totals
+  arithmetic BT-106 … BT-115 with a tolerance of 0.01 — no full Schematron
+  check. Every populated
   field is shown with its EN 16931 business term (BT/BG number and label);
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
@@ -180,7 +187,7 @@ These run on every push (see `.github/workflows/tests.yml`).
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (editable) · mov, avi, ogv (view only) | MP4 atoms, Matroska tags |
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
 | Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
-| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms |
+| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms; Order-X and Peppol orders with Order-X labels; basic validation warnings |
 
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*
@@ -233,7 +240,8 @@ tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo extra fields
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
-tagx invoice invoice.pdf                       # e-invoice profile + all fields (BT terms)
+tagx invoice invoice.pdf                       # e-invoice profile, warnings + all fields (BT terms)
+tagx invoice order.xml --strict                # exit 3 if the basic validation reports warnings
 tagx set song.mp3 -t ARTIST="X" --no-backup    # skip the safety copy in the trash
 ```
 

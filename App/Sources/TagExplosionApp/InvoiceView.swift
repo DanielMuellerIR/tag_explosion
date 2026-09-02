@@ -1,5 +1,6 @@
-// E-Rechnungs-Ansicht: Profilkopf + alle Felder mit EN-16931-Bezeichnungen
-// (BT-/BG-Nummern). Reine Anzeige, filterbar, kopierbar. Wird zweifach
+// E-Rechnungs-Ansicht: Profilkopf, Hinweise der Grundvalidierung und alle
+// Felder mit EN-16931-Bezeichnungen (BT-/BG-Nummern; Bestellungen mit
+// Order-X-Bezeichnungen). Reine Anzeige, filterbar, kopierbar. Wird zweifach
 // genutzt: als Editor-Ersatz für XML-Rechnungen und als Tab im
 // E-Book-Editor, wenn ein PDF eine eingebettete Rechnung trägt.
 import EInvoiceCore
@@ -56,10 +57,48 @@ struct InvoiceContentView: View {
         VStack(spacing: 0) {
             header
             Divider()
+            if !document.warnings.isEmpty {
+                warningsSection
+                Divider()
+            }
             filterBar
             Divider()
             fieldList
         }
+    }
+
+    // MARK: - Hinweise
+
+    /// Warnhinweise der Grundvalidierung (Pflichtfelder, Summen) — oberhalb
+    /// der Feldliste, damit sie nicht in Hunderten Zeilen untergehen.
+    private var warningsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Text("Hinweise")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(document.warnings.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(Array(document.warnings.enumerated()), id: \.offset) { _, warning in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(warning.code)
+                        .font(.caption.weight(.semibold).monospaced())
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.orange.opacity(0.18),
+                                    in: RoundedRectangle(cornerRadius: 4))
+                    Text(warning.message)
+                        .font(.callout)
+                        .textSelection(.enabled)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .accessibilityIdentifier("invoice.warnings")
     }
 
     // MARK: - Profilkopf
@@ -78,6 +117,7 @@ struct InvoiceContentView: View {
                     .background(.quaternary, in: Capsule())
             }
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 2) {
+                headerRow("Dokumentart", String(localized: documentKindLabel))
                 headerRow("Spezifikation (BT-24)", document.profile.guidelineID)
                 if let process = document.profile.businessProcessID {
                     headerRow("Geschäftsprozess (BT-23)", process)
@@ -115,6 +155,17 @@ struct InvoiceContentView: View {
         }
     }
 
+    /// Dokumentart als lokalisierbarer Schlüssel — die Kurzform aus dem Core
+    /// (`rawValue`) ist Englisch, die Anzeige spricht die Systemsprache.
+    private var documentKindLabel: String.LocalizationValue {
+        switch document.documentKind {
+        case .invoice: return "Rechnung"
+        case .creditNote: return "Gutschrift"
+        case .order: return "Bestellung"
+        case .orderResponse: return "Bestellantwort"
+        }
+    }
+
     private var summaryLine: String? {
         let s = document.summary
         var parts: [String] = []
@@ -148,8 +199,9 @@ struct InvoiceContentView: View {
     private var visibleFields: [EInvoiceField] {
         document.fields.filter { field in
             // Auch eine Zuordnung an einem Attribut (z.B. unitCode → BT-130)
-            // zählt als EN-16931-Feld.
-            if termsOnly && field.term == nil && field.attributeTerms.isEmpty { return false }
+            // zählt als EN-16931-Feld; bei Bestellungen die Order-X-Bezeichnung.
+            if termsOnly && field.term == nil && field.termName == nil
+                && field.attributeTerms.isEmpty { return false }
             guard !filter.isEmpty else { return true }
             return field.value.localizedCaseInsensitiveContains(filter)
                 || field.element.localizedCaseInsensitiveContains(filter)
@@ -247,7 +299,12 @@ private struct InvoiceFieldRow: View {
     /// Business Terms eine echte Spalte bilden.
     let termColumnWidth: CGFloat
 
-    private var isGroup: Bool { field.value.isEmpty && field.term?.hasPrefix("BG") == true }
+    /// Gruppen: BG-Zuordnung — oder bei Bestellungen eine beschriftete
+    /// Struktur ohne eigenen Wert.
+    private var isGroup: Bool {
+        field.value.isEmpty && (field.term?.hasPrefix("BG") == true
+                                || (field.term == nil && field.termName != nil))
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: InvoiceFieldLayout.columnSpacing) {
@@ -301,6 +358,12 @@ private struct InvoiceFieldRow: View {
                     }
                 }
                 .frame(width: termColumnWidth, alignment: .leading)
+            } else if let name = field.termName {
+                // Bestellungen: Order-X-Bezeichnung ohne BT-Nummer.
+                Text(name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: termColumnWidth, alignment: .leading)
             }
         }
         .padding(.vertical, isGroup ? 5 : 2)

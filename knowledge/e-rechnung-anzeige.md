@@ -5,14 +5,34 @@ Rechnungsansicht der App.
 
 ## Grundsätze
 
-- **Nur Anzeige.** Kein Validieren, kein Rendern als Rechnung, kein Schreiben.
-  Der Wert des Features ist: Profil erkennen + jedes befüllte Feld mit seiner
+- **Nur Anzeige.** Kein Rendern als Rechnung, kein Schreiben. Der Wert des
+  Features ist: Profil erkennen + jedes befüllte Feld mit seiner
   EN-16931-Feldbezeichnung (BT-/BG-Nummer) zeigen. Was keine Nummer hat,
   bleibt als Rohpfad sichtbar — nie Felder verschlucken.
+- **Grundvalidierung, keine Schematron-Prüfung** (`EInvoiceValidation`):
+  Pflichtfelder BT-1/2/3/5/27/44/106/109/112/115 (XRechnung: BT-10) und die
+  Summenkette BT-106 = Σ BT-131, BT-109 = BT-106 − BT-107 + BT-108,
+  BT-110 = Σ BT-117, BT-112 = BT-109 + BT-110, BT-115 = BT-112 − BT-113 +
+  BT-114, Toleranz 0,01. Ergebnis sind Hinweise (`warnings`), nie eine
+  Verweigerung der Anzeige; `tagx invoice --strict` liefert Exit 3. Die
+  Codes sind die Regelkennungen der Norm (BR-02 … BR-15, BR-CO-10/13/14/15/16)
+  und der XRechnung (BR-DE-15), damit man sie in Validatoren wiederfindet.
 - Zwei Syntaxen decken fast alles ab: **CII** (ZUGFeRD 2.x = Factur-X,
   XRechnung-CII) und **UBL** (XRechnung-UBL, Peppol BIS). Gutschriften in UBL
   (`ubl:CreditNote`) werden per Pfad-Normalisierung auf die Invoice-Tabelle
-  abgebildet statt eine zweite Tabelle zu pflegen.
+  abgebildet statt eine zweite Tabelle zu pflegen. Die **Dokumentart**
+  (`documentKind`) kommt aus Wurzel + Typcode: `ubl:CreditNote` oder BT-3 =
+  381 → Gutschrift; Order-X-Typcode 231 bzw. `ubl:OrderResponse` →
+  Bestellantwort.
+- **Bestellungen** (Order-X in CIO-Syntax, Peppol `ubl:Order`/
+  `ubl:OrderResponse`) folgen nicht der EN 16931. Ihre Felder tragen
+  deshalb eine deutsche Order-X-Bezeichnung in `termName`, aber KEIN
+  `term` — die Order-X-Spezifikation nummeriert ihre Terme eigenständig, und
+  die Nummern ließen sich nicht verlässlich belegen (ferd-net verteilt die
+  Spezifikation nur als Download-Paket). Lieber Bezeichnung ohne Nummer als
+  eine falsche Nummer. Anzeige und CLI zeigen `termName` auch ohne `term`;
+  `--terms-only` behält beschriftete Felder. Beteiligte werden generisch als
+  „Rolle: Feld" beschriftet (`OrderXMapping.parties`/`partyFields`).
 
 ## Erkennung
 
@@ -36,6 +56,21 @@ Rechnungsansicht der App.
 
 ## Fallen
 
+- **Order-X-Namensraum ohne „standard":** Die CIO-Wurzel heißt
+  `rsm:SCRDMCCBDACIOMessageStructure` (offizieller Schemaname) im Namensraum
+  `urn:un:unece:uncefact:data:SCRDMCCBDACIOMessageStructure:100` — anders als
+  CII fehlt das Segment `standard`; ram/udt/qdt kommen mit Version `:128`.
+  Erkennung und Präfix-Kanonisierung prüfen deshalb den Stamm plus den
+  Schemanamen, nicht die CII-Form. Währung heißt dort `ram:OrderCurrencyCode`,
+  Menge `ram:RequestedQuantity`; das PDF-XMP nutzt denselben
+  Factur-X-Namensraumstamm (`urn:factur-x:pdfa:CrossIndustryDocument:1p0#`)
+  mit `DocumentType` ORDER/ORDER_RESPONSE/ORDER_CHANGE und Anhang
+  `order-x.xml` (Quelle: Mustangproject `OXExporterFromA3`, Order-X-XSD).
+- **Summenprüfung nur in Rechnungswährung:** UBL wiederholt `cac:TaxTotal`
+  in der Steuerwährung (BT-111); deren `TaxSubtotal/TaxAmount` ist ebenfalls
+  BT-117 gemappt. Die Summe der Steuerbeträge lässt Beträge mit `currencyID`
+  ≠ BT-5 deshalb aus, sonst zählt die Steuer doppelt. Ein nicht lesbarer
+  Betrag (Komma, Tausenderpunkt) lässt die betroffene Regel still aus.
 - **Namensraum-Präfixe sind frei wählbar.** Der XML-Baum (`XMLTree`)
   kanonisiert Präfixe über die Namensraum-URIs (rsm/ram/udt/qdt bzw.
   ubl/cac/cbc); alle Pfad-Tabellen setzen darauf auf. Nie über

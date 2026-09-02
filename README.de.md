@@ -70,7 +70,14 @@
 - **E-Rechnungen (nur Anzeige)** — erkennt Standard und Profil aus der
   Spezifikationskennung (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM bis EXTENDED),
   XRechnung, Peppol BIS und reine EN 16931, in beiden Syntaxen (UN/CEFACT CII
-  und OASIS UBL, Rechnung und Gutschrift). Jedes befüllte Feld erscheint mit
+  und OASIS UBL, Rechnung und Gutschrift), dazu Bestellungen: Order-X
+  (BASIC/COMFORT/EXTENDED, im PDF als `order-x.xml`) und Peppol
+  Order/OrderResponse — Bestellfelder tragen Order-X-Bezeichnungen statt
+  BT-Nummern. Die Dokumentart (Rechnung, Gutschrift, Bestellung,
+  Bestellantwort) steht als eigenes Feld. Eine Grundvalidierung listet
+  Hinweise: fehlende Pflichtfelder nach EN 16931 (XRechnung: auch die
+  Leitweg-ID) und die Summenrechnung BT-106 … BT-115 mit Toleranz 0,01 —
+  keine vollständige Schematron-Prüfung. Jedes befüllte Feld erscheint mit
   seiner EN-16931-Feldbezeichnung (BT-/BG-Nummer und Name); Felder ohne
   Zuordnung bleiben mit ihrem Rohpfad sichtbar, häufige Codes werden
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
@@ -188,7 +195,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
-| E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
+| E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen; Order-X und Peppol-Bestellungen mit Order-X-Bezeichnungen; Hinweise der Grundvalidierung |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
@@ -242,7 +249,8 @@ tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo-Zusatzfelder
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
-tagx invoice rechnung.pdf                      # E-Rechnung: Profil + alle Felder (BT-Nummern)
+tagx invoice rechnung.pdf                      # E-Rechnung: Profil, Hinweise + alle Felder (BT-Nummern)
+tagx invoice bestellung.xml --strict           # Exit 3, wenn die Grundvalidierung Hinweise meldet
 tagx set song.mp3 -t ARTIST="X" --no-backup    # ohne Sicherungskopie im Papierkorb
 ```
 

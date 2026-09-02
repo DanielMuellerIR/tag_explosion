@@ -23,8 +23,10 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   nicht sicher löschbare Cover und LC_ALL=C.
 - [e-rechnung-anzeige.md](e-rechnung-anzeige.md) — Bei Arbeit an EInvoiceCore,
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
-  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
-  samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+  BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), Dokumentart,
+  Order-X/Peppol-Bestellungen ohne BT-Nummern, Grundvalidierung (Regelcodes,
+  Toleranz, Währungsfalle), CGPDF-Extraktion samt
+  Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
 - [kapitel-hoerbuch.md](kapitel-hoerbuch.md) — Bei Arbeit an Kapiteln
   (CHAP/CTOC, MP4 Nero/QuickTime, Matroska): was TagLib 2.3 kann, Einheiten
   (ms vs. ns), fehlende MP4-Enden, welche Fremdwerkzeuge was lesen.
