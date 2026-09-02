@@ -126,7 +126,12 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   — ✅ umgesetzt (AP3, 2026-09-02): `FilenamePattern`/`FileRenamer` im Core,
   `tagx rename`/`tagx parse`, Dialoge in Einzel- und Batch-Editor. Bewusst
   ohne Ordner-Anteil im Muster (kid3 legt auch Ordner an).
-- Online-Import (MusicBrainz/Discogs), Groß-/Kleinschreibungs-Werkzeuge
+- Online-Import (MusicBrainz/Discogs)
+- ~~Groß-/Kleinschreibungs-Werkzeuge~~ — ✅ umgesetzt (AP13, 2026-09-02):
+  Batch-Regeln als JSON-Skript (`TagRules.swift` im Core: set, copy,
+  replace, case, trim, remove, number mit Filtern), `tagx apply` und der
+  Regel-Editor im Batch-Editor. Fallen in
+  [knowledge/batch-regeln.md](../knowledge/batch-regeln.md).
 - Playlist-Export — ✅ umgesetzt (AP8, 2026-09-02): `PlaylistExporter` im
   Core (m3u8/pls/xspf, Pfade relativ zur Playlist), Menü „Playlist
   exportieren …" im Batch-Editor, `tagx playlist export`. Dazu Anzeige und

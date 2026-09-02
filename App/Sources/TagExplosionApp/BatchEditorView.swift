@@ -149,6 +149,9 @@ struct BatchEditorView: View {
                 // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
                 FilenamePatternMenu(entries: entries)
 
+                // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
+                TagRulesButton(entries: entries)
+
                 // Auswahl als m3u8/pls/xspf sichern (Pfade relativ zur Playlist).
                 PlaylistExportMenu(entries: entries)
 

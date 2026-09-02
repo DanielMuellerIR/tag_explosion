@@ -1061,9 +1061,10 @@ final class AppModel {
     /// Gemeinsamer Speicherpfad: erst Auto-Backup, dann Datei für Datei.
     /// Der Rückgabewert ist für die Konfliktlogik entscheidend: Nur ein
     /// vollständig erfolgreicher Batch darf anschließend importieren, entfernen
-    /// oder die App beenden.
+    /// oder die App beenden. Modulintern, weil auch die Batch-Regeln
+    /// (`applyRules`) diesen Weg nehmen.
     @discardableResult
-    private func saveEntries(_ dirty: [FileEntry]) async -> Bool {
+    func saveEntries(_ dirty: [FileEntry]) async -> Bool {
         await saveEntries(dirty) { entry in
             await self.save(entry: entry)
         }

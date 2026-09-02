@@ -64,8 +64,12 @@ struct ImageBatchEditorView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("image.batch.sidecar.target")
             }
-            FilenamePatternMenu(entries: entries)
-                .padding(.top, 4)
+            HStack(spacing: 12) {
+                FilenamePatternMenu(entries: entries)
+                // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
+                TagRulesButton(entries: entries)
+            }
+            .padding(.top, 4)
         }
     }
 

@@ -139,6 +139,18 @@
   a click selects one, and the text can be copied. In the app ("Check…" in
   the batch editor, toolbar button for all loaded files) and as `tagx check`
   (`--json`, `--pattern`, `--only <codes>`, `--fail-on warning|hint` → exit 4).
+- **Batch rules as a script** — a JSON rules file that runs in order over a
+  selection: `set` (with `%{artist}`-style placeholders), `copy` (optionally
+  only into empty fields), `replace` (literal or regex with `$1` groups),
+  `case` (upper, lower, title case with a configurable list of small words,
+  sentence case), `trim`, `remove` and `number` (track numbers in file name
+  or field order, optionally as `n/total`). Each rule can be limited to
+  media kinds and a field condition (empty, not empty, equals, contains,
+  matches). The batch editor has a rule editor with templates, load/save,
+  recent files and a preview table (file, field, old → new); the CLI is
+  `tagx apply rules.json [--apply] [--json] <files|folders>` (dry run by
+  default, `--example` prints a commented sample file, exit 64 for an
+  invalid rules file). Writing goes through the usual safe path.
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
@@ -320,6 +332,9 @@ tagx check Music/ --json                       # consistency report per album/fo
 tagx check Album/ --fail-on warning            # exit 4 on warnings; --only track-gap,missing-cover; -p '%{track:2} - %{title}'
 tagx history list song.mp3                     # trash backups of this file (undo history), newest first
 tagx history restore song.mp3 --version 1 --apply   # bring back the newest backup (dry run without --apply)
+tagx apply --example > rules.json              # commented sample rules file
+tagx apply rules.json Album/                   # preview: FIELD: old -> new per file
+tagx apply rules.json --apply Album/           # write the changes (trash copy, atomic replace)
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
