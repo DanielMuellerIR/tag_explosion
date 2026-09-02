@@ -8,6 +8,32 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.31.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Playlists und Cue-Sheets als neue Medienart: `.cue`, `.m3u`, `.m3u8`,
+  `.pls`, `.xspf` anzeigen (Einträge mit aufgelöstem Pfad, Existenzprüfung,
+  Gesamtdauer) und beschriften (Titel, Interpret, bei Cue-Sheets Datum und
+  Genre; Titel/Interpret je Eintrag). Fremde Zeilen, Zeilenenden und
+  Einrückung bleiben erhalten; Nicht-UTF-8-Dateien werden per
+  Latin1/MacRoman-Fallback gelesen. Fallen:
+  [knowledge/playlists-cue.md](knowledge/playlists-cue.md).
+- Playlist-Export aus einer Dateiauswahl als m3u8, pls oder xspf (Pfade
+  relativ zur Playlist, optional absolut): Menü „Playlist exportieren …“ im
+  Batch-Editor und `tagx playlist export`.
+- `tagx playlist show|set`, `tagx cue show|set` und `tagx cue apply`, das
+  Titel, Interpreten und Tracknummern eines Cue-Sheets in die referenzierten
+  Audiodateien schreibt (Probelauf als Voreinstellung, `--apply`; nur bei
+  einer Datei je Track).
+- Playlist-Editor in der App; Doppelklick auf einen Eintrag öffnet die Datei
+  in einem neuen Fenster.
+
+### Geändert
+
+- Tag-Archiv (Export/Import) und Dateinamen-Muster lassen Playlists aus, wie
+  bereits E-Rechnungen.
+
 ## [0.30.0] — 2026-09-02
 
 ### Hinzugefügt
