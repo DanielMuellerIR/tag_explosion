@@ -8,6 +8,34 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.37.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Batch-Regeln als Skript: JSON-Regeldatei mit den Aktionen `set`
+  (Platzhalter wie `%{artist}`), `copy` (wahlweise nur in leere Felder),
+  `replace` (wörtlich oder Regex mit Gruppen), `case` (Groß, Klein,
+  Titel-Schreibweise mit einstellbaren kleinen Wörtern, Satz-Schreibweise),
+  `trim`, `remove` und `number` (Tracknummern nach Dateiname oder Feld,
+  wahlweise `n/gesamt`); je Regel Filter nach Medienart und Feld-Bedingung.
+  Fallen: [knowledge/batch-regeln.md](knowledge/batch-regeln.md).
+- `tagx apply <regeln.json> [--apply] [--json] <Dateien|Ordner>`: Probelauf
+  per Voreinstellung mit Plan „Feld: alt -> neu“, `--example` gibt eine
+  kommentierte Beispieldatei aus, Exit 64 bei ungültiger Regeldatei (Meldung
+  nennt Regelnummer und Zeile).
+- Batch-Editoren: „Regeln anwenden …“ mit Regel-Editor, Vorlagen,
+  Laden/Speichern als JSON, zuletzt benutzten Regeldateien und
+  Vorschautabelle; Anwenden schreibt über den gewohnten Speichern-Weg.
+
+### Geändert
+
+- kid3-Abgleich: Groß-/Kleinschreibungs-Werkzeuge gelten als umgesetzt.
+
+### Bekannte Grenzen
+
+- Die Regel-Engine sieht nur den ersten Wert mehrwertiger Felder; die
+  Titel-Schreibweise macht aus „DJ“ ein „Dj“.
+
 ## [0.36.0] — 2026-09-02
 
 ### Hinzugefügt
