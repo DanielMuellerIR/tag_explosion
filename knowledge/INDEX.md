@@ -25,6 +25,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
   BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
   samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [dateiname-muster-umbenennen.md](dateiname-muster-umbenennen.md) — Bei
+  Arbeit an `FilenamePattern`, `FileRenamer`, `tagx rename`/`parse` oder den
+  Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
+  Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
+  lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen.
 - [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag

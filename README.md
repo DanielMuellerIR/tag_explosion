@@ -45,6 +45,14 @@
   decoded (document type, VAT category, payment means, units). Works on
   standalone XML files and on PDFs with an embedded invoice, which get an
   extra "E-Invoice" tab.
+- **File names from tags, tags from file names** — kid3-style patterns such
+  as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
+  with zeros). Renaming shows a preview and refuses conflicts (same target
+  name twice, target already taken, empty name); the reverse direction fills
+  the fields from the name and is saved the usual way. Available for audio,
+  video, images (`%{creator}`, `%{date}`) and e-books (`%{author}`,
+  `%{series}`), in the editors and as `tagx rename` / `tagx parse` (dry run by
+  default, `--apply`, `--json`).
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.

@@ -104,6 +104,9 @@ struct TagEditorTab: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
+                // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
+                FilenamePatternMenu(entries: [entry])
+                    .padding(.top, 4)
             }
             Spacer()
         }
