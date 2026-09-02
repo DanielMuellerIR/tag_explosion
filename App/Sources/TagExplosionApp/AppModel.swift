@@ -74,6 +74,14 @@ final class FileEntry: Identifiable {
     /// Anzeigeinformationen (Anwendung, Seiten, Wörter …), nur lesend.
     private(set) var documentInfo: [DocumentInfoItem] = []
 
+    /// Sidecars (nur bei kind == .sidecar): gelesener Inhalt (Anzeige) plus
+    /// Original und Bearbeitungspuffer der NFO- bzw. VTT-Felder.
+    private(set) var sidecarContents: SidecarContents?
+    private(set) var nfoOriginal = NFOFields()
+    var nfoFields = NFOFields()
+    private(set) var subtitleOriginal = SubtitleEditableFields()
+    var subtitleFields = SubtitleEditableFields()
+
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
     /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
@@ -101,6 +109,7 @@ final class FileEntry: Identifiable {
         case image(fields: ImageCoreFields, original: ImageCoreFields, sidecar: SidecarState)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
         case document(fields: DocumentCoreFields, original: DocumentCoreFields)
+        case sidecar(fields: SidecarFields, original: SidecarFields)
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -135,6 +144,9 @@ final class FileEntry: Identifiable {
             self.documentFields = fields
             self.documentCover = cover
             self.documentInfo = info
+        case .sidecar(let contents):
+            self.kind = .sidecar
+            self.acceptNewSidecarOriginal(contents)
         }
     }
 
@@ -167,6 +179,8 @@ final class FileEntry: Identifiable {
         ebookFields = other.ebookFields
         ebookCoverReplacement = other.ebookCoverReplacement
         documentFields = other.documentFields
+        nfoFields = other.nfoFields
+        subtitleFields = other.subtitleFields
         lastError = other.lastError
     }
 
@@ -181,6 +195,8 @@ final class FileEntry: Identifiable {
         case .invoice: return invoiceDocument.map(LoadedData.invoice)
         case .document:
             return .document(documentOriginal, cover: documentCover, info: documentInfo)
+        case .sidecar:
+            return sidecarContents.map(LoadedData.sidecar)
         }
     }
 
@@ -204,6 +220,8 @@ final class FileEntry: Identifiable {
             return false
         case .document:
             return documentFields != documentOriginal
+        case .sidecar:
+            return nfoFields != nfoOriginal || subtitleFields != subtitleOriginal
         }
     }
 
@@ -216,6 +234,8 @@ final class FileEntry: Identifiable {
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
         documentFields = documentOriginal
+        nfoFields = nfoOriginal
+        subtitleFields = subtitleOriginal
         lastError = nil
     }
 
@@ -255,6 +275,21 @@ final class FileEntry: Identifiable {
         lastError = nil
     }
 
+    /// Sidecar-Pendant zu `acceptNewOriginal`: Original und Puffer der
+    /// jeweiligen Art; die andere Art bleibt auf ihren Neutralwerten.
+    func acceptNewSidecarOriginal(_ contents: SidecarContents) {
+        sidecarContents = contents
+        switch contents {
+        case .nfo(let nfo):
+            nfoOriginal = nfo.fields
+            nfoFields = nfo.fields
+        case .subtitle(let subtitle):
+            subtitleOriginal = subtitle.fields
+            subtitleFields = subtitle.fields
+        }
+        lastError = nil
+    }
+
     /// Ein ausgewähltes Cover zählt nur als Änderung, wenn es sich von dem in
     /// der Datei unterscheidet. Dieselbe Bilddatei noch einmal auszuwählen ist
     /// inhaltlich ein Nichts-Tun und darf keinen Schreibvorgang auslösen: Der
@@ -287,6 +322,8 @@ final class FileEntry: Identifiable {
             lastError = nil
         case .document(let fields, let cover, let info):
             acceptNewDocumentOriginal(fields, cover: cover, info: info)
+        case .sidecar(let contents):
+            acceptNewSidecarOriginal(contents)
         }
     }
 
@@ -311,6 +348,15 @@ final class FileEntry: Identifiable {
             return nil
         case .document:
             return .document(fields: documentFields, original: documentOriginal)
+        case .sidecar:
+            switch sidecarContents {
+            case .nfo: return .sidecar(fields: .nfo(nfoFields), original: .nfo(nfoOriginal))
+            case .subtitle:
+                return .sidecar(fields: .subtitle(subtitleFields), original: .subtitle(subtitleOriginal))
+            case nil:
+                isSaving = false
+                return nil
+            }
         }
     }
 
@@ -371,6 +417,18 @@ final class FileEntry: Identifiable {
             documentCover = cover
             documentInfo = info
             if documentFields == savedFields { documentFields = fields }
+        case (.sidecar(let savedFields, _), .sidecar(let contents)):
+            sidecarContents = contents
+            switch (savedFields, contents) {
+            case (.nfo(let saved), .nfo(let nfo)):
+                nfoOriginal = nfo.fields
+                if nfoFields == saved { nfoFields = nfo.fields }
+            case (.subtitle(let saved), .subtitle(let subtitle)):
+                subtitleOriginal = subtitle.fields
+                if subtitleFields == saved { subtitleFields = subtitle.fields }
+            default:
+                assertionFailure("Sidecar snapshot and read-back have different sidecar kinds")
+            }
         default:
             // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
             // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
@@ -417,6 +475,12 @@ final class FileEntry: Identifiable {
         case .ebook: title = ebookFields.title
         case .invoice: title = invoiceDocument?.summary.invoiceNumber ?? ""
         case .document: title = documentFields.title
+        case .sidecar:
+            switch sidecarContents {
+            case .nfo: title = nfoFields.title
+            case .subtitle: title = subtitleFields.title
+            case nil: title = ""
+            }
         }
         return title.isEmpty ? url.lastPathComponent : title
     }
@@ -444,6 +508,19 @@ final class FileEntry: Identifiable {
                 .joined(separator: " · ")
         case .document:
             return documentFields.authors.joined(separator: ", ")
+        case .sidecar:
+            switch sidecarContents {
+            case .nfo(let nfo):
+                return [nfo.rootName ?? "url", nfoFields.year]
+                    .filter { !$0.isEmpty }.joined(separator: " · ")
+            case .subtitle(let subtitle):
+                let info = subtitle.info
+                let language = info.languageFromName ?? ""
+                return [language, "\(info.cueCount) cues"]
+                    .filter { !$0.isEmpty }.joined(separator: " · ")
+            case nil:
+                return ""
+            }
         }
     }
 }
@@ -463,6 +540,8 @@ enum LoadedData: Sendable {
     /// Dokumente: Felder, CBZ-Cover (nur Anzeige) und Anzeigeinformationen
     /// aus einem gemeinsamen Lesevorgang.
     case document(DocumentCoreFields, cover: Data?, info: [DocumentInfoItem])
+    /// Video-Sidecars: NFO-Inhalt oder Untertitel-Infos plus editierbare Felder.
+    case sidecar(SidecarContents)
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -734,6 +813,8 @@ final class AppModel {
             let contents = try DocumentTool.readSnapshot(
                 url: url, includeCover: DocumentTool.supportsCover(url: url)).value
             return .document(contents.fields, cover: contents.cover?.data, info: contents.info)
+        case .sidecar:
+            return .sidecar(try SidecarTool.readSnapshot(url: url).value)
         }
     }
 
@@ -1074,6 +1155,36 @@ final class AppModel {
         }
     }
 
+    // MARK: - Untertitel verschieben
+
+    /// Verschiebt alle Cues einer Untertiteldatei um `seconds` und liest den
+    /// Eintrag neu. Eigener Schreibweg neben `save`, weil sich dabei kein
+    /// Feld des Puffers ändert: Stempelprüfung, Papierkorb-Sicherung und der
+    /// atomare Austausch liegen im Core (`SubtitleFile.shift`).
+    @discardableResult
+    func shiftSubtitle(entry: FileEntry, seconds: Double) async -> Bool {
+        guard entry.kind == .sidecar, !entry.isSaving, !entry.isDirty else { return false }
+        let url = entry.url
+        let stamp = entry.diskStamp
+        let milliseconds = Int((seconds * 1000).rounded())
+        guard milliseconds != 0 else { return false }
+        entry.isSaving = true
+        defer { entry.finishSaving() }
+        do {
+            let (loaded, newStamp) = try await Task.detached(priority: .userInitiated) {
+                try FileStamp.requireUnchanged(stamp, at: url)
+                try TrashBackup.shared.backUp(url)
+                try SubtitleFile.shift(url: url, milliseconds: milliseconds, expecting: stamp)
+                return try Self.readStamped(url: url, kind: .sidecar)
+            }.value
+            entry.acceptNew(loaded, stamp: newStamp)
+            return true
+        } catch {
+            entry.lastError = error.localizedDescription
+            return false
+        }
+    }
+
     // MARK: - Export/Import (JSON)
 
     /// Exportiert die Tags der Einträge als selbständige JSON-Datei.
@@ -1081,7 +1192,7 @@ final class AppModel {
     /// entstünde ein Archiv, das weniger Dateien enthält als versprochen.
     func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
         let files = exportEntries
-            .filter { MediaFormats.isArchivable($0.kind) }
+            .filter { MediaFormats.isArchivable(url: $0.url) }
             .map(\.url)
         guard !files.isEmpty else {
             alertMessage = String(localized:
@@ -1432,6 +1543,9 @@ final class AppModel {
         if case .document(let fields, let original) = snapshot {
             try DocumentTool.requireWritable(fields, original: original, url: url)
         }
+        if case .sidecar(let fields, let original) = snapshot {
+            try SidecarTool.requireWritable(fields, original: original, url: url)
+        }
         // Bilder: Kamera-RAW, Formate ohne exiftool-Schreibweg, eine schon
         // vorhandene Sidecar und die Einstellung lenken die Änderung in die
         // XMP-Sidecar `<name>.xmp`. Gesichert wird dann DIESE Datei; eine
@@ -1458,6 +1572,8 @@ final class AppModel {
         case (.document, .document(let fields, let original)):
             try DocumentTool.write(url: url, fields: fields, original: original,
                                    expecting: stamp)
+        case (.sidecar, .sidecar(let fields, let original)):
+            try SidecarTool.write(url: url, fields: fields, original: original, expecting: stamp)
         default:
             throw TagError.saveFailed(path: url.path)
         }

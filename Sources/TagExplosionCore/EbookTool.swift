@@ -327,7 +327,9 @@ public enum EbookTool {
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
             case .propertiesRejected, .toolNotFound, .toolFailed,
                  .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
-                 .unsupportedDocumentField, .invalidDocumentValue: throw error
+                 .unsupportedDocumentField, .invalidDocumentValue,
+                 .invalidSubtitleShift: throw error
+            case .urlOnlyNFO: throw TagError.urlOnlyNFO(path: url.path)
             }
         }
     }

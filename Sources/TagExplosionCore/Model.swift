@@ -172,6 +172,12 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Ein Wert, den das Zielformat so nicht ablegen kann (z.B. ein Datum
     /// außerhalb von ISO 8601 oder ein Trennzeichen im Autorennamen).
     case invalidDocumentValue(field: String, reason: String)
+    /// Eine Kodi-NFO, die nur Scraper-URLs enthält (kein XML): Sie wird
+    /// angezeigt, aber nie beschrieben.
+    case urlOnlyNFO(path: String)
+    /// Eine Zeitverschiebung, die Cues vor 00:00:00 legen würde, oder eine
+    /// Untertiteldatei ohne Cues.
+    case invalidSubtitleShift(reason: String)
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -208,6 +214,10 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "This document format cannot store the field: \(name)"
         case .invalidDocumentValue(let field, let reason):
             return "Invalid value for \(field): \(reason)"
+        case .urlOnlyNFO(let path):
+            return "This NFO contains only URLs and cannot be edited: \(path)"
+        case .invalidSubtitleShift(let reason):
+            return "Cannot shift subtitles: \(reason)"
         }
     }
 }

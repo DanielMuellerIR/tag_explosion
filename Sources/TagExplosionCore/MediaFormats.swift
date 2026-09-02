@@ -128,6 +128,15 @@ public enum MediaFormats {
     /// externe Programme (siehe DocumentTool).
     public static let document: Set<String> = DocumentTool.extensions
 
+    /// Video-Sidecars: Kodi-/Jellyfin-NFO (`nfo`) und Untertitel (`srt`,
+    /// `vtt`). Eine `.nfo` zählt nur, wenn ihr Inhalt eine NFO ist (XML mit
+    /// bekannter Wurzel oder Nur-URL) — Szene-Textdateien heißen auch so.
+    public static let sidecar: Set<String> = SidecarTool.extensions
+
+    /// Video-Endungen, neben denen `<name>.nfo` als Sidecar gilt. `mp4`
+    /// steht in `audio` (TagLib-Weg), gehört hier aber dazu.
+    public static let nfoVideo: Set<String> = video.union(["mp4"])
+
     /// Grobe Medienart — bestimmt Lese-/Schreibweg. Video läuft über den
     /// TagLib-Weg wie Audio (PropertyMap).
     public enum Kind: String, Sendable, Codable {
@@ -138,14 +147,27 @@ public enum MediaFormats {
         case invoice
         /// Office, OpenDocument, Comic-Archiv, Markdown (DocumentTool).
         case document
+        /// Video-Sidecars: NFO (editierbar) und Untertitel (SidecarTool).
+        case sidecar
     }
 
     /// Kann diese Medienart in ein Tag-Archiv (Export/Import)? E-Rechnungen
     /// sind reine Anzeige — es gibt keine editierbaren Tags zu sichern.
     /// Die Regel liegt zentral, damit App und CLI gleich filtern und ihre
     /// Erfolgsmeldungen dieselben Dateien zählen wie das Archiv selbst.
+    /// Sidecars: nur NFO-Felder; Untertitel und Nur-URL-NFOs bleiben
+    /// draußen — dafür gibt es `isArchivable(url:)`.
     public static func isArchivable(_ kind: Kind) -> Bool {
         kind != .invoice
+    }
+
+    /// Dateibezogene Variante: entscheidet bei Sidecars nach Endung und
+    /// Inhalt (Untertitel und Nur-URL-NFOs tragen keine archivierbaren Felder).
+    public static func isArchivable(url: URL) -> Bool {
+        guard let kind = kind(of: url) else { return false }
+        guard kind == .sidecar else { return isArchivable(kind) }
+        guard SidecarTool.isNFO(url) else { return false }
+        return (try? KodiNFOFile.read(url: url).isURLOnly) == false
     }
 
     public static func kind(of url: URL) -> Kind? {
@@ -155,9 +177,35 @@ public enum MediaFormats {
         if ebook.contains(ext) { return .ebook }
         if video.contains(ext) { return .audio }
         if document.contains(ext) { return .document }
+        if sidecar.contains(ext) {
+            // `.nfo` nur mit passendem Inhalt (siehe `sidecar`).
+            if ext == SidecarTool.nfoExtension { return KodiNFOFile.sniff(url: url) ? .sidecar : nil }
+            return .sidecar
+        }
         // XML nur annehmen, wenn der Inhalt tatsächlich eine E-Rechnung ist —
         // sonst zöge ein Ordner-Drop beliebige Fremd-XMLs in die Liste.
         if invoice.contains(ext), isInvoiceXML(url) { return .invoice }
+        return nil
+    }
+
+    /// Pfad der NFO-Sidecar zu einer Videodatei (`film.mkv` → `film.nfo`);
+    /// nil, wenn die Datei kein Video ist oder keine NFO daneben liegt.
+    public static func nfoURL(forVideo url: URL) -> URL? {
+        guard nfoVideo.contains(url.pathExtension.lowercased()) else { return nil }
+        let candidate = url.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension)
+        return FileManager.default.fileExists(atPath: candidate.path) ? candidate : nil
+    }
+
+    /// Das Video zu einer NFO (`film.nfo` → `film.mkv`, erste gefundene
+    /// Video-Endung); nil, wenn keines daneben liegt. `tvshow.nfo` hat
+    /// bauartbedingt keines.
+    public static func videoURL(forNFO url: URL) -> URL? {
+        guard SidecarTool.isNFO(url) else { return nil }
+        let stem = url.deletingPathExtension()
+        for ext in nfoVideo.sorted() {
+            let candidate = stem.appendingPathExtension(ext)
+            if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
+        }
         return nil
     }
 
@@ -218,11 +266,25 @@ public enum MediaFormats {
     /// Sidecar wird über ihr Bild angezeigt und bearbeitet; als zweiter
     /// Eintrag könnte sie mit dem Bild-Editor um dieselbe Datei konkurrieren.
     /// Eine `.xmp` ohne Bild daneben bleibt als eigener Eintrag erhalten.
+    /// Gleiche Regel für `.nfo` neben einem gelisteten Video: Der
+    /// Video-Editor zeigt den NFO-Abschnitt. Untertitel bleiben eigene
+    /// Einträge (sie teilen sich meist nicht einmal den Namen: `film.de.srt`).
     static func hidingSidecars(of files: [URL]) -> [URL] {
         var sidecarOwners: Set<URL> = []
-        for file in files where !isXMPSidecar(file) && image.contains(file.pathExtension.lowercased()) {
-            sidecarOwners.insert(sidecarURL(for: file))
+        var nfoOwners: Set<URL> = []
+        for file in files {
+            let ext = file.pathExtension.lowercased()
+            if !isXMPSidecar(file), image.contains(ext) {
+                sidecarOwners.insert(sidecarURL(for: file))
+            }
+            if nfoVideo.contains(ext) {
+                nfoOwners.insert(file.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension))
+            }
         }
-        return files.filter { !isXMPSidecar($0) || !sidecarOwners.contains($0) }
+        return files.filter {
+            if isXMPSidecar($0) { return !sidecarOwners.contains($0) }
+            if SidecarTool.isNFO($0) { return !nfoOwners.contains($0) }
+            return true
+        }
     }
 }
