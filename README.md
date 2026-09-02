@@ -198,6 +198,17 @@ again, so it only takes up the space that actually changes. Safe mode is on by
 default while the app is young; turn it off under ⌘, or with `--no-backup` /
 `TAGX_NO_BACKUP=1` in the CLI.
 
+**Every trash backup is remembered, so you can undo.** Each copy is recorded
+in a small journal (`~/Library/Application Support/TagExplosion/backup-journal.json`:
+original path, trash path, time, size, SHA-256, trigger). The editor's
+"Versions …" button lists the backups of the open file, shows which fields
+differ from the current state, and restores a chosen version; "File → Undo
+Last Change" (⌘⇧Z) restores the newest one. Restoring is a normal write: the
+current state goes to the trash first, so an undo can itself be undone. The
+CLI does the same with `tagx history list|diff|restore|prune`. Emptying the
+trash ends the history — the journal only indexes copies that still exist,
+and nothing is ever deleted from the trash by the app.
+
 **Changes made by other programs are not overwritten silently.** If a file
 changed on disk after you opened it, saving stops and asks. Choosing "Save
 anyway" is safe as well: the state currently on disk is what safe mode copies to
@@ -307,6 +318,8 @@ tagx subtitle show movie.en.srt --json         # cues, span, encoding, language
 tagx subtitle shift movie.srt --seconds=-1.5   # shift all cues (negative: use "=")
 tagx check Music/ --json                       # consistency report per album/folder (covers, track gaps, empty fields …)
 tagx check Album/ --fail-on warning            # exit 4 on warnings; --only track-gap,missing-cover; -p '%{track:2} - %{title}'
+tagx history list song.mp3                     # trash backups of this file (undo history), newest first
+tagx history restore song.mp3 --version 1 --apply   # bring back the newest backup (dry run without --apply)
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report

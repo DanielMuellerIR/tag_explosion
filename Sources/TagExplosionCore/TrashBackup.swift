@@ -10,7 +10,8 @@
 // ("Tag Explosion Backup <Zeitstempel>"), in den alle Sicherungen dieser
 // Sitzung hineinlaufen. Die Kopie entsteht immer auf demselben Datenträger wie
 // das Original — auf APFS als Klon, der zunächst keinen zusätzlichen Platz
-// belegt.
+// belegt. Jede Kopie wird zusätzlich im `BackupJournal` verzeichnet; daraus
+// entsteht die Undo-Historie (`BackupHistory`).
 import Foundation
 #if canImport(Darwin)
 import Darwin
@@ -19,12 +20,21 @@ import Darwin
 public final class TrashBackup: @unchecked Sendable {
 
     /// Gemeinsame Instanz — App, CLI und Core-Schreibwege teilen sich einen
-    /// Sicherungsordner pro Sitzung.
-    public static let shared = TrashBackup()
+    /// Sicherungsordner pro Sitzung. Nur sie schreibt ins Standard-Journal
+    /// (`BackupJournal.standard`), aus dem die Undo-Historie gespeist wird.
+    public static let shared = TrashBackup(journal: .standard)
 
     /// Eigene Instanz mit eigenem Sicherungsordner. Tests benutzen sie, damit
-    /// sie den gemeinsamen Zustand nicht anfassen müssen.
-    public init() {}
+    /// sie den gemeinsamen Zustand nicht anfassen müssen. Ohne `journal`
+    /// werden die Sicherungen nirgends verzeichnet (kein Eintrag im Journal
+    /// des Benutzers durch Testläufe).
+    public init(journal: BackupJournal? = nil) {
+        self.journal = journal
+    }
+
+    /// Journal, in dem jede Sicherung verzeichnet wird (siehe `BackupJournal`).
+    /// nil = keine Historie, nur die Kopie im Papierkorb.
+    public let journal: BackupJournal?
 
     private let lock = NSLock()
     /// Serialisiert komplette Sicherungsvorgänge: Zwei parallele `backUp`-
@@ -86,12 +96,15 @@ public final class TrashBackup: @unchecked Sendable {
     /// Eine Datei wird höchstens einmal je Stand gesichert: Ändert sich nach
     /// der Sicherung nichts an Größe und Änderungszeit, ist die vorhandene
     /// Kopie bereits byte-gleich.
-    public func backUp(_ urls: [URL]) throws {
+    ///
+    /// `reason` benennt den Auslöser fürs Journal (Tag-Save, Cover, Import …,
+    /// siehe `BackupReason`); die Historie zeigt ihn dem Nutzer an.
+    public func backUp(_ urls: [URL], reason: String = BackupReason.save) throws {
         guard isEnabled else { return }
         #if os(macOS)
         // Ein Sicherungsvorgang nach dem anderen — siehe `operationLock`.
         try operationLock.withLock {
-            try serializedBackUp(urls)
+            try serializedBackUp(urls, reason: reason)
         }
         #else
         // Ohne Papierkorb (Linux) schützt nur der atomare Schreibweg. Das ist
@@ -102,13 +115,13 @@ public final class TrashBackup: @unchecked Sendable {
     }
 
     /// Bequemer Einzelaufruf für die Schreibwege.
-    public func backUp(_ url: URL) throws {
-        try backUp([url])
+    public func backUp(_ url: URL, reason: String = BackupReason.save) throws {
+        try backUp([url], reason: reason)
     }
 
     #if os(macOS)
     /// Eigentlicher Sicherungsvorgang; läuft immer unter `operationLock`.
-    private func serializedBackUp(_ urls: [URL]) throws {
+    private func serializedBackUp(_ urls: [URL], reason: String) throws {
         let fileManager = FileManager.default
         var pending: [(url: URL, state: FileStamp)] = []
         var seen: Set<String> = []
@@ -149,6 +162,12 @@ public final class TrashBackup: @unchecked Sendable {
                     savedStates[url.path] = SavedState(stamp: state, backupCopy: target)
                     bytesWritten += state.size
                 }
+                // Journal-Eintrag für die Undo-Historie. Bewusst NICHT
+                // fehlerhart: Die Kopie liegt sicher im Papierkorb, ein
+                // unschreibbares Journal darf das Speichern nicht verhindern —
+                // die Datei bleibt dann nur aus der Versionsliste draußen.
+                try? journal?.record(original: url, backup: target,
+                                     size: state.size, reason: reason)
             } catch let error as TagError {
                 throw error
             } catch {

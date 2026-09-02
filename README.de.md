@@ -205,6 +205,19 @@ Auch hier ist die Kopie auf APFS ein Klon und belegt nur das, was sich
 tatsächlich ändert. Der Modus ist standardmäßig an, solange die App jung ist;
 abschalten unter ⌘, oder in der CLI mit `--no-backup` bzw. `TAGX_NO_BACKUP=1`.
 
+**Jede Papierkorb-Sicherung wird verzeichnet — deshalb gibt es ein Undo.**
+Jede Kopie landet in einem kleinen Journal (`~/Library/Application
+Support/TagExplosion/backup-journal.json`: Originalpfad, Pfad im Papierkorb,
+Zeit, Größe, SHA-256, Auslöser). Der Knopf „Versionen …“ im Editor listet die
+Sicherungen der geöffneten Datei, zeigt je Version, welche Felder sich vom
+jetzigen Stand unterscheiden, und stellt eine gewählte Version wieder her;
+„Ablage → Letzte Änderung rückgängig“ (⌘⇧Z) holt die jüngste zurück.
+Wiederherstellen ist ein normaler Schreibweg: Der jetzige Stand wandert
+vorher in den Papierkorb, ein Undo lässt sich also selbst rückgängig machen.
+In der CLI: `tagx history list|diff|restore|prune`. Mit dem Leeren des
+Papierkorbs endet die Historie — das Journal verzeichnet nur Kopien, die noch
+existieren, und die App löscht nie etwas aus dem Papierkorb.
+
 **Fremde Änderungen werden nicht stillschweigend überschrieben.** Hat sich eine
 Datei nach dem Öffnen auf der Platte geändert, hält das Speichern an und fragt
 nach. Auch „Trotzdem speichern" bleibt sicher: Der Stand, der gerade auf der
@@ -318,6 +331,8 @@ tagx subtitle show film.de.srt --json          # Cues, Zeitspanne, Zeichensatz, 
 tagx subtitle shift film.srt --seconds=-1.5    # alle Cues verschieben (negativ: mit "=")
 tagx check Musik/ --json                       # Konsistenzbericht je Album/Ordner (Cover, Track-Lücken, leere Felder …)
 tagx check Album/ --fail-on warning            # Exit 4 bei Warnungen; --only track-gap,missing-cover; -p '%{track:2} - %{title}'
+tagx history list song.mp3                     # Papierkorb-Sicherungen dieser Datei (Undo-Historie), jüngste zuerst
+tagx history restore song.mp3 --version 1 --apply   # jüngste Sicherung zurückholen (ohne --apply nur Vorschau)
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht

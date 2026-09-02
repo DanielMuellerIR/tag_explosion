@@ -69,8 +69,19 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   und `tagx cover set` prüft die Magic Bytes mit `Artwork.sniffMimeType`, bevor
   die Papierkorb-Sicherung beginnt.
 
+- **Jede Sicherung wird im Journal verzeichnet.** `TrashBackup.shared`
+  schreibt nach dem Klonen einen Eintrag in `BackupJournal.standard`
+  (Originalpfad, Pfad im Papierkorb, Zeit, Größe, SHA-256, Auslöser); daraus
+  speist sich die Undo-Historie (`BackupHistory`, `tagx history`, Knopf
+  „Versionen …“). Das Journal ist nur ein Index — verfallene Einträge ohne
+  Kopie werden ausgefiltert, und nichts löscht je aus dem Papierkorb. Ein
+  Restore ist selbst ein Schreibweg (Sicherung des jetzigen Stands mit
+  Auslöser `restore`, dann `AtomicFileRewrite`). Details und Fallen:
+  [undo-historie-journal.md](undo-historie-journal.md).
+
 ## Wenn ein neuer Schreibweg entsteht
 
-Vor der ersten Mutation `TrashBackup.shared.backUp(url)` aufrufen und die
+Vor der ersten Mutation `TrashBackup.shared.backUp(url, reason:)` aufrufen
+(Auslöser aus `BackupReason`, damit die Historie ihn anzeigen kann) und die
 Änderung über `AtomicFileRewrite.run` führen. Die Sicherung ist bewusst
 fehlerhart: Schlägt sie fehl, wird nicht geschrieben.

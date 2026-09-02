@@ -182,6 +182,16 @@ struct EditingCommands: Commands {
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(model.map { !$0.selectionIsDirty || $0.isDestructiveActionLocked } ?? true)
+
+            // Jüngste Papierkorb-Sicherung der ausgewählten Datei zurückspielen
+            // (Undo-Historie, siehe AppModel+VersionHistory).
+            Button("Letzte Änderung rückgängig") {
+                guard let model else { return }
+                Task { await model.undoLastChangeOfSelection() }
+            }
+            .keyboardShortcut("z", modifiers: [.command, .shift])
+            .disabled(model.map { $0.selectedEntry == nil || $0.selectionIsSaving
+                                 || $0.isDestructiveActionLocked } ?? true)
         }
     }
 }

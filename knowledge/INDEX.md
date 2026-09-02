@@ -82,3 +82,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Gesamtzahl aus „n/total" oder TRACKTOTAL, Disc-Regeln nur mit DISCNUMBER,
   `covers == nil` vs. leer, Dubletten nur mit bekannter Dauer, `--only` als
   Einzelwert, Sheet hängt am ContentView statt am Batch-Editor.
+- [undo-historie-journal.md](undo-historie-journal.md) — Bei `BackupJournal`,
+  `BackupHistory`, `tagx history` oder dem Versionen-Blatt: warum die
+  Papierkorb-Kopien ein Journal brauchen, Journal-Regeln (nur `shared`
+  schreibt, Verfall, `flock`, Bruchteil-Sekunden, Prüfsummen-Limit), Restore
+  als normaler Schreibweg, XMP-Sidecar-Fall, Grenzen nach Umbenennen.
