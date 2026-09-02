@@ -138,7 +138,8 @@ extension AppModel {
                 continue
             }
             relocateEntry(from: URL(fileURLWithPath: outcome.source),
-                          to: URL(fileURLWithPath: outcome.target))
+                          to: URL(fileURLWithPath: outcome.target),
+                          sidecar: outcome.sidecarTarget.map { URL(fileURLWithPath: $0) })
         }
         if !failures.isEmpty {
             alertMessage = String(localized: "Nicht alle Dateien konnten umbenannt werden:") + "\n"
@@ -151,13 +152,15 @@ extension AppModel {
     /// Die Fenster-Registry (`WindowSessions`) kennt nur Modelle, keine
     /// Pfade; Fenstertitel und `representedURL` leiten sich aus dem Eintrag
     /// ab und folgen damit automatisch.
-    func relocateEntry(from oldURL: URL, to newURL: URL) {
+    /// `sidecar`: neuer Pfad der mit umbenannten XMP-Sidecar, damit der
+    /// Eintrag seine Sidecar weiter unter dem richtigen Namen kennt.
+    func relocateEntry(from oldURL: URL, to newURL: URL, sidecar: URL? = nil) {
         let canonicalOld = MediaFormats.canonicalFileURL(oldURL)
         guard let index = entries.firstIndex(where: {
             MediaFormats.canonicalFileURL($0.url) == canonicalOld
         }) else { return }
         let old = entries[index]
-        guard let moved = FileEntry(relocating: old, to: newURL) else { return }
+        guard let moved = FileEntry(relocating: old, to: newURL, sidecar: sidecar) else { return }
         entries[index] = moved
         if selection.remove(old.url) != nil {
             selection.insert(moved.url)

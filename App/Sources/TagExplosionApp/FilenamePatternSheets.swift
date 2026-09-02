@@ -165,9 +165,18 @@ struct RenameFromTagsSheet: View {
                 Text(row.oldName).lineLimit(1)
             }
             TableColumn("Neu") { row in
-                Text(row.item.target.isEmpty ? "—" : row.item.target)
-                    .lineLimit(1)
-                    .foregroundStyle(row.item.status == .unchanged ? .secondary : .primary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(row.item.target.isEmpty ? "—" : row.item.target)
+                        .lineLimit(1)
+                        .foregroundStyle(row.item.status == .unchanged ? .secondary : .primary)
+                    // Die XMP-Sidecar eines Bildes wandert im selben Zug mit.
+                    if let sidecar = row.item.sidecarTarget {
+                        Text("+ Sidecar \(sidecar)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
             TableColumn("Status") { row in
                 switch row.item.status {
