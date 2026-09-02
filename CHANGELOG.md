@@ -8,6 +8,27 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.30.0] — 2026-09-02
+
+### Hinzugefügt
+
+- E-Rechnungen: Order-X-Bestellungen (BASIC/COMFORT/EXTENDED, auch als
+  `order-x.xml` im PDF) sowie Peppol UBL Order und OrderResponse werden
+  erkannt; ihre Felder tragen Order-X-Bezeichnungen ohne BT-Nummern, weil
+  die Order-X-Nummerierung nicht verlässlich belegt werden konnte.
+- Dokumentart (Rechnung, Gutschrift, Bestellung, Bestellantwort) als eigenes
+  Feld in Ansicht und `tagx invoice --json` (`documentKind`); CII mit
+  Typcode 381 gilt als Gutschrift.
+- Grundvalidierung mit Hinweisen: fehlende Pflichtfelder nach EN 16931
+  (XRechnung: auch Leitweg-ID) und Summenrechnung BT-106 … BT-115 mit
+  Toleranz 0,01, Regelcodes der Norm (BR-…, BR-CO-…, BR-DE-15). Abschnitt
+  „Hinweise“ in der Rechnungsansicht, `WARNINGS` in `tagx invoice`;
+  `--strict` liefert Exit 3. Keine Schematron-Prüfung.
+
+### Geändert
+
+- `tagx invoice --terms-only` behält auch beschriftete Order-X-Felder.
+
 ## [0.29.0] — 2026-09-02
 
 ### Hinzugefügt

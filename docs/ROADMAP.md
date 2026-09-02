@@ -38,7 +38,7 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 | AP7 | **Feste Felder mit Prüfung:** Lyrics (USLT) mit Sprache und synchronisierte Lyrics (SYLT / LRC-Sidecar), ReplayGain und R128-Lautheit (Wertebereich prüfen), Podcast-Felder (Episode, Season, Podcast-URL, GUID) für MP4 und ID3. | mittel | 🔧 |
 | AP8 | **Playlists und Cue-Sheets:** `.cue` anzeigen und bearbeiten (Titel, Interpret, Index); `.m3u`/`.m3u8`/`.pls`/`.xspf` anzeigen und aus einer Auswahl exportieren. | mittel | 🔧 |
 | AP9 | **Video-Sidecars:** Kodi/Jellyfin `.nfo` (XML) anzeigen und bearbeiten; `.srt`/`.vtt` mit Sprache und Titel anzeigen. | klein | 🔧 |
-| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | 🔧 |
+| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | ✅ 0.30.0 |
 
 ## Welle 3 — Werkzeuge rund um die Bibliothek
 
