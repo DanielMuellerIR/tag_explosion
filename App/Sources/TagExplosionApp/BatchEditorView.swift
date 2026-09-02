@@ -51,7 +51,20 @@ struct BatchEditorView: View {
     private var batchCoverWell: some View {
         let firstData = entries.first?.artworks.first?.data
         let allSame = entries.allSatisfy { $0.artworks.first?.data == firstData }
-        return ZStack {
+        return VStack(spacing: 6) {
+            batchCoverImage(firstData: firstData, allSame: allSame)
+            // Cover-Werkzeuge für alle Dateien (CoverToolsMenu.swift).
+            HStack(alignment: .top, spacing: 4) {
+                if allSame, let cover = entries.first?.artworks.first {
+                    CoverInfoLine(artwork: cover)
+                }
+                CoverToolsButton(entries: entries)
+            }
+        }
+    }
+
+    private func batchCoverImage(firstData: Data?, allSame: Bool) -> some View {
+        ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .fill(.quaternary.opacity(0.5))
             if allSame, let firstData, let image = NSImage(data: firstData) {
@@ -83,6 +96,8 @@ struct BatchEditorView: View {
             Button("Cover überall entfernen", role: .destructive) {
                 for entry in entries { entry.artworks = [] }
             }
+            Divider()
+            CoverToolsMenuItems(entries: entries)
         }
     }
 

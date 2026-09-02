@@ -259,8 +259,10 @@ struct Set: ParsableCommand {
 
 struct Cover: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Export, set, or remove cover art.",
-        subcommands: [Export.self, CoverSet.self, Remove.self]
+        abstract: "Export, set, remove, analyze, convert cover art; folder covers.",
+        subcommands: [Export.self, CoverSet.self, Remove.self,
+                      // Cover-Werkzeuge (AP12), Code in CoverToolCommands.swift
+                      CoverInfo.self, CoverConvert.self, CoverFromFolder.self, CoverToFolder.self]
     )
 
     struct Export: ParsableCommand {

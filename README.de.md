@@ -27,6 +27,11 @@
 - **Audio** — alle Tag-Felder inklusive Custom-Keys, Coverbilder und
   Batch-Bearbeitung: gemeinsame Felder, Tracks nummerieren, Titel aus
   Dateinamen, ein Cover für alle Dateien.
+  Cover-Werkzeuge: Maße, Format und Prüfhinweise unter dem Cover (zu klein,
+  zu groß, nicht quadratisch, progressives JPEG, CMYK); verkleinern auf
+  500/1000/1500 px, nach JPEG wandeln, Bild-Metadaten entfernen,
+  `folder.jpg`/`cover.jpg`/`front.jpg` aus dem Ordner übernehmen oder das
+  Cover als `folder.jpg` exportieren — für eine Datei oder die ganze Auswahl.
 - **Bilder** — EXIF/IPTC/XMP nach MWG harmonisiert (Titel, Beschreibung,
   Schlagwörter, Ersteller, Copyright, Datum, Bewertung, GPS), dazu eine
   vollständige Ansicht aller rohen Metadaten-Gruppen.
@@ -244,6 +249,10 @@ tagx show --json song.mp3                      # alle Tags als JSON
 tagx set song.mp3 -t ARTIST="Miles Davis"      # Felder setzen
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
+tagx cover info --json *.mp3                   # Cover-Maße/Format/Farbe plus Prüfungen (zu klein, nicht quadratisch, CMYK …)
+tagx cover convert --max-size 1000 --jpeg 0.85 *.flac   # eingebettetes Cover verkleinern und neu kodieren (--png, --strip-metadata)
+tagx cover from-folder Album/*.mp3             # folder.jpg/cover.jpg/front.jpg (oder .png) aus dem Ordner einbetten
+tagx cover to-folder song.mp3                  # eingebettetes Cover als folder.jpg schreiben (--force ersetzt)
 tagx chapters show buch.m4b --json             # Kapitel als JSON (Zeiten in ms)
 tagx chapters set buch.m4b --from kapitel.txt  # Kapitel ersetzen (JSON oder Zeilen "HH:MM:SS.mmm Titel")
 tagx chapters clear buch.m4b                   # alle Kapitel entfernen

@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "de",
   "strings": {
+    "%@ existiert bereits in diesem Ordner.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ already exists in this folder."
+          }
+        }
+      }
+    },
     "%@ wurde seit dem Öffnen von einem anderen Programm geändert. Speichern überschreibt diese Änderung. Der jetzige Stand der Datei wird vorher in den Papierkorb kopiert, sofern der abgesicherte Modus aktiv ist.": {
       "localizations": {
         "en": {
@@ -27,6 +37,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld images selected"
+          }
+        }
+      }
+    },
+    "%lld Datei(en) übersprungen (kein Cover bzw. kein Ordner-Cover gefunden).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld file(s) skipped (no cover or no folder cover found)."
           }
         }
       }
@@ -137,6 +157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld with unsaved changes"
+          }
+        }
+      }
+    },
+    "%lld px": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld px"
           }
         }
       }
@@ -327,6 +357,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save All"
+          }
+        }
+      }
+    },
+    "Als %@ exportieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export as %@"
           }
         }
       }
@@ -561,6 +601,16 @@
         }
       }
     },
+    "Bild-Metadaten entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strip image metadata"
+          }
+        }
+      }
+    },
     "Bild-Metadaten in XMP-Sidecar schreiben statt in die Bilddatei": {
       "localizations": {
         "en": {
@@ -601,6 +651,16 @@
         }
       }
     },
+    "Bildformat nicht lesbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image format not readable"
+          }
+        }
+      }
+    },
     "Bisher": {
       "localizations": {
         "en": {
@@ -627,6 +687,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disc"
+          }
+        }
+      }
+    },
+    "CMYK (viele Player können das nicht)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CMYK (many players cannot decode it)"
           }
         }
       }
@@ -681,12 +751,32 @@
         }
       }
     },
+    "Cover verkleinern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shrink cover"
+          }
+        }
+      }
+    },
     "Cover überall entfernen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Remove Cover Everywhere"
+          }
+        }
+      }
+    },
+    "Cover-Werkzeuge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover tools"
           }
         }
       }
@@ -737,6 +827,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The pattern must not contain a folder (no /)."
+          }
+        }
+      }
+    },
+    "Das eingebettete Cover neben die Datei schreiben; vorhandene Datei nur nach Rückfrage ersetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the embedded cover next to the file; an existing file is replaced only after confirmation"
           }
         }
       }
@@ -907,6 +1007,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The values read go into the fields; nothing is written until you save."
+          }
+        }
+      }
+    },
+    "Die vorhandene Datei wird vorher in den Papierkorb kopiert, sofern der abgesicherte Modus aktiv ist.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The existing file is copied to the trash first, as long as safe mode is on."
           }
         }
       }
@@ -1177,6 +1287,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remove…"
+          }
+        }
+      }
+    },
+    "Ersetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace"
           }
         }
       }
@@ -2021,6 +2141,16 @@
         }
       }
     },
+    "Nach JPEG wandeln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convert to JPEG"
+          }
+        }
+      }
+    },
     "Nach Updates suchen …": {
       "localizations": {
         "en": {
@@ -2177,6 +2307,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML front matter"
+          }
+        }
+      }
+    },
+    "Ordner-Cover übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use folder cover"
           }
         }
       }
@@ -2791,6 +2931,16 @@
         }
       }
     },
+    "Verkleinern auf …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shrink to …"
+          }
+        }
+      }
+    },
     "Verlag": {
       "localizations": {
         "en": {
@@ -3101,6 +3251,16 @@
         }
       }
     },
+    "folder.jpg, cover.jpg oder front.jpg (auch .png) neben der Datei als Cover setzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use folder.jpg, cover.jpg, or front.jpg (also .png) next to the file as the cover"
+          }
+        }
+      }
+    },
     "füllt mit Nullen auf.": {
       "localizations": {
         "en": {
@@ -3131,12 +3291,32 @@
         }
       }
     },
+    "nicht quadratisch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not square"
+          }
+        }
+      }
+    },
     "oder jeder Tag-Schlüssel": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "or any tag key"
+          }
+        }
+      }
+    },
+    "progressives JPEG (manche Player zeigen es nicht)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "progressive JPEG (some players cannot show it)"
           }
         }
       }
@@ -3197,6 +3377,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "e.g. en"
+          }
+        }
+      }
+    },
+    "zu groß (über %lld px)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "too large (over %lld px)"
+          }
+        }
+      }
+    },
+    "zu groß (über 2 MiB)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "too large (over 2 MiB)"
+          }
+        }
+      }
+    },
+    "zu klein (unter %lld px)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "too small (under %lld px)"
           }
         }
       }
