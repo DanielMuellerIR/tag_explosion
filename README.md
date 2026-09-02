@@ -32,6 +32,15 @@
   convert to JPEG, strip image metadata, use `folder.jpg`/`cover.jpg`/
   `front.jpg` from the folder, or export the cover as `folder.jpg` — for one
   file or the whole selection.
+- **Online lookup** — "Look up online …" in the single and batch editor
+  asks MusicBrainz or Discogs for a release (artist + album, or artist +
+  title for a single file) or identifies a file by audio fingerprint via
+  AcoustID (`fpcalc` from Homebrew `chromaprint`, needs a free client key).
+  Candidates, track assignment (by track number, otherwise duration ±3 s and
+  title similarity) and a per-field preview (old → new, cover preview);
+  "Apply" only fills the editor, saving stays the usual way. Writes the
+  MusicBrainz/Discogs/AcoustID ids too. Nothing is sent unless you enable
+  online services in Settings and confirm the privacy notice — see below.
 - **Images** — EXIF/IPTC/XMP harmonized the MWG way (title, description,
   keywords, creator, copyright, date, rating, GPS), plus a complete read-only
   view of all raw metadata groups.
@@ -250,6 +259,22 @@ truncated, random bytes, a leading dash in the file name) cannot damage
 anything, and that the trash copy really holds the state from before the change.
 These run on every push (see `.github/workflows/tests.yml`).
 
+## Privacy: online services
+
+Tag Explosion never contacts a server on its own — no automatic lookup when a
+file opens, no telemetry, no update check outside Sparkle's own opt-in. The
+online lookup is off by default (Settings → "Allow online services") and
+shows, before the first request, which data goes where: search terms (artist,
+album, title, year, track count) to MusicBrainz and Discogs, the release id to
+the Cover Art Archive for covers, and an audio fingerprint (not the audio) plus
+duration and your client key to AcoustID. Every request carries the user agent
+`TagExplosion/<version>` with the project address, as MusicBrainz requires;
+requests are limited to one per second per service. A Discogs token and the
+AcoustID key are stored in the macOS keychain, not in the preferences; the CLI
+takes them from `TAGX_DISCOGS_TOKEN` and `TAGX_ACOUSTID_KEY` and refuses to
+send anything unless `TAGX_ONLINE=1` is set (`tagx lookup --privacy` prints
+the notice).
+
 ## Supported formats
 
 | Media | File formats | Tag formats |
@@ -340,6 +365,9 @@ tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
 tagx invoice invoice.pdf                       # e-invoice profile, warnings + all fields (BT terms)
 tagx invoice order.xml --strict                # exit 3 if the basic validation reports warnings
+TAGX_ONLINE=1 tagx lookup Album/*.flac         # MusicBrainz candidates + plan (old -> new), dry run
+TAGX_ONLINE=1 tagx lookup --source discogs --choose 2 --apply --cover Album/*.flac   # write candidate 2 incl. cover
+TAGX_ONLINE=1 TAGX_ACOUSTID_KEY=… tagx lookup --source acoustid song.mp3   # identify by fingerprint (fpcalc); exit 5 = no match
 tagx set song.mp3 -t ARTIST="X" --no-backup    # skip the safety copy in the trash
 ```
 

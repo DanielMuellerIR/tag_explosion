@@ -157,6 +157,8 @@ struct BatchEditorView: View {
 
                 // Konsistenzprüfung der Auswahl (nur lesend, Sheet mit Befunden).
                 LibraryCheckButton(entries: entries)
+                // Album bei MusicBrainz/Discogs/AcoustID nachschlagen (nur auf Klick).
+                OnlineLookupButton(entries: entries)
 
                 Spacer()
             }

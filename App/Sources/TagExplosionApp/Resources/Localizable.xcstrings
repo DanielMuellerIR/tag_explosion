@@ -31,6 +31,16 @@
         }
       }
     },
+    "%@ – %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ – %@"
+          }
+        }
+      }
+    },
     "%lld (Bestand)": {
       "localizations": {
         "en": {
@@ -131,12 +141,32 @@
         }
       }
     },
+    "%lld Kandidaten — einen auswählen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld candidates — pick one."
+          }
+        }
+      }
+    },
     "%lld Kanäle": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld channels"
+          }
+        }
+      }
+    },
+    "%lld Titel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tracks"
           }
         }
       }
@@ -347,6 +377,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Absolute paths"
+          }
+        }
+      }
+    },
+    "AcoustID braucht fpcalc (Chromaprint) für den Audio-Fingerabdruck. Jetzt über Homebrew installieren (Formel „chromaprint“)?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AcoustID needs fpcalc (Chromaprint) for the audio fingerprint. Install it via Homebrew now (formula “chromaprint”)?"
+          }
+        }
+      }
+    },
+    "AcoustID braucht fpcalc (Chromaprint), aber weder das Programm noch Homebrew wurden gefunden. Bitte zuerst Homebrew installieren.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AcoustID needs fpcalc (Chromaprint), but neither the program nor Homebrew was found. Please install Homebrew first."
+          }
+        }
+      }
+    },
+    "AcoustID-Client-Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AcoustID client key"
           }
         }
       }
@@ -1041,12 +1101,32 @@
         }
       }
     },
+    "Cover übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use cover"
+          }
+        }
+      }
+    },
     "Cover-Größe oder -Format im Album uneinheitlich": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Cover size or format differs within the album"
+          }
+        }
+      }
+    },
+    "Cover-Vorschau": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover preview"
           }
         }
       }
@@ -1237,6 +1317,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check file names against a pattern"
+          }
+        }
+      }
+    },
+    "Daten an Online-Dienste senden?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send data to online services?"
           }
         }
       }
@@ -1437,6 +1527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disc number greater than the total"
+          }
+        }
+      }
+    },
+    "Discogs-Token (optional)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discogs token (optional)"
           }
         }
       }
@@ -1671,6 +1771,16 @@
         }
       }
     },
+    "Einstellungen öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        }
+      }
+    },
     "Einträge": {
       "localizations": {
         "en": {
@@ -1737,6 +1847,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Episode GUID"
+          }
+        }
+      }
+    },
+    "Erlauben Sie Online-Dienste in den Einstellungen, damit Tag Explosion bei MusicBrainz, Discogs oder AcoustID nachschlagen darf. Ohne diese Einstellung wird nichts gesendet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow online services in Settings so that Tag Explosion may look up releases on MusicBrainz, Discogs or AcoustID. Without this setting nothing is sent."
           }
         }
       }
@@ -1941,6 +2061,16 @@
         }
       }
     },
+    "Fingerabdruck der ersten Datei (fpcalc), Trackliste dann von MusicBrainz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fingerprint of the first file (fpcalc), track list then from MusicBrainz."
+          }
+        }
+      }
+    },
     "Format": {
       "localizations": {
         "en": {
@@ -1957,6 +2087,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "For old players and car radios that cannot read ID3v2.4. Applies when saving MP3, WAV, AIFF and DSF. Limits of v2.3: text is stored as UTF-16 instead of UTF-8, dates lose their seconds and the original date keeps only the year."
+          }
+        }
+      }
+    },
+    "Für die Erkennung per Audio-Fingerabdruck (braucht fpcalc aus Homebrew „chromaprint“).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For identification by audio fingerprint (needs fpcalc from the Homebrew formula “chromaprint”)."
           }
         }
       }
@@ -2351,6 +2491,16 @@
         }
       }
     },
+    "Installiere chromaprint …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installing chromaprint …"
+          }
+        }
+      }
+    },
     "Interpret": {
       "localizations": {
         "en": {
@@ -2461,6 +2611,16 @@
         }
       }
     },
+    "Kandidaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidates"
+          }
+        }
+      }
+    },
     "Kapitel": {
       "localizations": {
         "en": {
@@ -2557,6 +2717,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No cover\nin this format"
+          }
+        }
+      }
+    },
+    "Kein Cover geladen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cover loaded"
           }
         }
       }
@@ -2661,6 +2831,16 @@
         }
       }
     },
+    "Keine Treffer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No results."
+          }
+        }
+      }
+    },
     "Keine Unterschiede in den Metadaten — die Datei entspricht dieser Version.": {
       "localizations": {
         "en": {
@@ -2697,6 +2877,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "No additional fields"
+          }
+        }
+      }
+    },
+    "Keine Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No changes"
+          }
+        }
+      }
+    },
+    "Kennungen schreiben (MusicBrainz, Discogs, AcoustID)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write identifiers (MusicBrainz, Discogs, AcoustID)"
+          }
+        }
+      }
+    },
+    "Key beantragen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request key"
           }
         }
       }
@@ -3411,6 +3621,16 @@
         }
       }
     },
+    "Nur für „Online nachschlagen …\" im Editor — nie automatisch. Vor der ersten Anfrage zeigt die App, welche Daten an welchen Dienst gehen. Ohne diese Einstellung sendet Tag Explosion nichts.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only for “Look up online …” in the editor — never automatically. Before the first request the app shows which data goes to which service. Without this setting Tag Explosion sends nothing."
+          }
+        }
+      }
+    },
     "Nur wenn": {
       "localizations": {
         "en": {
@@ -3451,12 +3671,72 @@
         }
       }
     },
+    "OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
     "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML-Frontmatter": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "OOXML core.xml · ODF meta.xml · ComicInfo.xml · YAML front matter"
+          }
+        }
+      }
+    },
+    "Ohne Token antwortet Discogs langsamer und ohne Bilder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without a token, Discogs answers more slowly and without images."
+          }
+        }
+      }
+    },
+    "Online nachschlagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up online"
+          }
+        }
+      }
+    },
+    "Online nachschlagen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up online …"
+          }
+        }
+      }
+    },
+    "Online-Dienste erlauben (MusicBrainz, Discogs, AcoustID)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow online services (MusicBrainz, Discogs, AcoustID)"
+          }
+        }
+      }
+    },
+    "Online-Dienste sind ausgeschaltet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online services are off"
           }
         }
       }
@@ -3697,6 +3977,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Test"
+          }
+        }
+      }
+    },
+    "Quelle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source"
           }
         }
       }
@@ -3987,6 +4277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Key"
+          }
+        }
+      }
+    },
+    "Schlüsselbund-Fehler: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keychain error: %@"
           }
         }
       }
@@ -4431,6 +4731,16 @@
         }
       }
     },
+    "Tags bei MusicBrainz, Discogs oder AcoustID nachschlagen (nur auf Klick, siehe Einstellungen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up tags on MusicBrainz, Discogs or AcoustID (only on click, see Settings)"
+          }
+        }
+      }
+    },
     "Tags der %lld ausgewählten Dateien exportieren": {
       "localizations": {
         "en": {
@@ -4517,6 +4827,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Title case for title and album"
+          }
+        }
+      }
+    },
+    "Token erstellen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create token"
+          }
+        }
+      }
+    },
+    "Token und Key liegen im Schlüsselbund dieses Macs, nicht in den Voreinstellungen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token and key are stored in this Mac's keychain, not in the preferences."
           }
         }
       }
@@ -4821,6 +5151,16 @@
         }
       }
     },
+    "Verstanden, suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Understood, search"
+          }
+        }
+      }
+    },
     "Verwerfen": {
       "localizations": {
         "en": {
@@ -4937,6 +5277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pattern presets"
+          }
+        }
+      }
+    },
+    "Vorhandene Werte ersetzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace existing values"
           }
         }
       }
@@ -5131,6 +5481,16 @@
         }
       }
     },
+    "Zuordnung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assignment"
+          }
+        }
+      }
+    },
     "Zurücksetzen": {
       "localizations": {
         "en": {
@@ -5227,6 +5587,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use folder.jpg, cover.jpg, or front.jpg (also .png) next to the file as the cover"
+          }
+        }
+      }
+    },
+    "fpcalc fehlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fpcalc is missing"
+          }
+        }
+      }
+    },
+    "fpcalc ist jetzt verfügbar — bitte erneut suchen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fpcalc is now available — please search again."
           }
         }
       }
@@ -5591,6 +5971,16 @@
         }
       }
     },
+    "— kein passender Titel —": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— no matching track —"
+          }
+        }
+      }
+    },
     "— verschieden —": {
       "localizations": {
         "en": {
@@ -5617,6 +6007,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "“filename” (natural sort) or a field such as TRACKNUMBER."
+          }
+        }
+      }
+    },
+    "„Übernehmen“ trägt die Werte in den Editor ein; gespeichert wird danach wie gewohnt (⌘S, mit Papierkorb-Sicherung).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Apply” enters the values into the editor; save afterwards as usual (⌘S, with the safety copy in the trash)."
           }
         }
       }

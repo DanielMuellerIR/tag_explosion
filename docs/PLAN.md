@@ -126,7 +126,11 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   — ✅ umgesetzt (AP3, 2026-09-02): `FilenamePattern`/`FileRenamer` im Core,
   `tagx rename`/`tagx parse`, Dialoge in Einzel- und Batch-Editor. Bewusst
   ohne Ordner-Anteil im Muster (kid3 legt auch Ordner an).
-- Online-Import (MusicBrainz/Discogs)
+- ~~Online-Import (MusicBrainz/Discogs)~~ — ✅ umgesetzt (AP15, 2026-09-02):
+  `OnlineLookupService` im Core (MusicBrainz, Discogs, AcoustID über fpcalc),
+  `tagx lookup`, Sheet „Online nachschlagen …" in Einzel- und Batch-Editor;
+  nur auf Klick, Einstellung „Online-Dienste erlauben" (aus) plus
+  Datenschutzhinweis. Fallen: [knowledge/online-lookup-dienste.md](../knowledge/online-lookup-dienste.md).
 - ~~Groß-/Kleinschreibungs-Werkzeuge~~ — ✅ umgesetzt (AP13, 2026-09-02):
   Batch-Regeln als JSON-Skript (`TagRules.swift` im Core: set, copy,
   replace, case, trim, remove, number mit Filtern), `tagx apply` und der
