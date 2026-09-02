@@ -8,6 +8,28 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.26.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Dateinamen aus Tags und Tags aus Dateinamen mit Mustern im kid3-Stil
+  (`%{track:2} - %{artist} - %{title}`, jeder Tag-Schlüssel, `%{year}`,
+  Nullen-Auffüllung). Die Muster-Engine liegt im Core; das Umbenennen zeigt
+  eine Vorschau und verweigert Konflikte (doppelter Zielname, belegtes Ziel,
+  leerer Name, Groß-/Kleinschreibung auf APFS) als Ganzes.
+- `tagx rename` und `tagx parse`: Probelauf per Voreinstellung, `--apply`,
+  `--json`, Exit-Code 2 bei Konflikt oder nicht passendem Muster. Das
+  Schreiben der Tags läuft über den bestehenden abgesicherten Weg.
+- Menü „Dateiname“ in Einzel- und Batch-Editoren für Audio, Bilder und
+  E-Books mit Musterfeld, zuletzt benutzten Mustern, Vorgaben und
+  Vorschautabelle; die Dateiliste folgt umbenannten Dateien.
+
+### Geändert
+
+- Umbenennen läuft bewusst ohne Papierkorb-Sicherung: Der Inhalt bleibt
+  unverändert, `moveItem` überschreibt nie
+  ([knowledge/dateiname-muster-umbenennen.md](knowledge/dateiname-muster-umbenennen.md)).
+
 ## [0.25.0] — 2026-09-02
 
 ### Hinzugefügt
