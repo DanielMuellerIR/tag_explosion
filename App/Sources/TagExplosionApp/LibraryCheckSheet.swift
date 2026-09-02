@@ -10,7 +10,8 @@ import TagExplosionCore
 extension FileEntry {
     /// Prüf-Item aus dem Bearbeitungspuffer: Geprüft wird, was gerade in den
     /// Feldern steht (wie die Vorschau beim Umbenennen). nil = Medienart wird
-    /// nicht geprüft (Rechnung, Playlist) oder Container ohne Tag-Leser.
+    /// nicht geprüft (Rechnung, Playlist, NFO/Untertitel) oder Container ohne
+    /// Tag-Leser.
     var libraryCheckItem: LibraryCheck.Item? {
         switch kind {
         case .audio:
@@ -30,7 +31,7 @@ extension FileEntry {
                                      hasCover: EbookTool.supportsCover(url: url) ? hasCover : nil)
         case .document:
             return LibraryCheck.Item(url: url, document: documentFields)
-        case .invoice, .playlist:
+        case .invoice, .playlist, .sidecar:
             return nil
         }
     }

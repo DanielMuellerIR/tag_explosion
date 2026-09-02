@@ -187,7 +187,8 @@ public enum LibraryCheck {
         /// Liest eine Datei passend zu ihrer Medienart. Lesefehler landen im
         /// Item (`readError`), damit ein Ordnerlauf nicht an einer kaputten
         /// Datei abbricht. nil = Medienart wird nicht geprüft (Playlists,
-        /// E-Rechnungen, XMP-Sidecars) oder Container ohne Tag-Leser (AVI).
+        /// E-Rechnungen, XMP-Sidecars, NFO/Untertitel) oder Container ohne
+        /// Tag-Leser (AVI).
         public static func load(url: URL) -> Item? {
             guard let kind = MediaFormats.kind(of: url) else { return nil }
             do {
@@ -211,7 +212,8 @@ public enum LibraryCheck {
                 case .document:
                     return Item(url: url, document: try DocumentTool.readSnapshot(
                         url: url, includeCover: false).value.fields)
-                case .invoice, .playlist:
+                case .invoice, .playlist, .sidecar:
+                    // Reine Anzeige- bzw. Begleitformate ohne eigene Prüfregeln.
                     return nil
                 }
             } catch {
@@ -493,7 +495,7 @@ public enum LibraryCheck {
             if let covers = item.covers, covers.isEmpty {
                 findings.append(Finding(code: .missingCover, group: group, message: "", files: [item.url]))
             }
-        case .invoice, .playlist:
+        case .invoice, .playlist, .sidecar:
             break
         }
         return findings
