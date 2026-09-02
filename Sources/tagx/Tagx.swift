@@ -13,7 +13,7 @@ struct Tagx: ParsableCommand {
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Lyrics.self, Layers.self,
                       Info.self, Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self,
                       Import.self, Rename.self, Parse.self, Playlist.self, Cue.self,
-                      Nfo.self, Subtitle.self],
+                      Nfo.self, Subtitle.self, Check.self],
         defaultSubcommand: Show.self
     )
 }

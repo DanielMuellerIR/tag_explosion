@@ -152,6 +152,9 @@ struct BatchEditorView: View {
                 // Auswahl als m3u8/pls/xspf sichern (Pfade relativ zur Playlist).
                 PlaylistExportMenu(entries: entries)
 
+                // Konsistenzprüfung der Auswahl (nur lesend, Sheet mit Befunden).
+                LibraryCheckButton(entries: entries)
+
                 Spacer()
             }
             .padding(8)

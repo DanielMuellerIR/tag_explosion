@@ -76,3 +76,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   App: Header-Parser statt ImageIO für JPEG/PNG, was das Strip-Segment
   behalten muss (ICC, Adobe), Neukodierung nur mit ImageIO (Linux: Fehler),
   Ordner-Cover-Priorität und Groß-/Kleinschreibung, Export nur exklusiv.
+- [konsistenzpruefung.md](konsistenzpruefung.md) — Bei Arbeit an
+  `LibraryCheck`, `ImagePixelSize`, `tagx check` oder dem Prüf-Sheet:
+  Gruppenschlüssel (Album + Album-Interpret normalisiert) und seine Grenze,
+  Gesamtzahl aus „n/total" oder TRACKTOTAL, Disc-Regeln nur mit DISCNUMBER,
+  `covers == nil` vs. leer, Dubletten nur mit bekannter Dauer, `--only` als
+  Einzelwert, Sheet hängt am ContentView statt am Batch-Editor.

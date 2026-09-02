@@ -126,6 +126,19 @@
   video, images (`%{creator}`, `%{date}`) and e-books (`%{author}`,
   `%{series}`), in the editors and as `tagx rename` / `tagx parse` (dry run by
   default, `--apply`, `--json`).
+- **Consistency check** — one report for a folder or selection: missing
+  cover art, cover size/format differing within an album, album artist
+  differing or missing on a compilation, track and disc numbers (missing,
+  gaps, duplicates, no total, above the total), year, genre and album
+  spelling differing within an album, empty title/artist/album, the same
+  title + artist + duration (±2 s) across all files, and optionally file
+  names against a pattern. Files are grouped by album (ALBUM + ALBUMARTIST,
+  spelling ignored) or, without an album tag, by folder; images, e-books and
+  documents are only checked for an empty title (e-books also for a missing
+  cover). Nothing is corrected automatically: the report lists the files,
+  a click selects one, and the text can be copied. In the app ("Check…" in
+  the batch editor, toolbar button for all loaded files) and as `tagx check`
+  (`--json`, `--pattern`, `--only <codes>`, `--fail-on warning|hint` → exit 4).
 - **Copy values between tags** — every text field (single-file and batch) can
   take its value from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
@@ -292,6 +305,8 @@ tagx cue apply album.cue --apply               # write cue titles/performers/tra
 tagx nfo set movie.mkv --title "Title" --year 2019    # writes movie.nfo, not the video
 tagx subtitle show movie.en.srt --json         # cues, span, encoding, language
 tagx subtitle shift movie.srt --seconds=-1.5   # shift all cues (negative: use "=")
+tagx check Music/ --json                       # consistency report per album/folder (covers, track gaps, empty fields …)
+tagx check Album/ --fail-on warning            # exit 4 on warnings; --only track-gap,missing-cover; -p '%{track:2} - %{title}'
 tagx export Album/ -o tags.json                # back up all tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report

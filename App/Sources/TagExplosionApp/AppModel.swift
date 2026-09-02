@@ -721,6 +721,11 @@ final class AppModel {
     var isLoading: Bool { loadingOperationCount > 0 }
     /// Fehlermeldung für Alert-Anzeige.
     var alertMessage: String?
+    /// Einträge, für die das Sheet der Konsistenzprüfung offen ist (nil =
+    /// geschlossen). Liegt im Modell statt in der View, damit ein Klick auf
+    /// eine Datei im Sheet die Auswahl ändern kann, ohne das Sheet zu schließen
+    /// (der Batch-Editor wird bei Auswahlwechsel neu aufgebaut).
+    var libraryCheckTargets: [FileEntry]?
     /// Sichtbarer Save/Discard/Cancel-Zustand für Import, Entfernen, Fenster
     /// und App-Terminierung.
     private(set) var pendingConflict: PendingDirtyConflict?

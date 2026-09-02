@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ · %lld Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %lld files"
+          }
+        }
+      }
+    },
     "%lld (Bestand)": {
       "localizations": {
         "en": {
@@ -67,6 +77,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld files selected"
+          }
+        }
+      }
+    },
+    "%lld Dateien geprüft · %lld Warnungen · %lld Hinweise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld files checked · %lld warnings · %lld hints"
           }
         }
       }
@@ -321,6 +341,16 @@
         }
       }
     },
+    "Album ist leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album is empty"
+          }
+        }
+      }
+    },
     "Album-Gain": {
       "localizations": {
         "en": {
@@ -331,12 +361,32 @@
         }
       }
     },
+    "Album-Interpret im Album uneinheitlich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album artist differs within the album"
+          }
+        }
+      }
+    },
     "Album-Peak": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Album peak"
+          }
+        }
+      }
+    },
+    "Album-Titel unterschiedlich geschrieben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album title spelled differently"
           }
         }
       }
@@ -397,6 +447,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Allow all targets"
+          }
+        }
+      }
+    },
+    "Alle geladenen Dateien auf Konsistenz prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check all loaded files for consistency"
+          }
+        }
+      }
+    },
+    "Alle geprüften Dateien sind in Ordnung.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All checked files are fine."
           }
         }
       }
@@ -631,6 +701,16 @@
         }
       }
     },
+    "Bericht kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Report"
+          }
+        }
+      }
+    },
     "Beschreibung": {
       "localizations": {
         "en": {
@@ -861,6 +941,16 @@
         }
       }
     },
+    "Cover-Größe oder -Format im Album uneinheitlich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover size or format differs within the album"
+          }
+        }
+      }
+    },
     "Cover-Werkzeuge": {
       "localizations": {
         "en": {
@@ -971,6 +1061,16 @@
         }
       }
     },
+    "Datei konnte nicht gelesen werden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File could not be read"
+          }
+        }
+      }
+    },
     "Datei vorhanden": {
       "localizations": {
         "en": {
@@ -1011,12 +1111,32 @@
         }
       }
     },
+    "Dateiname passt nicht zum Muster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File name does not match the pattern"
+          }
+        }
+      }
+    },
     "Dateinamen aus Tags bilden oder Tags aus Dateinamen lesen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Build file names from tags or read tags from file names"
+          }
+        }
+      }
+    },
+    "Dateinamen gegen Muster prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check file names against a pattern"
           }
         }
       }
@@ -1087,6 +1207,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The layer is removed from the file; the other layers stay. In safe mode a copy goes to the trash first."
+          }
+        }
+      }
+    },
+    "Die ausgewählten Dateien auf Konsistenz prüfen (Cover, Album-Interpret, Tracknummern, leere Felder, Dubletten)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the selected files for consistency (cover art, album artist, track numbers, empty fields, duplicates)"
           }
         }
       }
@@ -1167,6 +1297,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This format has no title for the whole list."
+          }
+        }
+      }
+    },
+    "Disc-Nummer größer als die Gesamtzahl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disc number greater than the total"
           }
         }
       }
@@ -1711,6 +1851,16 @@
         }
       }
     },
+    "Genre im Album uneinheitlich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genre differs within the album"
+          }
+        }
+      }
+    },
     "Genres": {
       "localizations": {
         "en": {
@@ -1731,6 +1881,26 @@
         }
       }
     },
+    "Gesamtzahl der Discs fehlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disc total missing"
+          }
+        }
+      }
+    },
+    "Gesamtzahl der Tracks fehlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track total missing"
+          }
+        }
+      }
+    },
     "Geschäftsprozess (BT-23)": {
       "localizations": {
         "en": {
@@ -1747,6 +1917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modified"
+          }
+        }
+      }
+    },
+    "Gleicher Titel, Interpret und Dauer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same title, artist and duration"
           }
         }
       }
@@ -1951,6 +2131,16 @@
         }
       }
     },
+    "Interpret ist leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artist is empty"
+          }
+        }
+      }
+    },
     "JJJJ": {
       "localizations": {
         "en": {
@@ -1987,6 +2177,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Year"
+          }
+        }
+      }
+    },
+    "Jahr/Datum im Album uneinheitlich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Year/date differs within the album"
           }
         }
       }
@@ -2131,6 +2331,26 @@
         }
       }
     },
+    "Keine Befunde": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No findings"
+          }
+        }
+      }
+    },
+    "Keine Befunde in %lld Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No findings in %lld files"
+          }
+        }
+      }
+    },
     "Keine Dateien": {
       "localizations": {
         "en": {
@@ -2227,6 +2447,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conflict"
+          }
+        }
+      }
+    },
+    "Konsistenzprüfung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consistency Check"
           }
         }
       }
@@ -2381,6 +2611,26 @@
         }
       }
     },
+    "Lücken in der Disc-Nummerierung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gaps in the disc numbering"
+          }
+        }
+      }
+    },
+    "Lücken in der Tracknummerierung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gaps in the track numbering"
+          }
+        }
+      }
+    },
     "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
       "localizations": {
         "en": {
@@ -2467,6 +2717,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Drop media files here\nor open them with ⌘O"
+          }
+        }
+      }
+    },
+    "Mehrere Interpreten, aber kein Album-Interpret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Several artists but no album artist"
           }
         }
       }
@@ -2781,6 +3041,16 @@
         }
       }
     },
+    "Ordner %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder %@"
+          }
+        }
+      }
+    },
     "Ordner-Cover übernehmen": {
       "localizations": {
         "en": {
@@ -2961,6 +3231,26 @@
         }
       }
     },
+    "Prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check"
+          }
+        }
+      }
+    },
+    "Prüfen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check…"
+          }
+        }
+      }
+    },
     "R128 Album": {
       "localizations": {
         "en": {
@@ -3077,6 +3367,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keywords"
+          }
+        }
+      }
+    },
+    "Schließen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
           }
         }
       }
@@ -3511,6 +3811,16 @@
         }
       }
     },
+    "Titel ist leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title is empty"
+          }
+        }
+      }
+    },
     "Titel und Language-Zeile werden im Kopf gespeichert; alle Cues bleiben unverändert.": {
       "localizations": {
         "en": {
@@ -3547,6 +3857,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tracker module: this format stores only title and comment (sample names); the other fields are locked."
+          }
+        }
+      }
+    },
+    "Tracknummer fehlt oder ist keine Zahl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track number missing or not a number"
+          }
+        }
+      }
+    },
+    "Tracknummer größer als die Gesamtzahl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track number greater than the total"
+          }
+        }
+      }
+    },
+    "Tracknummer mehrfach vergeben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track number used more than once"
           }
         }
       }
@@ -3817,6 +4157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presets"
+          }
+        }
+      }
+    },
+    "Vorgaben für das Muster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pattern presets"
           }
         }
       }
@@ -4347,6 +4697,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open …"
+          }
+        }
+      }
+    },
+    "Über alle Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Across all files"
           }
         }
       }
