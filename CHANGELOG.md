@@ -8,6 +8,30 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.32.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Video-Sidecars als eigene Medienart: Kodi/Jellyfin `.nfo` (movie,
+  episodedetails, tvshow, musicvideo, album, artist) anzeigen und bearbeiten;
+  unbekannte Elemente, Reihenfolge und Einrückung bleiben erhalten, Nur-URL-
+  NFOs werden angezeigt, nie beschrieben. Ein Video mit `<name>.nfo` daneben
+  zeigt im Editor den Abschnitt „NFO-Sidecar“ (schreibt nur die NFO);
+  Ordner-Drops blenden die NFO eines gelisteten Videos aus. Fallen:
+  [knowledge/kodi-nfo-untertitel.md](knowledge/kodi-nfo-untertitel.md).
+- Untertitel `.srt`/`.vtt`: Cues, Zeitspanne, Zeichensatz, Sprache und Flags
+  aus dem Dateinamen, WebVTT-Kopf (Titel und `Language:` editierbar) und
+  Zeitverschiebung aller Cues.
+- CLI `tagx nfo show|set` und `tagx subtitle show|set|shift --seconds`;
+  Muster `%{base}.%{lang}` zum Umbenennen von Untertiteln.
+- Tag-Archiv sichert NFO-Felder (Schema 4); Untertitel bleiben außen vor.
+
+### Bekannte Grenzen
+
+- Der NFO-Abschnitt im Video-Editor hat einen eigenen Speichern-Knopf und
+  hängt nicht an der Schließen-Rückfrage. Umbenennen eines Videos nimmt
+  `.nfo`/`.srt` noch nicht mit.
+
 ## [0.31.0] — 2026-09-02
 
 ### Hinzugefügt
