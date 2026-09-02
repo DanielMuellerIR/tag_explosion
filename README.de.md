@@ -59,6 +59,14 @@
   und QuickTime-Kapitelspur, beide werden geschrieben) und Matroska/WebM.
   MP4 speichert nur Startzeiten; das Ende eines Kapitels ergibt sich aus dem
   nächsten Beginn.
+- **Tag-Schichten** — MP3-Dateien tragen oft ID3v1 *und* ID3v2 (manchmal
+  auch APEv2), WAV trägt ID3v2 und RIFF INFO, FLAC Vorbis plus verirrte
+  ID3-Tags. Der Editor listet jede Schicht mit Version (ID3v2.3/2.4, APEv2)
+  und Feldanzahl und entfernt auf Wunsch eine einzelne Schicht — die anderen
+  Schichten und der Audiostream bleiben unangetastet (`tagx layers show` /
+  `tagx layers strip`). Optionale Einstellung: ID3v2.3 statt v2.4 schreiben
+  für alte Player (`tagx set --id3v23`); v2.3 speichert Text als UTF-16 und
+  kürzt Datumsangaben auf die Minute.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
@@ -71,10 +79,26 @@
   Serie/Nummer/Band, OOXML-Revision, beliebige Markdown-Schlüssel). Alles
   nativ ohne externe Programme; Felder, die ein Format nicht speichern kann,
   werden vor dem Schreiben abgelehnt statt still verworfen.
+- **Playlists und Cue-Sheets** — `.cue` (Album-Kopf, Trackliste mit
+  INDEX-Zeiten und ISRC), `.m3u`/`.m3u8`, `.pls` und `.xspf`: Einträge mit
+  aufgelöstem Pfad, Prüfung auf fehlende Dateien und Gesamtdauer. Bearbeitbar
+  sind Titel, Interpret, Datum und Genre der Liste (soweit das Format sie
+  speichert) sowie Titel/Interpret je Eintrag; Reihenfolge und Pfade bleiben,
+  ebenso fremde Zeilen, Zeilenenden und Einrückung. Jede Auswahl lässt sich
+  als m3u8/pls/xspf exportieren (Pfade relativ zur Playlist), und `tagx cue
+  apply` schreibt Titel, Interpreten und Tracknummern eines Cue-Sheets in die
+  referenzierten Audiodateien (eine Datei je Track).
 - **E-Rechnungen (nur Anzeige)** — erkennt Standard und Profil aus der
   Spezifikationskennung (BT-24): ZUGFeRD 2.x/Factur-X (MINIMUM bis EXTENDED),
   XRechnung, Peppol BIS und reine EN 16931, in beiden Syntaxen (UN/CEFACT CII
-  und OASIS UBL, Rechnung und Gutschrift). Jedes befüllte Feld erscheint mit
+  und OASIS UBL, Rechnung und Gutschrift), dazu Bestellungen: Order-X
+  (BASIC/COMFORT/EXTENDED, im PDF als `order-x.xml`) und Peppol
+  Order/OrderResponse — Bestellfelder tragen Order-X-Bezeichnungen statt
+  BT-Nummern. Die Dokumentart (Rechnung, Gutschrift, Bestellung,
+  Bestellantwort) steht als eigenes Feld. Eine Grundvalidierung listet
+  Hinweise: fehlende Pflichtfelder nach EN 16931 (XRechnung: auch die
+  Leitweg-ID) und die Summenrechnung BT-106 … BT-115 mit Toleranz 0,01 —
+  keine vollständige Schematron-Prüfung. Jedes befüllte Feld erscheint mit
   seiner EN-16931-Feldbezeichnung (BT-/BG-Nummer und Name); Felder ohne
   Zuordnung bleiben mit ihrem Rohpfad sichtbar, häufige Codes werden
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
@@ -186,14 +210,15 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
-| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska · Tag-Schichten einzeln anzeigen/entfernen für mp3/mp2, wav, aiff, flac, ape, mpc, wv, tta, dsf; ID3v2.3-Option für mp3/mp2, wav, aiff, dsf |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (nur Sidecar) · xmp | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | Video-Sidecars | nfo (Kodi/Jellyfin-XML; Nur-URL-NFO nur Anzeige) · srt (nur Anzeige, Sprache über den Dateinamen) · vtt (Kopf editierbar) | NFO-Elemente (unbekannte bleiben erhalten), WebVTT-Kopf; Zeitverschiebung der Cues für srt/vtt |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
-| E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
+| Playlists | cue · m3u, m3u8 · pls · xspf | Cue-Kopf/Track-Zeilen, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (Anzeige: Pfade, Existenz, Dauer; Bearbeiten: nur Beschriftung; Export: m3u8/pls/xspf) |
+| E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen; Order-X und Peppol-Bestellungen mit Order-X-Bezeichnungen; Hinweise der Grundvalidierung |
 
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
@@ -235,19 +260,27 @@ tagx cover set song.mp3 cover.jpg              # Cover einbetten
 tagx chapters show buch.m4b --json             # Kapitel als JSON (Zeiten in ms)
 tagx chapters set buch.m4b --from kapitel.txt  # Kapitel ersetzen (JSON oder Zeilen "HH:MM:SS.mmm Titel")
 tagx chapters clear buch.m4b                   # alle Kapitel entfernen
+tagx layers show song.mp3 --json               # Tag-Schichten (ID3v1/ID3v2/APE …) mit Version und Feldern
+tagx layers strip song.mp3 --layer id3v1       # eine Schicht entfernen, die anderen bleiben
+tagx set song.mp3 -t TITLE=X --id3v23          # ID3v2.3 statt v2.4 schreiben (alte Player)
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
 tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei
 tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx doc set bericht.docx --title "Q3-Bericht" --keywords "Vertrieb, 2026"
 tagx doc set comic.cbz --custom Series=Foo Number=2   # ComicInfo-Zusatzfelder
+tagx playlist show album.cue                   # Kopf, Tracks, aufgelöste Pfade, fehlende Dateien, Gesamtdauer
+tagx playlist set liste.m3u8 --title "Mix" --entry-title 2="Zweites Lied"
+tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative Pfade; --absolute, --format pls|xspf
+tagx cue apply album.cue --apply               # Cue-Titel/-Interpreten/-Tracknummern in die Audiodateien schreiben
 tagx nfo set film.mkv --title "Titel" --year 2019     # schreibt film.nfo, nicht das Video
 tagx subtitle show film.de.srt --json          # Cues, Zeitspanne, Zeichensatz, Sprache
 tagx subtitle shift film.srt --seconds=-1.5    # alle Cues verschieben (negativ: mit "=")
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
-tagx invoice rechnung.pdf                      # E-Rechnung: Profil + alle Felder (BT-Nummern)
+tagx invoice rechnung.pdf                      # E-Rechnung: Profil, Hinweise + alle Felder (BT-Nummern)
+tagx invoice bestellung.xml --strict           # Exit 3, wenn die Grundvalidierung Hinweise meldet
 tagx set song.mp3 -t ARTIST="X" --no-backup    # ohne Sicherungskopie im Papierkorb
 ```
 

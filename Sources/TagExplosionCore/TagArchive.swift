@@ -199,9 +199,10 @@ public enum TagArchiveIO {
                 let contents = try KodiNFOFile.readSnapshot(url: url).value
                 guard !contents.isURLOnly else { continue }
                 entry.nfo = contents.fields
-            case .invoice:
+            case .invoice, .playlist:
                 // E-Rechnungen sind reine Anzeige — es gibt keine editierbaren
                 // Tags, die ein Archiv sichern oder wiederherstellen könnte.
+                // Playlists beschriften fremde Dateien (siehe isArchivable).
                 continue
             }
             entries.append(entry)
@@ -574,11 +575,11 @@ public enum TagArchiveIO {
                                       expecting: snapshot.stamp)
             }
             return true
-        case .invoice:
+        case .invoice, .playlist:
             // Export erzeugt solche Einträge nie (build überspringt sie);
-            // ein handgebautes Archiv mit Rechnungseintrag ist fehlerhaft.
+            // ein handgebautes Archiv mit Rechnungs-/Playlist-Eintrag ist fehlerhaft.
             throw TagArchiveError.inconsistentEntry(
-                path: entry.path, detail: "invoices are display-only and cannot be archived")
+                path: entry.path, detail: "invoices and playlists cannot be archived")
         }
     }
 
@@ -701,12 +702,12 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "sidecar entries may only contain nfo data")
                 }
-            case .invoice:
+            case .invoice, .playlist:
                 // Der Export erzeugt solche Einträge nie; ein Archiv, das
                 // welche enthält, ist von Hand gebaut und fehlerhaft.
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path,
-                    detail: "invoices are display-only and cannot be archived")
+                    detail: "invoices and playlists cannot be archived")
             }
         }
     }

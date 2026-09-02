@@ -136,6 +136,9 @@ public enum MediaFormats {
     /// Video-Endungen, neben denen `<name>.nfo` als Sidecar gilt. `mp4`
     /// steht in `audio` (TagLib-Weg), gehört hier aber dazu.
     public static let nfoVideo: Set<String> = video.union(["mp4"])
+    /// Playlist-Endungen: Cue-Sheets und Playlists (m3u, m3u8, pls, xspf) —
+    /// nativ gelesen und beschriftet (PlaylistTool).
+    public static let playlist: Set<String> = PlaylistTool.extensions
 
     /// Grobe Medienart — bestimmt Lese-/Schreibweg. Video läuft über den
     /// TagLib-Weg wie Audio (PropertyMap).
@@ -149,16 +152,21 @@ public enum MediaFormats {
         case document
         /// Video-Sidecars: NFO (editierbar) und Untertitel (SidecarTool).
         case sidecar
+        /// Cue-Sheet oder Playlist (PlaylistTool): Beschriftung editierbar,
+        /// Einträge selbst nicht.
+        case playlist
     }
 
     /// Kann diese Medienart in ein Tag-Archiv (Export/Import)? E-Rechnungen
     /// sind reine Anzeige — es gibt keine editierbaren Tags zu sichern.
+    /// Playlists beschreiben fremde Dateien statt eigener Tags; ein Archiv
+    /// könnte ihre Einträge nicht sinnvoll wiederherstellen.
     /// Die Regel liegt zentral, damit App und CLI gleich filtern und ihre
     /// Erfolgsmeldungen dieselben Dateien zählen wie das Archiv selbst.
     /// Sidecars: nur NFO-Felder; Untertitel und Nur-URL-NFOs bleiben
     /// draußen — dafür gibt es `isArchivable(url:)`.
     public static func isArchivable(_ kind: Kind) -> Bool {
-        kind != .invoice
+        kind != .invoice && kind != .playlist
     }
 
     /// Dateibezogene Variante: entscheidet bei Sidecars nach Endung und
@@ -182,6 +190,7 @@ public enum MediaFormats {
             if ext == SidecarTool.nfoExtension { return KodiNFOFile.sniff(url: url) ? .sidecar : nil }
             return .sidecar
         }
+        if playlist.contains(ext) { return .playlist }
         // XML nur annehmen, wenn der Inhalt tatsächlich eine E-Rechnung ist —
         // sonst zöge ein Ordner-Drop beliebige Fremd-XMLs in die Liste.
         if invoice.contains(ext), isInvoiceXML(url) { return .invoice }

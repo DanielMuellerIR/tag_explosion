@@ -106,6 +106,53 @@ void tx_free_chapters(tx_chapter* chapters, int32_t count);
 // ohne Kapitel. Erst tx_save() macht die Änderung persistent.
 int tx_set_chapters(tx_file* f, const tx_chapter* chapters, int32_t count);
 
+// ---- Tag-Schichten (ID3v1, ID3v2, APEv2, RIFF INFO, Vorbis) --------------------
+//
+// Manche Container tragen mehrere Tag-Schichten nebeneinander, z. B. MP3 mit
+// ID3v1 am Dateiende und ID3v2 am Anfang, dazu manchmal noch APEv2. Die
+// Property-Schnittstelle oben vereinheitlicht das; hier werden die Schichten
+// einzeln gemeldet und entfernt. Unterstützt: MP3/MP2 (ID3v1, ID3v2, APE),
+// WAV (ID3v2, RIFF INFO), AIFF und DSF (nur ID3v2), FLAC (Vorbis, ID3v1,
+// ID3v2), APE/MPC/WavPack (APEv2, ID3v1), TrueAudio (ID3v1, ID3v2).
+// Alle anderen Formate liefern 0 Schichten.
+
+// Bitmaske der Schichtarten; auch als Argument von tx_layers_strip.
+typedef enum {
+    TX_LAYER_ID3V1  = 1,
+    TX_LAYER_ID3V2  = 2,
+    TX_LAYER_APE    = 4,
+    TX_LAYER_INFO   = 8,   // RIFF INFO (WAV)
+    TX_LAYER_VORBIS = 16   // Vorbis Comment (FLAC)
+} tx_layer_kind;
+
+typedef struct {
+    int32_t kind;        // tx_layer_kind
+    int32_t version;     // ID3v2: 2/3/4, ID3v1: 1, APE: 1/2; 0 = keine Versionsangabe
+    int32_t present;     // 1 = Schicht ist in der Datei vorhanden
+    int32_t strippable;  // 1 = tx_layers_strip kann diese Schicht entfernen
+    char* keys;          // Property-Schlüssel der Schicht, durch '\n' getrennt;
+                         // leer, wenn die Schicht fehlt oder keine Felder hat
+} tx_layer;
+
+// Liefert alle Schichten, die das Format kennt (auch fehlende, mit present=0).
+// out_count = Anzahl; NULL bei 0 Einträgen oder Fehler (out_count 0 bzw. -1).
+// Array und keys gehören danach dem Aufrufer: mit tx_free_layers freigeben.
+tx_layer* tx_layers_get(tx_file* f, int32_t* out_count);
+void tx_free_layers(tx_layer* layers, int32_t count);
+
+// Entfernt die Schichten der Maske (OR aus tx_layer_kind) und schreibt die
+// Datei SOFORT — ein tx_save() ist danach weder nötig noch erwünscht (es
+// könnte eine entfernte Schicht aus einer anderen neu erzeugen). Das Handle
+// danach nur noch schließen. 1 = Erfolg, 0 = Fehler, Format ohne Schichten
+// oder Maske mit einer nicht entfernbaren Schicht.
+// FLAC: TagLib behält den Vorbis-Block mit Vendor-String; die Felder sind weg.
+int tx_layers_strip(tx_file* f, int32_t mask);
+
+// Wie tx_save(), schreibt ID3v2 aber in der gewünschten Version (3 = ID3v2.3,
+// 4 = ID3v2.4). Wirkt bei MP3/MP2, WAV, AIFF, DSF und DSDIFF; andere Formate
+// speichern wie tx_save(). 1 = Erfolg.
+int tx_save_id3v2(tx_file* f, int32_t id3v2_version);
+
 // ---- Sonstiges --------------------------------------------------------------
 
 // TagLib-Versionsstring der gelinkten Bibliothek, z.B. "2.3.0". Statisch, nicht freigeben.

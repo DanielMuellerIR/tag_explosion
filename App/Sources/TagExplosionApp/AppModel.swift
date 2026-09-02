@@ -14,6 +14,7 @@ let imageExtensions = MediaFormats.image
 let videoExtensions = MediaFormats.video
 let ebookExtensions = MediaFormats.ebook
 let documentExtensions = MediaFormats.document
+let playlistExtensions = MediaFormats.playlist
 
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg. Direkt der
 /// Core-Typ (auch das Archiv nutzt ihn); die Zuordnung inklusive des
@@ -81,6 +82,13 @@ final class FileEntry: Identifiable {
     var nfoFields = NFOFields()
     private(set) var subtitleOriginal = SubtitleEditableFields()
     var subtitleFields = SubtitleEditableFields()
+    /// Playlist/Cue-Sheet (nur bei kind == .playlist): Anzeigeinhalt mit
+    /// aufgelösten Einträgen, dazu Original und Bearbeitungspuffer der
+    /// Beschriftung (Kopffelder, Titel/Interpret je Eintrag).
+    private(set) var playlistContents = PlaylistContents(
+        format: .m3u, fields: PlaylistCoreFields(), entries: [])
+    private(set) var playlistOriginal = PlaylistCoreFields()
+    var playlistFields = PlaylistCoreFields()
 
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
@@ -110,6 +118,7 @@ final class FileEntry: Identifiable {
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
         case document(fields: DocumentCoreFields, original: DocumentCoreFields)
         case sidecar(fields: SidecarFields, original: SidecarFields)
+        case playlist(fields: PlaylistCoreFields, original: PlaylistCoreFields)
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -147,6 +156,11 @@ final class FileEntry: Identifiable {
         case .sidecar(let contents):
             self.kind = .sidecar
             self.acceptNewSidecarOriginal(contents)
+        case .playlist(let contents):
+            self.kind = .playlist
+            self.playlistContents = contents
+            self.playlistOriginal = contents.fields
+            self.playlistFields = contents.fields
         }
     }
 
@@ -181,6 +195,7 @@ final class FileEntry: Identifiable {
         documentFields = other.documentFields
         nfoFields = other.nfoFields
         subtitleFields = other.subtitleFields
+        playlistFields = other.playlistFields
         lastError = other.lastError
     }
 
@@ -197,6 +212,8 @@ final class FileEntry: Identifiable {
             return .document(documentOriginal, cover: documentCover, info: documentInfo)
         case .sidecar:
             return sidecarContents.map(LoadedData.sidecar)
+        case .playlist:
+            return .playlist(playlistContents)
         }
     }
 
@@ -205,6 +222,11 @@ final class FileEntry: Identifiable {
     /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
     /// den Kapitel-Abschnitt.
     var supportsChapters: Bool { kind == .audio && original.supportsChapters }
+    /// Tag-Schichten (ID3v1/ID3v2/APE …) laut letztem Lesestand; leer bei
+    /// Formaten ohne Schichtenmodell — nur dann fehlt der Abschnitt im Editor.
+    /// Kein Bearbeitungspuffer: Entfernen läuft direkt über
+    /// `AppModel.stripLayer` und liest die Datei danach neu.
+    var layers: [TagLayer] { kind == .audio ? original.layers : [] }
 
     var isDirty: Bool {
         switch kind {
@@ -222,6 +244,8 @@ final class FileEntry: Identifiable {
             return documentFields != documentOriginal
         case .sidecar:
             return nfoFields != nfoOriginal || subtitleFields != subtitleOriginal
+        case .playlist:
+            return playlistFields != playlistOriginal
         }
     }
 
@@ -236,6 +260,7 @@ final class FileEntry: Identifiable {
         documentFields = documentOriginal
         nfoFields = nfoOriginal
         subtitleFields = subtitleOriginal
+        playlistFields = playlistOriginal
         lastError = nil
     }
 
@@ -290,6 +315,14 @@ final class FileEntry: Identifiable {
         lastError = nil
     }
 
+    /// Playlist-Pendant zu `acceptNewOriginal`.
+    func acceptNewPlaylistOriginal(_ contents: PlaylistContents) {
+        playlistContents = contents
+        playlistOriginal = contents.fields
+        playlistFields = contents.fields
+        lastError = nil
+    }
+
     /// Ein ausgewähltes Cover zählt nur als Änderung, wenn es sich von dem in
     /// der Datei unterscheidet. Dieselbe Bilddatei noch einmal auszuwählen ist
     /// inhaltlich ein Nichts-Tun und darf keinen Schreibvorgang auslösen: Der
@@ -324,6 +357,8 @@ final class FileEntry: Identifiable {
             acceptNewDocumentOriginal(fields, cover: cover, info: info)
         case .sidecar(let contents):
             acceptNewSidecarOriginal(contents)
+        case .playlist(let contents):
+            acceptNewPlaylistOriginal(contents)
         }
     }
 
@@ -357,6 +392,8 @@ final class FileEntry: Identifiable {
                 isSaving = false
                 return nil
             }
+        case .playlist:
+            return .playlist(fields: playlistFields, original: playlistOriginal)
         }
     }
 
@@ -429,6 +466,10 @@ final class FileEntry: Identifiable {
             default:
                 assertionFailure("Sidecar snapshot and read-back have different sidecar kinds")
             }
+        case (.playlist(let savedFields, _), .playlist(let contents)):
+            playlistContents = contents
+            playlistOriginal = contents.fields
+            if playlistFields == savedFields { playlistFields = contents.fields }
         default:
             // Ein Snapshot gehört immer zur selben FileEntry-Instanz. Falls ein
             // späterer Umbau das verletzt, darf kein fremder Zustand übernommen werden.
@@ -481,6 +522,7 @@ final class FileEntry: Identifiable {
             case .subtitle: title = subtitleFields.title
             case nil: title = ""
             }
+        case .playlist: title = playlistFields.title
         }
         return title.isEmpty ? url.lastPathComponent : title
     }
@@ -521,6 +563,11 @@ final class FileEntry: Identifiable {
             case nil:
                 return ""
             }
+        case .playlist:
+            let count = playlistContents.entries.count
+            let performer = playlistFields.performer
+            let entries = String(localized: "\(count) Einträge")
+            return performer.isEmpty ? entries : "\(performer) · \(entries)"
         }
     }
 }
@@ -542,6 +589,9 @@ enum LoadedData: Sendable {
     case document(DocumentCoreFields, cover: Data?, info: [DocumentInfoItem])
     /// Video-Sidecars: NFO-Inhalt oder Untertitel-Infos plus editierbare Felder.
     case sidecar(SidecarContents)
+    /// Playlist/Cue-Sheet: Anzeigeinhalt (Einträge mit aufgelösten Pfaden)
+    /// samt der bearbeitbaren Beschriftung in `fields`.
+    case playlist(PlaylistContents)
 }
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
@@ -815,6 +865,8 @@ final class AppModel {
             return .document(contents.fields, cover: contents.cover?.data, info: contents.info)
         case .sidecar:
             return .sidecar(try SidecarTool.readSnapshot(url: url).value)
+        case .playlist:
+            return .playlist(try PlaylistTool.readSnapshot(url: url).value)
         }
     }
 
@@ -884,6 +936,16 @@ final class AppModel {
     /// ist threadsicher.
     nonisolated static var imageSidecarPreferred: Bool {
         UserDefaults.standard.bool(forKey: imageSidecarDefaultsKey)
+    }
+
+    /// Schlüssel der Einstellung „ID3v2.3 statt ID3v2.4 schreiben" (für alte
+    /// Player, die v2.4 nicht lesen). Voreinstellung aus.
+    nonisolated static let id3v23DefaultsKey = "writeID3v23"
+
+    /// ID3v2-Version für den Audio-Schreibweg laut Einstellung (Default v2.4).
+    /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest.
+    nonisolated static var preferredID3Version: ID3Version {
+        UserDefaults.standard.bool(forKey: id3v23DefaultsKey) ? .v23 : .v24
     }
 
     /// Auto-Backup vor Batch-Speichern? (Default: an)
@@ -1377,6 +1439,38 @@ final class AppModel {
         }
     }
 
+    /// Entfernt eine Tag-Schicht (z.B. ID3v1) aus der Datei und liest sie neu.
+    ///
+    /// Läuft nur auf einer sauberen Datei: Der Bearbeitungspuffer würde nach
+    /// dem Neuladen sonst still durch den Plattenstand ersetzt. Die View
+    /// sperrt den Knopf deshalb bei ungespeicherten Änderungen; hier wird das
+    /// trotzdem geprüft. Während des Entfernens gilt die Datei als „speichert"
+    /// — derselbe Schutz wie beim Speichern gegen parallele Schreibzugriffe.
+    @discardableResult
+    func stripLayer(entry: FileEntry, kind: TagLayerKind) async -> Bool {
+        guard !entry.isDirty, !entry.isSaving, !isDestructiveActionLocked else { return false }
+        entry.isSaving = true
+        defer { entry.finishSaving() }
+        let url = entry.url
+        let stamp = entry.diskStamp
+        do {
+            let (reloaded, newStamp) = try await Task.detached(priority: .userInitiated) {
+                // Fremde Änderung seit dem Öffnen? Dann nicht anfassen.
+                try FileStamp.requireUnchanged(stamp, at: url)
+                try TrashBackup.shared.backUp(url)
+                try TagFile.stripLayers([kind], from: url, expecting: stamp)
+                return try Self.readStamped(url: url, kind: .audio)
+            }.value
+            entry.acceptNew(reloaded, stamp: newStamp)
+            return true
+        } catch {
+            entry.lastError = error.localizedDescription
+            alertMessage = String(localized: "Schicht entfernen fehlgeschlagen: \(entry.url.lastPathComponent)")
+                + "\n" + error.localizedDescription
+            return false
+        }
+    }
+
     /// Liest eine Datei neu von der Platte und ersetzt den Originalzustand.
     private func reload(entry: FileEntry) async {
         let url = entry.url
@@ -1546,6 +1640,9 @@ final class AppModel {
         if case .sidecar(let fields, let original) = snapshot {
             try SidecarTool.requireWritable(fields, original: original, url: url)
         }
+        if case .playlist(let fields, let original) = snapshot {
+            try PlaylistTool.requireWritable(fields, original: original, url: url)
+        }
         // Bilder: Kamera-RAW, Formate ohne exiftool-Schreibweg, eine schon
         // vorhandene Sidecar und die Einstellung lenken die Änderung in die
         // XMP-Sidecar `<name>.xmp`. Gesichert wird dann DIESE Datei; eine
@@ -1559,7 +1656,7 @@ final class AppModel {
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks, let chapters)):
             try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
-                              to: url, expecting: stamp)
+                              to: url, expecting: stamp, id3Version: preferredID3Version)
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,
@@ -1574,6 +1671,9 @@ final class AppModel {
                                    expecting: stamp)
         case (.sidecar, .sidecar(let fields, let original)):
             try SidecarTool.write(url: url, fields: fields, original: original, expecting: stamp)
+        case (.playlist, .playlist(let fields, let original)):
+            try PlaylistTool.write(url: url, fields: fields, original: original,
+                                   expecting: stamp)
         default:
             throw TagError.saveFailed(path: url.path)
         }

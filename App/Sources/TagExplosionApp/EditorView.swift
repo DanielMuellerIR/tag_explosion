@@ -94,6 +94,9 @@ struct TagEditorTab: View {
                 if MediaFormats.nfoVideo.contains(entry.url.pathExtension.lowercased()) {
                     NFOSidecarSection(videoURL: entry.url)
                 }
+                if !entry.layers.isEmpty {
+                    TagLayerSection(entry: entry)
+                }
             }
             .padding(20)
             .frame(maxWidth: 760, alignment: .leading)

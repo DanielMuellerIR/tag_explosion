@@ -184,10 +184,211 @@ struct EInvoiceTests {
     </CreditNote>
     """
 
+
+    /// Order-X-Bestellung (COMFORT) in CIO-Syntax — mit ungewöhnlichen
+    /// Präfixen, Zuschlag auf Kopfebene und einem Beteiligten mit Anschrift.
+    private static let orderXXML = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <o:SCRDMCCBDACIOMessageStructure
+      xmlns:o="urn:un:unece:uncefact:data:SCRDMCCBDACIOMessageStructure:100"
+      xmlns:r="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:128"
+      xmlns:u="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:128">
+      <o:ExchangedDocumentContext>
+        <r:GuidelineSpecifiedDocumentContextParameter>
+          <r:ID>urn:order-x.eu:1p0:comfort</r:ID>
+        </r:GuidelineSpecifiedDocumentContextParameter>
+      </o:ExchangedDocumentContext>
+      <o:ExchangedDocument>
+        <r:ID>B-2026-7</r:ID>
+        <r:TypeCode>220</r:TypeCode>
+        <r:IssueDateTime><u:DateTimeString format="102">20260901</u:DateTimeString></r:IssueDateTime>
+      </o:ExchangedDocument>
+      <o:SupplyChainTradeTransaction>
+        <r:IncludedSupplyChainTradeLineItem>
+          <r:AssociatedDocumentLineDocument><r:LineID>1</r:LineID></r:AssociatedDocumentLineDocument>
+          <r:SpecifiedTradeProduct><r:Name>Schrauben M4</r:Name></r:SpecifiedTradeProduct>
+          <r:SpecifiedLineTradeAgreement>
+            <r:NetPriceProductTradePrice><r:ChargeAmount>0.10</r:ChargeAmount></r:NetPriceProductTradePrice>
+          </r:SpecifiedLineTradeAgreement>
+          <r:SpecifiedLineTradeDelivery>
+            <r:RequestedQuantity unitCode="H87">500</r:RequestedQuantity>
+          </r:SpecifiedLineTradeDelivery>
+          <r:SpecifiedLineTradeSettlement>
+            <r:SpecifiedTradeSettlementLineMonetarySummation>
+              <r:LineTotalAmount>50.00</r:LineTotalAmount>
+            </r:SpecifiedTradeSettlementLineMonetarySummation>
+          </r:SpecifiedLineTradeSettlement>
+        </r:IncludedSupplyChainTradeLineItem>
+        <r:ApplicableHeaderTradeAgreement>
+          <r:BuyerReference>EINKAUF-1</r:BuyerReference>
+          <r:SellerTradeParty><r:Name>Lieferant KG</r:Name></r:SellerTradeParty>
+          <r:BuyerTradeParty>
+            <r:Name>Besteller GmbH</r:Name>
+            <r:PostalTradeAddress><r:CityName>Berlin</r:CityName></r:PostalTradeAddress>
+          </r:BuyerTradeParty>
+        </r:ApplicableHeaderTradeAgreement>
+        <r:ApplicableHeaderTradeDelivery>
+          <r:RequestedDeliverySupplyChainEvent>
+            <r:OccurrenceDateTime><u:DateTimeString format="102">20260915</u:DateTimeString></r:OccurrenceDateTime>
+          </r:RequestedDeliverySupplyChainEvent>
+        </r:ApplicableHeaderTradeDelivery>
+        <r:ApplicableHeaderTradeSettlement>
+          <r:OrderCurrencyCode>EUR</r:OrderCurrencyCode>
+          <r:SpecifiedTradeAllowanceCharge>
+            <r:ChargeIndicator><u:Indicator>true</u:Indicator></r:ChargeIndicator>
+            <r:ActualAmount>4.90</r:ActualAmount>
+            <r:Reason>Versand</r:Reason>
+          </r:SpecifiedTradeAllowanceCharge>
+          <r:SpecifiedTradeSettlementHeaderMonetarySummation>
+            <r:LineTotalAmount>50.00</r:LineTotalAmount>
+            <r:GrandTotalAmount>65.33</r:GrandTotalAmount>
+          </r:SpecifiedTradeSettlementHeaderMonetarySummation>
+        </r:ApplicableHeaderTradeSettlement>
+      </o:SupplyChainTradeTransaction>
+    </o:SCRDMCCBDACIOMessageStructure>
+    """
+
+    /// Peppol-Bestellung (UBL Order).
+    private static let ublOrderXML = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Order xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2"
+      xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+      xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+      <cbc:CustomizationID>urn:fdc:peppol.eu:poacc:trns:order:3</cbc:CustomizationID>
+      <cbc:ProfileID>urn:fdc:peppol.eu:poacc:bis:ordering:3</cbc:ProfileID>
+      <cbc:ID>PO-11</cbc:ID>
+      <cbc:IssueDate>2026-09-01</cbc:IssueDate>
+      <cbc:OrderTypeCode>220</cbc:OrderTypeCode>
+      <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+      <cac:BuyerCustomerParty>
+        <cac:Party><cac:PartyName><cbc:Name>Besteller GmbH</cbc:Name></cac:PartyName></cac:Party>
+      </cac:BuyerCustomerParty>
+      <cac:SellerSupplierParty>
+        <cac:Party><cac:PartyName><cbc:Name>Lieferant KG</cbc:Name></cac:PartyName></cac:Party>
+      </cac:SellerSupplierParty>
+      <cac:AnticipatedMonetaryTotal>
+        <cbc:PayableAmount currencyID="EUR">50.00</cbc:PayableAmount>
+      </cac:AnticipatedMonetaryTotal>
+      <cac:OrderLine>
+        <cac:LineItem>
+          <cbc:ID>1</cbc:ID>
+          <cbc:Quantity unitCode="H87">500</cbc:Quantity>
+          <cac:Item><cbc:Name>Schrauben M4</cbc:Name></cac:Item>
+        </cac:LineItem>
+      </cac:OrderLine>
+    </Order>
+    """
+
+    /// Peppol-Bestellantwort (UBL OrderResponse).
+    private static let ublOrderResponseXML = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <OrderResponse xmlns="urn:oasis:names:specification:ubl:schema:xsd:OrderResponse-2"
+      xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+      xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+      <cbc:CustomizationID>urn:fdc:peppol.eu:poacc:trns:order_response:3</cbc:CustomizationID>
+      <cbc:ID>AB-11</cbc:ID>
+      <cbc:IssueDate>2026-09-02</cbc:IssueDate>
+      <cbc:OrderResponseCode>AP</cbc:OrderResponseCode>
+      <cac:OrderReference><cbc:ID>PO-11</cbc:ID></cac:OrderReference>
+    </OrderResponse>
+    """
+
+    /// CII-Gutschrift (TypeCode 381, Factur-X BASIC) mit VOLLSTÄNDIGER und
+    /// rechnerisch richtiger Summenkette: 100 − 5 + 3 = 98; 19 % = 18.62;
+    /// 116.62 brutto = fällig. Grundlage für die Summenprüfungs-Tests.
+    private static let ciiCreditNoteXML = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rsm:CrossIndustryInvoice
+      xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+      xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+      xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+      <rsm:ExchangedDocumentContext>
+        <ram:GuidelineSpecifiedDocumentContextParameter>
+          <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic</ram:ID>
+        </ram:GuidelineSpecifiedDocumentContextParameter>
+      </rsm:ExchangedDocumentContext>
+      <rsm:ExchangedDocument>
+        <ram:ID>G-2026-3</ram:ID>
+        <ram:TypeCode>381</ram:TypeCode>
+        <ram:IssueDateTime><udt:DateTimeString format="102">20260902</udt:DateTimeString></ram:IssueDateTime>
+      </rsm:ExchangedDocument>
+      <rsm:SupplyChainTradeTransaction>
+        <ram:IncludedSupplyChainTradeLineItem>
+          <ram:AssociatedDocumentLineDocument><ram:LineID>1</ram:LineID></ram:AssociatedDocumentLineDocument>
+          <ram:SpecifiedTradeProduct><ram:Name>Rückvergütung</ram:Name></ram:SpecifiedTradeProduct>
+          <ram:SpecifiedLineTradeSettlement>
+            <ram:SpecifiedTradeSettlementLineMonetarySummation>
+              <ram:LineTotalAmount>100.00</ram:LineTotalAmount>
+            </ram:SpecifiedTradeSettlementLineMonetarySummation>
+          </ram:SpecifiedLineTradeSettlement>
+        </ram:IncludedSupplyChainTradeLineItem>
+        <ram:ApplicableHeaderTradeAgreement>
+          <ram:SellerTradeParty><ram:Name>Verkäufer GmbH</ram:Name></ram:SellerTradeParty>
+          <ram:BuyerTradeParty><ram:Name>Käufer AG</ram:Name></ram:BuyerTradeParty>
+        </ram:ApplicableHeaderTradeAgreement>
+        <ram:ApplicableHeaderTradeDelivery/>
+        <ram:ApplicableHeaderTradeSettlement>
+          <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+          <ram:ApplicableTradeTax>
+            <ram:CalculatedAmount>18.62</ram:CalculatedAmount>
+            <ram:TypeCode>VAT</ram:TypeCode>
+            <ram:BasisAmount>98.00</ram:BasisAmount>
+            <ram:CategoryCode>S</ram:CategoryCode>
+            <ram:RateApplicablePercent>19</ram:RateApplicablePercent>
+          </ram:ApplicableTradeTax>
+          <ram:SpecifiedTradeAllowanceCharge>
+            <ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>
+            <ram:ActualAmount>5.00</ram:ActualAmount>
+          </ram:SpecifiedTradeAllowanceCharge>
+          <ram:SpecifiedTradeAllowanceCharge>
+            <ram:ChargeIndicator><udt:Indicator>true</udt:Indicator></ram:ChargeIndicator>
+            <ram:ActualAmount>3.00</ram:ActualAmount>
+          </ram:SpecifiedTradeAllowanceCharge>
+          <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+            <ram:LineTotalAmount>100.00</ram:LineTotalAmount>
+            <ram:ChargeTotalAmount>3.00</ram:ChargeTotalAmount>
+            <ram:AllowanceTotalAmount>5.00</ram:AllowanceTotalAmount>
+            <ram:TaxBasisTotalAmount>98.00</ram:TaxBasisTotalAmount>
+            <ram:TaxTotalAmount currencyID="EUR">18.62</ram:TaxTotalAmount>
+            <ram:GrandTotalAmount>116.62</ram:GrandTotalAmount>
+            <ram:DuePayableAmount>116.62</ram:DuePayableAmount>
+          </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        </ram:ApplicableHeaderTradeSettlement>
+      </rsm:SupplyChainTradeTransaction>
+    </rsm:CrossIndustryInvoice>
+    """
+
+    /// Rechnung mit absichtlich falscher Summe: Bruttobetrag 120.00 statt
+    /// 116.62 — BT-112 und BT-115 verletzen dann je eine Regel.
+    private static let ciiWrongSumXML = ciiCreditNoteXML.replacingOccurrences(
+        of: "<ram:GrandTotalAmount>116.62</ram:GrandTotalAmount>",
+        with: "<ram:GrandTotalAmount>120.00</ram:GrandTotalAmount>")
+
+    /// Rechnung ohne Pflichtfelder: nur der Kontextblock, XRechnung-Profil
+    /// (verlangt zusätzlich die Leitweg-ID BT-10).
+    private static let ciiMissingFieldsXML = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rsm:CrossIndustryInvoice
+      xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+      xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+      <rsm:ExchangedDocumentContext>
+        <ram:GuidelineSpecifiedDocumentContextParameter>
+          <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0</ram:ID>
+        </ram:GuidelineSpecifiedDocumentContextParameter>
+      </rsm:ExchangedDocumentContext>
+      <rsm:ExchangedDocument/>
+    </rsm:CrossIndustryInvoice>
+    """
+
     // MARK: - Helfer
 
     private func field(_ doc: EInvoiceDocument, term: String) -> EInvoiceField? {
         doc.fields.first { $0.term == term }
+    }
+
+    /// Feld einer Bestellung über seine Order-X-Bezeichnung (kein BT-Term).
+    private func labeled(_ doc: EInvoiceDocument, _ label: String) -> EInvoiceField? {
+        doc.fields.first { $0.term == nil && $0.termName == label }
     }
 
     /// Temporäres Verzeichnis für Dateien, die ein Test braucht.
@@ -201,11 +402,17 @@ struct EInvoiceTests {
 
     // MARK: - Erkennung
 
-    @Test("Inhaltstest erkennt CII, UBL-Rechnung und UBL-Gutschrift")
+    @Test("Inhaltstest erkennt CII, UBL-Rechnung, UBL-Gutschrift, Order-X und UBL-Bestellungen")
     func sniffAcceptsInvoiceSyntaxes() {
         #expect(EInvoiceReader.sniffXML(Data(Self.ciiXML.utf8)))
         #expect(EInvoiceReader.sniffXML(Data(Self.ublXML.utf8)))
         #expect(EInvoiceReader.sniffXML(Data(Self.ublCreditNoteXML.utf8)))
+        #expect(EInvoiceReader.sniffXML(Data(Self.orderXXML.utf8)))
+        #expect(EInvoiceReader.sniffXML(Data(Self.ublOrderXML.utf8)))
+        #expect(EInvoiceReader.sniffXML(Data(Self.ublOrderResponseXML.utf8)))
+        // Der Order-X-Wurzelname allein reicht nicht — der Namensraum muss passen.
+        let foreign = "<o:SCRDMCCBDACIOMessageStructure xmlns:o=\"urn:example:SCRDMCCBDACIOMessageStructure:1\"/>"
+        #expect(!EInvoiceReader.sniffXML(Data(foreign.utf8)))
     }
 
     @Test("Fremd-XML wird abgelehnt — auch wenn 'Invoice' im Text vorkommt")
@@ -318,6 +525,14 @@ struct EInvoiceTests {
             .standard == "ZUGFeRD 2.0")
         #expect(resolved("urn:ferd:CrossIndustryDocument:invoice:1p0:comfort")
             .standard == "ZUGFeRD 1.0")
+        // Order-X und Peppol-Bestellungen
+        #expect(resolved("urn:order-x.eu:1p0:basic").standard == "Order-X")
+        #expect(resolved("urn:order-x.eu:1p0:basic").profile == "BASIC")
+        #expect(resolved("urn:order-x.eu:1p0:comfort").profile == "COMFORT")
+        #expect(resolved("urn:order-x.eu:1p0:extended").profile == "EXTENDED")
+        #expect(resolved("urn:fdc:peppol.eu:poacc:trns:order:3").profile == "Peppol BIS Order")
+        #expect(resolved("urn:fdc:peppol.eu:poacc:trns:order_response:3").profile
+            == "Peppol BIS Order Response")
         let xr30 = resolved("urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0")
         #expect(xr30.standard == "XRechnung")
         #expect(xr30.profile == "XRechnung 3.0")
@@ -496,11 +711,206 @@ struct EInvoiceTests {
         #expect(field(doc, term: "BT-153")?.value == "Rückvergütung")
     }
 
+    // MARK: - Dokumentart und Bestellungen
+
+    @Test("Dokumentart: Rechnung, Gutschrift (CII 381 und UBL CreditNote), Bestellung, Bestellantwort")
+    func documentKinds() throws {
+        func kind(_ xml: String) throws -> EInvoiceDocumentKind {
+            try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile).documentKind
+        }
+        #expect(try kind(Self.ciiXML) == .invoice)
+        #expect(try kind(Self.ublXML) == .invoice)
+        #expect(try kind(Self.ciiCreditNoteXML) == .creditNote)
+        #expect(try kind(Self.ublCreditNoteXML) == .creditNote)
+        #expect(try kind(Self.orderXXML) == .order)
+        #expect(try kind(Self.ublOrderXML) == .order)
+        #expect(try kind(Self.ublOrderResponseXML) == .orderResponse)
+        // Order-X-Bestellantwort: Typcode 231 in derselben Syntax.
+        let response = Self.orderXXML.replacingOccurrences(
+            of: "<r:TypeCode>220</r:TypeCode>", with: "<r:TypeCode>231</r:TypeCode>")
+        #expect(try kind(response) == .orderResponse)
+    }
+
+    @Test("Order-X: Profil, Order-X-Bezeichnungen ohne BT-Nummer, Eckdaten, keine Warnungen")
+    func orderXDocument() throws {
+        let doc = try EInvoiceReader.document(fromXML: Data(Self.orderXXML.utf8), source: .xmlFile)
+        #expect(doc.syntax == .ciiOrder)
+        #expect(doc.profile.standard == "Order-X")
+        #expect(doc.profile.profile == "COMFORT")
+        #expect(doc.documentKind == .order)
+        // Bestellungen haben keine EN-16931-Nummern: kein Feld trägt einen Term.
+        #expect(doc.fields.allSatisfy { $0.term == nil })
+        #expect(labeled(doc, "Bestellnummer")?.value == "B-2026-7")
+        #expect(labeled(doc, "Bestelldatum")?.valueNote == "2026-09-01")
+        #expect(labeled(doc, "Code für die Dokumentart")?.valueNote == "Bestellung")
+        #expect(labeled(doc, "Käuferreferenz")?.value == "EINKAUF-1")
+        #expect(labeled(doc, "Verkäufer: Name")?.value == "Lieferant KG")
+        #expect(labeled(doc, "Käufer: Ort")?.value == "Berlin")
+        #expect(labeled(doc, "Gewünschte Lieferung – Termin")?.valueNote == "2026-09-15")
+        #expect(labeled(doc, "Bestellmenge")?.value == "500")
+        #expect(labeled(doc, "Bestellmenge")?.valueNote == "Stück")
+        #expect(labeled(doc, "Artikelname")?.value == "Schrauben M4")
+        #expect(labeled(doc, "Zuschlag (Kopf) – Betrag")?.value == "4.90")
+        #expect(labeled(doc, "Zuschlag (Kopf) – Grund")?.value == "Versand")
+        #expect(labeled(doc, "Gesamtbetrag mit Umsatzsteuer")?.value == "65.33")
+
+        #expect(doc.summary.invoiceNumber == "B-2026-7")
+        #expect(doc.summary.issueDate == "2026-09-01")
+        #expect(doc.summary.sellerName == "Lieferant KG")
+        #expect(doc.summary.buyerName == "Besteller GmbH")
+        #expect(doc.summary.currency == "EUR")
+        #expect(doc.summary.payableAmount == "65.33")
+        // Rechnungsregeln gelten nicht für Bestellungen.
+        #expect(doc.warnings.isEmpty)
+    }
+
+    @Test("UBL Order und OrderResponse: Peppol-Profil und Bezeichnungen")
+    func ublOrderDocuments() throws {
+        let order = try EInvoiceReader.document(fromXML: Data(Self.ublOrderXML.utf8), source: .xmlFile)
+        #expect(order.syntax == .ublOrder)
+        #expect(order.profile.standard == "Peppol BIS")
+        #expect(order.profile.profile == "Peppol BIS Order")
+        #expect(order.profile.businessProcessID == "urn:fdc:peppol.eu:poacc:bis:ordering:3")
+        #expect(order.fields.allSatisfy { $0.term == nil })
+        #expect(labeled(order, "Bestellnummer")?.value == "PO-11")
+        #expect(labeled(order, "Code für die Dokumentart")?.valueNote == "Bestellung")
+        #expect(labeled(order, "Käufer: Name")?.value == "Besteller GmbH")
+        #expect(labeled(order, "Verkäufer: Name")?.value == "Lieferant KG")
+        #expect(labeled(order, "Bestellmenge")?.valueNote == "Stück")
+        #expect(labeled(order, "Artikelname")?.value == "Schrauben M4")
+        #expect(order.summary.payableAmount == "50.00")
+        #expect(order.summary.sellerName == "Lieferant KG")
+        #expect(order.warnings.isEmpty)
+
+        let response = try EInvoiceReader.document(
+            fromXML: Data(Self.ublOrderResponseXML.utf8), source: .xmlFile)
+        #expect(response.syntax == .ublOrderResponse)
+        #expect(response.documentKind == .orderResponse)
+        #expect(response.profile.profile == "Peppol BIS Order Response")
+        #expect(labeled(response, "Antwort-Code (Bestellantwort)")?.value == "AP")
+        #expect(labeled(response, "Bestellnummer (Referenz)")?.value == "PO-11")
+        #expect(response.summary.invoiceNumber == "AB-11")
+    }
+
+    // MARK: - Grundvalidierung
+
+    @Test("CII-Gutschrift mit stimmiger Summenkette hat keine Hinweise")
+    func creditNoteWithoutWarnings() throws {
+        let doc = try EInvoiceReader.document(
+            fromXML: Data(Self.ciiCreditNoteXML.utf8), source: .xmlFile)
+        #expect(doc.documentKind == .creditNote)
+        #expect(field(doc, term: "BT-3")?.valueNote == "Gutschrift (Storno)")
+        #expect(doc.profile.profile == "BASIC")
+        #expect(doc.warnings == [])
+    }
+
+    @Test("Summenprüfung: falscher Bruttobetrag meldet BR-CO-15 und BR-CO-16")
+    func wrongSumWarnings() throws {
+        let doc = try EInvoiceReader.document(
+            fromXML: Data(Self.ciiWrongSumXML.utf8), source: .xmlFile)
+        #expect(doc.warnings.map(\.code) == ["BR-CO-15", "BR-CO-16"])
+        #expect(doc.warnings.map(\.term) == ["BT-112", "BT-115"])
+        #expect(doc.warnings[0].message.contains("120.00"))
+        #expect(doc.warnings[0].message.contains("116.62"))
+        #expect(doc.warnings[0].message.contains("BT-109 + BT-110"))
+    }
+
+    @Test("Summenprüfung: Rundungsdifferenz bis 0,01 gilt nicht als Fehler")
+    func sumToleranceOfOneCent() throws {
+        let oneCentOff = Self.ciiCreditNoteXML.replacingOccurrences(
+            of: "<ram:GrandTotalAmount>116.62</ram:GrandTotalAmount>",
+            with: "<ram:GrandTotalAmount>116.63</ram:GrandTotalAmount>")
+        let doc = try EInvoiceReader.document(fromXML: Data(oneCentOff.utf8), source: .xmlFile)
+        // 116.63 gegen 116.62 (BT-112) und gegen 116.62 (BT-115): je 0.01 — toleriert.
+        #expect(doc.warnings.isEmpty)
+
+        let twoCentsOff = Self.ciiCreditNoteXML.replacingOccurrences(
+            of: "<ram:GrandTotalAmount>116.62</ram:GrandTotalAmount>",
+            with: "<ram:GrandTotalAmount>116.64</ram:GrandTotalAmount>")
+        let doc2 = try EInvoiceReader.document(fromXML: Data(twoCentsOff.utf8), source: .xmlFile)
+        #expect(doc2.warnings.map(\.code) == ["BR-CO-15", "BR-CO-16"])
+    }
+
+    @Test("Summenprüfung: Positionssumme und Steuersumme")
+    func lineAndTaxSumWarnings() throws {
+        // Position 100.00, aber BT-106 = 90.00 → BR-CO-10; die Folge-Regel
+        // BR-CO-13 (BT-109 = BT-106 − BT-107 + BT-108) schlägt ebenfalls an.
+        // Das LETZTE Vorkommen ist die Kopfsumme (die Position steht davor).
+        let marker = "<ram:LineTotalAmount>100.00</ram:LineTotalAmount>"
+        var wrongLines = Self.ciiCreditNoteXML
+        let headerRange = try #require(wrongLines.range(of: marker, options: .backwards))
+        wrongLines.replaceSubrange(headerRange, with: "<ram:LineTotalAmount>90.00</ram:LineTotalAmount>")
+        let doc = try EInvoiceReader.document(fromXML: Data(wrongLines.utf8), source: .xmlFile)
+        #expect(doc.warnings.map(\.code) == ["BR-CO-10", "BR-CO-13"])
+
+        // Steuerbetrag der Kategorie (BT-117) passt nicht zur Steuersumme (BT-110).
+        let wrongTax = Self.ciiCreditNoteXML.replacingOccurrences(
+            of: "<ram:CalculatedAmount>18.62</ram:CalculatedAmount>",
+            with: "<ram:CalculatedAmount>17.00</ram:CalculatedAmount>")
+        let doc2 = try EInvoiceReader.document(fromXML: Data(wrongTax.utf8), source: .xmlFile)
+        #expect(doc2.warnings.map(\.code) == ["BR-CO-14"])
+        #expect(doc2.warnings.first?.term == "BT-110")
+    }
+
+    @Test("Pflichtfelder: fehlende Kopfangaben und Summen, bei XRechnung auch die Leitweg-ID")
+    func missingRequiredFields() throws {
+        let doc = try EInvoiceReader.document(
+            fromXML: Data(Self.ciiMissingFieldsXML.utf8), source: .xmlFile)
+        #expect(doc.profile.standard == "XRechnung")
+        #expect(doc.warnings.map(\.code) == [
+            "BR-02", "BR-03", "BR-04", "BR-05", "BR-06", "BR-07",
+            "BR-12", "BR-13", "BR-14", "BR-15", "BR-DE-15",
+        ])
+        #expect(doc.warnings.map(\.term) == [
+            "BT-1", "BT-2", "BT-3", "BT-5", "BT-27", "BT-44",
+            "BT-106", "BT-109", "BT-112", "BT-115", "BT-10",
+        ])
+        #expect(doc.warnings.first?.message == "Pflichtfeld fehlt: BT-1 Rechnungsnummer")
+        // Ohne XRechnung-Profil entfällt die Leitweg-ID-Regel.
+        let plain = Self.ciiMissingFieldsXML.replacingOccurrences(
+            of: "#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0", with: "")
+        let doc2 = try EInvoiceReader.document(fromXML: Data(plain.utf8), source: .xmlFile)
+        #expect(!doc2.warnings.contains { $0.code == "BR-DE-15" })
+        #expect(doc2.warnings.count == 10)
+    }
+
+    @Test("Pflichtfeld BT-106 entfällt bei MINIMUM und BASIC WL (keine Positionen)")
+    func minimumProfileSkipsLineTotal() throws {
+        let minimum = Self.ciiMissingFieldsXML.replacingOccurrences(
+            of: "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+            with: "urn:factur-x.eu:1p0:minimum")
+        let doc = try EInvoiceReader.document(fromXML: Data(minimum.utf8), source: .xmlFile)
+        #expect(!doc.warnings.contains { $0.term == "BT-106" })
+        #expect(doc.warnings.contains { $0.term == "BT-115" })
+    }
+
+    @Test("Bestellungen und ZUGFeRD 1.0 bekommen keine Rechnungs-Hinweise")
+    func ordersAndZUGFeRD1HaveNoWarnings() throws {
+        let zugferd1 = """
+        <?xml version="1.0"?>
+        <rsm:CrossIndustryDocument xmlns:rsm="urn:ferd:CrossIndustryDocument:invoice:1p0"/>
+        """
+        for xml in [Self.orderXXML, Self.ublOrderXML, Self.ublOrderResponseXML, zugferd1] {
+            let doc = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
+            #expect(doc.warnings.isEmpty)
+        }
+    }
+
+    @Test("Beträge: nur Dezimalpunkt-Zahlen sind lesbar")
+    func amountParsing() {
+        #expect(EInvoiceValidation.parseAmount("116.62") == Decimal(string: "116.62"))
+        #expect(EInvoiceValidation.parseAmount(" -5.00 ") == Decimal(string: "-5.00"))
+        #expect(EInvoiceValidation.parseAmount("1,5") == nil)
+        #expect(EInvoiceValidation.parseAmount("1 000.00") == nil)
+        #expect(EInvoiceValidation.parseAmount("EUR 5") == nil)
+    }
+
     // MARK: - Vollständigkeit
 
     @Test("Jedes XML-Element wird zu genau einem Anzeigefeld — nichts geht verloren")
     func everyElementBecomesAField() throws {
-        for xml in [Self.ciiXML, Self.ublXML, Self.ublCreditNoteXML] {
+        for xml in [Self.ciiXML, Self.ublXML, Self.ublCreditNoteXML, Self.orderXXML,
+                    Self.ublOrderXML, Self.ublOrderResponseXML, Self.ciiCreditNoteXML] {
             let doc = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
             // Elementzahl der Roh-Struktur: schließende Tags + selbstschließende.
             let elementCount = xml.components(separatedBy: "</").count - 1
@@ -530,6 +940,20 @@ struct EInvoiceTests {
             #expect(throws: EInvoiceError.notAnInvoice) {
                 try EInvoiceReader.read(url: plainURL)
             }
+        }
+    }
+
+    @Test("PDF: eingebettete Order-X-Bestellung (order-x.xml) wird als Bestellung gelesen")
+    func pdfWithOrderX() throws {
+        try withTempDirectory { dir in
+            let pdfURL = dir.appendingPathComponent("bestellung.pdf")
+            try Self.makePDF(embedding: Data(Self.orderXXML.utf8), fileName: "order-x.xml")
+                .write(to: pdfURL)
+            let doc = try EInvoiceReader.read(url: pdfURL)
+            #expect(doc.syntax == .ciiOrder)
+            #expect(doc.documentKind == .order)
+            #expect(doc.source == .pdfEmbedded(fileName: "order-x.xml"))
+            #expect(doc.summary.invoiceNumber == "B-2026-7")
         }
     }
 

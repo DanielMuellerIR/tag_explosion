@@ -42,9 +42,21 @@ public enum EInvoiceReader {
         case ("CrossIndustryDocument", let uri)
             where uri.hasPrefix("urn:ferd:CrossIndustryDocument"):
             return true
+        // Order-X (UN/CEFACT Cross Industry Order). Der Namensraum lautet
+        // urn:un:unece:uncefact:data:SCRDMCCBDACIOMessageStructure:100 — ohne
+        // das Segment "standard", das CII trägt; deshalb nur der Stamm plus
+        // der Schemaname als Muster.
+        case ("SCRDMCCBDACIOMessageStructure", let uri)
+            where uri.hasPrefix("urn:un:unece:uncefact:data:")
+                && uri.contains(":SCRDMCCBDACIOMessageStructure:"):
+            return true
         case ("Invoice", "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"):
             return true
         case ("CreditNote", "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"):
+            return true
+        case ("Order", "urn:oasis:names:specification:ubl:schema:xsd:Order-2"):
+            return true
+        case ("OrderResponse", "urn:oasis:names:specification:ubl:schema:xsd:OrderResponse-2"):
             return true
         default:
             return false
@@ -106,7 +118,9 @@ public enum EInvoiceReader {
         // die Reihenfolge des PDF-Namensbaums bzw. AF-Arrays erhalten.
         let declaredName = extraction.declaration?.documentFileName?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let preferredNames = ["factur-x.xml", "zugferd-invoice.xml", "xrechnung.xml"]
+        // order-x.xml ist der vorgeschriebene Anhangname von Order-X-PDFs.
+        let preferredNames = ["factur-x.xml", "zugferd-invoice.xml", "xrechnung.xml",
+                              "order-x.xml"]
         func candidateRank(_ name: String) -> Int {
             if let declaredName, !declaredName.isEmpty,
                declaredName.caseInsensitiveCompare(name) == .orderedSame {
@@ -155,8 +169,11 @@ public enum EInvoiceReader {
         switch root.name {
         case "rsm:CrossIndustryInvoice": syntax = .cii
         case "rsm:CrossIndustryDocument": syntax = .ciiZUGFeRD1
+        case "rsm:SCRDMCCBDACIOMessageStructure": syntax = .ciiOrder
         case "ubl:Invoice": syntax = .ublInvoice
         case "ubl:CreditNote": syntax = .ublCreditNote
+        case "ubl:Order": syntax = .ublOrder
+        case "ubl:OrderResponse": syntax = .ublOrderResponse
         default: throw EInvoiceError.notAnInvoice
         }
 
@@ -167,10 +184,38 @@ public enum EInvoiceReader {
         walk(node: root, path: root.name, level: 0, ancestors: [], syntax: syntax,
              invoiceCurrency: invoiceCurrency, into: &fields)
 
-        return EInvoiceDocument(
+        var document = EInvoiceDocument(
             source: source, syntax: syntax, profile: profile,
+            documentKind: documentKind(syntax: syntax, fields: fields),
             pdfDeclaration: nil, fields: fields,
-            summary: buildSummary(fields: fields))
+            summary: buildSummary(fields: fields, syntax: syntax))
+        document.warnings = EInvoiceValidation.warnings(for: document)
+        return document
+    }
+
+    /// Dokumentart aus Wurzel und Typcode: Eine UBL-CreditNote ist immer eine
+    /// Gutschrift; bei CII und UBL-Invoice entscheidet BT-3 (381 = Gutschrift).
+    /// Bestellantworten tragen in Order-X den Typcode 231, in UBL die eigene
+    /// Wurzel OrderResponse.
+    static func documentKind(syntax: EInvoiceSyntax, fields: [EInvoiceField]) -> EInvoiceDocumentKind {
+        func first(_ term: String) -> String? {
+            fields.first { $0.term == term && !$0.value.isEmpty }?.value
+        }
+        func firstLabel(_ label: String) -> String? {
+            fields.first { $0.term == nil && $0.termName == label && !$0.value.isEmpty }?.value
+        }
+        switch syntax {
+        case .ublCreditNote:
+            return .creditNote
+        case .cii, .ciiZUGFeRD1, .ublInvoice:
+            return first("BT-3") == "381" ? .creditNote : .invoice
+        case .ciiOrder:
+            return firstLabel(OrderTerms.typeCode) == "231" ? .orderResponse : .order
+        case .ublOrder:
+            return .order
+        case .ublOrderResponse:
+            return .orderResponse
+        }
     }
 
     // MARK: - Baum-Durchlauf
@@ -180,6 +225,8 @@ public enum EInvoiceReader {
                              invoiceCurrency: String?,
                              into fields: inout [EInvoiceField]) {
         let term: String?
+        /// Bestellungen: Order-X-Bezeichnung ohne BT-Nummer (siehe OrderMapping).
+        var orderLabel: String?
         switch syntax {
         case .cii:
             term = CIIMapping.term(path: path, node: node, ancestors: ancestors,
@@ -187,6 +234,12 @@ public enum EInvoiceReader {
         case .ublInvoice, .ublCreditNote:
             term = UBLMapping.term(path: path, node: node, ancestors: ancestors,
                                    invoiceCurrency: invoiceCurrency)
+        case .ciiOrder:
+            term = nil
+            orderLabel = OrderXMapping.label(path: path, node: node, ancestors: ancestors)
+        case .ublOrder, .ublOrderResponse:
+            term = nil
+            orderLabel = UBLOrderMapping.label(path: path, node: node, ancestors: ancestors)
         case .ciiZUGFeRD1:
             // ZUGFeRD 1.0 stammt aus der Zeit vor EN 16931 — eine BT-Zuordnung
             // wäre bestenfalls sinngemäß und damit potenziell falsch.
@@ -195,7 +248,7 @@ public enum EInvoiceReader {
 
         let formatAttribute = node.attributes.first { $0.name == "format" }?.value
         let unitAttribute = node.attributes.first { $0.name == "unitCode" }?.value
-        let valueNote = CodeLists.note(term: term, value: node.text)
+        let valueNote = CodeLists.note(term: term, label: orderLabel, value: node.text)
             ?? CodeLists.isoDateNote(value: node.text, formatAttribute: formatAttribute)
             // Mengen tragen ihre Einheit als Attribut (BT-130/BT-150) —
             // die Lesehilfe entschlüsselt den Einheiten-Code.
@@ -209,14 +262,14 @@ public enum EInvoiceReader {
             rawAttributeTerms = CIIMapping.attributeTerms(for: term, node: node)
         case .ublInvoice, .ublCreditNote:
             rawAttributeTerms = UBLMapping.attributeTerms(for: term, node: node)
-        case .ciiZUGFeRD1:
+        case .ciiZUGFeRD1, .ciiOrder, .ublOrder, .ublOrderResponse:
             rawAttributeTerms = []
         }
 
         fields.append(EInvoiceField(
             level: level, element: node.name, path: path, value: node.text,
             attributes: node.attributes, term: term,
-            termName: term.flatMap { EN16931.name(for: $0) },
+            termName: term.flatMap { EN16931.name(for: $0) } ?? orderLabel,
             valueNote: valueNote,
             attributeTerms: rawAttributeTerms.map {
                 EInvoiceAttributeTerm(attribute: $0.attribute, term: $0.term,
@@ -237,7 +290,8 @@ public enum EInvoiceReader {
         let guideline: String?
         let process: String?
         switch syntax {
-        case .cii:
+        case .cii, .ciiOrder:
+            // Order-X nutzt denselben Kontextblock wie CII.
             let ctx = ["rsm:ExchangedDocumentContext",
                        "ram:GuidelineSpecifiedDocumentContextParameter", "ram:ID"]
             guideline = XMLTree.firstNode(in: root, path: ctx)?.text
@@ -249,7 +303,7 @@ public enum EInvoiceReader {
                 ["rsm:SpecifiedExchangedDocumentContext",
                  "ram:GuidelineSpecifiedDocumentContextParameter", "ram:ID"])?.text
             process = nil
-        case .ublInvoice, .ublCreditNote:
+        case .ublInvoice, .ublCreditNote, .ublOrder, .ublOrderResponse:
             guideline = XMLTree.firstNode(in: root, path: ["cbc:CustomizationID"])?.text
             process = XMLTree.firstNode(in: root, path: ["cbc:ProfileID"])?.text
         }
@@ -270,12 +324,18 @@ public enum EInvoiceReader {
                 ["rsm:SpecifiedSupplyChainTradeTransaction",
                  "ram:ApplicableSupplyChainTradeSettlement",
                  "ram:InvoiceCurrencyCode"])?.text
-        case .ublInvoice, .ublCreditNote:
+        case .ciiOrder:
+            return XMLTree.firstNode(in: root, path:
+                ["rsm:SupplyChainTradeTransaction", "ram:ApplicableHeaderTradeSettlement",
+                 "ram:OrderCurrencyCode"])?.text
+        case .ublInvoice, .ublCreditNote, .ublOrder, .ublOrderResponse:
             return XMLTree.firstNode(in: root, path: ["cbc:DocumentCurrencyCode"])?.text
         }
     }
 
-    private static func buildSummary(fields: [EInvoiceField]) -> EInvoiceSummary {
+    private static func buildSummary(fields: [EInvoiceField],
+                                     syntax: EInvoiceSyntax) -> EInvoiceSummary {
+        if syntax.isOrder { return buildOrderSummary(fields: fields) }
         func first(_ term: String) -> EInvoiceField? {
             fields.first { $0.term == term && !$0.value.isEmpty }
         }
@@ -288,5 +348,23 @@ public enum EInvoiceReader {
             buyerName: first("BT-44")?.value,
             currency: first("BT-5")?.value,
             payableAmount: first("BT-115")?.value)
+    }
+
+    /// Bestellungen haben keine BT-Nummern; die Eckdaten kommen über die
+    /// festen Order-X-Bezeichnungen aus `OrderTerms`.
+    private static func buildOrderSummary(fields: [EInvoiceField]) -> EInvoiceSummary {
+        func first(_ label: String) -> EInvoiceField? {
+            fields.first { $0.term == nil && $0.termName == label && !$0.value.isEmpty }
+        }
+        let issue = first(OrderTerms.date)
+        return EInvoiceSummary(
+            invoiceNumber: first(OrderTerms.number)?.value,
+            issueDate: issue.map { $0.valueNote ?? $0.value },
+            // Bei Beteiligten steht der Name als "Rolle: Name".
+            sellerName: first("\(OrderTerms.seller): Name")?.value,
+            buyerName: first("\(OrderTerms.buyer): Name")?.value,
+            currency: first(OrderTerms.currency)?.value,
+            // Order-X hat meist nur den Gesamtbetrag, UBL auch den fälligen.
+            payableAmount: (first(OrderTerms.payableAmount) ?? first(OrderTerms.grandTotal))?.value)
     }
 }
