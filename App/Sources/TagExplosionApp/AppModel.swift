@@ -603,11 +603,11 @@ final class AppModel {
                 return .audio(try TagFile.read(at: url))
             } catch {
                 // Container, für die TagLib keinen Tag-Leser hat (AVI, manche
-                // MOV-Varianten), sollen trotzdem geöffnet werden können: Der
-                // Technik-Tab über mediainfo funktioniert für sie, bearbeitbar
-                // sind sie nicht. Ohne diesen Weg endet das Öffnen mit einem
-                // Fehler statt mit einer Ansicht.
-                guard MediaFormats.video.contains(url.pathExtension.lowercased()) else {
+                // MOV-Varianten, Sun-AU, Ogg-Video), sollen trotzdem geöffnet
+                // werden können: Der Technik-Tab über mediainfo funktioniert
+                // für sie, bearbeitbar sind sie nicht. Ohne diesen Weg endet
+                // das Öffnen mit einem Fehler statt mit einer Ansicht.
+                guard MediaFormats.toleratesMissingTagReader(url) else {
                     throw error
                 }
                 return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))

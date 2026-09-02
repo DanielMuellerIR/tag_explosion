@@ -9,6 +9,11 @@ struct CoverWell: View {
 
     private var artwork: Artwork? { entry.artworks.first }
 
+    /// Formate ohne Cover-Speicherort (Tracker-Module, Matroska, reine
+    /// Anzeige-Formate): Drop, Auswahl und Kontextmenü bleiben stumm, statt
+    /// beim Speichern mit einem unverständlichen Fehler zu enden.
+    private var supportsArtwork: Bool { MediaFormats.supportsEmbeddedArtwork(entry.url) }
+
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
@@ -21,9 +26,9 @@ struct CoverWell: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 } else {
                     VStack(spacing: 4) {
-                        Image(systemName: "photo.on.rectangle.angled")
+                        Image(systemName: supportsArtwork ? "photo.on.rectangle.angled" : "photo.badge.exclamationmark")
                             .font(.largeTitle)
-                        Text("Cover hierher\nziehen")
+                        Text(supportsArtwork ? "Cover hierher\nziehen" : "Kein Cover\nin diesem Format")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                     }
@@ -36,10 +41,12 @@ struct CoverWell: View {
             }
             .frame(width: 180, height: 180)
             .onDrop(of: [.fileURL, .image], isTargeted: $isTargeted) { providers in
-                handleDrop(providers)
+                supportsArtwork && handleDrop(providers)
             }
             .contextMenu {
-                Button("Bild auswählen …") { pickImage() }
+                if supportsArtwork {
+                    Button("Bild auswählen …") { pickImage() }
+                }
                 if artwork != nil {
                     Button("Exportieren …") { exportImage() }
                     Button("Cover entfernen", role: .destructive) {
@@ -47,7 +54,7 @@ struct CoverWell: View {
                     }
                 }
             }
-            .onTapGesture { pickImage() }
+            .onTapGesture { if supportsArtwork { pickImage() } }
 
             if let artwork {
                 Text("\(artwork.resolvedMimeType.replacingOccurrences(of: "image/", with: "").uppercased()) · \(ByteCountFormatter.string(fromByteCount: Int64(artwork.data.count), countStyle: .file))\(entry.artworks.count > 1 ? " · " + String(localized: "+\(entry.artworks.count - 1) weitere") : "")")
