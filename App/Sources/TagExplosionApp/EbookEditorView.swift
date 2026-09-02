@@ -92,6 +92,8 @@ struct EbookEditorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                FilenamePatternMenu(entries: [entry])
+                    .padding(.top, 4)
                 if supportsCover {
                     Button("Cover auswählen …") { presentCoverPanel() }
                         .padding(.top, 6)

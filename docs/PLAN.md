@@ -116,7 +116,10 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 - ID3v1/v2/APE getrennt anzeigen/bearbeiten/strippen (wir: TagLib-vereinheitlicht)
 - Frame-Detailansicht (rohe ID3-Frames) und ID3v2.3-Schreiboption
-- Dateiname ↔ Tag mit Format-Mustern (beide Richtungen, Umbenennen aus Tags)
+- ~~Dateiname ↔ Tag mit Format-Mustern (beide Richtungen, Umbenennen aus Tags)~~
+  — ✅ umgesetzt (AP3, 2026-09-02): `FilenamePattern`/`FileRenamer` im Core,
+  `tagx rename`/`tagx parse`, Dialoge in Einzel- und Batch-Editor. Bewusst
+  ohne Ordner-Anteil im Muster (kid3 legt auch Ordner an).
 - Online-Import (MusicBrainz/Discogs), Playlist-Export, Groß-/Kleinschreibungs-Werkzeuge
 - Dafür haben wir: MediaInfo-Vollansicht, Bilder (EXIF/IPTC/XMP), moderne UI,
   Matroska-Tags, maschinenlesbare CLI (JSON)

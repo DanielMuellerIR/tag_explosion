@@ -51,6 +51,14 @@
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
   Funktioniert für eigenständige XML-Dateien und für PDFs mit eingebetteter
   Rechnung — die bekommen einen zusätzlichen Tab „E-Rechnung“.
+- **Dateinamen aus Tags, Tags aus Dateinamen** — Muster im kid3-Stil wie
+  `%{track:2} - %{artist} - %{title}` (jeder Tag-Schlüssel geht, `%{track:2}`
+  füllt mit Nullen auf). Das Umbenennen zeigt eine Vorschau und verweigert
+  Konflikte (zweimal derselbe Zielname, Ziel schon belegt, leerer Name); die
+  Gegenrichtung füllt die Felder aus dem Namen und wird wie gewohnt
+  gespeichert. Für Audio, Video, Bilder (`%{creator}`, `%{date}`) und E-Books
+  (`%{author}`, `%{series}`), in den Editoren und als `tagx rename` /
+  `tagx parse` (Probelauf per Voreinstellung, `--apply`, `--json`).
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf

@@ -32,6 +32,11 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Endungen oder Tracker-/Matroska-/3GP-Fragen: was TagLib 2.3 wirklich liest
   und schreibt (au/ogv gar nicht, mka ohne Cover, Tracker nur Titel/Kommentar
   in Latin1 mit Längenlimit), Fixture-Rezepte und die MP4-Fake-JPEG-Falle.
+- [dateiname-muster-umbenennen.md](dateiname-muster-umbenennen.md) — Bei
+  Arbeit an `FilenamePattern`, `FileRenamer`, `tagx rename`/`parse` oder den
+  Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
+  Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
+  lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen.
 - [archiv-restore-vertrag.md](archiv-restore-vertrag.md) — Bei TagArchive-,
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
