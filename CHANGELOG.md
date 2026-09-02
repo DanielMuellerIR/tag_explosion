@@ -8,6 +8,28 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.27.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Kamera-RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef) sowie avif, jxl, bmp,
+  psd, svg werden als Bilder gelesen; `.xmp` öffnet sich als eigenes Format
+  (gleiche Felder, ohne Pixel).
+- XMP-Sidecar: RAW-Dateien werden nie direkt beschrieben; Änderungen gehen in
+  `<name>.xmp` daneben (wird bei Bedarf angelegt). Sidecar-Werte überlagern
+  beim Lesen die eingebetteten feldweise; Bild- und Batch-Editor zeigen
+  Herkunft und Schreibziel. Fallen:
+  [knowledge/raw-xmp-sidecar.md](knowledge/raw-xmp-sidecar.md).
+- Einstellung „Bild-Metadaten in XMP-Sidecar schreiben statt in die
+  Bilddatei“ und `tagx exif set --sidecar`; `tagx exif show` meldet Sidecar,
+  Sidecar-Felder und Schreibziel.
+
+### Geändert
+
+- Bilder mit vorhandener Sidecar und Formate ohne exiftool-Schreibweg (bmp,
+  svg) schreiben immer in die Sidecar; die Papierkorb-Sicherung gilt dann der
+  Sidecar.
+
 ## [0.26.0] — 2026-09-02
 
 ### Hinzugefügt
