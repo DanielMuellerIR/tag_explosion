@@ -8,6 +8,27 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.29.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Tag-Schichten: Der Audio-Editor zeigt je Datei die Schichten ID3v1, ID3v2
+  (mit Version 2.3/2.4), APEv2, RIFF INFO und Vorbis mit Feldanzahl und
+  entfernt eine einzelne Schicht nach Rückfrage; die übrigen Schichten und
+  der Audiostream bleiben unverändert (mp3/mp2, wav, aiff, flac, ape, mpc,
+  wv, tta, dsf). CLI: `tagx layers show [--json]` und
+  `tagx layers strip --layer id3v1|id3v2|ape|info|vorbis`.
+- ID3v2.3-Schreiboption für alte Player: Einstellung „ID3v2.3 statt ID3v2.4
+  schreiben“ (Voreinstellung aus) und `tagx set --id3v23` (mp3/mp2, wav,
+  aiff, dsf). Grenzen von v2.3 (UTF-16, Datum ohne Sekunden, Originaldatum
+  nur Jahr): [knowledge/id3-schichten.md](knowledge/id3-schichten.md).
+
+### Geändert
+
+- `TagData` trägt die Schichtenliste (`layers`); `TagFile.write` nimmt
+  `id3Version:` entgegen. Schichten werden nur angezeigt und entfernt, nicht
+  getrennt bearbeitet.
+
 ## [0.28.0] — 2026-09-02
 
 ### Hinzugefügt
