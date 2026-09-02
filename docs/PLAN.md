@@ -114,8 +114,14 @@ Kreuzkompatibilität verifiziert: kid3-geschriebene Dateien (inkl. USLT-Lyrics,
 BPM) liest tagx korrekt; tagx-geschriebene Custom-/Standard-Felder liest kid3
 korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
-- ID3v1/v2/APE getrennt anzeigen/bearbeiten/strippen (wir: TagLib-vereinheitlicht)
-- Frame-Detailansicht (rohe ID3-Frames) und ID3v2.3-Schreiboption
+- ~~ID3v1/v2/APE getrennt anzeigen/strippen~~ — ✅ umgesetzt (AP6, 2026-09-02):
+  Schichten mit Version und Feldern im Editor-Abschnitt „Tag-Schichten" und
+  `tagx layers show/strip`; Bearbeiten bleibt bewusst TagLib-vereinheitlicht
+  (eine Property-Map für alle Schichten, kid3 bietet je Schicht ein Formular).
+- Frame-Detailansicht (rohe ID3-Frames)
+- ~~ID3v2.3-Schreiboption~~ — ✅ umgesetzt (AP6, 2026-09-02): Einstellung
+  „ID3v2.3 statt ID3v2.4 schreiben" und `tagx set --id3v23`; Grenzen in
+  [knowledge/id3-schichten.md](../knowledge/id3-schichten.md).
 - ~~Dateiname ↔ Tag mit Format-Mustern (beide Richtungen, Umbenennen aus Tags)~~
   — ✅ umgesetzt (AP3, 2026-09-02): `FilenamePattern`/`FileRenamer` im Core,
   `tagx rename`/`tagx parse`, Dialoge in Einzel- und Batch-Editor. Bewusst

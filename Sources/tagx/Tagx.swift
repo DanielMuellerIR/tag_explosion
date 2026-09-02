@@ -10,8 +10,8 @@ struct Tagx: ParsableCommand {
         commandName: "tagx",
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
-        subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Info.self, Exif.self,
-                      Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
+        subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Layers.self, Info.self,
+                      Exif.self, Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
                       Rename.self, Parse.self],
         defaultSubcommand: Show.self
     )
@@ -157,6 +157,9 @@ struct Set: ParsableCommand {
             help: "Copy the value of another field (TARGET=SOURCE), e.g. -c ALBUMARTIST=ARTIST")
     var copy: [String] = []
     @Flag(name: .long, help: "Remove all existing fields first") var replaceAll = false
+    @Flag(name: .customLong("id3v23"),
+          help: "Write ID3v2.3 instead of ID3v2.4 (for old players; MP3, WAV, AIFF, DSF)")
+    var id3v23 = false
     @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
@@ -246,7 +249,8 @@ struct Set: ParsableCommand {
         }
         try snapshot.requireCurrent(at: url)
         try TrashBackup.shared.backUp(url)
-        try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp)
+        try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp,
+                          id3Version: id3v23 ? .v23 : .v24)
         print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
     }
 }

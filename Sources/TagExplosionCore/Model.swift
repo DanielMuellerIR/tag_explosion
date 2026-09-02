@@ -93,6 +93,86 @@ public struct Chapter: Sendable, Codable, Equatable, Hashable {
     }
 }
 
+/// Art einer Tag-Schicht. Manche Container tragen mehrere Schichten
+/// nebeneinander (MP3: ID3v1 am Ende, ID3v2 am Anfang, selten APEv2; WAV:
+/// ID3v2 + RIFF INFO; FLAC: Vorbis + selten ID3). Die Roh-Werte sind zugleich
+/// die CLI-Schreibweise (`tagx layers strip --layer id3v1`).
+public enum TagLayerKind: String, Sendable, Codable, CaseIterable, Hashable {
+    case id3v1
+    case id3v2
+    case ape
+    /// RIFF INFO (WAV)
+    case info
+    /// Vorbis Comment (FLAC)
+    case vorbis
+
+    /// Bit im Shim (`tx_layer_kind`).
+    var shimMask: Int32 {
+        switch self {
+        case .id3v1: return 1
+        case .id3v2: return 2
+        case .ape: return 4
+        case .info: return 8
+        case .vorbis: return 16
+        }
+    }
+
+    static func fromShim(_ value: Int32) -> TagLayerKind? {
+        allCases.first { $0.shimMask == value }
+    }
+}
+
+/// Eine Tag-Schicht einer Datei: ob sie vorhanden ist, welche Version sie hat
+/// und welche Felder sie trägt. Formate ohne Schichtenmodell (MP4, Ogg,
+/// Matroska …) liefern gar keine `TagLayer`.
+public struct TagLayer: Sendable, Codable, Equatable, Hashable {
+    public var kind: TagLayerKind
+    /// ID3v2: 2/3/4 (Major-Version), ID3v1: 1, APE: 1/2; 0 = keine Angabe
+    /// (RIFF INFO, Vorbis) oder Schicht fehlt.
+    public var version: Int
+    public var present: Bool
+    /// Ob `TagFile.stripLayers` diese Schicht entfernen kann.
+    public var strippable: Bool
+    /// Property-Schlüssel der Schicht (z.B. "TITLE"); leer, wenn sie fehlt.
+    public var fields: [String]
+
+    public init(kind: TagLayerKind, version: Int, present: Bool, strippable: Bool, fields: [String]) {
+        self.kind = kind
+        self.version = version
+        self.present = present
+        self.strippable = strippable
+        self.fields = fields
+    }
+
+    /// Anzeigename mit Version, z.B. "ID3v2.4", "ID3v1", "APEv2", "RIFF INFO".
+    public var displayName: String {
+        switch kind {
+        case .id3v1: return "ID3v1"
+        case .id3v2: return version > 0 ? "ID3v2.\(version)" : "ID3v2"
+        case .ape: return version > 0 ? "APEv\(version)" : "APE"
+        case .info: return "RIFF INFO"
+        case .vorbis: return "Vorbis Comment"
+        }
+    }
+}
+
+/// ID3v2-Version beim Schreiben. Voreinstellung ist v2.4; v2.3 ist für alte
+/// Player und Autoradios gedacht, die v2.4 nicht lesen. Grenzen von v2.3:
+/// kein UTF-8 (TagLib schreibt UTF-16) und keine TDRC-/TDOR-Frames (TagLib
+/// wandelt das Datum in TYER/TDAT). Details: knowledge/id3-schichten.md.
+public enum ID3Version: String, Sendable, Codable, CaseIterable {
+    case v24
+    case v23
+
+    /// Major-Version, wie der Shim sie erwartet (`tx_save_id3v2`).
+    var shimValue: Int32 {
+        switch self {
+        case .v24: return 4
+        case .v23: return 3
+        }
+    }
+}
+
 /// Vollständiger Tag-Zustand einer Datei — das, was gelesen/geschrieben wird.
 public struct TagData: Sendable, Codable, Equatable {
     public var properties: [TagProperty]
@@ -104,15 +184,21 @@ public struct TagData: Sendable, Codable, Equatable {
     /// Ob das Format Kapitel lesen und schreiben kann (MP3, MP4, Matroska).
     /// Nur dann zeigt der Editor den Kapitel-Abschnitt.
     public var supportsChapters: Bool
+    /// Tag-Schichten (ID3v1/ID3v2/APE …), auch fehlende mit `present == false`;
+    /// leer bei Formaten ohne Schichtenmodell. Nur dann zeigt der Editor den
+    /// Abschnitt „Tag-Schichten".
+    public var layers: [TagLayer]
 
     public init(properties: [TagProperty], artworks: [Artwork], audio: AudioInfo?,
-                isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false) {
+                isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false,
+                layers: [TagLayer] = []) {
         self.properties = properties
         self.artworks = artworks
         self.audio = audio
         self.isReadOnly = isReadOnly
         self.chapters = chapters
         self.supportsChapters = supportsChapters
+        self.layers = layers
     }
 
     /// Alle Werte zu einem Schlüssel (Reihenfolge wie gelesen).
@@ -172,6 +258,9 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Ein Wert, den das Zielformat so nicht ablegen kann (z.B. ein Datum
     /// außerhalb von ISO 8601 oder ein Trennzeichen im Autorennamen).
     case invalidDocumentValue(field: String, reason: String)
+    /// Die Datei kennt die genannte Tag-Schicht nicht, sie fehlt, oder das
+    /// Format kann sie nicht entfernen (z.B. `info` bei einer MP3).
+    case layerUnsupported(path: String, layer: String)
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -208,6 +297,8 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "This document format cannot store the field: \(name)"
         case .invalidDocumentValue(let field, let reason):
             return "Invalid value for \(field): \(reason)"
+        case .layerUnsupported(let path, let layer):
+            return "Tag layer '\(layer)' is not present or cannot be removed in this file: \(path)"
         }
     }
 }

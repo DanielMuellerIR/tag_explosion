@@ -46,6 +46,13 @@
   MP4/M4A/M4B (Nero `chpl` and QuickTime chapter track, both written) and
   Matroska/WebM chapters. MP4 stores start times only; the end of a chapter
   is derived from the next start.
+- **Tag layers** — MP3 files often carry ID3v1 *and* ID3v2 (sometimes APEv2
+  too), WAV carries ID3v2 and RIFF INFO, FLAC Vorbis plus stray ID3 tags. The
+  editor lists each layer with its version (ID3v2.3/2.4, APEv2) and field
+  count and removes a single layer on request — the other layers and the
+  audio stream stay untouched (`tagx layers show` / `tagx layers strip`).
+  Optional setting: write ID3v2.3 instead of v2.4 for old players (`tagx set
+  --id3v23`); v2.3 stores text as UTF-16 and trims dates to the minute.
 - **E-books/documents** — the Calibre-style metadata set (title, authors,
   series, description, cover, ISBN, publisher, language, date, tags). EPUB is
   handled natively, PDF via exiftool; with Calibre installed, mobi/azw3/fb2
@@ -167,7 +174,7 @@ These run on every push (see `.github/workflows/tests.yml`).
 
 | Media | File formats | Tag formats |
 |-------|--------------|-------------|
-| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (no cover) · mod, s3m, xm, it (title and comment only) · au (view only) | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO, Matroska tags, tracker headers · chapters: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (no cover) · mod, s3m, xm, it (title and comment only) · au (view only) | ID3v1/v2, MP4 atoms, Vorbis Comments, APEv2, ASF, RIFF INFO, Matroska tags, tracker headers · chapters: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska · tag layers shown and removable per layer for mp3/mp2, wav, aiff, flac, ape, mpc, wv, tta, dsf; ID3v2.3 option for mp3/mp2, wav, aiff, dsf |
 | Images | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (sidecar only) · xmp | EXIF, IPTC, XMP (MWG-harmonized) |
 | Camera RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | read embedded; write to XMP sidecar `<name>.xmp` only |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (editable) · mov, avi, ogv (view only) | MP4 atoms, Matroska tags |
@@ -214,6 +221,9 @@ tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx chapters show book.m4b --json             # chapters as JSON (times in ms)
 tagx chapters set book.m4b --from chapters.txt # replace chapters (JSON or "HH:MM:SS.mmm Title" lines)
 tagx chapters clear book.m4b                   # remove all chapters
+tagx layers show song.mp3 --json               # tag layers (ID3v1/ID3v2/APE …) with version and fields
+tagx layers strip song.mp3 --layer id3v1       # remove one layer, keep the others
+tagx set song.mp3 -t TITLE=X --id3v23          # write ID3v2.3 instead of v2.4 (old players)
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: written to IMG_0001.xmp
 tagx exif set photo.jpg --sidecar --title X  # any image: sidecar instead of file

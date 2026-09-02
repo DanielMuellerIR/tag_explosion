@@ -89,6 +89,9 @@ struct TagEditorTab: View {
                 if entry.supportsChapters {
                     ChapterSection(entry: entry)
                 }
+                if !entry.layers.isEmpty {
+                    TagLayerSection(entry: entry)
+                }
             }
             .padding(20)
             .frame(maxWidth: 760, alignment: .leading)

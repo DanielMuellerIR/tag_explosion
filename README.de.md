@@ -47,6 +47,14 @@
   und QuickTime-Kapitelspur, beide werden geschrieben) und Matroska/WebM.
   MP4 speichert nur Startzeiten; das Ende eines Kapitels ergibt sich aus dem
   nächsten Beginn.
+- **Tag-Schichten** — MP3-Dateien tragen oft ID3v1 *und* ID3v2 (manchmal
+  auch APEv2), WAV trägt ID3v2 und RIFF INFO, FLAC Vorbis plus verirrte
+  ID3-Tags. Der Editor listet jede Schicht mit Version (ID3v2.3/2.4, APEv2)
+  und Feldanzahl und entfernt auf Wunsch eine einzelne Schicht — die anderen
+  Schichten und der Audiostream bleiben unangetastet (`tagx layers show` /
+  `tagx layers strip`). Optionale Einstellung: ID3v2.3 statt v2.4 schreiben
+  für alte Player (`tagx set --id3v23`); v2.3 speichert Text als UTF-16 und
+  kürzt Datumsangaben auf die Minute.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
@@ -174,7 +182,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
-| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska · Tag-Schichten einzeln anzeigen/entfernen für mp3/mp2, wav, aiff, flac, ape, mpc, wv, tta, dsf; ID3v2.3-Option für mp3/mp2, wav, aiff, dsf |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (nur Sidecar) · xmp | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
@@ -222,6 +230,9 @@ tagx cover set song.mp3 cover.jpg              # Cover einbetten
 tagx chapters show buch.m4b --json             # Kapitel als JSON (Zeiten in ms)
 tagx chapters set buch.m4b --from kapitel.txt  # Kapitel ersetzen (JSON oder Zeilen "HH:MM:SS.mmm Titel")
 tagx chapters clear buch.m4b                   # alle Kapitel entfernen
+tagx layers show song.mp3 --json               # Tag-Schichten (ID3v1/ID3v2/APE …) mit Version und Feldern
+tagx layers strip song.mp3 --layer id3v1       # eine Schicht entfernen, die anderen bleiben
+tagx set song.mp3 -t TITLE=X --id3v23          # ID3v2.3 statt v2.4 schreiben (alte Player)
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
 tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei

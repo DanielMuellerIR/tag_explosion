@@ -118,6 +118,27 @@ public final class TagFile {
         }
     }
 
+    /// Tag-Schichten der Datei (ID3v1, ID3v2, APE, RIFF INFO, Vorbis) — auch
+    /// fehlende Schichten, damit die Anzeige weiß, was das Format kennt.
+    /// Formate ohne Schichtenmodell liefern `[]`.
+    public func layers() throws -> [TagLayer] {
+        let h = try requireHandle()
+        var count: Int32 = 0
+        let raw = tx_layers_get(h, &count)
+        defer { tx_free_layers(raw, count) }
+        guard count >= 0 else { throw TagError.cannotOpen(path: path) }
+        guard let raw, count > 0 else { return [] }
+        return (0..<Int(count)).compactMap { i in
+            let entry = raw[i]
+            guard let kind = TagLayerKind.fromShim(entry.kind) else { return nil }
+            // Schlüssel kommen '\n'-getrennt aus dem Shim.
+            let keys = String(cString: entry.keys)
+            return TagLayer(kind: kind, version: Int(entry.version), present: entry.present == 1,
+                            strippable: entry.strippable == 1,
+                            fields: keys.isEmpty ? [] : keys.components(separatedBy: "\n"))
+        }
+    }
+
     public func audioInfo() -> AudioInfo? {
         guard let h = handle else { return nil }
         var props = tx_audio_properties()
@@ -138,7 +159,8 @@ public final class TagFile {
             audio: audioInfo(),
             isReadOnly: isReadOnly,
             chapters: try chapters(),
-            supportsChapters: supportsChapters
+            supportsChapters: supportsChapters,
+            layers: try layers()
         )
     }
 
@@ -225,10 +247,30 @@ public final class TagFile {
     /// Schreibt alle Änderungen in die Datei. TagLib schreibt dabei in-place —
     /// deshalb nicht public und nur innerhalb von `write(...)` auf der
     /// Geschwisterkopie erlaubt, nie auf einem Original.
-    func save() throws {
+    func save(id3Version: ID3Version = .v24) throws {
         let h = try requireHandle()
         if isReadOnly { throw TagError.readOnly(path: path) }
-        guard tx_save(h) == 1 else { throw TagError.saveFailed(path: path) }
+        // v2.4 ist TagLibs Standard; nur v2.3 braucht den Versions-Overload.
+        let ok = id3Version == .v24 ? tx_save(h) : tx_save_id3v2(h, id3Version.shimValue)
+        guard ok == 1 else { throw TagError.saveFailed(path: path) }
+    }
+
+    /// Entfernt Tag-Schichten und schreibt die Datei sofort (TagLibs
+    /// `strip()` arbeitet in-place). Deshalb nicht public — von außen nur über
+    /// das statische `stripLayers(_:from:)` auf der Geschwisterkopie.
+    /// Wirft `layerUnsupported`, wenn das Format eine der Schichten nicht
+    /// kennt oder nicht entfernen kann.
+    func stripLayers(_ kinds: Set<TagLayerKind>) throws {
+        let h = try requireHandle()
+        if isReadOnly { throw TagError.readOnly(path: path) }
+        let known = try layers()
+        for kind in kinds {
+            guard let layer = known.first(where: { $0.kind == kind }), layer.strippable else {
+                throw TagError.layerUnsupported(path: path, layer: kind.rawValue)
+            }
+        }
+        let mask = kinds.reduce(Int32(0)) { $0 | $1.shimMask }
+        guard tx_layers_strip(h, mask) == 1 else { throw TagError.saveFailed(path: path) }
     }
 
     // MARK: - Bequeme statische Helfer
@@ -257,12 +299,16 @@ public final class TagFile {
     /// hat. Weicht die Datei unmittelbar vor dem Austausch davon ab, bricht
     /// das Schreiben mit `fileChangedOnDisk` ab, statt die fremde Änderung zu
     /// überschreiben.
+    ///
+    /// `id3Version`: ID3v2.4 (Standard) oder v2.3 für alte Player. Wirkt nur
+    /// bei Formaten mit ID3v2 (MP3/MP2, WAV, AIFF, DSF); andere ignorieren sie.
     public static func write(
         properties: [TagProperty]? = nil,
         artworks: [Artwork]? = nil,
         chapters: [Chapter]? = nil,
         to url: URL,
-        expecting stamp: FileStamp? = nil
+        expecting stamp: FileStamp? = nil,
+        id3Version: ID3Version = .v24
     ) throws {
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
@@ -280,9 +326,55 @@ public final class TagFile {
             if let properties { try file.setProperties(properties) }
             if let artworks { try file.setArtworks(artworks) }
             if let chapters { try file.setChapters(chapters) }
-            try file.save()
+            try file.save(id3Version: id3Version)
         } validate: { temp in
             try validateWriteResult(at: temp, expecting: artworks, chapters: chapters,
+                                    comparedTo: before.audio, originalPath: url.path)
+        }
+    }
+
+    /// Entfernt Tag-Schichten (z.B. einen ID3v1-Rest neben ID3v2) aus einer
+    /// Datei. Gleicher Sicherheitsrahmen wie `write`: Geschwisterkopie,
+    /// Prüfung, atomarer Austausch. Der Aufrufer sichert vorher per
+    /// `TrashBackup.shared.backUp(url)` — wie bei allen Schreibwegen.
+    ///
+    /// Geprüft wird auf der Kopie, dass jede genannte Schicht danach wirklich
+    /// fehlt (FLAC-Vorbis: keine Felder mehr, TagLib behält den Vendor-Block)
+    /// und dass der Audiostream unverändert ist.
+    public static func stripLayers(
+        _ kinds: Set<TagLayerKind>,
+        from url: URL,
+        expecting stamp: FileStamp? = nil
+    ) throws {
+        guard !kinds.isEmpty else { return }
+        let before = try TagFile.read(at: url)
+        if before.isReadOnly { throw TagError.readOnly(path: url.path) }
+        // Unbekannte, fehlende oder nicht entfernbare Schichten VOR Kopie und
+        // Sicherung ablehnen — ein Fehler danach hinterließe eine sinnlose
+        // Papierkorb-Kopie.
+        for kind in kinds {
+            guard let layer = before.layers.first(where: { $0.kind == kind }),
+                  layer.present, layer.strippable
+            else { throw TagError.layerUnsupported(path: url.path, layer: kind.rawValue) }
+        }
+
+        try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
+            let file = try TagFile(url: temp)
+            defer { file.close() }
+            try file.stripLayers(kinds) // schreibt sofort, kein save() danach
+        } validate: { temp in
+            let file = try TagFile(url: temp)
+            defer { file.close() }
+            let after = try file.layers()
+            for kind in kinds {
+                guard let layer = after.first(where: { $0.kind == kind }) else {
+                    throw TagError.saveFailed(path: url.path)
+                }
+                // Vorbis-Block bleibt als leere Hülle stehen; Felder müssen weg sein.
+                let gone = kind == .vorbis ? layer.fields.isEmpty : !layer.present
+                guard gone else { throw TagError.saveFailed(path: url.path) }
+            }
+            try validateWriteResult(at: temp, expecting: nil, chapters: nil,
                                     comparedTo: before.audio, originalPath: url.path)
         }
     }
