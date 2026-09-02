@@ -49,6 +49,33 @@ genv sample.mp4
 genv sample.mkv
 genv sample.m4v
 
+# Kapitel-Fixtures (Hörbuch/Podcast): zwei Kapitel über die 2 s Quelle, per
+# ffmetadata-Datei in mp3 (ID3 CHAP/CTOC), m4b (Nero chpl + QuickTime-Spur)
+# und mkv (Matroska Chapters) geschrieben. Nur für Lesetests; Roundtrips
+# schreiben auf Kopien der kapitellosen sample.*-Dateien.
+meta="$out/chapters.ffmeta"
+[ -f "$meta" ] || cat > "$meta" <<'META'
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=1000
+title=Intro
+[CHAPTER]
+TIMEBASE=1/1000
+START=1000
+END=2000
+title=Kapitel Zwei
+META
+genc() {
+    target="$out/$1"; shift
+    [ -f "$target" ] && return 0
+    ffmpeg -nostdin -v error -y -i "$src" -i "$meta" -map_metadata 1 "$@" "$target"
+}
+genc chapters.mp3 -codec:a libmp3lame -b:a 64k
+genc chapters.m4b -codec:a aac -b:a 64k -f mp4
+genc chapters.mkv -codec:a aac -b:a 64k
+
 # Testbilder: 64x64 rot (jpg) und blau (png)
 [ -f "$out/cover.jpg" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=red:size=64x64:duration=0.04" -frames:v 1 "$out/cover.jpg"
 [ -f "$out/cover.png" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=blue:size=64x64:duration=0.04" -frames:v 1 "$out/cover.png"

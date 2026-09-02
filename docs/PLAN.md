@@ -39,7 +39,7 @@ Drei Schichten, ein Swift-Package-Monorepo:
   - PropertyMap (alle Textfelder, beliebige Schlüssel) lesen/schreiben
   - Komplexe Properties (PICTURE = Cover, mehrere pro Datei) lesen/schreiben
   - AudioProperties (Dauer, Bitrate, Samplerate, Kanäle, Encoding-Details)
-  - später: ID3v2-Frame-Details, Kapitel (CHAP/CTOC), MP4-Spezialatome
+  - später: ID3v2-Frame-Details, MP4-Spezialatome (Kapitel sind erledigt, s. u.)
 - Kein Swift-C++-Interop direkt gegen TagLib: zu fragil über TagLib-Versionen,
   C-Grenze ist stabil und Linux-tauglich.
 
@@ -278,7 +278,10 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 - TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
   Shim-Erweiterung (`MPEG::File::save`-Overload) später anbieten.
-- Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.
+- ~~Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.~~
+  Erledigt (AP5): `tx_get_chapters`/`tx_set_chapters` im Shim für MP3, MP4 und
+  Matroska, `Chapter` im Modell, `tagx chapters`, Kapitel-Abschnitt im Editor;
+  Fallen in [knowledge/kapitel-hoerbuch.md](../knowledge/kapitel-hoerbuch.md).
 - Homebrew-ffmpeg hier ohne libvorbis — Fixtures nutzen den eingebauten
   Vorbis-Encoder (kann nur Stereo, daher `-ac 2`).
 - GUI-Tests: Maus-Klicks via CGEvent funktionieren, synthetische Tastatur-Events

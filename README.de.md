@@ -32,6 +32,12 @@
   vollständige Ansicht aller rohen Metadaten-Gruppen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
+- **Kapitel** — für Hörbücher und Podcasts: editierbare Kapitelliste (Titel,
+  Beginn, Ende) mit Import/Export als JSON oder Text (`HH:MM:SS.mmm Titel`,
+  eine Zeile je Kapitel). MP3 (ID3v2 CHAP/CTOC), MP4/M4A/M4B (Nero-`chpl`
+  und QuickTime-Kapitelspur, beide werden geschrieben) und Matroska/WebM.
+  MP4 speichert nur Startzeiten; das Ende eines Kapitels ergibt sich aus dem
+  nächsten Beginn.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
@@ -61,7 +67,7 @@
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
-  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
+  `tagx show --json`, `tagx set`, `tagx cover`, `tagx chapters`, `tagx info`, `tagx exif`,
   `tagx ebook`, `tagx invoice`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
@@ -143,7 +149,7 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
-| Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info |
+| Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
@@ -186,6 +192,9 @@ tagx show --json song.mp3                      # alle Tags als JSON
 tagx set song.mp3 -t ARTIST="Miles Davis"      # Felder setzen
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
+tagx chapters show buch.m4b --json             # Kapitel als JSON (Zeiten in ms)
+tagx chapters set buch.m4b --from kapitel.txt  # Kapitel ersetzen (JSON oder Zeilen "HH:MM:SS.mmm Titel")
+tagx chapters clear buch.m4b                   # alle Kapitel entfernen
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx ebook set buch.epub --series "Foundation" --series-index 2
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)

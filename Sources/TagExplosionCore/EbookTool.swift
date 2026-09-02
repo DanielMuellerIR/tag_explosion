@@ -323,9 +323,10 @@ public enum EbookTool {
             case .notEnoughSpace(_, let needBytes, let freeBytes):
                 throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
                                               freeBytes: freeBytes)
+            case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
             case .propertiesRejected, .toolNotFound, .toolFailed,
-                 .unsupportedCoverData, .seriesIndexWithoutSeries: throw error
+                 .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters: throw error
             }
         }
     }
