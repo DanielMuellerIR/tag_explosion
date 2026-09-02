@@ -8,6 +8,25 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.28.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Dokument-Metadaten nativ ohne externe Programme: Office (docx, xlsx, pptx —
+  `docProps/core.xml`, `app.xml` als Anzeige), OpenDocument (odt, ods, odp —
+  `meta.xml`), Comic-Archive (cbz — `ComicInfo.xml`, erste Seite als Cover)
+  und Markdown mit YAML-Frontmatter (fremde Schlüssel und Body bleiben
+  erhalten). Einzel- und Stapel-Editor in der App, `tagx doc show|set` mit
+  `--json`, Export/Import im Tag-Archiv (Schema 3), Menü „Dateiname“ auch
+  für Dokumente. Fallen:
+  [knowledge/dokument-container-metadaten.md](knowledge/dokument-container-metadaten.md).
+
+### Geändert
+
+- Felder, die ein Dokumentformat nicht speichern kann, werden vor Sicherung
+  und Schreibweg mit Feldname abgelehnt statt still verworfen.
+- cbr (RAR) bleibt außen vor: ohne fremde Bibliothek nicht lesbar.
+
 ## [0.27.1] — 2026-09-02
 
 ### Geändert
