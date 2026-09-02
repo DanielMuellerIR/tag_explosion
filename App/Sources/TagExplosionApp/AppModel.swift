@@ -164,6 +164,11 @@ final class FileEntry: Identifiable {
     /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
     /// den Kapitel-Abschnitt.
     var supportsChapters: Bool { kind == .audio && original.supportsChapters }
+    /// Tag-Schichten (ID3v1/ID3v2/APE …) laut letztem Lesestand; leer bei
+    /// Formaten ohne Schichtenmodell — nur dann fehlt der Abschnitt im Editor.
+    /// Kein Bearbeitungspuffer: Entfernen läuft direkt über
+    /// `AppModel.stripLayer` und liest die Datei danach neu.
+    var layers: [TagLayer] { kind == .audio ? original.layers : [] }
 
     var isDirty: Bool {
         switch kind {
@@ -748,6 +753,16 @@ final class AppModel {
         UserDefaults.standard.bool(forKey: imageSidecarDefaultsKey)
     }
 
+    /// Schlüssel der Einstellung „ID3v2.3 statt ID3v2.4 schreiben" (für alte
+    /// Player, die v2.4 nicht lesen). Voreinstellung aus.
+    nonisolated static let id3v23DefaultsKey = "writeID3v23"
+
+    /// ID3v2-Version für den Audio-Schreibweg laut Einstellung (Default v2.4).
+    /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest.
+    nonisolated static var preferredID3Version: ID3Version {
+        UserDefaults.standard.bool(forKey: id3v23DefaultsKey) ? .v23 : .v24
+    }
+
     /// Auto-Backup vor Batch-Speichern? (Default: an)
     static var autoBackupEnabled: Bool {
         UserDefaults.standard.object(forKey: autoBackupDefaultsKey) == nil
@@ -1209,6 +1224,38 @@ final class AppModel {
         }
     }
 
+    /// Entfernt eine Tag-Schicht (z.B. ID3v1) aus der Datei und liest sie neu.
+    ///
+    /// Läuft nur auf einer sauberen Datei: Der Bearbeitungspuffer würde nach
+    /// dem Neuladen sonst still durch den Plattenstand ersetzt. Die View
+    /// sperrt den Knopf deshalb bei ungespeicherten Änderungen; hier wird das
+    /// trotzdem geprüft. Während des Entfernens gilt die Datei als „speichert"
+    /// — derselbe Schutz wie beim Speichern gegen parallele Schreibzugriffe.
+    @discardableResult
+    func stripLayer(entry: FileEntry, kind: TagLayerKind) async -> Bool {
+        guard !entry.isDirty, !entry.isSaving, !isDestructiveActionLocked else { return false }
+        entry.isSaving = true
+        defer { entry.finishSaving() }
+        let url = entry.url
+        let stamp = entry.diskStamp
+        do {
+            let (reloaded, newStamp) = try await Task.detached(priority: .userInitiated) {
+                // Fremde Änderung seit dem Öffnen? Dann nicht anfassen.
+                try FileStamp.requireUnchanged(stamp, at: url)
+                try TrashBackup.shared.backUp(url)
+                try TagFile.stripLayers([kind], from: url, expecting: stamp)
+                return try Self.readStamped(url: url, kind: .audio)
+            }.value
+            entry.acceptNew(reloaded, stamp: newStamp)
+            return true
+        } catch {
+            entry.lastError = error.localizedDescription
+            alertMessage = String(localized: "Schicht entfernen fehlgeschlagen: \(entry.url.lastPathComponent)")
+                + "\n" + error.localizedDescription
+            return false
+        }
+    }
+
     /// Liest eine Datei neu von der Platte und ersetzt den Originalzustand.
     private func reload(entry: FileEntry) async {
         let url = entry.url
@@ -1385,7 +1432,7 @@ final class AppModel {
         switch (kind, snapshot) {
         case (.audio, .audio(let properties, let artworks, let chapters)):
             try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
-                              to: url, expecting: stamp)
+                              to: url, expecting: stamp, id3Version: preferredID3Version)
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,

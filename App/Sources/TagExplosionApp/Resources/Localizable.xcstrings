@@ -61,6 +61,16 @@
         }
       }
     },
+    "%lld Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld fields"
+          }
+        }
+      }
+    },
     "%lld Kanäle": {
       "localizations": {
         "en": {
@@ -671,6 +681,16 @@
         }
       }
     },
+    "Die Schicht wird aus der Datei entfernt; die anderen Schichten bleiben. Im abgesicherten Modus liegt vorher eine Kopie im Papierkorb.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The layer is removed from the file; the other layers stay. In safe mode a copy goes to the trash first."
+          }
+        }
+      }
+    },
     "Die gelesenen Werte landen in den Feldern; geschrieben wird erst beim Speichern.": {
       "localizations": {
         "en": {
@@ -861,6 +881,26 @@
         }
       }
     },
+    "Entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        }
+      }
+    },
+    "Entfernen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove…"
+          }
+        }
+      }
+    },
     "Ersteller": {
       "localizations": {
         "en": {
@@ -961,6 +1001,16 @@
         }
       }
     },
+    "Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fields"
+          }
+        }
+      }
+    },
     "Filtern (Wert, Element, BT-Nummer, Feldname) …": {
       "localizations": {
         "en": {
@@ -977,6 +1027,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Filter …"
+          }
+        }
+      }
+    },
+    "Für alte Player und Autoradios, die ID3v2.4 nicht lesen. Gilt beim Speichern von MP3, WAV, AIFF und DSF. Grenzen von v2.3: Text wird als UTF-16 statt UTF-8 abgelegt, das Datum verliert die Sekunden und das Originaldatum alles außer dem Jahr.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For old players and car radios that cannot read ID3v2.4. Applies when saving MP3, WAV, AIFF and DSF. Limits of v2.3: text is stored as UTF-16 instead of UTF-8, dates lose their seconds and the original date keeps only the year."
           }
         }
       }
@@ -1077,6 +1137,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "ID3v1/v2 · MP4 atoms · Vorbis Comments · APEv2 · ASF · RIFF INFO · Matroska tags · tracker titles (au view only)"
+          }
+        }
+      }
+    },
+    "ID3v2.3 statt ID3v2.4 schreiben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write ID3v2.3 instead of ID3v2.4"
           }
         }
       }
@@ -1711,6 +1781,46 @@
         }
       }
     },
+    "Schicht": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Layer"
+          }
+        }
+      }
+    },
+    "Schicht entfernen fehlgeschlagen: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removing the layer failed: %@"
+          }
+        }
+      }
+    },
+    "Schicht „%@“ entfernen?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove the “%@” layer?"
+          }
+        }
+      }
+    },
+    "Schichten lassen sich erst nach dem Speichern entfernen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save your changes first, then remove layers."
+          }
+        }
+      }
+    },
     "Schlagwörter": {
       "localizations": {
         "en": {
@@ -1897,6 +2007,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tag Explosion uses %@, but neither the tools nor Homebrew were found. Please install Homebrew first — afterwards the app can set up the tools itself."
+          }
+        }
+      }
+    },
+    "Tag-Schichten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag layers"
           }
         }
       }
@@ -2381,6 +2501,16 @@
         }
       }
     },
+    "fehlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "absent"
+          }
+        }
+      }
+    },
     "füllt mit Nullen auf.": {
       "localizations": {
         "en": {
@@ -2427,6 +2557,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "different covers\n(drop replaces all)"
+          }
+        }
+      }
+    },
+    "vorhanden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "present"
           }
         }
       }
