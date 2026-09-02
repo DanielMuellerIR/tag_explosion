@@ -116,6 +116,8 @@ struct ImageFieldsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                FilenamePatternMenu(entries: [entry])
+                    .padding(.top, 4)
                 // Echte Pixelmaße aus dem Bitmap-Rep — NSImage.size wäre die
                 // DPI-skalierte Punktgröße und zeigt bei krummen DPI-Metadaten
                 // absurde Werte.

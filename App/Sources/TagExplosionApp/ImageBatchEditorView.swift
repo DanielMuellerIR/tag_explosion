@@ -64,6 +64,8 @@ struct ImageBatchEditorView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("image.batch.sidecar.target")
             }
+            FilenamePatternMenu(entries: entries)
+                .padding(.top, 4)
         }
     }
 

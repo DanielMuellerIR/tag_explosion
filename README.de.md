@@ -41,6 +41,12 @@
   (bmp, svg), erzwungen.
 - **Video** — MP4- und Matroska-Tags bearbeitbar; andere Container werden
   read-only angezeigt.
+- **Kapitel** — für Hörbücher und Podcasts: editierbare Kapitelliste (Titel,
+  Beginn, Ende) mit Import/Export als JSON oder Text (`HH:MM:SS.mmm Titel`,
+  eine Zeile je Kapitel). MP3 (ID3v2 CHAP/CTOC), MP4/M4A/M4B (Nero-`chpl`
+  und QuickTime-Kapitelspur, beide werden geschrieben) und Matroska/WebM.
+  MP4 speichert nur Startzeiten; das Ende eines Kapitels ergibt sich aus dem
+  nächsten Beginn.
 - **E-Books/Dokumente** — der Metadaten-Umfang von Calibres Dialog (Titel,
   Autoren, Serie, Beschreibung, Cover, ISBN, Verlag, Sprache, Datum,
   Schlagwörter). EPUB nativ, PDF über exiftool; mit installiertem Calibre
@@ -54,6 +60,14 @@
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
   Funktioniert für eigenständige XML-Dateien und für PDFs mit eingebetteter
   Rechnung — die bekommen einen zusätzlichen Tab „E-Rechnung“.
+- **Dateinamen aus Tags, Tags aus Dateinamen** — Muster im kid3-Stil wie
+  `%{track:2} - %{artist} - %{title}` (jeder Tag-Schlüssel geht, `%{track:2}`
+  füllt mit Nullen auf). Das Umbenennen zeigt eine Vorschau und verweigert
+  Konflikte (zweimal derselbe Zielname, Ziel schon belegt, leerer Name); die
+  Gegenrichtung füllt die Felder aus dem Namen und wird wie gewohnt
+  gespeichert. Für Audio, Video, Bilder (`%{creator}`, `%{date}`) und E-Books
+  (`%{author}`, `%{series}`), in den Editoren und als `tagx rename` /
+  `tagx parse` (Probelauf per Voreinstellung, `--apply`, `--json`).
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
@@ -70,7 +84,7 @@
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
-  `tagx show --json`, `tagx set`, `tagx cover`, `tagx info`, `tagx exif`,
+  `tagx show --json`, `tagx set`, `tagx cover`, `tagx chapters`, `tagx info`, `tagx exif`,
   `tagx ebook`, `tagx invoice`.
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
@@ -152,10 +166,10 @@ enthält. Das läuft bei jedem Push (siehe `.github/workflows/tests.yml`).
 
 | Medium | Dateiformate | Tag-Formate |
 |--------|--------------|-------------|
-| Audio | mp3, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, wv, ape, mpc, tta, dsf, dff, wma, asf | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info |
+| Audio | mp3, mp2, m4a, m4b, m4r, mp4, aac, flac, ogg, oga, opus, spx, wav, aiff, aif, aifc, wv, ape, mpc, tta, dsf, dff, wma, asf, mka (kein Cover) · mod, s3m, xm, it (nur Titel und Kommentar) · au (nur Anzeige) | ID3v1/v2, MP4-Atome, Vorbis Comments, APEv2, ASF, RIFF-Info, Matroska-Tags, Tracker-Kopfdaten · Kapitel: ID3v2 CHAP/CTOC, MP4 (Nero + QuickTime), Matroska |
 | Bilder | jpg, jpeg, png, heic, heif, tif, tiff, webp, dng, gif, avif, jxl, psd · bmp, svg (nur Sidecar) · xmp | EXIF, IPTC, XMP (MWG-harmonisiert) |
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
-| Video | mp4, m4v, mkv, webm (bearbeitbar) · mov, avi (nur Anzeige) | MP4-Atome, Matroska-Tags |
+| Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen |
 
@@ -196,6 +210,9 @@ tagx show --json song.mp3                      # alle Tags als JSON
 tagx set song.mp3 -t ARTIST="Miles Davis"      # Felder setzen
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # Tag in anderes Feld kopieren
 tagx cover set song.mp3 cover.jpg              # Cover einbetten
+tagx chapters show buch.m4b --json             # Kapitel als JSON (Zeiten in ms)
+tagx chapters set buch.m4b --from kapitel.txt  # Kapitel ersetzen (JSON oder Zeilen "HH:MM:SS.mmm Titel")
+tagx chapters clear buch.m4b                   # alle Kapitel entfernen
 tagx exif set foto.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: landet in IMG_0001.xmp
 tagx exif set foto.jpg --sidecar --title X   # jedes Bild: Sidecar statt Datei

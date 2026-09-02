@@ -73,4 +73,40 @@ struct MediaFormatsTests {
         // Direkt angegeben wird die Sidecar geöffnet (als eigenes Format).
         #expect(MediaFormats.expandMediaFiles([rawSidecar]) == [MediaFormats.canonicalFileURL(rawSidecar)])
     }
+
+    @Test("Neue Audio-/Container-Endungen laufen über den TagLib-Weg",
+          arguments: ["mod", "s3m", "xm", "it", "au", "aifc", "mp2", "mka",
+                      "3gp", "3g2", "ogv"])
+    func newExtensionsAreAudioKind(ext: String) {
+        let url = URL(fileURLWithPath: "/nirgends/datei.\(ext)")
+        #expect(MediaFormats.kind(of: url) == .audio, Comment(rawValue: ext))
+        // Großschreibung der Endung darf nichts ändern.
+        #expect(MediaFormats.kind(of: URL(fileURLWithPath: "/nirgends/DATEI.\(ext.uppercased())")) == .audio)
+    }
+
+    @Test("Format-Regeln: Feldliste, Cover und Anzeige-Toleranz")
+    func formatRules() {
+        func url(_ ext: String) -> URL { URL(fileURLWithPath: "/nirgends/datei.\(ext)") }
+        // Tracker-Module: nur Titel/Kommentar/Tracker-Name, kein Cover.
+        for ext in ["mod", "s3m", "xm", "it"] {
+            #expect(MediaFormats.writableTagKeys(for: url(ext)) == ["TITLE", "COMMENT", "TRACKERNAME"], Comment(rawValue: ext))
+            #expect(!MediaFormats.supportsEmbeddedArtwork(url(ext)), Comment(rawValue: ext))
+            #expect(!MediaFormats.toleratesMissingTagReader(url(ext)), Comment(rawValue: ext))
+        }
+        // Volle PropertyMap-Formate: keine Einschränkung, Cover möglich.
+        for ext in ["mp3", "mp2", "aifc", "3gp", "3g2", "m4a"] {
+            #expect(MediaFormats.writableTagKeys(for: url(ext)) == nil, Comment(rawValue: ext))
+            #expect(MediaFormats.supportsEmbeddedArtwork(url(ext)), Comment(rawValue: ext))
+        }
+        // Matroska: Tags ja, Cover nein.
+        for ext in ["mka", "mkv", "webm"] {
+            #expect(!MediaFormats.supportsEmbeddedArtwork(url(ext)), Comment(rawValue: ext))
+        }
+        // Ohne TagLib-Leser: öffnen erlaubt, aber nur zur Anzeige.
+        for ext in ["au", "ogv", "avi", "mov"] {
+            #expect(MediaFormats.toleratesMissingTagReader(url(ext)), Comment(rawValue: ext))
+        }
+        #expect(!MediaFormats.toleratesMissingTagReader(url("flac")))
+        #expect(!MediaFormats.supportsEmbeddedArtwork(url("au")))
+    }
 }

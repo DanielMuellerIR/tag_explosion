@@ -37,6 +37,8 @@ final class FileEntry: Identifiable {
     /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
     var properties: [TagProperty] = []
     var artworks: [Artwork] = []
+    /// Kapitel (nur bei Formaten mit Kapiteln, siehe `supportsChapters`).
+    var chapters: [Chapter] = []
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
     /// `imageOriginal` ist der zusammengeführte Stand (Sidecar-Werte
@@ -82,7 +84,9 @@ final class FileEntry: Identifiable {
     /// sich währenddessen weiter ändern; deshalb schreiben wir nie direkt aus
     /// den später möglicherweise veränderten UI-Feldern.
     enum SaveSnapshot: Sendable {
-        case audio(properties: [TagProperty], artworks: [Artwork])
+        /// `chapters` ist nil, wenn das Format keine Kapitel kennt — dann
+        /// fasst der Schreibweg die Kapitel gar nicht an.
+        case audio(properties: [TagProperty], artworks: [Artwork], chapters: [Chapter]?)
         /// `sidecar`: Sidecar-Zustand aus dem Lesevorgang — damit erkennt der
         /// Schreibweg eine inzwischen fremd angelegte oder geänderte Sidecar.
         case image(fields: ImageCoreFields, original: ImageCoreFields, sidecar: SidecarState)
@@ -101,6 +105,7 @@ final class FileEntry: Identifiable {
             self.original = data
             self.properties = data.properties
             self.artworks = data.artworks
+            self.chapters = data.chapters
         case .image(let reading):
             self.kind = .image
             self.imageReading = reading
@@ -125,13 +130,46 @@ final class FileEntry: Identifiable {
         self.init(url: url, loaded: loaded, stamp: FileStamp.current(of: url))
     }
 
+    /// Derselbe Eintrag unter neuem Pfad — nach dem Umbenennen der Datei.
+    /// `url` ist bewusst unveränderlich (sie ist die Identität in Liste und
+    /// Auswahl), deshalb entsteht ein neues Objekt. Es übernimmt Original,
+    /// Bearbeitungspuffer, Cover-Auswahl und Plattenstempel unverändert:
+    /// Umbenennen ändert weder Inhalt noch Inode noch Änderungszeit der
+    /// Datei, der alte Stempel bleibt also gültig.
+    convenience init?(relocating other: FileEntry, to url: URL) {
+        guard let loaded = other.loadedState else { return nil }
+        self.init(url: url, loaded: loaded, stamp: other.diskStamp)
+        properties = other.properties
+        artworks = other.artworks
+        imageFields = other.imageFields
+        ebookFields = other.ebookFields
+        ebookCoverReplacement = other.ebookCoverReplacement
+        lastError = other.lastError
+    }
+
+    /// Der zuletzt gelesene Plattenstand als `LoadedData` — die Umkehrung
+    /// von `init(url:loaded:stamp:)`. nil nur für einen Rechnungseintrag
+    /// ohne Dokument, den der Initialisierer gar nicht erzeugt.
+    var loadedState: LoadedData? {
+        switch kind {
+        case .audio: return .audio(original)
+        case .image: return .image(imageReading)
+        case .ebook: return .ebook(ebookOriginal, cover: ebookOriginalCover)
+        case .invoice: return invoiceDocument.map(LoadedData.invoice)
+        }
+    }
+
     var audio: AudioInfo? { original.audio }
     var isReadOnly: Bool { kind == .audio && original.isReadOnly }
+    /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
+    /// den Kapitel-Abschnitt.
+    var supportsChapters: Bool { kind == .audio && original.supportsChapters }
 
     var isDirty: Bool {
         switch kind {
         case .audio:
             return properties != original.properties || artworks != original.artworks
+                || chapters != original.chapters
         case .image:
             return imageFields != imageOriginal
         case .ebook:
@@ -146,6 +184,7 @@ final class FileEntry: Identifiable {
     func revert() {
         properties = original.properties
         artworks = original.artworks
+        chapters = original.chapters
         imageFields = imageOriginal
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
@@ -157,6 +196,7 @@ final class FileEntry: Identifiable {
         original = data
         properties = data.properties
         artworks = data.artworks
+        chapters = data.chapters
         lastError = nil
     }
 
@@ -217,7 +257,8 @@ final class FileEntry: Identifiable {
         isSaving = true
         switch kind {
         case .audio:
-            return .audio(properties: properties, artworks: artworks)
+            return .audio(properties: properties, artworks: artworks,
+                          chapters: supportsChapters ? chapters : nil)
         case .image:
             return .image(fields: imageFields, original: imageOriginal,
                           sidecar: imageReading.sidecar)
@@ -259,10 +300,11 @@ final class FileEntry: Identifiable {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
         diskStamp = stamp
         switch (snapshot, reloaded) {
-        case (.audio(let savedProperties, let savedArtworks), .audio(let data)):
+        case (.audio(let savedProperties, let savedArtworks, let savedChapters), .audio(let data)):
             original = data
             if properties == savedProperties { properties = data.properties }
             if artworks == savedArtworks { artworks = data.artworks }
+            if savedChapters == nil || chapters == savedChapters { chapters = data.chapters }
         case (.image(let savedFields, _, _), .image(let reading)):
             imageReading = reading
             imageOriginal = reading.fields
@@ -602,11 +644,11 @@ final class AppModel {
                 return .audio(try TagFile.read(at: url))
             } catch {
                 // Container, für die TagLib keinen Tag-Leser hat (AVI, manche
-                // MOV-Varianten), sollen trotzdem geöffnet werden können: Der
-                // Technik-Tab über mediainfo funktioniert für sie, bearbeitbar
-                // sind sie nicht. Ohne diesen Weg endet das Öffnen mit einem
-                // Fehler statt mit einer Ansicht.
-                guard MediaFormats.video.contains(url.pathExtension.lowercased()) else {
+                // MOV-Varianten, Sun-AU, Ogg-Video), sollen trotzdem geöffnet
+                // werden können: Der Technik-Tab über mediainfo funktioniert
+                // für sie, bearbeitbar sind sie nicht. Ohne diesen Weg endet
+                // das Öffnen mit einem Fehler statt mit einer Ansicht.
+                guard MediaFormats.toleratesMissingTagReader(url) else {
                     throw error
                 }
                 return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))
@@ -1341,9 +1383,9 @@ final class AppModel {
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(imageDestination?.url ?? url)
         switch (kind, snapshot) {
-        case (.audio, .audio(let properties, let artworks)):
-            try TagFile.write(properties: properties, artworks: artworks, to: url,
-                              expecting: stamp)
+        case (.audio, .audio(let properties, let artworks, let chapters)):
+            try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
+                              to: url, expecting: stamp)
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,

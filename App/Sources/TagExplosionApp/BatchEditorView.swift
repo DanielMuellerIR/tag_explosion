@@ -128,6 +128,9 @@ struct BatchEditorView: View {
                 }
                 .help("Setzt TITLE aus dem Dateinamen (ohne Nummer-Präfix und Endung)")
 
+                // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
+                FilenamePatternMenu(entries: entries)
+
                 Spacer()
             }
             .padding(8)
