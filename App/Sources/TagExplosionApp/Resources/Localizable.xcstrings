@@ -151,6 +151,16 @@
         }
       }
     },
+    "Alle Kapitel entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove all chapters"
+          }
+        }
+      }
+    },
     "Alle Metadaten": {
       "localizations": {
         "en": {
@@ -317,6 +327,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edited"
+          }
+        }
+      }
+    },
+    "Beginn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
           }
         }
       }
@@ -631,6 +651,16 @@
         }
       }
     },
+    "Ende": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End"
+          }
+        }
+      }
+    },
     "Ersteller": {
       "localizations": {
         "en": {
@@ -861,6 +891,16 @@
         }
       }
     },
+    "Importieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import…"
+          }
+        }
+      }
+    },
     "In dieser Sitzung gesichert: %@": {
       "localizations": {
         "en": {
@@ -931,6 +971,76 @@
         }
       }
     },
+    "Kapitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapters"
+          }
+        }
+      }
+    },
+    "Kapitel entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove chapter"
+          }
+        }
+      }
+    },
+    "Kapitel exportieren (Endung .json für JSON, sonst Text)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export chapters (.json for JSON, text otherwise)"
+          }
+        }
+      }
+    },
+    "Kapitel hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add chapter"
+          }
+        }
+      }
+    },
+    "Kapitelliste auswählen (JSON oder Text, eine Zeile je Kapitel: HH:MM:SS.mmm Titel)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a chapter list (JSON or text, one line per chapter: HH:MM:SS.mmm Title)"
+          }
+        }
+      }
+    },
+    "Kapitelliste konnte nicht gelesen werden: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapter list could not be read: %@"
+          }
+        }
+      }
+    },
+    "Kapiteltitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapter title"
+          }
+        }
+      }
+    },
     "Kein Cover": {
       "localizations": {
         "en": {
@@ -957,6 +1067,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No e-invoice detected"
+          }
+        }
+      }
+    },
+    "Keine Kapitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No chapters"
           }
         }
       }
@@ -1687,6 +1807,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, display only)"
+          }
+        }
+      }
+    },
+    "Zeit im Format HH:MM:SS.mmm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time as HH:MM:SS.mmm"
           }
         }
       }

@@ -78,6 +78,9 @@ struct TagEditorTab: View {
 
                 primarySection
                 extraSection
+                if entry.supportsChapters {
+                    ChapterSection(entry: entry)
+                }
             }
             .padding(20)
             .frame(maxWidth: 760, alignment: .leading)

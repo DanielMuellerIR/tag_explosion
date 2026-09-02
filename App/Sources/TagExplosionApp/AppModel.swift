@@ -37,6 +37,8 @@ final class FileEntry: Identifiable {
     /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
     var properties: [TagProperty] = []
     var artworks: [Artwork] = []
+    /// Kapitel (nur bei Formaten mit Kapiteln, siehe `supportsChapters`).
+    var chapters: [Chapter] = []
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
     private(set) var imageOriginal = ImageCoreFields()
@@ -78,7 +80,9 @@ final class FileEntry: Identifiable {
     /// sich währenddessen weiter ändern; deshalb schreiben wir nie direkt aus
     /// den später möglicherweise veränderten UI-Feldern.
     enum SaveSnapshot: Sendable {
-        case audio(properties: [TagProperty], artworks: [Artwork])
+        /// `chapters` ist nil, wenn das Format keine Kapitel kennt — dann
+        /// fasst der Schreibweg die Kapitel gar nicht an.
+        case audio(properties: [TagProperty], artworks: [Artwork], chapters: [Chapter]?)
         case image(fields: ImageCoreFields, original: ImageCoreFields)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
     }
@@ -95,6 +99,7 @@ final class FileEntry: Identifiable {
             self.original = data
             self.properties = data.properties
             self.artworks = data.artworks
+            self.chapters = data.chapters
         case .image(let fields):
             self.kind = .image
             self.imageOriginal = fields
@@ -120,11 +125,15 @@ final class FileEntry: Identifiable {
 
     var audio: AudioInfo? { original.audio }
     var isReadOnly: Bool { kind == .audio && original.isReadOnly }
+    /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
+    /// den Kapitel-Abschnitt.
+    var supportsChapters: Bool { kind == .audio && original.supportsChapters }
 
     var isDirty: Bool {
         switch kind {
         case .audio:
             return properties != original.properties || artworks != original.artworks
+                || chapters != original.chapters
         case .image:
             return imageFields != imageOriginal
         case .ebook:
@@ -139,6 +148,7 @@ final class FileEntry: Identifiable {
     func revert() {
         properties = original.properties
         artworks = original.artworks
+        chapters = original.chapters
         imageFields = imageOriginal
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
@@ -150,6 +160,7 @@ final class FileEntry: Identifiable {
         original = data
         properties = data.properties
         artworks = data.artworks
+        chapters = data.chapters
         lastError = nil
     }
 
@@ -209,7 +220,8 @@ final class FileEntry: Identifiable {
         isSaving = true
         switch kind {
         case .audio:
-            return .audio(properties: properties, artworks: artworks)
+            return .audio(properties: properties, artworks: artworks,
+                          chapters: supportsChapters ? chapters : nil)
         case .image:
             return .image(fields: imageFields, original: imageOriginal)
         case .ebook:
@@ -250,10 +262,11 @@ final class FileEntry: Identifiable {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
         diskStamp = stamp
         switch (snapshot, reloaded) {
-        case (.audio(let savedProperties, let savedArtworks), .audio(let data)):
+        case (.audio(let savedProperties, let savedArtworks, let savedChapters), .audio(let data)):
             original = data
             if properties == savedProperties { properties = data.properties }
             if artworks == savedArtworks { artworks = data.artworks }
+            if savedChapters == nil || chapters == savedChapters { chapters = data.chapters }
         case (.image(let savedFields, _), .image(let fields)):
             imageOriginal = fields
             if imageFields == savedFields { imageFields = fields }
@@ -1310,9 +1323,9 @@ final class AppModel {
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(url)
         switch (kind, snapshot) {
-        case (.audio, .audio(let properties, let artworks)):
-            try TagFile.write(properties: properties, artworks: artworks, to: url,
-                              expecting: stamp)
+        case (.audio, .audio(let properties, let artworks, let chapters)):
+            try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
+                              to: url, expecting: stamp)
         case (.image, .image(let fields, let original)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp)

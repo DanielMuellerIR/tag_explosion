@@ -73,6 +73,39 @@ typedef struct {
 // 1 = Werte gefüllt, 0 = keine Audio-Eigenschaften verfügbar.
 int tx_get_audio_properties(tx_file* f, tx_audio_properties* out);
 
+// ---- Kapitel (Hörbücher, Podcasts) -----------------------------------------
+//
+// Getragen werden Kapitel von drei Containern:
+//  - MP3: ID3v2 CHAP-Frames (Start/Ende in ms, Titel als eingebettetes TIT2)
+//    plus ein CTOC-Frame als Top-Level-Inhaltsverzeichnis;
+//  - MP4/M4A/M4B: Nero-Kapitel (`chpl`-Atom) und QuickTime-Kapitelspur;
+//    gelesen wird die QuickTime-Spur, hilfsweise `chpl`, geschrieben werden
+//    beide. MP4 kennt nur Startzeiten; end_ms ist beim Lesen deshalb -1.
+//  - Matroska/WebM: `Chapters`-Element; gelesen wird die Standard-Edition
+//    (sonst die erste), geschrieben genau eine Standard-Edition.
+// Alle anderen Formate melden 0 bei tx_chapters_supported().
+
+typedef struct {
+    char* title;        // UTF-8; Eigentum des Aufrufers nach tx_get_chapters
+    int64_t start_ms;   // Beginn in Millisekunden
+    int64_t end_ms;     // Ende in Millisekunden; -1 = vom Format nicht geliefert
+} tx_chapter;
+
+// 1, wenn das Format der Datei Kapitel lesen UND schreiben kann, sonst 0.
+int tx_chapters_supported(tx_file* f);
+
+// Liefert die Kapitel in Abspielreihenfolge. out_count = Anzahl; NULL bei 0
+// Einträgen oder Fehler (out_count unterscheidet: 0 bzw. -1). Das Array und
+// alle Titel gehören danach dem Aufrufer: mit tx_free_chapters freigeben.
+tx_chapter* tx_get_chapters(tx_file* f, int32_t* out_count);
+void tx_free_chapters(tx_chapter* chapters, int32_t count);
+
+// Ersetzt alle Kapitel der Datei durch die übergebenen (count 0 = alle
+// entfernen). Der Shim kopiert die Daten; die Puffer des Aufrufers dürfen
+// nach der Rückkehr freigegeben werden. 1 = Erfolg, 0 = Fehler oder Format
+// ohne Kapitel. Erst tx_save() macht die Änderung persistent.
+int tx_set_chapters(tx_file* f, const tx_chapter* chapters, int32_t count);
+
 // ---- Sonstiges --------------------------------------------------------------
 
 // TagLib-Versionsstring der gelinkten Bibliothek, z.B. "2.3.0". Statisch, nicht freigeben.
