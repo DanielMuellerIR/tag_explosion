@@ -8,6 +8,33 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.34.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Cover-Werkzeuge: Das Cover-Feld zeigt Format, Maße, Dateigröße und
+  Prüfhinweise (zu klein, zu groß, nicht quadratisch, progressives JPEG,
+  CMYK). Kontext- und Zahnradmenü: Verkleinern auf 500/1000/1500 px, nach
+  JPEG wandeln, Bild-Metadaten entfernen, Ordner-Cover (folder/cover/front
+  .jpg/.png) übernehmen, Cover als `folder.jpg` exportieren, im Einzel- und
+  Batch-Editor. Fallen:
+  [knowledge/cover-werkzeuge.md](knowledge/cover-werkzeuge.md).
+- CLI: `tagx cover info [--json] [--strict]`,
+  `tagx cover convert --max-size <px> [--jpeg <q>|--png] [--strip-metadata]`,
+  `tagx cover from-folder`, `tagx cover to-folder [--force]`; auch für EPUB
+  und Calibre-Formate.
+
+### Geändert
+
+- Fixture-Generator erzeugt zusätzlich `cover-large.jpg` und
+  `cover-alpha.png`.
+
+### Bekannte Grenzen
+
+- Unter Linux fehlt die Neukodierung (ImageIO); Analyse und Metadaten-Strip
+  laufen dort. Der E-Book-Editor hat das Cover-Menü noch nicht, die CLI deckt
+  E-Books ab.
+
 ## [0.33.0] — 2026-09-02
 
 ### Hinzugefügt
