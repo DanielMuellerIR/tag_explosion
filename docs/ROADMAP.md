@@ -46,8 +46,8 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 |----|--------|---------|--------|
 | AP11 | **Konsistenzprüfung über Ordner:** fehlende Cover, abweichende Album-Interpreten, Lücken und Dubletten in der Track-Nummerierung, uneinheitliche Jahreszahlen; Bericht in App und `tagx check --json`. | mittel | 🔧 |
 | AP12 | **Cover-Werkzeuge:** Größe/Format anzeigen und prüfen, verkleinern, nach JPEG wandeln, `folder.jpg`/`cover.jpg` übernehmen oder exportieren. | mittel | 🔧 |
-| AP13 | **Batch-Regeln als Skript:** Regeldatei (JSON) für Groß-/Kleinschreibung, Feldkopien, Suchen/Ersetzen, Leerzeichen trimmen; `tagx apply rules.json` und Regel-Editor in der App. | mittel | ⬜ |
-| AP14 | **Undo-Historie:** die Papierkorb-Sicherungen aus `TrashBackup` als Versionsliste pro Datei anzeigen und einzeln zurückholen. | mittel | ⬜ |
+| AP13 | **Batch-Regeln als Skript:** Regeldatei (JSON) für Groß-/Kleinschreibung, Feldkopien, Suchen/Ersetzen, Leerzeichen trimmen; `tagx apply rules.json` und Regel-Editor in der App. | mittel | 🔧 |
+| AP14 | **Undo-Historie:** die Papierkorb-Sicherungen aus `TrashBackup` als Versionsliste pro Datei anzeigen und einzeln zurückholen. | mittel | 🔧 |
 | AP15 | **Online-Lookup:** MusicBrainz und Discogs (Release-Suche, Tags übernehmen), optional AcoustID-Fingerprint über `fpcalc`. Nur auf ausdrückliche Aktion, mit Datenschutzhinweis im UI; kein automatischer Netzzugriff. | groß | ⬜ |
 | AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (siehe Backlog in PLAN.md, Priorität niedrig). | mittel | ⏸ |
 | AP17 | **Finder-Integration:** Quick-Look-Vorschau der Tags und Kontextmenü „In Tag Explosion öffnen". Braucht ein Extension-Target und damit einen Xcode-Projektpfad; erst entscheiden, ob das mit dem headless-Build vereinbar bleibt. | groß | ⏸ |
