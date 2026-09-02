@@ -8,6 +8,37 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.38.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Online-Lookup: „Online nachschlagen …“ im Einzel- und Batch-Editor fragt
+  MusicBrainz oder Discogs nach einem Release oder erkennt eine Datei per
+  AcoustID-Fingerabdruck (`fpcalc`); Kandidatenliste, Zuordnung Datei → Titel
+  (Tracknummer, sonst Dauer ±3 s und Titelähnlichkeit), Vorschau alt → neu je
+  Feld, Cover-Vorschau. „Übernehmen“ füllt nur den Editor, gespeichert wird
+  wie gewohnt. Schreibt MusicBrainz-, Discogs- und AcoustID-Kennungen.
+  Netz- und Datenschutzregeln:
+  [knowledge/online-lookup-dienste.md](knowledge/online-lookup-dienste.md).
+- `tagx lookup [--source musicbrainz|discogs|acoustid] [--choose n] [--apply]
+  [--cover] [--json]` (Probelauf per Voreinstellung, Exit 5 ohne Treffer;
+  ohne `TAGX_ONLINE=1` kein Netzzugriff, `--privacy` zeigt den
+  Datenschutzhinweis).
+- Einstellungen „Online-Dienste erlauben“ (Voreinstellung aus), Discogs-Token
+  und AcoustID-Key in der Keychain; Datenschutzhinweis vor der ersten
+  Anfrage; Homebrew-Angebot für `chromaprint`, wenn `fpcalc` fehlt. Keine
+  Suche beim Öffnen, keine Telemetrie.
+
+### Geändert
+
+- `tagx` wartet auf Netzantworten asynchron (Wurzelbefehl ist jetzt
+  `AsyncParsableCommand`; übrige Befehle unverändert).
+
+### Bekannte Grenzen
+
+- Discogs- und AcoustID-Pfade sind nur mit Stub-Antworten getestet, nicht
+  gegen die echten Dienste. AcoustID nimmt den Fingerabdruck der ersten Datei.
+
 ## [0.37.0] — 2026-09-02
 
 ### Hinzugefügt
