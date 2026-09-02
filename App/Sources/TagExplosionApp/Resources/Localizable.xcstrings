@@ -71,6 +71,16 @@
         }
       }
     },
+    "%lld Einträge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld entries"
+          }
+        }
+      }
+    },
     "%lld Felder": {
       "localizations": {
         "en": {
@@ -97,6 +107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld edited"
+          }
+        }
+      }
+    },
+    "%lld fehlend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld missing"
           }
         }
       }
@@ -151,6 +171,16 @@
         }
       }
     },
+    "(+%lld unbekannt)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(+%lld unknown)"
+          }
+        }
+      }
+    },
     "+ Sidecar %@": {
       "localizations": {
         "en": {
@@ -201,12 +231,32 @@
         }
       }
     },
+    "Absolute Pfade": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Absolute paths"
+          }
+        }
+      }
+    },
     "Aktionen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Actions"
+          }
+        }
+      }
+    },
+    "Album": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album"
           }
         }
       }
@@ -337,6 +387,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Drop audio, image, video, e-book, document, and e-invoice files or folders here\nto view and edit metadata."
+          }
+        }
+      }
+    },
+    "Audio-, Bild-, Video-, E-Book-, Dokument-, Playlist- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop audio, image, video, e-book, document, playlist, and e-invoice files or folders here\nto view and edit metadata."
           }
         }
       }
@@ -651,6 +711,16 @@
         }
       }
     },
+    "Cue-Sheet · Extended M3U · PLS · XSPF (Beschriftung editierbar)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cue sheet · Extended M3U · PLS · XSPF (labels editable)"
+          }
+        }
+      }
+    },
     "Das Muster braucht mindestens einen Platzhalter, zum Beispiel für den Titel.": {
       "localizations": {
         "en": {
@@ -677,6 +747,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "File"
+          }
+        }
+      }
+    },
+    "Datei fehlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File missing"
+          }
+        }
+      }
+    },
+    "Datei ist kein UTF-8 (Latin1/MacRoman-Fallback); beim Speichern wird sie als UTF-8 geschrieben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File is not UTF-8 (Latin1/MacRoman fallback); saving writes it as UTF-8."
+          }
+        }
+      }
+    },
+    "Datei vorhanden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File exists"
           }
         }
       }
@@ -727,6 +827,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Date"
+          }
+        }
+      }
+    },
+    "Dauer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duration"
+          }
+        }
+      }
+    },
+    "Die Auswahl in Listenreihenfolge als Playlist-Datei sichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save the selection in list order as a playlist file"
           }
         }
       }
@@ -821,6 +941,16 @@
         }
       }
     },
+    "Dieses Format kennt keinen Titel für die ganze Liste.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This format has no title for the whole list."
+          }
+        }
+      }
+    },
     "Dokument-Info (nur Anzeige)": {
       "localizations": {
         "en": {
@@ -857,6 +987,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Documents"
+          }
+        }
+      }
+    },
+    "Doppelklick öffnet die Datei in einem neuen Fenster. Reihenfolge und Pfade werden hier nicht geändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double-click opens the file in a new window. Order and paths are not edited here."
           }
         }
       }
@@ -997,6 +1137,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Setting: changes go to the sidecar %@ instead of the image file."
+          }
+        }
+      }
+    },
+    "Einträge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entries"
           }
         }
       }
@@ -1221,6 +1371,26 @@
         }
       }
     },
+    "Genre": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genre"
+          }
+        }
+      }
+    },
+    "Gesamt %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total %@"
+          }
+        }
+      }
+    },
     "Geschäftsprozess (BT-23)": {
       "localizations": {
         "en": {
@@ -1381,6 +1551,16 @@
         }
       }
     },
+    "In neuem Fenster öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in New Window"
+          }
+        }
+      }
+    },
     "Installation fehlgeschlagen": {
       "localizations": {
         "en": {
@@ -1397,6 +1577,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Installing %@ …"
+          }
+        }
+      }
+    },
+    "Interpret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artist"
+          }
+        }
+      }
+    },
+    "JJJJ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YYYY"
           }
         }
       }
@@ -1547,6 +1747,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No cover\nin this format"
+          }
+        }
+      }
+    },
+    "Kein Dateipfad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No file path"
           }
         }
       }
@@ -1711,6 +1921,16 @@
         }
       }
     },
+    "Mediendateien (Audio, Bild, Video, E-Book, Dokument, Playlist, E-Rechnung) oder Ordner auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select media files (audio, image, video, e-book, document, playlist, e-invoice) or folders"
+          }
+        }
+      }
+    },
     "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen": {
       "localizations": {
         "en": {
@@ -1807,6 +2027,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check for Updates …"
+          }
+        }
+      }
+    },
+    "Netzadresse": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network address"
           }
         }
       }
@@ -1911,6 +2141,16 @@
         }
       }
     },
+    "Nr.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No."
+          }
+        }
+      }
+    },
     "Nur EN-16931-Felder": {
       "localizations": {
         "en": {
@@ -1987,6 +2227,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Placeholders:"
+          }
+        }
+      }
+    },
+    "Playlist": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist"
+          }
+        }
+      }
+    },
+    "Playlist exportieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Playlist …"
+          }
+        }
+      }
+    },
+    "Playlist geschrieben; ohne lesbare Tags (Dateiname als Titel):": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist written; no readable tags (file name used as title):"
+          }
+        }
+      }
+    },
+    "Playlist mit %lld Einträgen exportieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export playlist with %lld entries"
+          }
+        }
+      }
+    },
+    "Playlist-Export fehlgeschlagen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist export failed:"
+          }
+        }
+      }
+    },
+    "Playlists": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlists"
+          }
+        }
+      }
+    },
+    "Playlists einzeln auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select playlists one at a time"
+          }
+        }
+      }
+    },
+    "Playlists und Cue-Sheets werden einzeln bearbeitet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlists and cue sheets are edited one at a time."
           }
         }
       }
@@ -2587,6 +2907,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presets"
+          }
+        }
+      }
+    },
+    "Weitere Angaben (nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other details (view only)"
           }
         }
       }

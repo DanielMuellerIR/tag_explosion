@@ -126,7 +126,11 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   — ✅ umgesetzt (AP3, 2026-09-02): `FilenamePattern`/`FileRenamer` im Core,
   `tagx rename`/`tagx parse`, Dialoge in Einzel- und Batch-Editor. Bewusst
   ohne Ordner-Anteil im Muster (kid3 legt auch Ordner an).
-- Online-Import (MusicBrainz/Discogs), Playlist-Export, Groß-/Kleinschreibungs-Werkzeuge
+- Online-Import (MusicBrainz/Discogs), Groß-/Kleinschreibungs-Werkzeuge
+- Playlist-Export — ✅ umgesetzt (AP8, 2026-09-02): `PlaylistExporter` im
+  Core (m3u8/pls/xspf, Pfade relativ zur Playlist), Menü „Playlist
+  exportieren …" im Batch-Editor, `tagx playlist export`. Dazu Anzeige und
+  Beschriftung von cue/m3u/m3u8/pls/xspf und `tagx cue apply`.
 - Dafür haben wir: MediaInfo-Vollansicht, Bilder (EXIF/IPTC/XMP), moderne UI,
   Matroska-Tags, maschinenlesbare CLI (JSON)
 
