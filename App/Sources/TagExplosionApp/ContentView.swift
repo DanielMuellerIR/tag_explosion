@@ -119,7 +119,22 @@ struct ContentView: View {
                     .disabled(model.hasSavingEntries || model.isDestructiveActionLocked)
                     .help("Alle geänderten Dateien speichern (⌥⌘S)")
                 }
+
+                // Konsistenzprüfung über alle geladenen Dateien (nur lesend).
+                Button {
+                    model.libraryCheckTargets = model.entries
+                } label: {
+                    Label("Prüfen", systemImage: "checkmark.seal")
+                }
+                .disabled(model.entries.isEmpty)
+                .help("Alle geladenen Dateien auf Konsistenz prüfen")
             }
+        }
+        .sheet(isPresented: .init(
+            get: { model.libraryCheckTargets != nil },
+            set: { if !$0 { model.libraryCheckTargets = nil } }
+        )) {
+            LibraryCheckSheet(entries: model.libraryCheckTargets ?? [])
         }
         // Während der tatsächlichen Entscheidung darf kein Editor-Puffer noch
         // eine weitere Eingabe annehmen. Der Dialog selbst bleibt außerhalb

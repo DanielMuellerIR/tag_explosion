@@ -60,3 +60,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
   dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
   exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.
+- [konsistenzpruefung.md](konsistenzpruefung.md) — Bei Arbeit an
+  `LibraryCheck`, `ImagePixelSize`, `tagx check` oder dem Prüf-Sheet:
+  Gruppenschlüssel (Album + Album-Interpret normalisiert) und seine Grenze,
+  Gesamtzahl aus „n/total" oder TRACKTOTAL, Disc-Regeln nur mit DISCNUMBER,
+  `covers == nil` vs. leer, Dubletten nur mit bekannter Dauer, `--only` als
+  Einzelwert, Sheet hängt am ContentView statt am Batch-Editor.

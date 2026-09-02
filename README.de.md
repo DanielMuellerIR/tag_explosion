@@ -100,6 +100,20 @@
   gespeichert. Für Audio, Video, Bilder (`%{creator}`, `%{date}`) und E-Books
   (`%{author}`, `%{series}`), in den Editoren und als `tagx rename` /
   `tagx parse` (Probelauf per Voreinstellung, `--apply`, `--json`).
+- **Konsistenzprüfung** — ein Bericht über einen Ordner oder eine Auswahl:
+  fehlendes Cover, Cover-Größe/-Format im Album uneinheitlich, Album-Interpret
+  uneinheitlich oder bei einer Compilation fehlend, Track- und Disc-Nummern
+  (fehlend, Lücken, Dubletten, ohne Gesamtzahl, größer als die Gesamtzahl),
+  Jahr, Genre und Album-Schreibweise im Album uneinheitlich, leere Felder
+  Titel/Interpret/Album, gleicher Titel + Interpret + Dauer (±2 s) über alle
+  Dateien und optional Dateinamen gegen ein Muster. Gruppiert wird nach Album
+  (ALBUM + ALBUMARTIST, Schreibweise egal), ohne Album-Tag nach Ordner;
+  Bilder, E-Books und Dokumente werden nur auf leeren Titel geprüft (E-Books
+  auch auf fehlendes Cover). Korrigiert wird nichts automatisch: Der Bericht
+  nennt die Dateien, ein Klick wählt eine aus, der Text lässt sich kopieren.
+  In der App („Prüfen …" im Batch-Editor, Werkzeugleisten-Knopf für alle
+  geladenen Dateien) und als `tagx check` (`--json`, `--pattern`,
+  `--only <codes>`, `--fail-on warning|hint` → Exit 4).
 - **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
   kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
@@ -260,6 +274,8 @@ tagx playlist show album.cue                   # Kopf, Tracks, aufgelöste Pfade
 tagx playlist set liste.m3u8 --title "Mix" --entry-title 2="Zweites Lied"
 tagx playlist export --out Album/album.m3u8 Album/*.flac   # relative Pfade; --absolute, --format pls|xspf
 tagx cue apply album.cue --apply               # Cue-Titel/-Interpreten/-Tracknummern in die Audiodateien schreiben
+tagx check Musik/ --json                       # Konsistenzbericht je Album/Ordner (Cover, Track-Lücken, leere Felder …)
+tagx check Album/ --fail-on warning            # Exit 4 bei Warnungen; --only track-gap,missing-cover; -p '%{track:2} - %{title}'
 tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
