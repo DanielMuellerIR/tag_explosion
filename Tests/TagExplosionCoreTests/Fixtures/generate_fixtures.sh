@@ -180,6 +180,10 @@ fi
 # Testbilder: 64x64 rot (jpg) und blau (png)
 [ -f "$out/cover.jpg" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=red:size=64x64:duration=0.04" -frames:v 1 "$out/cover.jpg"
 [ -f "$out/cover.png" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=blue:size=64x64:duration=0.04" -frames:v 1 "$out/cover.png"
+# Cover-Werkzeuge (AP12): ein großes, nicht quadratisches JPEG (1200x800) für
+# Verkleinern/Prüfregeln und ein PNG mit Alphakanal für die Formatwandlung.
+[ -f "$out/cover-large.jpg" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=orange:size=1200x800:duration=0.04" -frames:v 1 "$out/cover-large.jpg"
+[ -f "$out/cover-alpha.png" ] || ffmpeg -nostdin -v error -y -f lavfi -i "color=blue@0.5:size=64x64:duration=0.04,format=rgba" -frames:v 1 -pix_fmt rgba "$out/cover-alpha.png"
 # Winziges TIFF (grün): Ersatz für Kamera-RAW in den Sidecar-Tests — NEF, DNG
 # & Co. sind TIFF-Container, exiftool erkennt eine umbenannte TIFF-Datei als
 # RAW des jeweiligen Typs. Dazu ein BMP als Beispiel für ein Format, in das

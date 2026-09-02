@@ -53,13 +53,23 @@ struct CoverWell: View {
                         entry.artworks = []
                     }
                 }
+                if supportsArtwork {
+                    Divider()
+                    // Cover-Werkzeuge (AP12): verkleinern, wandeln, Ordner-Cover.
+                    CoverToolsMenuItems(entries: [entry])
+                }
             }
             .onTapGesture { if supportsArtwork { pickImage() } }
 
             if let artwork {
-                Text("\(artwork.resolvedMimeType.replacingOccurrences(of: "image/", with: "").uppercased()) · \(ByteCountFormatter.string(fromByteCount: Int64(artwork.data.count), countStyle: .file))\(entry.artworks.count > 1 ? " · " + String(localized: "+\(entry.artworks.count - 1) weitere") : "")")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                // Maße, Format, Größe und Prüfhinweise; daneben das Zahnrad
+                // mit den Cover-Werkzeugen (CoverToolsMenu.swift).
+                HStack(alignment: .top, spacing: 4) {
+                    CoverInfoLine(artwork: artwork, extraCount: entry.artworks.count - 1)
+                    CoverToolsButton(entries: [entry])
+                }
+            } else if supportsArtwork {
+                CoverToolsButton(entries: [entry])
             }
         }
     }

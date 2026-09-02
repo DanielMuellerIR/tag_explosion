@@ -27,6 +27,11 @@
 - **Audio** — every tag field including custom keys, cover art, and batch
   editing: shared fields, track numbering, titles from file names, one cover
   for all files.
+  Cover tools: size, format, and checks shown under the cover (too small,
+  too large, not square, progressive JPEG, CMYK); shrink to 500/1000/1500 px,
+  convert to JPEG, strip image metadata, use `folder.jpg`/`cover.jpg`/
+  `front.jpg` from the folder, or export the cover as `folder.jpg` — for one
+  file or the whole selection.
 - **Images** — EXIF/IPTC/XMP harmonized the MWG way (title, description,
   keywords, creator, copyright, date, rating, GPS), plus a complete read-only
   view of all raw metadata groups.
@@ -259,6 +264,10 @@ tagx show --json song.mp3                      # all tags as JSON
 tagx set song.mp3 -t ARTIST="Miles Davis"      # set fields
 tagx set song.mp3 -c ALBUMARTIST=ARTIST        # copy one tag into another
 tagx cover set song.mp3 cover.jpg              # embed cover art
+tagx cover info --json *.mp3                   # cover size/format/color plus checks (too small, not square, CMYK …)
+tagx cover convert --max-size 1000 --jpeg 0.85 *.flac   # shrink and re-encode the embedded cover (--png, --strip-metadata)
+tagx cover from-folder Album/*.mp3             # embed folder.jpg/cover.jpg/front.jpg (or .png) from the folder
+tagx cover to-folder song.mp3                  # write the embedded cover as folder.jpg (--force replaces)
 tagx chapters show book.m4b --json             # chapters as JSON (times in ms)
 tagx chapters set book.m4b --from chapters.txt # replace chapters (JSON or "HH:MM:SS.mmm Title" lines)
 tagx chapters clear book.m4b                   # remove all chapters

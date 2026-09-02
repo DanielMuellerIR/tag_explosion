@@ -71,3 +71,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Video-Editor: eigener XML-Serialisierer für Einrückungserhalt, Nur-URL-NFO,
   Inhaltsprüfung der Endung, Zeitverschiebung nur auf `-->`-Zeilen,
   `--seconds=-1.5`, Sprache aus dem Dateinamen.
+- [cover-werkzeuge.md](cover-werkzeuge.md) — Bei Arbeit an CoverTools,
+  `tagx cover info/convert/from-folder/to-folder` oder dem Cover-Menü der
+  App: Header-Parser statt ImageIO für JPEG/PNG, was das Strip-Segment
+  behalten muss (ICC, Adobe), Neukodierung nur mit ImageIO (Linux: Fehler),
+  Ordner-Cover-Priorität und Groß-/Kleinschreibung, Export nur exklusiv.
