@@ -8,6 +8,25 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.35.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Konsistenzprüfung über Ordner und Auswahlen: fehlendes oder im Album
+  uneinheitliches Cover, Album-Interpret uneinheitlich oder bei einer
+  Compilation fehlend, Track- und Disc-Nummern (fehlend, Lücken, Dubletten,
+  ohne Gesamtzahl, größer als die Gesamtzahl), Jahr, Genre und
+  Album-Schreibweise je Album, leere Felder Titel/Interpret/Album, gleicher
+  Titel + Interpret + Dauer (±2 s) über alle Dateien, optional Dateinamen
+  gegen ein Muster. Bilder, E-Books und Dokumente nur auf leeren Titel
+  (E-Books auch auf fehlendes Cover). Keine automatischen Korrekturen.
+  Fallen: [knowledge/konsistenzpruefung.md](knowledge/konsistenzpruefung.md).
+- `tagx check` mit `--json`, `--pattern`, `--only <codes>` und
+  `--fail-on warning|hint` (Exit 4 bei Befunden ab dem Schweregrad).
+- In der App „Prüfen …“ im Batch-Editor und ein Werkzeugleisten-Knopf für
+  alle geladenen Dateien; Ergebnis-Sheet je Album/Ordner, Klick auf eine
+  Datei wählt sie aus, Bericht als Text kopierbar.
+
 ## [0.34.0] — 2026-09-02
 
 ### Hinzugefügt

@@ -44,7 +44,7 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 
 | AP | Inhalt | Aufwand | Status |
 |----|--------|---------|--------|
-| AP11 | **Konsistenzprüfung über Ordner:** fehlende Cover, abweichende Album-Interpreten, Lücken und Dubletten in der Track-Nummerierung, uneinheitliche Jahreszahlen; Bericht in App und `tagx check --json`. | mittel | 🔧 |
+| AP11 | **Konsistenzprüfung über Ordner:** fehlende Cover, abweichende Album-Interpreten, Lücken und Dubletten in der Track-Nummerierung, uneinheitliche Jahreszahlen; Bericht in App und `tagx check --json`. | mittel | ✅ 0.35.0 |
 | AP12 | **Cover-Werkzeuge:** Größe/Format anzeigen und prüfen, verkleinern, nach JPEG wandeln, `folder.jpg`/`cover.jpg` übernehmen oder exportieren. | mittel | ✅ 0.34.0 |
 | AP13 | **Batch-Regeln als Skript:** Regeldatei (JSON) für Groß-/Kleinschreibung, Feldkopien, Suchen/Ersetzen, Leerzeichen trimmen; `tagx apply rules.json` und Regel-Editor in der App. | mittel | 🔧 |
 | AP14 | **Undo-Historie:** die Papierkorb-Sicherungen aus `TrashBackup` als Versionsliste pro Datei anzeigen und einzeln zurückholen. | mittel | 🔧 |
