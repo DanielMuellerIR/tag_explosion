@@ -8,6 +8,33 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.36.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Undo-Historie: Jede Papierkorb-Sicherung wird in einem Journal
+  (`Application Support/TagExplosion/backup-journal.json`) mit Originalpfad,
+  Sicherungspfad, Zeit, Größe, SHA-256 und Auslöser verzeichnet. Der Knopf
+  „Versionen …“ im Einzel-Editor (Audio, Bild, E-Book, Dokument) listet die
+  Sicherungen, zeigt je Version die geänderten Felder und stellt eine Version
+  nach Rückfrage wieder her; „Ablage → Letzte Änderung rückgängig“ (⌘⇧Z)
+  holt die jüngste zurück. Wiederherstellen sichert vorher den jetzigen
+  Stand, ein Undo bleibt also selbst umkehrbar. Begründung und Regeln:
+  [knowledge/undo-historie-journal.md](knowledge/undo-historie-journal.md).
+- CLI `tagx history list|diff|restore|prune` (Restore ohne `--apply` als
+  Vorschau; `prune` räumt nur Journal-Einträge, nie den Papierkorb).
+
+### Geändert
+
+- `TrashBackup.backUp` nimmt einen Auslöser (`reason:`) entgegen; Einträge,
+  deren Kopie im Papierkorb fehlt, gelten als verfallen und erscheinen nicht
+  mehr in der Liste.
+
+### Bekannte Grenzen
+
+- Nach einem Umbenennen kennt das Journal nur den alten Pfad. `--version <n>`
+  erscheint in der Hilfe neben ArgumentParsers globaler Versionsanzeige.
+
 ## [0.35.0] — 2026-09-02
 
 ### Hinzugefügt
