@@ -106,6 +106,62 @@ void tx_free_chapters(tx_chapter* chapters, int32_t count);
 // ohne Kapitel. Erst tx_save() macht die Änderung persistent.
 int tx_set_chapters(tx_file* f, const tx_chapter* chapters, int32_t count);
 
+// ---- Lyrics und feste Felder außerhalb der PropertyMap ---------------------
+//
+// Unsynchronisierte Lyrics laufen als Property "LYRICS" über tx_get_/
+// tx_set_properties. Was die PropertyMap nicht abbildet, kommt hier:
+//  - die Sprache des ID3v2-USLT-Frames (ISO 639-2, drei Buchstaben),
+//  - synchronisierte Lyrics (ID3v2 SYLT: Zeitstempel in ms + Text),
+//  - Podcast-Felder ohne PropertyMap-Schlüssel: ID3v2-Textframes wie TKWD/
+//    TVSN/TVEP, das PCST-Flag, MP4-Atome wie keyw/ldes und das pcst-Flag.
+// ID3v2-Träger sind MP3/MP2, WAV, AIFF und DSF; MP4-Atome gelten für alle
+// MP4-Container (m4a, m4b, mp4, m4v, 3gp …).
+
+typedef struct {
+    char* text;         // UTF-8; Eigentum des Aufrufers nach tx_get_synced_lyrics
+    int64_t time_ms;    // Zeitpunkt in Millisekunden ab Dateianfang
+} tx_synced_line;
+
+// 1, wenn die Datei einen ID3v2-Tag tragen kann (und damit SYLT/USLT-Sprache).
+int tx_id3v2_supported(tx_file* f);
+
+// Sprache des ersten USLT-Frames (drei Buchstaben, z.B. "deu"; "XXX" =
+// unbekannt). NULL, wenn kein USLT vorhanden ist oder das Format kein ID3v2
+// kennt. Aufrufer gibt mit free() frei.
+char* tx_get_lyrics_language(tx_file* f);
+
+// Setzt die Sprache aller USLT-Frames. Ohne USLT-Frame passiert nichts (1).
+// 0 = Format ohne ID3v2 oder ungültige Sprache (nicht genau drei Zeichen).
+// Erst tx_save() macht die Änderung persistent.
+int tx_set_lyrics_language(tx_file* f, const char* language);
+
+// Zeilen des ersten SYLT-Frames mit Millisekunden-Zeitstempeln, nach Zeit
+// sortiert. out_count = Anzahl; NULL bei 0 Einträgen oder Fehler (out_count
+// unterscheidet: 0 bzw. -1). out_language (optional) erhält die Sprache des
+// Frames (Aufrufer gibt frei) oder NULL. Array und Texte mit
+// tx_free_synced_lyrics freigeben.
+tx_synced_line* tx_get_synced_lyrics(tx_file* f, int32_t* out_count, char** out_language);
+void tx_free_synced_lyrics(tx_synced_line* lines, int32_t count);
+
+// Ersetzt alle SYLT-Frames durch genau einen mit den übergebenen Zeilen
+// (count 0 = alle entfernen). language: drei Buchstaben oder NULL ("XXX").
+// Der Shim kopiert die Daten. 1 = Erfolg, 0 = Fehler oder Format ohne ID3v2.
+int tx_set_synced_lyrics(tx_file* f, const tx_synced_line* lines, int32_t count,
+                         const char* language);
+
+// Feld außerhalb der PropertyMap: id3_frame ist eine ID3v2-Frame-ID (vier
+// Zeichen, z.B. "TKWD"; "PCST" = Podcast-Flag), mp4_atom ein MP4-Atomname
+// (z.B. "keyw"; "pcst" = Podcast-Flag). Leer/NULL = für dieses Format kein
+// Speicherort. Flags liefern "1", wenn gesetzt.
+// 1, wenn das Format der Datei einen der beiden Speicherorte hat.
+int tx_native_field_supported(tx_file* f, const char* id3_frame, const char* mp4_atom);
+// Wert (UTF-8, Aufrufer gibt mit free() frei) oder NULL, wenn nicht vorhanden.
+char* tx_get_native_field(tx_file* f, const char* id3_frame, const char* mp4_atom);
+// Setzt den Wert; leer/NULL entfernt das Feld. 1 = Erfolg, 0 = Format ohne
+// Speicherort oder Fehler. Erst tx_save() macht die Änderung persistent.
+int tx_set_native_field(tx_file* f, const char* id3_frame, const char* mp4_atom,
+                        const char* value);
+
 // ---- Sonstiges --------------------------------------------------------------
 
 // TagLib-Versionsstring der gelinkten Bibliothek, z.B. "2.3.0". Statisch, nicht freigeben.

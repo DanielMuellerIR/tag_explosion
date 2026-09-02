@@ -40,6 +40,11 @@ final class FileEntry: Identifiable {
     var artworks: [Artwork] = []
     /// Kapitel (nur bei Formaten mit Kapiteln, siehe `supportsChapters`).
     var chapters: [Chapter] = []
+    /// Sprache der Lyrics (ISO 639-2; nur ID3v2 speichert sie) und
+    /// synchronisierte Zeilen — aus SYLT (ID3v2) oder, bei anderen Formaten,
+    /// aus der Sidecar `<name>.lrc` neben der Datei (siehe `readLoaded`).
+    var lyricsLanguage: String = ""
+    var syncedLyrics: [SyncedLyricLine] = []
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
     /// `imageOriginal` ist der zusammengeführte Stand (Sidecar-Werte
@@ -93,14 +98,39 @@ final class FileEntry: Identifiable {
     /// sich währenddessen weiter ändern; deshalb schreiben wir nie direkt aus
     /// den später möglicherweise veränderten UI-Feldern.
     enum SaveSnapshot: Sendable {
-        /// `chapters` ist nil, wenn das Format keine Kapitel kennt — dann
-        /// fasst der Schreibweg die Kapitel gar nicht an.
-        case audio(properties: [TagProperty], artworks: [Artwork], chapters: [Chapter]?)
+        case audio(AudioSnapshot)
         /// `sidecar`: Sidecar-Zustand aus dem Lesevorgang — damit erkennt der
         /// Schreibweg eine inzwischen fremd angelegte oder geänderte Sidecar.
         case image(fields: ImageCoreFields, original: ImageCoreFields, sidecar: SidecarState)
         case ebook(fields: EbookCoreFields, original: EbookCoreFields, cover: Data?)
         case document(fields: DocumentCoreFields, original: DocumentCoreFields)
+    }
+
+    /// Audio-Stand zu Beginn eines Speichervorgangs. `original` ist der
+    /// zuletzt gelesene Dateizustand: Gegen ihn werden die festen Felder vor
+    /// der Sicherung geprüft, und er entscheidet, ob die Mediendatei
+    /// überhaupt angefasst werden muss (eine Änderung nur an der LRC-Sidecar
+    /// schreibt das Medium nicht neu).
+    struct AudioSnapshot: Sendable {
+        var properties: [TagProperty]
+        var artworks: [Artwork]
+        /// nil, wenn das Format keine Kapitel kennt — dann fasst der
+        /// Schreibweg die Kapitel gar nicht an.
+        var chapters: [Chapter]?
+        /// nil = unverändert. Bei ID3v2-Trägern landen die Zeilen als SYLT
+        /// in der Datei, sonst in der Sidecar `<name>.lrc`.
+        var syncedLyrics: [SyncedLyricLine]?
+        /// nil = unverändert (nur ID3v2 speichert eine Sprache).
+        var lyricsLanguage: String?
+        var original: TagData
+
+        /// Ob in der Mediendatei selbst etwas zu schreiben ist.
+        var mediaChanged: Bool {
+            properties != original.properties || artworks != original.artworks
+                || (chapters != nil && chapters != original.chapters)
+                || (original.supportsSyncedLyrics && syncedLyrics != nil)
+                || lyricsLanguage != nil
+        }
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -116,6 +146,8 @@ final class FileEntry: Identifiable {
             self.properties = data.properties
             self.artworks = data.artworks
             self.chapters = data.chapters
+            self.lyricsLanguage = data.lyricsLanguage
+            self.syncedLyrics = data.syncedLyrics
         case .image(let reading):
             self.kind = .image
             self.imageReading = reading
@@ -189,12 +221,17 @@ final class FileEntry: Identifiable {
     /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
     /// den Kapitel-Abschnitt.
     var supportsChapters: Bool { kind == .audio && original.supportsChapters }
+    /// ID3v2-Träger (MP3/MP2, WAV, AIFF, DSF) speichern SYLT und die Sprache
+    /// der Lyrics in der Datei; alle anderen Audio-Formate nutzen für
+    /// synchronisierte Lyrics die Sidecar `<name>.lrc`.
+    var supportsSyncedLyrics: Bool { kind == .audio && original.supportsSyncedLyrics }
 
     var isDirty: Bool {
         switch kind {
         case .audio:
             return properties != original.properties || artworks != original.artworks
-                || chapters != original.chapters
+                || chapters != original.chapters || syncedLyrics != original.syncedLyrics
+                || lyricsLanguage != original.lyricsLanguage
         case .image:
             return imageFields != imageOriginal
         case .ebook:
@@ -212,6 +249,8 @@ final class FileEntry: Identifiable {
         properties = original.properties
         artworks = original.artworks
         chapters = original.chapters
+        syncedLyrics = original.syncedLyrics
+        lyricsLanguage = original.lyricsLanguage
         imageFields = imageOriginal
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
@@ -225,6 +264,8 @@ final class FileEntry: Identifiable {
         properties = data.properties
         artworks = data.artworks
         chapters = data.chapters
+        syncedLyrics = data.syncedLyrics
+        lyricsLanguage = data.lyricsLanguage
         lastError = nil
     }
 
@@ -297,8 +338,12 @@ final class FileEntry: Identifiable {
         isSaving = true
         switch kind {
         case .audio:
-            return .audio(properties: properties, artworks: artworks,
-                          chapters: supportsChapters ? chapters : nil)
+            return .audio(AudioSnapshot(
+                properties: properties, artworks: artworks,
+                chapters: supportsChapters ? chapters : nil,
+                syncedLyrics: syncedLyrics != original.syncedLyrics ? syncedLyrics : nil,
+                lyricsLanguage: lyricsLanguage != original.lyricsLanguage ? lyricsLanguage : nil,
+                original: original))
         case .image:
             return .image(fields: imageFields, original: imageOriginal,
                           sidecar: imageReading.sidecar)
@@ -342,11 +387,17 @@ final class FileEntry: Identifiable {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
         diskStamp = stamp
         switch (snapshot, reloaded) {
-        case (.audio(let savedProperties, let savedArtworks, let savedChapters), .audio(let data)):
+        case (.audio(let saved), .audio(let data)):
             original = data
-            if properties == savedProperties { properties = data.properties }
-            if artworks == savedArtworks { artworks = data.artworks }
-            if savedChapters == nil || chapters == savedChapters { chapters = data.chapters }
+            if properties == saved.properties { properties = data.properties }
+            if artworks == saved.artworks { artworks = data.artworks }
+            if saved.chapters == nil || chapters == saved.chapters { chapters = data.chapters }
+            if saved.syncedLyrics == nil || syncedLyrics == saved.syncedLyrics {
+                syncedLyrics = data.syncedLyrics
+            }
+            if saved.lyricsLanguage == nil || lyricsLanguage == saved.lyricsLanguage {
+                lyricsLanguage = data.lyricsLanguage
+            }
         case (.image(let savedFields, _, _), .image(let reading)):
             imageReading = reading
             imageOriginal = reading.fields
@@ -694,7 +745,15 @@ final class AppModel {
         switch kind {
         case .audio:
             do {
-                return .audio(try TagFile.read(at: url))
+                var data = try TagFile.read(at: url)
+                // Formate ohne ID3v2 haben kein SYLT; dort zählt die Sidecar
+                // `<name>.lrc`. Eine unlesbare Sidecar blockiert das Öffnen
+                // nicht — sie gilt dann als leer.
+                if !data.supportsSyncedLyrics, FixedFields.supportsLyrics(url),
+                   let sidecar = try? LRC.loadSidecar(for: url) {
+                    data.syncedLyrics = sidecar
+                }
+                return .audio(data)
             } catch {
                 // Container, für die TagLib keinen Tag-Leser hat (AVI, manche
                 // MOV-Varianten, Sun-AU, Ogg-Video), sollen trotzdem geöffnet
@@ -1425,6 +1484,23 @@ final class AppModel {
         if case .image(let fields, let original, _) = snapshot {
             try ExifTool.requireValidCoreFields(fields, original: original)
         }
+        if case .audio(let audio) = snapshot {
+            // Feste Felder (ReplayGain, R128, Podcast, Sprache) mit Wertebereich:
+            // ein ungültiger Wert endet hier, vor Sicherung und Kopie.
+            try FixedFields.validate(audio.properties, changedFrom: audio.original.properties)
+            if let lines = audio.syncedLyrics { try LRC.validate(lines) }
+            if let language = audio.lyricsLanguage, !FixedFields.isValidLanguage(language) {
+                throw TagError.invalidFieldValue(
+                    field: "LYRICS language",
+                    reason: "expected three letters (ISO 639-2), got \"\(language)\"")
+            }
+            // Nur die Sidecar hat sich geändert: Medium und Sicherung bleiben
+            // unangetastet; `writeSidecar` sichert die Sidecar selbst.
+            if !audio.mediaChanged {
+                try LRC.writeSidecar(audio.syncedLyrics ?? [], for: url)
+                return try readStamped(url: url, kind: kind)
+            }
+        }
         if case .ebook(let fields, let original, let cover) = snapshot {
             try EbookTool.requireStorableSeries(fields, original: original, url: url)
             if let cover { try EbookTool.requireSupportedCover(cover, for: url) }
@@ -1443,9 +1519,18 @@ final class AppModel {
         // dann schreiben. Scheitert die Sicherung, wird bewusst nicht geschrieben.
         try TrashBackup.shared.backUp(imageDestination?.url ?? url)
         switch (kind, snapshot) {
-        case (.audio, .audio(let properties, let artworks, let chapters)):
-            try TagFile.write(properties: properties, artworks: artworks, chapters: chapters,
+        case (.audio, .audio(let audio)):
+            let embedsSynced = audio.original.supportsSyncedLyrics
+            try TagFile.write(properties: audio.properties, artworks: audio.artworks,
+                              chapters: audio.chapters,
+                              syncedLyrics: embedsSynced ? audio.syncedLyrics : nil,
+                              lyricsLanguage: embedsSynced ? audio.lyricsLanguage : nil,
                               to: url, expecting: stamp)
+            // Formate ohne SYLT: geänderte Zeilen in die Sidecar (Sicherung
+            // und atomarer Austausch liegen in `writeSidecar`).
+            if !embedsSynced, let lines = audio.syncedLyrics {
+                try LRC.writeSidecar(lines, for: url)
+            }
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,

@@ -46,6 +46,18 @@
   MP4/M4A/M4B (Nero `chpl` and QuickTime chapter track, both written) and
   Matroska/WebM chapters. MP4 stores start times only; the end of a chapter
   is derived from the next start.
+- **Lyrics, loudness, podcast fields** — fixed fields with validation:
+  multi-line lyrics with language (ID3v2 USLT; MP4 `©lyr`; Vorbis/APE
+  `LYRICS`), synchronized lyrics as ID3v2 SYLT with LRC import/export — for
+  formats without ID3v2 they live in a `<name>.lrc` sidecar next to the file;
+  ReplayGain track/album gain and peak (`-6.50 dB`, `0.987654`) and Opus R128
+  (Q7.8 integer, shown as dB) with range checks (gain −60…+60 dB, peak 0…10,
+  R128 −32768…32767) — an invalid value is rejected by field name before
+  anything is written; podcast fields for MP3 and MP4 (flag, feed URL,
+  episode GUID, category, keywords, season, episode, description; ID3v2
+  PCST/WFED/TGID/TCAT/TKWD/TVSN/TVEP/TDES, MP4
+  pcst/purl/egid/catg/keyw/tvsn/tves/desc/ldes). Loudness values are only
+  stored and checked, never calculated from the audio.
 - **E-books/documents** — the Calibre-style metadata set (title, authors,
   series, description, cover, ISBN, publisher, language, date, tags). EPUB is
   handled natively, PDF via exiftool; with Calibre installed, mobi/azw3/fb2
@@ -214,6 +226,11 @@ tagx cover set song.mp3 cover.jpg              # embed cover art
 tagx chapters show book.m4b --json             # chapters as JSON (times in ms)
 tagx chapters set book.m4b --from chapters.txt # replace chapters (JSON or "HH:MM:SS.mmm Title" lines)
 tagx chapters clear book.m4b                   # remove all chapters
+tagx lyrics set song.mp3 --from song.lrc --language deu   # LRC → SYLT (+ text, language)
+tagx lyrics set song.flac --from song.lrc      # no ID3v2: writes the song.lrc sidecar
+tagx lyrics show song.mp3 --lrc                # synchronized lines as LRC
+tagx lyrics export song.mp3                    # → song.lrc (or .txt without sync)
+tagx set song.mp3 -t REPLAYGAIN_TRACK_GAIN="-6.50 dB" PODCAST=1 TVSEASON=2   # range-checked, exit 1 if invalid
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription
 tagx exif set IMG_0001.cr2 --rating 5        # RAW: written to IMG_0001.xmp
 tagx exif set photo.jpg --sidecar --title X  # any image: sidecar instead of file

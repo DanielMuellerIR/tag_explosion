@@ -93,6 +93,23 @@ public struct Chapter: Sendable, Codable, Equatable, Hashable {
     }
 }
 
+/// Eine Zeile synchronisierter Lyrics (ID3v2 SYLT, LRC): Zeitpunkt in
+/// Millisekunden ab Dateianfang plus Text. JSON-Form: `{"time": ms, "text": "…"}`.
+public struct SyncedLyricLine: Sendable, Codable, Equatable, Hashable {
+    public var milliseconds: Int
+    public var text: String
+
+    enum CodingKeys: String, CodingKey {
+        case milliseconds = "time"
+        case text
+    }
+
+    public init(milliseconds: Int, text: String) {
+        self.milliseconds = milliseconds
+        self.text = text
+    }
+}
+
 /// Vollständiger Tag-Zustand einer Datei — das, was gelesen/geschrieben wird.
 public struct TagData: Sendable, Codable, Equatable {
     public var properties: [TagProperty]
@@ -104,15 +121,30 @@ public struct TagData: Sendable, Codable, Equatable {
     /// Ob das Format Kapitel lesen und schreiben kann (MP3, MP4, Matroska).
     /// Nur dann zeigt der Editor den Kapitel-Abschnitt.
     public var supportsChapters: Bool
+    /// Sprache der unsynchronisierten Lyrics (ISO 639-2, drei Buchstaben,
+    /// z.B. "deu"); leer = unbekannt oder vom Format nicht gespeichert. Nur
+    /// ID3v2 (USLT) kennt eine Sprache — siehe `supportsSyncedLyrics`.
+    public var lyricsLanguage: String
+    /// Synchronisierte Lyrics (ID3v2 SYLT) in Zeitreihenfolge; leer bei
+    /// Formaten ohne SYLT — dort übernimmt die LRC-Sidecar (`LRC`).
+    public var syncedLyrics: [SyncedLyricLine]
+    /// Ob die Datei einen ID3v2-Tag trägt und damit SYLT und die
+    /// Lyrics-Sprache speichern kann (MP3/MP2, WAV, AIFF, DSF).
+    public var supportsSyncedLyrics: Bool
 
     public init(properties: [TagProperty], artworks: [Artwork], audio: AudioInfo?,
-                isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false) {
+                isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false,
+                lyricsLanguage: String = "", syncedLyrics: [SyncedLyricLine] = [],
+                supportsSyncedLyrics: Bool = false) {
         self.properties = properties
         self.artworks = artworks
         self.audio = audio
         self.isReadOnly = isReadOnly
         self.chapters = chapters
         self.supportsChapters = supportsChapters
+        self.lyricsLanguage = lyricsLanguage
+        self.syncedLyrics = syncedLyrics
+        self.supportsSyncedLyrics = supportsSyncedLyrics
     }
 
     /// Alle Werte zu einem Schlüssel (Reihenfolge wie gelesen).
@@ -172,6 +204,15 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Ein Wert, den das Zielformat so nicht ablegen kann (z.B. ein Datum
     /// außerhalb von ISO 8601 oder ein Trennzeichen im Autorennamen).
     case invalidDocumentValue(field: String, reason: String)
+    /// Ein festes Audio-Feld (ReplayGain, R128, Podcast, Lyrics-Sprache) mit
+    /// einem Wert außerhalb seines Wertebereichs — wird vor Sicherung und
+    /// Mutation abgelehnt, die Datei bleibt unverändert.
+    case invalidFieldValue(field: String, reason: String)
+    /// Synchronisierte Lyrics (SYLT) brauchen einen ID3v2-Tag; andere
+    /// Formate bekommen stattdessen die LRC-Sidecar `<name>.lrc`.
+    case syncedLyricsUnsupported(path: String)
+    /// Eine LRC-Datei ließ sich nicht lesen (kein Zeitstempel, kein UTF-8).
+    case invalidLyrics(reason: String)
 
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
@@ -208,6 +249,13 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "This document format cannot store the field: \(name)"
         case .invalidDocumentValue(let field, let reason):
             return "Invalid value for \(field): \(reason)"
+        case .invalidFieldValue(let field, let reason):
+            return "Invalid value for \(field): \(reason)"
+        case .syncedLyricsUnsupported(let path):
+            return "Synchronized lyrics (SYLT) need an ID3v2 tag (MP3, WAV, AIFF, DSF); "
+                + "use an .lrc sidecar for this format: \(path)"
+        case .invalidLyrics(let reason):
+            return "Invalid lyrics: \(reason)"
         }
     }
 }

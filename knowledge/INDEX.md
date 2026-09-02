@@ -46,6 +46,12 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
   vor Sicherung/Dry-run; Backend-Verträge für Serie und Coverformate.
+- [feste-felder-lyrics-lautheit-podcast.md](feste-felder-lyrics-lautheit-podcast.md) —
+  Bei Arbeit an Lyrics (USLT/SYLT/LRC), ReplayGain/R128 oder Podcast-Feldern:
+  welche Schlüssel TagLibs PropertyMap kennt und welche nicht (PCST, TKWD,
+  TVSN/TVEP, keyw/ldes), warum PCST über die PropertyMap verloren geht,
+  Sprache "XXX" nach jedem Textwechsel, Sidecar-Regeln, was kid3/mediainfo
+  davon zeigen.
 - [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
   dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
   exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.
