@@ -1,7 +1,8 @@
 // Datenmodell des E-Rechnungs-Lesers. Nur Anzeige: Das Modell beschreibt,
-// WAS in einer Rechnung steht (Profil, Syntax, alle befüllten Felder mit
-// EN-16931-Feldbezeichnung), nicht ob sie gültig ist — Validierung ist
-// bewusst kein Ziel.
+// WAS in einer Rechnung steht (Profil, Syntax, Dokumentart, alle befüllten
+// Felder mit EN-16931-Feldbezeichnung). Dazu kommt eine Grundvalidierung mit
+// Warnhinweisen (Pflichtfelder, Summen) — keine vollständige
+// Schematron-Prüfung, und nie ein Grund, die Anzeige zu verweigern.
 import Foundation
 
 /// Woher das Rechnungs-XML stammt.
@@ -16,8 +17,58 @@ public enum EInvoiceSource: Sendable, Codable, Equatable {
 public enum EInvoiceSyntax: String, Sendable, Codable {
     case cii = "UN/CEFACT CII"
     case ciiZUGFeRD1 = "UN/CEFACT CII (ZUGFeRD 1.0)"
+    /// UN/CEFACT Cross Industry Order — die Syntax von Order-X. Der
+    /// Wurzelname `SCRDMCCBDACIOMessageStructure` ist der offizielle
+    /// Schemaname, kein Tippfehler.
+    case ciiOrder = "UN/CEFACT CIO (Order-X)"
     case ublInvoice = "UBL Invoice"
     case ublCreditNote = "UBL CreditNote"
+    case ublOrder = "UBL Order"
+    case ublOrderResponse = "UBL OrderResponse"
+
+    /// Bestellungen (Order-X, Peppol Order/OrderResponse) folgen nicht der
+    /// EN 16931; ihre Felder tragen deshalb Order-X-Bezeichnungen statt
+    /// BT-Nummern, und die Rechnungs-Prüfregeln gelten für sie nicht.
+    public var isOrder: Bool {
+        switch self {
+        case .ciiOrder, .ublOrder, .ublOrderResponse: return true
+        case .cii, .ciiZUGFeRD1, .ublInvoice, .ublCreditNote: return false
+        }
+    }
+}
+
+/// Dokumentart, unabhängig von der Syntax: Rechnung oder Gutschrift (beide
+/// nach EN 16931) bzw. Bestellung oder Bestellantwort (Order-X, Peppol).
+public enum EInvoiceDocumentKind: String, Sendable, Codable {
+    case invoice
+    case creditNote
+    case order
+    case orderResponse
+
+    /// Deutsche Bezeichnung für Text-Ausgaben.
+    public var germanName: String {
+        switch self {
+        case .invoice: return "Rechnung"
+        case .creditNote: return "Gutschrift"
+        case .order: return "Bestellung"
+        case .orderResponse: return "Bestellantwort"
+        }
+    }
+}
+
+/// Ein Warnhinweis der Grundvalidierung. `code` ist die Regelkennung aus
+/// EN 16931 (BR-…, BR-CO-…) bzw. XRechnung (BR-DE-…), `term` der betroffene
+/// Business Term, `message` der deutsche Text für Anzeige und CLI.
+public struct EInvoiceWarning: Sendable, Codable, Equatable {
+    public var code: String
+    public var term: String?
+    public var message: String
+
+    public init(code: String, term: String?, message: String) {
+        self.code = code
+        self.term = term
+        self.message = message
+    }
 }
 
 /// Aufgelöstes Profil aus dem Spezifikationskennzeichen (BT-24).
@@ -79,9 +130,12 @@ public struct EInvoiceField: Sendable, Codable, Equatable {
     public var value: String
     /// Attribute wie unitCode, currencyID, schemeID, format.
     public var attributes: [XMLTreeAttribute]
-    /// EN-16931-Feldbezeichnung ("BT-1", "BG-4"), falls zugeordnet.
+    /// EN-16931-Feldbezeichnung ("BT-1", "BG-4"), falls zugeordnet. Bei
+    /// Bestellungen (Order-X, Peppol Order) immer nil — sie haben keine
+    /// BT-Nummern.
     public var term: String?
-    /// Deutscher Name des Business Terms, falls zugeordnet.
+    /// Deutscher Name des Business Terms, falls zugeordnet; bei Bestellungen
+    /// die Order-X-Bezeichnung des Feldes (ohne `term`).
     public var termName: String?
     /// Entschlüsselung bekannter Codewerte (z.B. TypeCode 380 → "Rechnung").
     public var valueNote: String?
@@ -90,7 +144,8 @@ public struct EInvoiceField: Sendable, Codable, Equatable {
     public var attributeTerms: [EInvoiceAttributeTerm] = []
 }
 
-/// Kurzfassung für Listen-/Titelanzeigen.
+/// Kurzfassung für Listen-/Titelanzeigen. Bei Bestellungen stehen hier die
+/// entsprechenden Bestellwerte (Bestellnummer, Bestelldatum, …).
 public struct EInvoiceSummary: Sendable, Codable, Equatable {
     public var invoiceNumber: String?   // BT-1
     public var issueDate: String?       // BT-2 (roh, meist JJJJMMTT oder ISO)
@@ -105,11 +160,17 @@ public struct EInvoiceDocument: Sendable, Codable {
     public var source: EInvoiceSource
     public var syntax: EInvoiceSyntax
     public var profile: EInvoiceProfile
+    /// Rechnung, Gutschrift, Bestellung oder Bestellantwort.
+    public var documentKind: EInvoiceDocumentKind
     /// Deklaration im Träger-PDF (nur bei source == .pdfEmbedded, falls vorhanden).
     public var pdfDeclaration: EInvoicePDFDeclaration?
     /// Alle Felder in Dokumentreihenfolge.
     public var fields: [EInvoiceField]
     public var summary: EInvoiceSummary
+    /// Warnhinweise der Grundvalidierung (leer = nichts gefunden). Bei
+    /// Bestellungen und ZUGFeRD 1.0 immer leer, weil dort keine
+    /// EN-16931-Regeln gelten.
+    public var warnings: [EInvoiceWarning] = []
 
     /// Wert des ersten Feldes mit dem gegebenen Business Term.
     public func firstValue(term: String) -> String? {
@@ -128,7 +189,7 @@ public enum EInvoiceError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notAnInvoice:
-            return "Keine E-Rechnung erkannt (ZUGFeRD/Factur-X/XRechnung/UBL)."
+            return "Keine E-Rechnung erkannt (ZUGFeRD/Factur-X/XRechnung/UBL/Order-X)."
         case .pdfUnreadable(let path):
             return "PDF nicht lesbar: \(path)"
         case .xmlUnreadable(let detail):
@@ -201,6 +262,21 @@ extension EInvoiceProfile {
             return make("Peppol BIS", "Peppol BIS Billing 3.0")
         }
 
+        // --- Peppol BIS Ordering (UBL Order / OrderResponse). Die
+        // CustomizationID nennt die Transaktion: …:trns:order:3 bzw.
+        // …:trns:order_response:3.
+        if let matched = matchedComponent(withPrefix: "urn:fdc:peppol.eu:poacc:trns:order") {
+            let name = matched.contains("order_response") ? "Peppol BIS Order Response"
+                                                          : "Peppol BIS Order"
+            return make("Peppol BIS", name)
+        }
+
+        // --- Order-X (Bestellungen im ZUGFeRD-Stil, CIO-Syntax). URN-Stamm
+        // urn:order-x.eu:1p0:basic|comfort|extended.
+        if let matched = matchedComponent(withPrefix: "urn:order-x.eu:") {
+            return make("Order-X", orderXProfileName(from: matched))
+        }
+
         // --- Factur-X / ZUGFeRD 2.1+ (gemeinsamer Standard, URN-Stamm factur-x.eu)
         if let matched = matchedComponent(withPrefix: "urn:factur-x.eu:") {
             return make("Factur-X / ZUGFeRD", facturXProfileName(from: matched))
@@ -228,6 +304,15 @@ extension EInvoiceProfile {
             return make("Unbekannt", "kein Spezifikationskennzeichen (BT-24)")
         }
         return make("EN 16931-basiert?", urn)
+    }
+
+    /// Profilstufe aus einer Order-X-URN: BASIC, COMFORT oder EXTENDED.
+    /// Unbekannte Stufen bleiben als letztes Segment sichtbar.
+    private static func orderXProfileName(from lowerURN: String) -> String {
+        if lowerURN.hasSuffix(":basic") { return "BASIC" }
+        if lowerURN.hasSuffix(":comfort") { return "COMFORT" }
+        if lowerURN.hasSuffix(":extended") { return "EXTENDED" }
+        return lowerURN.components(separatedBy: ":").last?.uppercased() ?? "?"
     }
 
     /// Profilstufe aus einer Factur-X-/ZUGFeRD-URN (letztes Pfadsegment).

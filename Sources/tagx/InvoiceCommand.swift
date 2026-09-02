@@ -1,7 +1,10 @@
-// tagx invoice — E-Rechnung anzeigen: Profil, Syntax und sämtliche Felder
-// mit EN-16931-Feldbezeichnungen (BT-/BG-Nummern). Reine Anzeige, kein
-// Schreibweg. Funktioniert für eigenständige XML-Rechnungen und für PDFs
-// mit eingebetteter Rechnung (ZUGFeRD/Factur-X).
+// tagx invoice — E-Rechnung anzeigen: Profil, Syntax, Dokumentart, Hinweise
+// der Grundvalidierung und sämtliche Felder mit EN-16931-Feldbezeichnungen
+// (BT-/BG-Nummern; Bestellungen mit Order-X-Bezeichnungen). Reine Anzeige,
+// kein Schreibweg. Funktioniert für eigenständige XML-Dateien und für PDFs
+// mit eingebetteter Rechnung bzw. Bestellung (ZUGFeRD/Factur-X/Order-X).
+// Exit-Codes: 0 = ok (auch mit Hinweisen), 1 = Fehler, 3 = --strict und
+// mindestens ein Hinweis.
 import ArgumentParser
 import EInvoiceCore
 import Foundation
@@ -10,13 +13,20 @@ import TagExplosionCore
 struct Invoice: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "invoice",
-        abstract: "Show e-invoice profile and all fields (ZUGFeRD, Factur-X, XRechnung, UBL, Peppol)."
+        abstract: "Show e-invoice profile, warnings and all fields (ZUGFeRD, Factur-X, XRechnung, UBL, Peppol, Order-X).",
+        discussion: """
+            Basic validation only: missing EN 16931 mandatory fields and the \
+            totals arithmetic (BT-106 … BT-115) are reported as warnings. \
+            Exit code stays 0 unless --strict is given (then 3 on warnings).
+            """
     )
 
-    @Argument(help: "Invoice file(s): XML, or PDF with embedded invoice") var files: [String]
+    @Argument(help: "Invoice/order file(s): XML, or PDF with embedded invoice") var files: [String]
     @Flag(name: .long, help: "Output as JSON") var json = false
-    @Flag(name: .long, help: "Only groups and fields with an EN 16931 term (BT/BG)")
+    @Flag(name: .long, help: "Only groups and fields with an EN 16931 term (BT/BG) or an Order-X label")
     var termsOnly = false
+    @Flag(name: .long, help: "Exit with code 3 if any document has warnings")
+    var strict = false
 
     func run() throws {
         var documents: [(path: String, document: EInvoiceDocument)] = []
@@ -29,7 +39,7 @@ struct Invoice: ParsableCommand {
                 // (am Element oder an einem Attribut).
                 if termsOnly {
                     document.fields = document.fields.filter {
-                        $0.term != nil || !$0.attributeTerms.isEmpty
+                        $0.term != nil || $0.termName != nil || !$0.attributeTerms.isEmpty
                     }
                 }
                 documents.append((url.path, document))
@@ -44,15 +54,20 @@ struct Invoice: ParsableCommand {
                 var invoice: EInvoiceDocument
             }
             try printJSON(documents.map { Report(file: $0.path, invoice: $0.document) })
-            return
+        } else {
+            for (index, entry) in documents.enumerated() {
+                if documents.count > 1 {
+                    if index > 0 { print("") }
+                    print("== \(entry.path)")
+                }
+                printDocument(entry.document)
+            }
         }
 
-        for (index, entry) in documents.enumerated() {
-            if documents.count > 1 {
-                if index > 0 { print("") }
-                print("== \(entry.path)")
-            }
-            printDocument(entry.document)
+        // Hinweise sind kein Fehler: Die Ausgabe ist vollständig erfolgt,
+        // nur der Exit-Code meldet sie — und nur auf Wunsch (--strict).
+        if strict, documents.contains(where: { !$0.document.warnings.isEmpty }) {
+            throw ExitCode(3)
         }
     }
 
@@ -61,6 +76,7 @@ struct Invoice: ParsableCommand {
         print("STANDARD: \(document.profile.standard)")
         print("PROFILE: \(document.profile.profile)")
         print("SYNTAX: \(document.syntax.rawValue)")
+        print("KIND: \(document.documentKind.rawValue)")
         print("GUIDELINE: \(document.profile.guidelineID)")
         if let process = document.profile.businessProcessID {
             print("BUSINESS-PROCESS: \(process)")
@@ -83,6 +99,13 @@ struct Invoice: ParsableCommand {
                 line += " · \(amount) \(summary.currency ?? "")"
             }
             print(line)
+        }
+        // Hinweise der Grundvalidierung: Regelkennung, Business Term, Text.
+        print("WARNINGS: \(document.warnings.count)")
+        for warning in document.warnings {
+            var line = "WARNING [\(warning.code)]"
+            if let term = warning.term { line += " \(term)" }
+            print("\(line): \(warning.message)")
         }
         print("---")
 
@@ -115,6 +138,9 @@ struct Invoice: ParsableCommand {
                 line += "  [\(term)"
                 if let name = field.termName { line += " \(name)" }
                 line += "]"
+            } else if let name = field.termName {
+                // Bestellungen: Order-X-Bezeichnung ohne BT-Nummer.
+                line += "  [\(name)]"
             }
             if let note = field.valueNote {
                 line += "  → \(note)"

@@ -391,6 +391,26 @@
         }
       }
     },
+    "Bestellantwort": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Order response"
+          }
+        }
+      }
+    },
+    "Bestellung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Order"
+          }
+        }
+      }
+    },
     "Bewertung": {
       "localizations": {
         "en": {
@@ -707,6 +727,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This archive contains %lld target(s) outside its folder. All resolved targets:"
+          }
+        }
+      }
+    },
+    "Dokumentart": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Document kind"
           }
         }
       }
@@ -1031,12 +1061,32 @@
         }
       }
     },
+    "Gutschrift": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credit note"
+          }
+        }
+      }
+    },
     "Hinweis": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Notice"
+          }
+        }
+      }
+    },
+    "Hinweise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warnings"
           }
         }
       }
@@ -1697,6 +1747,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Placeholders:"
+          }
+        }
+      }
+    },
+    "Rechnung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invoice"
           }
         }
       }
