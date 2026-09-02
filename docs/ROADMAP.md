@@ -24,21 +24,21 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 
 | AP | Inhalt | Aufwand | Status |
 |----|--------|---------|--------|
-| AP1 | **Weitere Audio-/Container-Endungen über TagLib:** Tracker-Module (mod, s3m, xm, it), Sun/NeXT `au`, AIFF-C `aifc`, `mp2`, `3gp`/`3g2`, Matroska-Audio `mka`, Ogg-Video `ogv`. Fixtures per ffmpeg, wo ffmpeg das Format encodieren kann; Tracker-Formate nur Leseweg-Test mit synthetischer Minimaldatei. | klein | ⬜ |
-| AP2 | **Kamera-RAW und XMP-Sidecar:** RAW-Endungen (cr2, cr3, nef, arw, raf, orf, rw2, pef) lesen via exiftool; Schreiben in die XMP-Sidecar-Datei (`<name>.xmp`), nie ins RAW. `.xmp` als eigenes Format anzeigen/bearbeiten. Zusätzlich avif, jxl, bmp, psd, svg (Lesen; avif/jxl auch Schreiben). Option „Sidecar statt Original schreiben" für alle Bildformate. | mittel | ⬜ |
-| AP3 | **Umbenennen aus Tags und Tags aus Dateinamen** mit Format-Mustern (`%artist% - %title%`, `%track%`, `%album%` …). Muster-Engine im Core, Vorschau vor dem Umbenennen, Kollisionen erkennen, `tagx rename` und `tagx parse` (dry-run per Voreinstellung), Batch-Editor-Menü in der App. | groß | ⬜ |
-| AP4 | **Office, Comics, Markdown:** docx/xlsx/pptx (`docProps/core.xml`) und odt/ods/odp (`meta.xml`) mit Titel, Autor, Schlagwörtern, Beschreibung, Datum — ZIP-plus-XML-Weg wie bei EPUB. CBZ mit `ComicInfo.xml` (Titel, Serie, Nummer, Autor, Verlag, Zusammenfassung; Cover = erste Seite). Markdown-Frontmatter (YAML) als Metadatenblock lesen/schreiben. Neue Medienart `document` mit eigenem Editor und `tagx doc`. | groß | ⬜ |
-| AP5 | **Kapitel für Hörbücher und Podcasts:** ID3 CHAP/CTOC, MP4-Chapters (Nero + QuickTime-Text-Track soweit TagLib es zulässt), Matroska-Chapters. Eigener Shim-Teil in `Sources/CTagShim`, Kapitelliste im Editor (Titel, Start, Ende), `tagx chapters show/set/import` mit JSON. | groß | ⬜ |
+| AP1 | **Weitere Audio-/Container-Endungen über TagLib:** Tracker-Module (mod, s3m, xm, it), Sun/NeXT `au`, AIFF-C `aifc`, `mp2`, `3gp`/`3g2`, Matroska-Audio `mka`, Ogg-Video `ogv`. Fixtures per ffmpeg, wo ffmpeg das Format encodieren kann; Tracker-Formate nur Leseweg-Test mit synthetischer Minimaldatei. | klein | ✅ 0.25.0 |
+| AP2 | **Kamera-RAW und XMP-Sidecar:** RAW-Endungen (cr2, cr3, nef, arw, raf, orf, rw2, pef) lesen via exiftool; Schreiben in die XMP-Sidecar-Datei (`<name>.xmp`), nie ins RAW. `.xmp` als eigenes Format anzeigen/bearbeiten. Zusätzlich avif, jxl, bmp, psd, svg (Lesen; avif/jxl auch Schreiben). Option „Sidecar statt Original schreiben" für alle Bildformate. | mittel | ✅ 0.27.0 |
+| AP3 | **Umbenennen aus Tags und Tags aus Dateinamen** mit Format-Mustern (`%artist% - %title%`, `%track%`, `%album%` …). Muster-Engine im Core, Vorschau vor dem Umbenennen, Kollisionen erkennen, `tagx rename` und `tagx parse` (dry-run per Voreinstellung), Batch-Editor-Menü in der App. | groß | ✅ 0.26.0 |
+| AP4 | **Office, Comics, Markdown:** docx/xlsx/pptx (`docProps/core.xml`) und odt/ods/odp (`meta.xml`) mit Titel, Autor, Schlagwörtern, Beschreibung, Datum — ZIP-plus-XML-Weg wie bei EPUB. CBZ mit `ComicInfo.xml` (Titel, Serie, Nummer, Autor, Verlag, Zusammenfassung; Cover = erste Seite). Markdown-Frontmatter (YAML) als Metadatenblock lesen/schreiben. Neue Medienart `document` mit eigenem Editor und `tagx doc`. | groß | 🔧 |
+| AP5 | **Kapitel für Hörbücher und Podcasts:** ID3 CHAP/CTOC, MP4-Chapters (Nero + QuickTime-Text-Track soweit TagLib es zulässt), Matroska-Chapters. Eigener Shim-Teil in `Sources/CTagShim`, Kapitelliste im Editor (Titel, Start, Ende), `tagx chapters show/set/import` mit JSON. | groß | ✅ 0.24.0 |
 
 ## Welle 2 — Audio-Tiefe und Nebendaten
 
 | AP | Inhalt | Aufwand | Status |
 |----|--------|---------|--------|
-| AP6 | **ID3-Schichten und ID3v2.3-Option:** ID3v1, ID3v2, APE getrennt anzeigen und einzeln entfernen („Schicht strippen"); Schreiboption ID3v2.3 statt v2.4 für alte Player (Shim-Overload von `MPEG::File::save`). | mittel | ⬜ |
+| AP6 | **ID3-Schichten und ID3v2.3-Option:** ID3v1, ID3v2, APE getrennt anzeigen und einzeln entfernen („Schicht strippen"); Schreiboption ID3v2.3 statt v2.4 für alte Player (Shim-Overload von `MPEG::File::save`). | mittel | 🔧 |
 | AP7 | **Feste Felder mit Prüfung:** Lyrics (USLT) mit Sprache und synchronisierte Lyrics (SYLT / LRC-Sidecar), ReplayGain und R128-Lautheit (Wertebereich prüfen), Podcast-Felder (Episode, Season, Podcast-URL, GUID) für MP4 und ID3. | mittel | ⬜ |
 | AP8 | **Playlists und Cue-Sheets:** `.cue` anzeigen und bearbeiten (Titel, Interpret, Index); `.m3u`/`.m3u8`/`.pls`/`.xspf` anzeigen und aus einer Auswahl exportieren. | mittel | ⬜ |
 | AP9 | **Video-Sidecars:** Kodi/Jellyfin `.nfo` (XML) anzeigen und bearbeiten; `.srt`/`.vtt` mit Sprache und Titel anzeigen. | klein | ⬜ |
-| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | ⬜ |
+| AP10 | **Rechnungen erweitern:** Order-X und Peppol-Bestellung/Gutschrift über den CII/UBL-Unterbau; Warnhinweise aus einer Grundvalidierung (Pflichtfelder nach EN 16931, Summenprüfung BT-106…BT-115). | mittel | 🔧 |
 
 ## Welle 3 — Werkzeuge rund um die Bibliothek
 

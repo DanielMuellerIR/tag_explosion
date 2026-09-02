@@ -168,7 +168,9 @@ public enum TagArchiveIO {
                     }.value
                 }
             case .image:
-                entry.image = try ExifTool.readCoreFieldsSnapshot(url: url).value
+                // Gesichert wird der zusammengeführte Stand (Sidecar überlagert
+                // eingebettete Werte) — genau das, was die Oberfläche zeigt.
+                entry.image = try ExifTool.readCoreFieldsSnapshot(url: url).value.fields
             case .ebook:
                 let readsCover = includeCovers && EbookTool.supportsCover(url: url)
                 let snapshot = try EbookTool.readSnapshot(
@@ -447,7 +449,7 @@ public enum TagArchiveIO {
         case .image:
             let snapshot = try ExifTool.readCoreFieldsSnapshot(
                 url: url, expecting: stamp)
-            let current = snapshot.value
+            let current = snapshot.value.fields
             guard let target = entry.image, target != current else {
                 try beforeNoopReturn(url)
                 try snapshot.requireCurrent(at: url)
@@ -458,10 +460,14 @@ public enum TagArchiveIO {
             // Normalisierungen wie 48.1000 → 48.1 vor einer Sicherung. Beim
             // echten Lauf setzt der atomare Rahmen genau diese geprüfte Kopie
             // ein, statt exiftool ein zweites Mal auszuführen.
+            // Kamera-RAW und Bilder mit vorhandener Sidecar schreibt der Import
+            // in die Sidecar; gesichert wird dann diese, nicht das Bild.
+            let destination = ExifTool.writeDestination(for: url, preferSidecar: false)
             try ExifTool.writeArchivedCoreFields(
                 url: url, fields: target, original: current,
-                expecting: snapshot.stamp, dryRun: dryRun,
-                beforeReplace: { try backUp(url) })
+                expecting: snapshot.stamp, to: destination,
+                sidecar: snapshot.value.sidecar, dryRun: dryRun,
+                beforeReplace: { try backUp(destination.url) })
             return true
         case .ebook:
             guard let target = entry.ebook else {

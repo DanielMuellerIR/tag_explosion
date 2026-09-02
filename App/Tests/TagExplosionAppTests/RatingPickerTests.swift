@@ -42,7 +42,7 @@ struct RatingPickerTests {
     @MainActor
     func singleEntryKeepsRejectedAndAbsent() {
         let rejected = FileEntry(url: URL(fileURLWithPath: "/tmp/rejected.jpg"),
-                                 loaded: .image(ImageCoreFields(rating: -1)))
+                                 loaded: .image(ImageCoreReading(fields: ImageCoreFields(rating: -1))))
         #expect(RatingPicker.options(current: rejected.imageFields.rating)
             .contains { $0.value == rejected.imageFields.rating })
         // Auswahl „keine" löscht das Tag; danach ist der Eintrag dirty.
@@ -91,9 +91,9 @@ struct RatingPickerTests {
     @MainActor
     func batchBindingOnEntries() {
         let entries = [
-            FileEntry(url: URL(fileURLWithPath: "/tmp/a.jpg"), loaded: .image(ImageCoreFields(rating: nil))),
-            FileEntry(url: URL(fileURLWithPath: "/tmp/b.jpg"), loaded: .image(ImageCoreFields(rating: 5))),
-            FileEntry(url: URL(fileURLWithPath: "/tmp/c.jpg"), loaded: .image(ImageCoreFields(rating: -1))),
+            FileEntry(url: URL(fileURLWithPath: "/tmp/a.jpg"), loaded: .image(ImageCoreReading(fields: ImageCoreFields(rating: nil)))),
+            FileEntry(url: URL(fileURLWithPath: "/tmp/b.jpg"), loaded: .image(ImageCoreReading(fields: ImageCoreFields(rating: 5)))),
+            FileEntry(url: URL(fileURLWithPath: "/tmp/c.jpg"), loaded: .image(ImageCoreReading(fields: ImageCoreFields(rating: -1)))),
         ]
         #expect(RatingChoice.choice(for: entries.map(\.imageFields.rating)) == .mixed)
         // Dieselbe Logik wie im Binding-Setter des Batch-Editors.

@@ -85,6 +85,39 @@ public final class TagFile {
         }
     }
 
+    /// Ob das Format der Datei Kapitel tragen kann (MP3, MP4, Matroska).
+    public var supportsChapters: Bool {
+        guard let h = handle else { return false }
+        return tx_chapters_supported(h) != 0
+    }
+
+    /// Kapitel in Abspielreihenfolge. Formate ohne Kapitel liefern `[]`.
+    ///
+    /// MP4 kennt nur Startzeiten (der Shim liefert dort `end_ms == -1`). Das
+    /// Ende wird deshalb hier ergänzt: nächster Kapitelbeginn, für das letzte
+    /// Kapitel die Spielzeit der Datei (oder der eigene Beginn, wenn TagLib
+    /// keine Spielzeit kennt).
+    public func chapters() throws -> [Chapter] {
+        let h = try requireHandle()
+        var count: Int32 = 0
+        let raw = tx_get_chapters(h, &count)
+        defer { tx_free_chapters(raw, count) }
+        guard count >= 0 else { throw TagError.cannotOpen(path: path) }
+        guard let raw, count > 0 else { return [] }
+        let length = audioInfo().map(\.lengthMilliseconds) ?? 0
+        return (0..<Int(count)).map { i in
+            let entry = raw[i]
+            let start = Int(entry.start_ms)
+            var end = Int(entry.end_ms)
+            if end < 0 {
+                let next = i + 1 < Int(count) ? Int(raw[i + 1].start_ms) : length
+                end = max(start, next)
+            }
+            return Chapter(title: String(cString: entry.title),
+                           startMilliseconds: start, endMilliseconds: end)
+        }
+    }
+
     public func audioInfo() -> AudioInfo? {
         guard let h = handle else { return nil }
         var props = tx_audio_properties()
@@ -103,7 +136,9 @@ public final class TagFile {
             properties: try properties(),
             artworks: try artworks(),
             audio: audioInfo(),
-            isReadOnly: isReadOnly
+            isReadOnly: isReadOnly,
+            chapters: try chapters(),
+            supportsChapters: supportsChapters
         )
     }
 
@@ -166,6 +201,27 @@ public final class TagFile {
         }
     }
 
+    /// Ersetzt alle Kapitel (noch nicht persistent — `save()` aufrufen).
+    /// Nicht public — siehe `setProperties`. Wirft `chaptersUnsupported`,
+    /// wenn das Format keine Kapitel kennt.
+    func setChapters(_ chapters: [Chapter]) throws {
+        let h = try requireHandle()
+        guard supportsChapters else { throw TagError.chaptersUnsupported(path: path) }
+        // C-Strings bis zum Aufruf am Leben halten — strdup + explizites free.
+        var cChapters: [tx_chapter] = []
+        cChapters.reserveCapacity(chapters.count)
+        for chapter in chapters {
+            cChapters.append(tx_chapter(
+                title: strdup(chapter.title),
+                start_ms: Int64(chapter.startMilliseconds),
+                end_ms: Int64(chapter.endMilliseconds)))
+        }
+        defer { for c in cChapters { free(c.title) } }
+        guard tx_set_chapters(h, cChapters, Int32(cChapters.count)) == 1 else {
+            throw TagError.saveFailed(path: path)
+        }
+    }
+
     /// Schreibt alle Änderungen in die Datei. TagLib schreibt dabei in-place —
     /// deshalb nicht public und nur innerhalb von `write(...)` auf der
     /// Geschwisterkopie erlaubt, nie auf einem Original.
@@ -184,7 +240,8 @@ public final class TagFile {
         return try file.readAll()
     }
 
-    /// Schreibt Properties und/oder Artworks in eine Datei (nil = unverändert lassen).
+    /// Schreibt Properties, Artworks und/oder Kapitel in eine Datei
+    /// (nil = unverändert lassen; `chapters: []` entfernt alle Kapitel).
     ///
     /// TagLib schreibt grundsätzlich in-place. Damit ein Absturz, ein voller
     /// Datenträger oder ein Formatfehler die Originaldatei nicht halb fertig
@@ -203,22 +260,30 @@ public final class TagFile {
     public static func write(
         properties: [TagProperty]? = nil,
         artworks: [Artwork]? = nil,
+        chapters: [Chapter]? = nil,
         to url: URL,
         expecting stamp: FileStamp? = nil
     ) throws {
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
         if before.isReadOnly { throw TagError.readOnly(path: url.path) }
+        // Unstimmige Kapitel vor Kopie und Sicherung ablehnen — ein Fehler
+        // NACH der Papierkorb-Kopie hinterließe eine sinnlose Sicherung.
+        if let chapters {
+            guard before.supportsChapters else { throw TagError.chaptersUnsupported(path: url.path) }
+            try ChapterList.validate(chapters)
+        }
 
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             let file = try TagFile(url: temp)
             defer { file.close() }
             if let properties { try file.setProperties(properties) }
             if let artworks { try file.setArtworks(artworks) }
+            if let chapters { try file.setChapters(chapters) }
             try file.save()
         } validate: { temp in
-            try validateWriteResult(at: temp, expecting: artworks, comparedTo: before.audio,
-                                    originalPath: url.path)
+            try validateWriteResult(at: temp, expecting: artworks, chapters: chapters,
+                                    comparedTo: before.audio, originalPath: url.path)
         }
     }
 
@@ -228,8 +293,8 @@ public final class TagFile {
     /// Kanäle, Samplerate oder Spielzeit wegbrechen, hat TagLib die Datei
     /// beschädigt — dann bleibt das Original stehen.
     private static func validateWriteResult(
-        at url: URL, expecting artworks: [Artwork]?, comparedTo before: AudioInfo?,
-        originalPath: String
+        at url: URL, expecting artworks: [Artwork]?, chapters: [Chapter]?,
+        comparedTo before: AudioInfo?, originalPath: String
     ) throws {
         let file = try TagFile(url: url) // muss überhaupt wieder lesbar sein
         defer { file.close() }
@@ -237,6 +302,17 @@ public final class TagFile {
 
         if let artworks, (try file.artworks()).count != artworks.count {
             throw TagError.saveFailed(path: originalPath)
+        }
+        // Kapitel müssen in gleicher Zahl und mit gleichen Titeln und
+        // Startzeiten zurückkommen. Das Ende wird nicht verglichen: MP4
+        // speichert keins, dort ergibt es sich erst beim Lesen.
+        if let chapters {
+            let readBack = try file.chapters()
+            guard readBack.count == chapters.count,
+                  zip(readBack, chapters).allSatisfy({
+                      $0.title == $1.title && $0.startMilliseconds == $1.startMilliseconds
+                  })
+            else { throw TagError.saveFailed(path: originalPath) }
         }
 
         guard let before, before.lengthMilliseconds > 0 else { return }

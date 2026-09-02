@@ -5,24 +5,109 @@ import Foundation
 
 public enum MediaFormats {
 
-    /// Audio-Endungen (deckt die TagLib-Formate ab).
-    public static let audio: Set<String> = [
-        "mp3", "m4a", "m4b", "m4r", "mp4", "aac",
+    /// Tracker-Module (ProTracker `mod`, Scream Tracker 3 `s3m`, FastTracker II
+    /// `xm`, Impulse Tracker `it`). TagLib liest sie, kennt aber nur Titel,
+    /// Kommentar (= die Sample-/Instrumentnamen, eine Zeile je Name) und den
+    /// Tracker-Namen — siehe `writableTagKeys(for:)`. Kein Cover-Speicherort.
+    public static let tracker: Set<String> = ["mod", "s3m", "xm", "it"]
+
+    /// Endungen, für die TagLib keinen Leser hat: Sun/NeXT-Audio `au` und
+    /// Ogg-Video `ogv` (Theora/VP8 plus Vorbis in einem Ogg-Strom; TagLibs
+    /// Ogg-Leser kennt nur reine Audio-Ströme). Sie öffnen nur zur Anzeige
+    /// über mediainfo, ein Tag-Schreibweg fehlt.
+    public static let displayOnly: Set<String> = ["au", "ogv"]
+
+    /// Audio-Endungen (deckt die TagLib-Formate ab; `au` nur Anzeige).
+    public static let audio: Set<String> = Set([
+        "mp3", "mp2", "m4a", "m4b", "m4r", "mp4", "aac",
         "flac", "ogg", "oga", "opus", "spx",
-        "wav", "aiff", "aif", "wv", "ape", "mpc",
-        "tta", "dsf", "dff", "wma", "asf",
-    ]
+        "wav", "aiff", "aif", "aifc", "wv", "ape", "mpc",
+        "tta", "dsf", "dff", "wma", "asf", "mka", "au",
+    ]).union(tracker)
 
-    /// Bild-Endungen (Metadaten via exiftool).
-    public static let image: Set<String> = [
+    /// Bild-Endungen (Metadaten via exiftool). Enthält auch die Kamera-RAW-
+    /// Endungen, die nur über eine XMP-Sidecar-Datei beschrieben werden, die
+    /// Sidecar-Endung selbst (`xmp`, ein „Bild ohne Pixel") und Formate, die
+    /// exiftool nur lesen kann (`bmp`, `svg`; siehe `imageEmbeddedReadOnly`).
+    public static let image: Set<String> = Set([
         "jpg", "jpeg", "png", "heic", "heif", "tif", "tiff",
-        "webp", "dng", "gif",
+        "webp", "dng", "gif", "avif", "jxl", "bmp", "psd", "svg",
+        xmpSidecarExtension,
+    ]).union(rawImage)
+
+    /// Kamera-RAW-Endungen. Diese Dateien werden NIE direkt beschrieben:
+    /// Änderungen gehen in die XMP-Sidecar-Datei `<name>.xmp` daneben — so
+    /// wie Lightroom und Bridge es tun. Ein RAW ist das unveränderliche
+    /// „Negativ"; ein Schreibfehler darin wäre nicht wiedergutzumachen.
+    public static let rawImage: Set<String> = [
+        "cr2", "cr3", "nef", "arw", "raf", "orf", "rw2", "pef",
     ]
 
-    /// Video-Endungen. Tags via TagLib (mp4/m4v/mkv/webm); Rest nur anzeigen.
+    /// Bild-Endungen, in die exiftool KEINE Metadaten schreiben kann (Stand
+    /// exiftool 13.55, geprüft per `exiftool -listwf`; ein Test hält die
+    /// Liste gegen die installierte Version). Änderungen an solchen Dateien
+    /// landen ebenfalls in der Sidecar-Datei.
+    public static let imageEmbeddedReadOnly: Set<String> = ["bmp", "svg"]
+
+    /// Endung der XMP-Sidecar-Datei. Eine `.xmp` lässt sich auch alleine
+    /// öffnen und bearbeiten (gleiche Felder wie ein Bild, nur ohne Pixel).
+    public static let xmpSidecarExtension = "xmp"
+
+    /// Ist die Datei ein Kamera-RAW (Schreiben nur über Sidecar)?
+    public static func isRawImage(_ url: URL) -> Bool {
+        rawImage.contains(url.pathExtension.lowercased())
+    }
+
+    /// Ist die Datei selbst eine XMP-Sidecar-Datei?
+    public static func isXMPSidecar(_ url: URL) -> Bool {
+        url.pathExtension.lowercased() == xmpSidecarExtension
+    }
+
+    /// Pfad der XMP-Sidecar-Datei zu einem Bild: gleicher Ordner, gleicher
+    /// Name, Endung `.xmp` (Lightroom-/Bridge-Konvention). Für eine `.xmp`
+    /// selbst ist das die Datei selbst. Achtung: `foto.cr2` und `foto.jpg`
+    /// im selben Ordner teilen sich dieselbe Sidecar — auch das entspricht
+    /// den Adobe-Werkzeugen.
+    public static func sidecarURL(for url: URL) -> URL {
+        url.deletingPathExtension().appendingPathExtension(xmpSidecarExtension)
+    }
+
+    /// Video-Endungen. Tags via TagLib (mp4/m4v/3gp/3g2/mkv/webm); Rest nur
+    /// anzeigen. 3gp/3g2 sind MP4-Container mit eigenem `ftyp`-Brand, die
+    /// TagLib am Inhalt erkennt.
     public static let video: Set<String> = [
-        "m4v", "mkv", "webm", "mov", "avi",
+        "m4v", "mkv", "webm", "mov", "avi", "3gp", "3g2", "ogv",
     ]
+
+    /// Tag-Schlüssel, die Tracker-Module speichern können. Alle anderen Felder
+    /// weist TagLib beim Schreiben zurück (`TagError.propertiesRejected`); die
+    /// Datei bleibt dann unverändert.
+    public static let trackerTagKeys: Set<String> = ["TITLE", "COMMENT", "TRACKERNAME"]
+
+    /// Welche Tag-Schlüssel kann diese Datei aufnehmen? `nil` heißt: keine
+    /// Einschränkung (Formate mit PropertyMap-Vollabdeckung). Die App sperrt
+    /// damit im Editor die Felder, die das Format ohnehin ablehnen würde.
+    public static func writableTagKeys(for url: URL) -> Set<String>? {
+        tracker.contains(url.pathExtension.lowercased()) ? trackerTagKeys : nil
+    }
+
+    /// Kann die Datei ein Cover einbetten? Tracker-Module haben keinen
+    /// Speicherort dafür; Matroska (mkv/mka/webm) schreibt TagLib zwar ohne
+    /// Fehler, liest das Bild aber nicht wieder — der Schreibweg würde die
+    /// Prüfung nach dem Schreiben scheitern lassen. Anzeige-Formate ebenso.
+    public static func supportsEmbeddedArtwork(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        return !tracker.contains(ext) && !displayOnly.contains(ext)
+            && !["mkv", "mka", "webm"].contains(ext)
+    }
+
+    /// Darf das Öffnen ohne TagLib-Leser trotzdem gelingen (schreibgeschützt,
+    /// nur Technik-Anzeige)? Gilt für Video-Container (AVI, manche MOV) und
+    /// die reinen Anzeige-Formate.
+    public static func toleratesMissingTagReader(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        return video.contains(ext) || displayOnly.contains(ext)
+    }
 
     /// E-Book-Endungen: epub/pdf immer; mobi/azw3/fb2 nur mit Calibre
     /// (einmalige Prüfung pro Prozess).
@@ -124,8 +209,20 @@ public enum MediaFormats {
                 files.append(canonical)
             }
         }
-        return files.sorted {
+        return hidingSidecars(of: files).sorted {
             $0.path.localizedStandardCompare($1.path) == .orderedAscending
         }
+    }
+
+    /// Entfernt `.xmp`-Dateien, deren Bild ebenfalls in der Liste steht: Die
+    /// Sidecar wird über ihr Bild angezeigt und bearbeitet; als zweiter
+    /// Eintrag könnte sie mit dem Bild-Editor um dieselbe Datei konkurrieren.
+    /// Eine `.xmp` ohne Bild daneben bleibt als eigener Eintrag erhalten.
+    static func hidingSidecars(of files: [URL]) -> [URL] {
+        var sidecarOwners: Set<URL> = []
+        for file in files where !isXMPSidecar(file) && image.contains(file.pathExtension.lowercased()) {
+            sidecarOwners.insert(sidecarURL(for: file))
+        }
+        return files.filter { !isXMPSidecar($0) || !sidecarOwners.contains($0) }
     }
 }

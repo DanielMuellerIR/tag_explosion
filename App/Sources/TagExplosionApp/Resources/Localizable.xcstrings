@@ -91,12 +91,52 @@
         }
       }
     },
+    "%lld mit Werten aus einer XMP-Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld with values from an XMP sidecar"
+          }
+        }
+      }
+    },
     "%lld mit ungespeicherten Änderungen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld with unsaved changes"
+          }
+        }
+      }
+    },
+    "%lld umbenennen · %lld unverändert · %lld Konflikte": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld to rename · %lld unchanged · %lld conflicts"
+          }
+        }
+      }
+    },
+    "%lld von %lld Dateien passen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of %lld files match"
+          }
+        }
+      }
+    },
+    "%lld werden in die XMP-Sidecar geschrieben, nicht in die Bilddatei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld will be written to the XMP sidecar, not to the image file"
           }
         }
       }
@@ -157,6 +197,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Album Artist"
+          }
+        }
+      }
+    },
+    "Alle Kapitel entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove all chapters"
           }
         }
       }
@@ -341,6 +391,16 @@
         }
       }
     },
+    "Beginn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        }
+      }
+    },
     "Beschreibung": {
       "localizations": {
         "en": {
@@ -381,6 +441,16 @@
         }
       }
     },
+    "Bild-Metadaten in XMP-Sidecar schreiben statt in die Bilddatei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write image metadata to an XMP sidecar instead of the image file"
+          }
+        }
+      }
+    },
     "Bilddatei hierher ziehen, um das Cover zu ersetzen": {
       "localizations": {
         "en": {
@@ -397,6 +467,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Images"
+          }
+        }
+      }
+    },
+    "Bilder:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images:"
+          }
+        }
+      }
+    },
+    "Bisher": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current"
           }
         }
       }
@@ -501,6 +591,36 @@
         }
       }
     },
+    "Das Muster braucht mindestens einen Platzhalter, zum Beispiel für den Titel.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pattern needs at least one placeholder, for example for the title."
+          }
+        }
+      }
+    },
+    "Das Muster darf keinen Ordner enthalten (kein /).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pattern must not contain a folder (no /)."
+          }
+        }
+      }
+    },
+    "Datei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File"
+          }
+        }
+      }
+    },
     "Datei wurde außerhalb geändert": {
       "localizations": {
         "en": {
@@ -521,12 +641,42 @@
         }
       }
     },
+    "Dateiname": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File Name"
+          }
+        }
+      }
+    },
+    "Dateinamen aus Tags bilden oder Tags aus Dateinamen lesen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build file names from tags or read tags from file names"
+          }
+        }
+      }
+    },
     "Datum": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Date"
+          }
+        }
+      }
+    },
+    "Die Breite hinter dem Doppelpunkt muss eine Zahl von 1 bis 9 sein.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The width after the colon must be a number from 1 to 9."
           }
         }
       }
@@ -541,6 +691,16 @@
         }
       }
     },
+    "Die Dateien bleiben in ihrem Ordner; nur der Name ändert sich, die Endung bleibt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files stay in their folder; only the name changes, the extension is kept."
+          }
+        }
+      }
+    },
     "Die ausgewählten Formate haben kein gemeinsames Stapel-Feld.": {
       "localizations": {
         "en": {
@@ -551,12 +711,32 @@
         }
       }
     },
+    "Die gelesenen Werte landen in den Feldern; geschrieben wird erst beim Speichern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The values read go into the fields; nothing is written until you save."
+          }
+        }
+      }
+    },
     "Diese Datei ist schreibgeschützt — Änderungen können nicht gespeichert werden.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This file is read-only — changes cannot be saved."
+          }
+        }
+      }
+    },
+    "Dieser Wert stammt aus der XMP-Sidecar-Datei, nicht aus der Bilddatei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This value comes from the XMP sidecar file, not from the image file."
           }
         }
       }
@@ -607,6 +787,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "E-books"
+          }
+        }
+      }
+    },
+    "E-Books:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-books:"
           }
         }
       }
@@ -691,12 +881,52 @@
         }
       }
     },
+    "Ein Platzhalter ist leer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A placeholder is empty."
+          }
+        }
+      }
+    },
+    "Ein Platzhalter ist nicht geschlossen (schließende Klammer fehlt).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A placeholder is not closed (missing closing brace)."
+          }
+        }
+      }
+    },
     "Eingebettet als": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Embedded as"
+          }
+        }
+      }
+    },
+    "Einstellung: Änderungen gehen in die Sidecar %@ statt in die Bilddatei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setting: changes go to the sidecar %@ instead of the image file."
+          }
+        }
+      }
+    },
+    "Ende": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End"
           }
         }
       }
@@ -851,6 +1081,16 @@
         }
       }
     },
+    "Gelesene Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fields Read"
+          }
+        }
+      }
+    },
     "Gemischte Auswahl": {
       "localizations": {
         "en": {
@@ -931,6 +1171,16 @@
         }
       }
     },
+    "ID3v1/v2 · MP4-Atome · Vorbis Comments · APEv2 · ASF · RIFF-Info · Matroska-Tags · Tracker-Titel (au nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID3v1/v2 · MP4 atoms · Vorbis Comments · APEv2 · ASF · RIFF INFO · Matroska tags · tracker titles (au view only)"
+          }
+        }
+      }
+    },
     "Im Finder zeigen": {
       "localizations": {
         "en": {
@@ -957,6 +1207,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Import: %lld changed, %lld unchanged"
+          }
+        }
+      }
+    },
+    "Importieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import…"
           }
         }
       }
@@ -1031,6 +1291,86 @@
         }
       }
     },
+    "Kamera-RAW: Änderungen gehen in die Sidecar %@, das RAW bleibt unverändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera RAW: changes go to the sidecar %@; the RAW file stays untouched."
+          }
+        }
+      }
+    },
+    "Kapitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapters"
+          }
+        }
+      }
+    },
+    "Kapitel entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove chapter"
+          }
+        }
+      }
+    },
+    "Kapitel exportieren (Endung .json für JSON, sonst Text)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export chapters (.json for JSON, text otherwise)"
+          }
+        }
+      }
+    },
+    "Kapitel hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add chapter"
+          }
+        }
+      }
+    },
+    "Kapitelliste auswählen (JSON oder Text, eine Zeile je Kapitel: HH:MM:SS.mmm Titel)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a chapter list (JSON or text, one line per chapter: HH:MM:SS.mmm Title)"
+          }
+        }
+      }
+    },
+    "Kapitelliste konnte nicht gelesen werden: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapter list could not be read: %@"
+          }
+        }
+      }
+    },
+    "Kapiteltitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapter title"
+          }
+        }
+      }
+    },
     "Kategorie": {
       "localizations": {
         "en": {
@@ -1051,6 +1391,16 @@
         }
       }
     },
+    "Kein Cover\nin diesem Format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cover\nin this format"
+          }
+        }
+      }
+    },
     "Keine Dateien": {
       "localizations": {
         "en": {
@@ -1067,6 +1417,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No e-invoice detected"
+          }
+        }
+      }
+    },
+    "Keine Kapitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No chapters"
           }
         }
       }
@@ -1111,6 +1471,16 @@
         }
       }
     },
+    "Konflikt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflict"
+          }
+        }
+      }
+    },
     "Künstler": {
       "localizations": {
         "en": {
@@ -1147,6 +1517,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "MP4 atoms · Matroska tags (mov/avi view only)"
+          }
+        }
+      }
+    },
+    "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MP4 atoms · Matroska tags (mov/avi/ogv view only)"
           }
         }
       }
@@ -1231,12 +1611,52 @@
         }
       }
     },
+    "Muster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pattern"
+          }
+        }
+      }
+    },
+    "Muster passt nicht": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pattern does not match"
+          }
+        }
+      }
+    },
+    "Muster passt nicht auf:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pattern does not match:"
+          }
+        }
+      }
+    },
     "Nach Updates suchen …": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Check for Updates …"
+          }
+        }
+      }
+    },
+    "Neu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New"
           }
         }
       }
@@ -1271,6 +1691,16 @@
         }
       }
     },
+    "Nicht alle Dateien konnten umbenannt werden:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not all files could be renamed:"
+          }
+        }
+      }
+    },
     "Nicht lesbar (Format unbekannt?):": {
       "localizations": {
         "en": {
@@ -1297,6 +1727,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not available — PDF in the selection"
+          }
+        }
+      }
+    },
+    "Nicht übernommen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not applied:"
           }
         }
       }
@@ -1381,6 +1821,16 @@
         }
       }
     },
+    "Platzhalter:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Placeholders:"
+          }
+        }
+      }
+    },
     "Report kopieren": {
       "localizations": {
         "en": {
@@ -1457,6 +1907,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sets TRACKNUMBER to n/%lld in list order"
+          }
+        }
+      }
+    },
+    "Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidecar"
           }
         }
       }
@@ -1541,6 +2001,16 @@
         }
       }
     },
+    "Status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        }
+      }
+    },
     "Tag Explosion Sicherung": {
       "localizations": {
         "en": {
@@ -1587,6 +2057,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Export Tags as JSON …"
+          }
+        }
+      }
+    },
+    "Tags aus Dateiname": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags from File Name"
+          }
+        }
+      }
+    },
+    "Tags aus Dateiname …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags from File Name…"
           }
         }
       }
@@ -1651,6 +2141,16 @@
         }
       }
     },
+    "Tracker-Modul: Dieses Format speichert nur Titel und Kommentar (Sample-Namen); die übrigen Felder sind gesperrt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracker module: this format stores only title and comment (sample names); the other fields are locked."
+          }
+        }
+      }
+    },
     "Tracks nummerieren (1–%lld)": {
       "localizations": {
         "en": {
@@ -1671,6 +2171,56 @@
         }
       }
     },
+    "Umbenennen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        }
+      }
+    },
+    "Umbenennen abgebrochen — Konflikte:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renaming cancelled — conflicts:"
+          }
+        }
+      }
+    },
+    "Umbenennen aus Tags": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename from Tags"
+          }
+        }
+      }
+    },
+    "Umbenennen aus Tags …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename from Tags…"
+          }
+        }
+      }
+    },
+    "Umbenennen fehlgeschlagen:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renaming failed:"
+          }
+        }
+      }
+    },
     "Unbekannte Frontmatter-Schlüssel bleiben erhalten; verschachtelte Einträge werden nur durchgereicht.": {
       "localizations": {
         "en": {
@@ -1687,6 +2237,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unsaved Changes"
+          }
+        }
+      }
+    },
+    "Unverändert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unchanged"
           }
         }
       }
@@ -1781,12 +2341,32 @@
         }
       }
     },
+    "Vor dem Umbenennen müssen die Änderungen gespeichert oder verworfen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or discard the changes before renaming."
+          }
+        }
+      }
+    },
     "Vor jeder Änderung landet eine unveränderte Kopie der Datei im Papierkorb — gesammelt in einem Ordner je Sitzung. Geht etwas schief, ziehen Sie die Kopie einfach zurück; zum Aufräumen genügt es, den Papierkorb zu leeren.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Before every change, an untouched copy of the file goes to the trash, collected in one folder per session. If something goes wrong, just drag the copy back; to clean up, empty the trash."
+          }
+        }
+      }
+    },
+    "Vorgaben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presets"
           }
         }
       }
@@ -1841,12 +2421,62 @@
         }
       }
     },
+    "Werte aus Sidecar: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Values from sidecar: %@"
+          }
+        }
+      }
+    },
+    "Werte dieses Bildes stammen (teils) aus der XMP-Sidecar-Datei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Values of this image come (partly) from the XMP sidecar file."
+          }
+        }
+      }
+    },
     "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, display only)"
+          }
+        }
+      }
+    },
+    "Zeit im Format HH:MM:SS.mmm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time as HH:MM:SS.mmm"
+          }
+        }
+      }
+    },
+    "Zuletzt benutzt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently Used"
+          }
+        }
+      }
+    },
+    "Zuletzt benutzte Muster und Vorgaben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently used patterns and presets"
           }
         }
       }
@@ -1891,12 +2521,32 @@
         }
       }
     },
+    "exiftool kann dieses Format nicht beschreiben: Änderungen gehen in die Sidecar %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exiftool cannot write this format: changes go to the sidecar %@."
+          }
+        }
+      }
+    },
     "exiftool nicht verfügbar": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "exiftool not available"
+          }
+        }
+      }
+    },
+    "füllt mit Nullen auf.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pads with zeros."
           }
         }
       }
@@ -1917,6 +2567,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "comma-separated"
+          }
+        }
+      }
+    },
+    "oder jeder Tag-Schlüssel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or any tag key"
           }
         }
       }
@@ -1971,6 +2631,16 @@
         }
       }
     },
+    "Änderungen an Bildern landen in einer Datei <name>.xmp neben dem Bild; das Bild selbst bleibt unverändert. Für Kamera-RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef) und Formate ohne Schreibweg (bmp, svg) gilt das immer — und sobald eine Sidecar vorhanden ist, weil ihre Werte beim Lesen Vorrang haben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes to images go into a file <name>.xmp next to the image; the image itself stays untouched. This is always the case for camera RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef), for formats that cannot be written (bmp, svg), and whenever a sidecar already exists, because its values take precedence when reading."
+          }
+        }
+      }
+    },
     "Änderungen der Auswahl speichern (⌘S)": {
       "localizations": {
         "en": {
@@ -1981,12 +2651,32 @@
         }
       }
     },
+    "Änderungen gehen in die vorhandene Sidecar %@, weil ihre Werte beim Lesen Vorrang haben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes go to the existing sidecar %@ because its values take precedence when reading."
+          }
+        }
+      }
+    },
     "Änderungen verwerfen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Discard Changes"
+          }
+        }
+      }
+    },
+    "Änderungen werden in die Bilddatei geschrieben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes are written to the image file."
           }
         }
       }
@@ -2047,6 +2737,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open …"
+          }
+        }
+      }
+    },
+    "Übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
           }
         }
       }

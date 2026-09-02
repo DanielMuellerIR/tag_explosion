@@ -25,6 +25,18 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   `tagx invoice` oder der Rechnungsansicht: Profil-URNs (BT-24), ambige
   BT-Zuordnungen (Nachlass/Zuschlag, VA/FC, BT-110/111), CGPDF-Extraktion
   samt Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [kapitel-hoerbuch.md](kapitel-hoerbuch.md) — Bei Arbeit an Kapiteln
+  (CHAP/CTOC, MP4 Nero/QuickTime, Matroska): was TagLib 2.3 kann, Einheiten
+  (ms vs. ns), fehlende MP4-Enden, welche Fremdwerkzeuge was lesen.
+- [weitere-endungen-taglib.md](weitere-endungen-taglib.md) — Bei neuen
+  Endungen oder Tracker-/Matroska-/3GP-Fragen: was TagLib 2.3 wirklich liest
+  und schreibt (au/ogv gar nicht, mka ohne Cover, Tracker nur Titel/Kommentar
+  in Latin1 mit Längenlimit), Fixture-Rezepte und die MP4-Fake-JPEG-Falle.
+- [dateiname-muster-umbenennen.md](dateiname-muster-umbenennen.md) — Bei
+  Arbeit an `FilenamePattern`, `FileRenamer`, `tagx rename`/`parse` oder den
+  Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
+  Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
+  lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen.
 - [dokument-container-metadaten.md](dokument-container-metadaten.md) — Bei
   Arbeit an DocumentTool, ZipContainer, `tagx doc` oder dem Dokument-Editor:
   ODF-`mimetype` an erster Stelle, fehlendes core.xml registrieren,
@@ -34,3 +46,6 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Export-/Import- oder Wertebereichs-Arbeit: Export sichert Bestand nur
   strukturell geprüft, der Import prüft Änderungen zielbezogen je Eintrag
   vor Sicherung/Dry-run; Backend-Verträge für Serie und Coverformate.
+- [raw-xmp-sidecar.md](raw-xmp-sidecar.md) — Bei Kamera-RAW, `.xmp` oder
+  dem Schreibziel von Bildern: Sidecar-Regeln, feldweises Überlagern,
+  exklusives Anlegen, warum Löschen über die Sidecar nichts im RAW löscht.

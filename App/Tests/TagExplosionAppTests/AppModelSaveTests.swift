@@ -945,6 +945,27 @@ struct AppModelReadTests {
         #expect(data.properties.isEmpty)
     }
 
+    /// Sun-AU und Ogg-Video haben in TagLib keinen Leser — derselbe
+    /// schreibgeschützte Anzeige-Weg wie bei AVI.
+    @Test("Anzeige-Formate ohne TagLib-Leser öffnen schreibgeschützt",
+          arguments: ["ton.au", "clip.ogv"])
+    func displayOnlyFormatsOpenReadOnly(name: String) throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-display-only-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent(name)
+        try Data("nicht lesbar".utf8).write(to: url)
+
+        let loaded = try AppModel.readLoaded(url: url, kind: .audio)
+        guard case .audio(let data) = loaded else {
+            Issue.record("Erwartet wurde ein Audio-Zustand")
+            return
+        }
+        #expect(data.isReadOnly)
+        #expect(data.properties.isEmpty)
+    }
+
     @Test("Eine kaputte Audiodatei meldet weiterhin einen Fehler")
     func brokenAudioStillFails() throws {
         let folder = FileManager.default.temporaryDirectory

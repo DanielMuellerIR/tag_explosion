@@ -43,6 +43,8 @@ struct DocumentBatchEditorView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+            FilenamePatternMenu(entries: entries)
+                .padding(.top, 4)
         }
     }
 

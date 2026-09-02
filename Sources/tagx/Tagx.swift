@@ -10,8 +10,9 @@ struct Tagx: ParsableCommand {
         commandName: "tagx",
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
-        subcommands: [Show.self, Set.self, Cover.self, Info.self, Exif.self, Ebook.self,
-                      Doc.self, Invoice.self, Export.self, Import.self],
+        subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Info.self, Exif.self,
+                      Ebook.self, Doc.self, Invoice.self, Export.self, Import.self,
+                      Rename.self, Parse.self],
         defaultSubcommand: Show.self
     )
 }
@@ -93,6 +94,8 @@ struct Show: ParsableCommand {
         var audio: AudioInfo?
         var properties: [TagProperty]
         var artworks: [ArtworkMeta]
+        /// Kapitel (ms); leer bei Formaten ohne Kapitel — Details `tagx chapters`.
+        var chapters: [Chapter]
     }
 
     func run() throws {
@@ -108,7 +111,8 @@ struct Show: ParsableCommand {
                 artworks: data.artworks.map {
                     .init(mimeType: $0.resolvedMimeType, pictureType: $0.pictureType,
                           description: $0.description, bytes: $0.data.count)
-                }
+                },
+                chapters: data.chapters
             )
             reports.append(report)
         }
@@ -130,6 +134,10 @@ struct Show: ParsableCommand {
             }
             for art in report.artworks {
                 print("COVER: \(art.pictureType.isEmpty ? "?" : art.pictureType) · \(art.mimeType) · \(art.bytes) bytes")
+            }
+            for chapter in report.chapters {
+                print("CHAPTER: \(ChapterList.formatTimestamp(chapter.startMilliseconds))–"
+                      + "\(ChapterList.formatTimestamp(chapter.endMilliseconds)) \(chapter.title)")
             }
         }
     }

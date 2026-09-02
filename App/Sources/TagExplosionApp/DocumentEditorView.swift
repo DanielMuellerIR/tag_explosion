@@ -53,6 +53,8 @@ struct DocumentEditorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                FilenamePatternMenu(entries: [entry])
+                    .padding(.top, 4)
                 if supportsCover {
                     Text("Cover = erste Seite des Archivs (nur Anzeige).")
                         .font(.caption)

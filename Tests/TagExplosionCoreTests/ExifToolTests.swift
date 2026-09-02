@@ -205,6 +205,197 @@ struct ExifToolTests {
         #expect(try Data(contentsOf: url) == replacementBytes)
     }
 
+    // MARK: - Kamera-RAW und XMP-Sidecar
+
+    /// Kopiert das TIFF-Fixture unter einer RAW-Endung ins Arbeitsverzeichnis.
+    /// NEF/DNG sind TIFF-Container; exiftool erkennt die Datei als RAW.
+    private func rawWorkingCopy(extension ext: String) throws -> URL {
+        let tif = try Fixtures.workingCopy("cover.tif")
+        let raw = tif.deletingPathExtension().appendingPathExtension(ext)
+        try FileManager.default.moveItem(at: tif, to: raw)
+        return raw
+    }
+
+    @Test("Schreibfähigkeit der Bildformate stimmt mit exiftool -listwf überein")
+    func imageWritabilityMatchesExifTool() throws {
+        let writable = try ExifTool.writableExtensions()
+        #expect(writable.contains("jpg") && writable.contains("xmp"))
+        // Nicht geraten: Was wir als „nur über Sidecar" führen, darf exiftool
+        // nicht schreiben können — und umgekehrt muss jedes andere Bildformat
+        // (samt RAW, das wir nur aus Prinzip nicht anfassen) in der Liste stehen.
+        for ext in MediaFormats.imageEmbeddedReadOnly {
+            #expect(!writable.contains(ext), "exiftool kann \(ext) inzwischen schreiben")
+        }
+        for ext in MediaFormats.image.subtracting(MediaFormats.imageEmbeddedReadOnly) {
+            #expect(writable.contains(ext), "exiftool kann \(ext) nicht schreiben")
+        }
+    }
+
+    @Test("Schreibziel: RAW, nicht schreibbare Formate und vorhandene Sidecar erzwingen die Sidecar")
+    func writeDestinationRules() throws {
+        let raw = try rawWorkingCopy(extension: "nef")
+        let rawTarget = ExifTool.writeDestination(for: raw, preferSidecar: false)
+        #expect(rawTarget.reason == .rawFormat)
+        #expect(rawTarget.url == raw.deletingPathExtension().appendingPathExtension("xmp"))
+
+        let bmp = try Fixtures.workingCopy("cover.bmp")
+        #expect(ExifTool.writeDestination(for: bmp, preferSidecar: false).reason == .formatNotWritable)
+
+        let jpg = try Fixtures.workingCopy("cover.jpg")
+        #expect(ExifTool.writeDestination(for: jpg, preferSidecar: false).reason == .original)
+        #expect(ExifTool.writeDestination(for: jpg, preferSidecar: true).reason == .setting)
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8)
+            .write(to: MediaFormats.sidecarURL(for: jpg))
+        #expect(ExifTool.writeDestination(for: jpg, preferSidecar: false).reason == .existingSidecar)
+
+        let xmp = MediaFormats.sidecarURL(for: jpg)
+        let xmpTarget = ExifTool.writeDestination(for: xmp, preferSidecar: true)
+        #expect(xmpTarget.reason == .original && xmpTarget.url == xmp)
+    }
+
+    @Test("RAW: Schreiben legt die Sidecar an und lässt die RAW-Datei byteweise unverändert")
+    func rawWritesGoToSidecar() throws {
+        let raw = try rawWorkingCopy(extension: "nef")
+        let rawBytes = try Data(contentsOf: raw)
+        let sidecar = MediaFormats.sidecarURL(for: raw)
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: raw)
+        #expect(snapshot.value.sidecar == .absent)
+
+        var edited = snapshot.value.fields
+        edited.title = "RAW-Titel"
+        edited.rating = 4
+        edited.gpsLatitude = "50.9375"
+        edited.gpsLongitude = "6.9603"
+        // Kein Ziel angegeben: Die Regel im Core muss von sich aus zur
+        // Sidecar greifen — sonst wäre ein Aufrufer ohne Sidecar-Wissen
+        // eine Lücke in der RAW-Regel.
+        try ExifTool.writeCoreFields(
+            url: raw, fields: edited, original: snapshot.value.fields,
+            expecting: snapshot.stamp, sidecar: snapshot.value.sidecar)
+
+        #expect(try Data(contentsOf: raw) == rawBytes)
+        #expect(FileManager.default.fileExists(atPath: sidecar.path))
+        let reading = try ExifTool.readCoreReading(url: raw)
+        #expect(reading.fields.title == "RAW-Titel")
+        #expect(reading.fields.rating == 4)
+        #expect(reading.sidecarURL == sidecar)
+        #expect(reading.sidecarFields == [.title, .rating, .gps])
+        guard case .present = reading.sidecar else {
+            Issue.record("Sidecar-Zustand nach dem Anlegen: \(reading.sidecar)")
+            return
+        }
+
+        // Zweiter Lauf auf die nun vorhandene Sidecar (atomarer Austausch).
+        var second = reading.fields
+        second.description = "Zweiter Lauf"
+        try ExifTool.writeCoreFields(
+            url: raw, fields: second, original: reading.fields,
+            sidecar: reading.sidecar)
+        let after = try ExifTool.readCoreReading(url: raw)
+        #expect(after.fields.description == "Zweiter Lauf")
+        #expect(after.fields.title == "RAW-Titel")
+        #expect(try Data(contentsOf: raw) == rawBytes)
+        // Keine Temp-Reste neben der Sidecar
+        let leftovers = try FileManager.default.contentsOfDirectory(atPath: raw.deletingLastPathComponent().path)
+            .filter { $0.contains(".tagx-") }
+        #expect(leftovers.isEmpty, "Temp-Reste: \(leftovers)")
+    }
+
+    @Test("Sidecar-Werte überlagern eingebettete Werte feldweise")
+    func sidecarOverlaysEmbeddedValuesPerField() throws {
+        let jpg = try Fixtures.workingCopy("cover.jpg")
+        let empty = try ExifTool.readCoreFields(url: jpg)
+        var embedded = empty
+        embedded.description = "eingebettet"
+        embedded.creator = "Kamera"
+        try ExifTool.writeCoreFields(url: jpg, fields: embedded, original: empty)
+
+        // Sidecar über die Einstellung anlegen — nur mit einem Titel.
+        var withTitle = embedded
+        withTitle.title = "Sidecar-Titel"
+        let setting = ExifTool.writeDestination(for: jpg, preferSidecar: true)
+        try ExifTool.writeCoreFields(
+            url: jpg, fields: withTitle, original: embedded, to: setting, sidecar: .absent)
+
+        let reading = try ExifTool.readCoreReading(url: jpg)
+        #expect(reading.fields.title == "Sidecar-Titel")
+        #expect(reading.fields.description == "eingebettet")
+        #expect(reading.fields.creator == "Kamera")
+        #expect(reading.sidecarFields == [.title])
+
+        // Ab jetzt landet jede Änderung in der Sidecar, auch ohne Einstellung:
+        // sonst bliebe sie hinter dem überlagernden Sidecar-Wert unsichtbar.
+        var creatorChange = reading.fields
+        creatorChange.creator = "Neu"
+        try ExifTool.writeCoreFields(
+            url: jpg, fields: creatorChange, original: reading.fields, sidecar: reading.sidecar)
+        let after = try ExifTool.readCoreReading(url: jpg)
+        #expect(after.fields.creator == "Neu")
+        #expect(after.sidecarFields == [.title, .creator])
+        // Die Sidecar alleine gelesen kennt nur ihre eigenen Felder
+        let alone = try ExifTool.readCoreReading(url: MediaFormats.sidecarURL(for: jpg))
+        #expect(alone.fields.description.isEmpty && alone.sidecarURL == nil)
+    }
+
+    @Test(".xmp alleine: lesen und bearbeiten wie ein Bild ohne Pixel")
+    func standaloneXMPRoundtrip() throws {
+        let dir = try Fixtures.workingCopy("cover.jpg").deletingLastPathComponent()
+        let xmp = dir.appendingPathComponent("notiz.xmp")
+        // Eine leere XMP-Datei, wie sie ein anderes Programm hinterlassen
+        // haben könnte; geöffnet wird immer eine vorhandene Datei.
+        try Data("""
+            <?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+            <x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF \
+            xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\
+            <rdf:Description rdf:about=''/></rdf:RDF></x:xmpmeta>
+            <?xpacket end='w'?>
+            """.utf8).write(to: xmp)
+        var fields = ImageCoreFields()
+        fields.title = "Nur XMP"
+        fields.keywords = ["a", "b"]
+        try ExifTool.writeCoreFields(url: xmp, fields: fields, original: ImageCoreFields())
+        let first = try ExifTool.readCoreReading(url: xmp)
+        #expect(first.fields.title == "Nur XMP")
+        #expect(first.fields.keywords == ["a", "b"])
+        #expect(first.sidecarURL == nil && first.sidecar == .absent)
+
+        var edited = first.fields
+        edited.rating = 2
+        edited.keywords = []
+        try ExifTool.writeCoreFields(url: xmp, fields: edited, original: first.fields)
+        let second = try ExifTool.readCoreFields(url: xmp)
+        #expect(second.rating == 2)
+        #expect(second.keywords.isEmpty)
+    }
+
+    @Test("Fremd angelegte oder veränderte Sidecar gilt als Konflikt")
+    func foreignSidecarChangesAreConflicts() throws {
+        let raw = try rawWorkingCopy(extension: "arw")
+        let sidecar = MediaFormats.sidecarURL(for: raw)
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: raw)
+        var edited = snapshot.value.fields
+        edited.title = "Konflikt"
+
+        // Zwischen Lesen und Schreiben legt ein anderes Programm die Sidecar an.
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8).write(to: sidecar)
+        let foreignBytes = try Data(contentsOf: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try ExifTool.writeCoreFields(
+                url: raw, fields: edited, original: snapshot.value.fields,
+                expecting: snapshot.stamp, sidecar: snapshot.value.sidecar)
+        }
+        #expect(try Data(contentsOf: sidecar) == foreignBytes)
+
+        // Umgekehrt: Sidecar war da, wurde inzwischen ersetzt.
+        let known = try ExifTool.readCoreFieldsSnapshot(url: raw)
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta>".utf8).write(to: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try ExifTool.writeCoreFields(
+                url: raw, fields: edited, original: known.value.fields,
+                expecting: known.stamp, sidecar: known.value.sidecar)
+        }
+    }
+
     @Test("Exif-No-op bestätigt keinen inzwischen ersetzten Pfad")
     func exifNoopRejectsStaleSnapshot() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
@@ -214,7 +405,7 @@ struct ExifToolTests {
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
             try ExifTool.writeCoreFields(
-                url: url, fields: snapshot.value, original: snapshot.value,
+                url: url, fields: snapshot.value.fields, original: snapshot.value.fields,
                 expecting: snapshot.stamp)
         }
     }

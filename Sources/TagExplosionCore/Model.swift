@@ -68,18 +68,51 @@ public struct AudioInfo: Sendable, Codable, Equatable {
     }
 }
 
+/// Ein Kapitel (Hörbuch, Podcast): Titel plus Beginn und Ende in Millisekunden.
+///
+/// Die JSON-Form ist bewusst kurz (`title`, `start`, `end`), damit sie von
+/// Hand und aus anderen Kapitel-Werkzeugen leicht zu erzeugen ist.
+public struct Chapter: Sendable, Codable, Equatable, Hashable {
+    public var title: String
+    /// Beginn in Millisekunden ab Dateianfang.
+    public var startMilliseconds: Int
+    /// Ende in Millisekunden. MP4 speichert nur Startzeiten; dort ergibt sich
+    /// das Ende beim Lesen aus dem nächsten Kapitelbeginn bzw. der Spielzeit.
+    public var endMilliseconds: Int
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case startMilliseconds = "start"
+        case endMilliseconds = "end"
+    }
+
+    public init(title: String, startMilliseconds: Int, endMilliseconds: Int) {
+        self.title = title
+        self.startMilliseconds = startMilliseconds
+        self.endMilliseconds = endMilliseconds
+    }
+}
+
 /// Vollständiger Tag-Zustand einer Datei — das, was gelesen/geschrieben wird.
 public struct TagData: Sendable, Codable, Equatable {
     public var properties: [TagProperty]
     public var artworks: [Artwork]
     public var audio: AudioInfo?
     public var isReadOnly: Bool
+    /// Kapitel in Abspielreihenfolge; leer bei Formaten ohne Kapitel.
+    public var chapters: [Chapter]
+    /// Ob das Format Kapitel lesen und schreiben kann (MP3, MP4, Matroska).
+    /// Nur dann zeigt der Editor den Kapitel-Abschnitt.
+    public var supportsChapters: Bool
 
-    public init(properties: [TagProperty], artworks: [Artwork], audio: AudioInfo?, isReadOnly: Bool = false) {
+    public init(properties: [TagProperty], artworks: [Artwork], audio: AudioInfo?,
+                isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false) {
         self.properties = properties
         self.artworks = artworks
         self.audio = audio
         self.isReadOnly = isReadOnly
+        self.chapters = chapters
+        self.supportsChapters = supportsChapters
     }
 
     /// Alle Werte zu einem Schlüssel (Reihenfolge wie gelesen).
@@ -128,6 +161,11 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Ohne diese Ablehnung meldete das Schreiben Erfolg, obwohl der Index
     /// nirgends landet.
     case seriesIndexWithoutSeries
+    /// Das Format der Datei kennt keine Kapitel (nur MP3, MP4 und Matroska).
+    case chaptersUnsupported(path: String)
+    /// Eine Kapitelliste ist in sich unstimmig (Ende vor Beginn, Überlappung,
+    /// negative Zeit) oder eine Import-Datei ließ sich nicht lesen.
+    case invalidChapters(reason: String)
     /// Ein Dokumentfeld (oder Zusatzschlüssel), das dieses Dateiformat nicht
     /// speichern kann — wird vor jeder Mutation abgelehnt statt still verworfen.
     case unsupportedDocumentField(name: String)
@@ -162,6 +200,10 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "Cover data is not a supported image (JPEG or PNG expected)"
         case .seriesIndexWithoutSeries:
             return "A series index cannot be stored without a series name"
+        case .chaptersUnsupported(let path):
+            return "Chapters are not supported for this file format (MP3, MP4, Matroska only): \(path)"
+        case .invalidChapters(let reason):
+            return "Invalid chapter list: \(reason)"
         case .unsupportedDocumentField(let name):
             return "This document format cannot store the field: \(name)"
         case .invalidDocumentValue(let field, let reason):

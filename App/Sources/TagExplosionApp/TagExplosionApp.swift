@@ -190,6 +190,7 @@ struct EditingCommands: Commands {
 struct SettingsView: View {
     @AppStorage(AppModel.safeModeDefaultsKey) private var safeMode = true
     @AppStorage(AppModel.autoBackupDefaultsKey) private var autoBackup = true
+    @AppStorage(AppModel.imageSidecarDefaultsKey) private var imageSidecar = false
     /// Wird beim Öffnen und nach jedem Speichern neu gelesen, damit die
     /// Größenangabe nicht veraltet.
     @State private var backedUpBytes: Int64 = 0
@@ -220,6 +221,19 @@ struct SettingsView: View {
                         .controlSize(.small)
                     }
                 }
+            }
+
+            Section {
+                Toggle("Bild-Metadaten in XMP-Sidecar schreiben statt in die Bilddatei", isOn: $imageSidecar)
+                Text("""
+                Änderungen an Bildern landen in einer Datei <name>.xmp neben dem \
+                Bild; das Bild selbst bleibt unverändert. Für Kamera-RAW (cr2, \
+                cr3, nef, arw, raf, orf, rw2, pef) und Formate ohne Schreibweg \
+                (bmp, svg) gilt das immer — und sobald eine Sidecar vorhanden \
+                ist, weil ihre Werte beim Lesen Vorrang haben.
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Section {

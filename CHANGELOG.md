@@ -8,6 +8,91 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.27.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Kamera-RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef) sowie avif, jxl, bmp,
+  psd, svg werden als Bilder gelesen; `.xmp` öffnet sich als eigenes Format
+  (gleiche Felder, ohne Pixel).
+- XMP-Sidecar: RAW-Dateien werden nie direkt beschrieben; Änderungen gehen in
+  `<name>.xmp` daneben (wird bei Bedarf angelegt). Sidecar-Werte überlagern
+  beim Lesen die eingebetteten feldweise; Bild- und Batch-Editor zeigen
+  Herkunft und Schreibziel. Fallen:
+  [knowledge/raw-xmp-sidecar.md](knowledge/raw-xmp-sidecar.md).
+- Einstellung „Bild-Metadaten in XMP-Sidecar schreiben statt in die
+  Bilddatei“ und `tagx exif set --sidecar`; `tagx exif show` meldet Sidecar,
+  Sidecar-Felder und Schreibziel.
+
+### Geändert
+
+- Bilder mit vorhandener Sidecar und Formate ohne exiftool-Schreibweg (bmp,
+  svg) schreiben immer in die Sidecar; die Papierkorb-Sicherung gilt dann der
+  Sidecar.
+
+## [0.26.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Dateinamen aus Tags und Tags aus Dateinamen mit Mustern im kid3-Stil
+  (`%{track:2} - %{artist} - %{title}`, jeder Tag-Schlüssel, `%{year}`,
+  Nullen-Auffüllung). Die Muster-Engine liegt im Core; das Umbenennen zeigt
+  eine Vorschau und verweigert Konflikte (doppelter Zielname, belegtes Ziel,
+  leerer Name, Groß-/Kleinschreibung auf APFS) als Ganzes.
+- `tagx rename` und `tagx parse`: Probelauf per Voreinstellung, `--apply`,
+  `--json`, Exit-Code 2 bei Konflikt oder nicht passendem Muster. Das
+  Schreiben der Tags läuft über den bestehenden abgesicherten Weg.
+- Menü „Dateiname“ in Einzel- und Batch-Editoren für Audio, Bilder und
+  E-Books mit Musterfeld, zuletzt benutzten Mustern, Vorgaben und
+  Vorschautabelle; die Dateiliste folgt umbenannten Dateien.
+
+### Geändert
+
+- Umbenennen läuft bewusst ohne Papierkorb-Sicherung: Der Inhalt bleibt
+  unverändert, `moveItem` überschreibt nie
+  ([knowledge/dateiname-muster-umbenennen.md](knowledge/dateiname-muster-umbenennen.md)).
+
+## [0.25.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Weitere Audio-/Container-Endungen über TagLib: mp2, aifc, mka, 3gp/3g2
+  (Tags und Cover; Matroska ohne Cover) sowie Tracker-Module mod, s3m, xm, it
+  (Titel, Kommentar und Tracker-Name). Sun-AU (`au`) und Ogg-Video (`ogv`)
+  öffnen zur Anzeige im Technik-Tab. Was TagLib davon wirklich kann:
+  [knowledge/weitere-endungen-taglib.md](knowledge/weitere-endungen-taglib.md).
+- Fixture-Generator erzeugt die neuen Formate per ffmpeg und Tracker-Module
+  als synthetische Minimaldateien; Roundtrip-, Ablehnungs- und
+  mediainfo-Cross-Check-Tests dazu.
+
+### Geändert
+
+- Der Editor sperrt Felder, die ein Format nicht speichern kann (Tracker:
+  alles außer Titel/Kommentar), und das Cover-Feld bei Formaten ohne
+  Cover-Speicherort (Tracker, mkv/mka/webm, Anzeige-Formate), statt erst
+  beim Speichern zu scheitern.
+
+## [0.24.0] — 2026-09-02
+
+### Hinzugefügt
+
+- Kapitel für Hörbücher und Podcasts: MP3 (ID3v2 CHAP/CTOC), MP4/M4A/M4B
+  (Nero `chpl` und QuickTime-Kapitelspur, beide werden geschrieben) und
+  Matroska/WebM lesen und schreiben. Grenzen und Fallen:
+  [knowledge/kapitel-hoerbuch.md](knowledge/kapitel-hoerbuch.md).
+- Editor-Abschnitt „Kapitel“ (nur bei Formaten mit Kapiteln): Titel, Beginn,
+  Ende bearbeiten, Kapitel hinzufügen/entfernen, Import und Export als JSON
+  oder Text (`HH:MM:SS.mmm Titel`).
+- `tagx chapters show [--json]`, `tagx chapters set --from <json|txt|->`,
+  `tagx chapters clear`; `tagx show` listet Kapitel mit.
+- Roadmap der offenen Erweiterungen in [docs/ROADMAP.md](docs/ROADMAP.md).
+
+### Geändert
+
+- Tag- und Cover-Schreiben lässt vorhandene Kapitel in allen drei Formaten
+  stehen (Test je Format).
+- Fixture-Generator erzeugt zusätzlich Kapitel-Dateien per ffmetadata.
+
 ## [0.23.15] — 2026-08-30
 
 ### Geprüft
