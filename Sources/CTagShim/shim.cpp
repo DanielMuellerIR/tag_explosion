@@ -16,8 +16,12 @@
 #include <chapterframe.h>
 #include <tableofcontentsframe.h>
 #include <textidentificationframe.h>
-#if __has_include(<mp4chapter.h>)
+// mp4file.h gibt es in jeder TagLib 2.x und wird unabhängig von den Kapiteln
+// gebraucht (MP4-Tag für feste Felder, Podcast-Atome). Nur die Kapitel-API
+// hängt am 2.3-Header — sonst bricht der Release-Build gegen die portable
+// TagLib 2.1.1, während der Homebrew-Build (2.3.1) ihn nicht bemerkt.
 #include <mp4file.h>
+#if __has_include(<mp4chapter.h>)
 #define TX_HAVE_MP4_CHAPTERS 1
 #endif
 #if __has_include(<matroskachapters.h>)

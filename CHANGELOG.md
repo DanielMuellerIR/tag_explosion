@@ -31,6 +31,11 @@ jeder Entscheidung steht im jeweiligen Commit.
 
 ### Behoben
 
+- Release-Build (`build.sh --release`) gegen die portable TagLib 2.1.1 brach
+  im Shim ab, weil `mp4file.h` nur zusammen mit dem Kapitel-Header von
+  TagLib 2.3 eingebunden wurde. Hinweis: Das verteilte DMG bringt TagLib
+  2.1.1 mit (Mindestversion macOS 14); MP4- und Matroska-Kapitel brauchen
+  TagLib 2.3 und sind dort deshalb nicht verfügbar, ID3-Kapitel (MP3) schon.
 - Linux: Untertitel und Kodi-NFOs in Latin-1 oder Windows-1252 mit
   CRLF-Zeilenenden ließen sich weder lesen noch zurückschreiben
   (Linux-Foundation kodiert und dekodiert `\r\n` in diesen Kodierungen
