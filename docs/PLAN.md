@@ -249,6 +249,9 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Backlog / Notizen
 
+- Offene Erweiterungen (neue Formate, Umbenennen, Kapitel, Werkzeuge) stehen
+  als Arbeitspakete mit Status in [ROADMAP.md](ROADMAP.md).
+
 - **Linux: abgesicherter Modus blockiert jedes Schreiben** (Review 2026-08-02,
   Maintainer-Entscheidung 2026-08-03). Stand heute: `TrashBackup.backUp`
   (`Sources/TagExplosionCore/TrashBackup.swift`) wirft außerhalb von macOS immer
