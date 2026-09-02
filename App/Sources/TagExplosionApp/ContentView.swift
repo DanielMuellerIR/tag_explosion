@@ -33,6 +33,9 @@ struct ContentView: View {
                 case .document:
                     DocumentEditorView(entry: entry)
                         .id(entry.url)
+                case .sidecar:
+                    SidecarEditorView(entry: entry)
+                        .id(entry.url)
                 case .playlist:
                     PlaylistEditorView(entry: entry)
                         .id(entry.url)
@@ -51,6 +54,13 @@ struct ContentView: View {
                 } else if selected.allSatisfy({ $0.kind == .document }) {
                     DocumentBatchEditorView(entries: selected)
                         .id(model.selection)
+                } else if selected.allSatisfy({ $0.kind == .sidecar }) {
+                    // NFO und Untertitel haben keine Stapelbearbeitung.
+                    ContentUnavailableView(
+                        "Sidecars einzeln auswählen",
+                        systemImage: "doc.badge.gearshape",
+                        description: Text("NFO- und Untertiteldateien werden einzeln bearbeitet.")
+                    )
                 } else if selected.allSatisfy({ $0.kind == .invoice }) {
                     // Rechnungen sind reine Anzeige — eine Stapelbearbeitung
                     // gibt es nicht, also einzeln auswählen.
@@ -347,7 +357,8 @@ struct DropPlaceholder: View {
     // läuft es über denselben TagLib-Weg wie Audio (siehe MediaKind).
     private static let audioDisplay = audioExtensions.subtracting(["mp4"]).sorted()
     private static let imageDisplay = imageExtensions.sorted()
-    private static let videoDisplay = videoExtensions.union(["mp4"]).sorted()
+    /// Sidecars (nfo, srt, vtt) stehen bei Video, wo sie hingehören.
+    private static let videoDisplay = videoExtensions.union(["mp4"]).union(MediaFormats.sidecar).sorted()
     private static let ebookDisplay = ebookExtensions.sorted()
     private static let documentDisplay = documentExtensions.sorted()
     private static let playlistDisplay = playlistExtensions.sorted()
@@ -383,7 +394,7 @@ struct DropPlaceholder: View {
                              tagFormats: "EXIF · IPTC · XMP (MWG-harmonisiert)")
                 FormatColumn(title: "Video", systemImage: "film",
                              formats: Self.videoDisplay,
-                             tagFormats: "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige)")
+                             tagFormats: "MP4-Atome · Matroska-Tags (mov/avi/ogv nur Anzeige) · Kodi/Jellyfin-NFO · Untertitel srt/vtt")
                 FormatColumn(title: "E-Books", systemImage: "book",
                              formats: Self.ebookDisplay,
                              tagFormats: Self.ebookTagFormats)

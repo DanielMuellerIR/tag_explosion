@@ -331,7 +331,9 @@ public enum EbookTool {
             case .propertiesRejected, .toolNotFound, .toolFailed,
                  .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
                  .unsupportedDocumentField, .invalidDocumentValue,
-                 .invalidFieldValue, .invalidLyrics: throw error
+                 .invalidFieldValue, .invalidLyrics,
+                 .invalidSubtitleShift: throw error
+            case .urlOnlyNFO: throw TagError.urlOnlyNFO(path: url.path)
             }
         }
     }

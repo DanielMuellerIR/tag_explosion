@@ -34,6 +34,11 @@ func readPatternFields(at url: URL) throws -> [String: String] {
     case .ebook:
         return PatternFields.fields(
             from: try EbookTool.readSnapshot(url: url, includeCover: false).value.fields)
+    case .sidecar:
+        switch try SidecarTool.read(url: url) {
+        case .nfo(let contents): return PatternFields.fields(from: contents.fields)
+        case .subtitle(let contents): return PatternFields.fields(from: contents, url: url)
+        }
     case .document:
         return PatternFields.fields(
             from: try DocumentTool.readSnapshot(url: url, includeCover: false).value.fields)
@@ -344,6 +349,33 @@ struct Parse: ParsableCommand {
             try TrashBackup.shared.backUp(url)
             try DocumentTool.write(url: url, fields: fields, original: original,
                                    expecting: snapshot.stamp)
+            return parsed.count
+
+        case .sidecar:
+            // Nur NFO-Felder haben einen Speicherort; bei Untertiteln steckt
+            // die Sprache im Dateinamen selbst (Richtung `rename`).
+            let snapshot = try SidecarTool.readSnapshot(url: url)
+            guard case .nfo(let contents) = snapshot.value, !contents.isURLOnly else {
+                throw ValidationError("Not a taggable media file: \(url.path)")
+            }
+            let original = contents.fields
+            var fields = original
+            do {
+                try PatternFields.apply(parsed, to: &fields)
+                try KodiNFOFile.validate(fields, original: original)
+            } catch let error as PatternFields.ApplyError {
+                throw ValidationError(error.localizedDescription)
+            } catch TagError.invalidDocumentValue(let field, let reason) {
+                throw ValidationError(TagError.invalidDocumentValue(field: field, reason: reason).localizedDescription)
+            }
+            guard fields != original else {
+                try snapshot.requireCurrent(at: url)
+                return 0
+            }
+            try snapshot.requireCurrent(at: url)
+            try TrashBackup.shared.backUp(url)
+            try KodiNFOFile.write(url: url, fields: fields, original: original,
+                                  expecting: snapshot.stamp)
             return parsed.count
 
         case .invoice, .playlist, nil:

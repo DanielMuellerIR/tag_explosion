@@ -397,6 +397,67 @@ public enum PatternFields {
         return fields
     }
 
+    /// Kodi-NFO: `%{title}`, `%{year}` (auch `%{date}`), `%{genre}`,
+    /// `%{director}` (= `%{artist}`), `%{season}`/`%{episode}`, `%{showtitle}`.
+    public static func fields(from nfo: NFOFields) -> [String: String] {
+        let directors = nfo.directors.joined(separator: ", ")
+        return [
+            "TITLE": nfo.title,
+            "ORIGINALTITLE": nfo.originalTitle,
+            "SORTTITLE": nfo.sortTitle,
+            "YEAR": nfo.year,
+            "DATE": nfo.year,
+            "PREMIERED": nfo.premiered,
+            "GENRE": nfo.genres.joined(separator: ", "),
+            "TAGS": nfo.tags.joined(separator: ", "),
+            "STUDIO": nfo.studio,
+            "DIRECTOR": directors,
+            "ARTIST": directors,
+            "RATING": nfo.rating,
+            "SEASON": nfo.season,
+            "EPISODE": nfo.episode,
+            "SHOWTITLE": nfo.showTitle,
+            "TAGLINE": nfo.tagline,
+        ]
+    }
+
+    /// Untertitel: `%{base}` (Name ohne Sprache/Flags), `%{lang}` (auch
+    /// `%{language}`), `%{flags}` und bei VTT `%{title}`. Damit lässt sich
+    /// `film.srt` zu `film.de.srt` umbenennen (`%{base}.%{lang}`).
+    public static func fields(from subtitle: SubtitleContents, url: URL) -> [String: String] {
+        let parts = SubtitleFile.filenameParts(of: url)
+        return [
+            "BASE": parts.base,
+            "LANG": parts.language ?? "",
+            "LANGUAGE": parts.language ?? "",
+            "FLAGS": parts.flags.joined(separator: "."),
+            "TITLE": subtitle.fields.title,
+        ]
+    }
+
+    /// Setzt geparste Werte in NFO-Felder (Regel wie bei Bildern).
+    public static func apply(_ parsed: [String: String], to nfo: inout NFOFields) throws {
+        for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
+            switch key {
+            case "TITLE": nfo.title = value
+            case "ORIGINALTITLE": nfo.originalTitle = value
+            case "SORTTITLE": nfo.sortTitle = value
+            case "YEAR", "DATE": nfo.year = value
+            case "PREMIERED": nfo.premiered = value
+            case "GENRE": nfo.genres = value.splitCommaList()
+            case "TAGS": nfo.tags = value.splitCommaList()
+            case "STUDIO": nfo.studio = value
+            case "DIRECTOR", "ARTIST": nfo.directors = value.splitCommaList()
+            case "RATING": nfo.rating = value
+            case "SEASON": nfo.season = value
+            case "EPISODE": nfo.episode = value
+            case "SHOWTITLE": nfo.showTitle = value
+            case "TAGLINE": nfo.tagline = value
+            default: throw ApplyError.unsupportedField(key: key, kind: "nfo")
+            }
+        }
+    }
+
     public enum ApplyError: Error, LocalizedError, Equatable, Sendable {
         /// Die Medienart hat kein Feld für diesen Schlüssel.
         case unsupportedField(key: String, kind: String)

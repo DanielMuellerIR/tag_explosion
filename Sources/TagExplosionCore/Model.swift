@@ -299,6 +299,12 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case syncedLyricsUnsupported(path: String)
     /// Eine LRC-Datei ließ sich nicht lesen (kein Zeitstempel, kein UTF-8).
     case invalidLyrics(reason: String)
+    /// Eine Kodi-NFO, die nur Scraper-URLs enthält (kein XML): Sie wird
+    /// angezeigt, aber nie beschrieben.
+    case urlOnlyNFO(path: String)
+    /// Eine Zeitverschiebung, die Cues vor 00:00:00 legen würde, oder eine
+    /// Untertiteldatei ohne Cues.
+    case invalidSubtitleShift(reason: String)
     /// Die Datei kennt die genannte Tag-Schicht nicht, sie fehlt, oder das
     /// Format kann sie nicht entfernen (z.B. `info` bei einer MP3).
     case layerUnsupported(path: String, layer: String)
@@ -345,6 +351,10 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
                 + "use an .lrc sidecar for this format: \(path)"
         case .invalidLyrics(let reason):
             return "Invalid lyrics: \(reason)"
+        case .urlOnlyNFO(let path):
+            return "This NFO contains only URLs and cannot be edited: \(path)"
+        case .invalidSubtitleShift(let reason):
+            return "Cannot shift subtitles: \(reason)"
         case .layerUnsupported(let path, let layer):
             return "Tag layer '\(layer)' is not present or cannot be removed in this file: \(path)"
         }
