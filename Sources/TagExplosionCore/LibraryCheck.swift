@@ -37,11 +37,15 @@ public enum LibraryCheck {
         case albumArtistInconsistent = "albumartist-inconsistent"
         case albumArtistMissing = "albumartist-missing"
         case trackMissing = "track-missing"
+        /// Tracknummer 0 oder negativ: zwar eine Zahl, aber keine Position.
+        case trackInvalid = "track-invalid"
         case trackGap = "track-gap"
         case trackDuplicate = "track-duplicate"
         case trackTotalMissing = "track-total-missing"
         case trackExceedsTotal = "track-exceeds-total"
         case discGap = "disc-gap"
+        /// Disc-Nummer 0 oder negativ.
+        case discInvalid = "disc-invalid"
         case discTotalMissing = "disc-total-missing"
         case discExceedsTotal = "disc-exceeds-total"
         case dateInconsistent = "date-inconsistent"
@@ -75,11 +79,13 @@ public enum LibraryCheck {
             case .albumArtistInconsistent: return "Album artist differs within the album"
             case .albumArtistMissing: return "Several artists but no album artist"
             case .trackMissing: return "Track number missing or not a number"
+            case .trackInvalid: return "Track number is zero or negative"
             case .trackGap: return "Gaps in the track numbering"
             case .trackDuplicate: return "Track number used more than once"
             case .trackTotalMissing: return "Track total missing"
             case .trackExceedsTotal: return "Track number greater than the total"
             case .discGap: return "Gaps in the disc numbering"
+            case .discInvalid: return "Disc number is zero or negative"
             case .discTotalMissing: return "Disc total missing"
             case .discExceedsTotal: return "Disc number greater than the total"
             case .dateInconsistent: return "Year/date differs within the album"
@@ -591,6 +597,7 @@ public enum LibraryCheck {
         struct Parsed { var item: Item; var disc: Int; var number: Int; var total: Int? }
         var parsed: [Parsed] = []
         var missing: [URL] = []
+        var invalid: [URL] = []
         var missingTotal: [URL] = []
         var exceeding: [URL] = []
         for item in items {
@@ -600,14 +607,26 @@ public enum LibraryCheck {
                 missing.append(item.url)
                 continue
             }
+            // 0 oder negativ ist parsebar, aber keine Position: Die
+            // Lückenprüfung ab 1 sähe ein solches Album sonst als vollständig.
+            guard number >= 1 else {
+                invalid.append(item.url)
+                continue
+            }
+            // Eine ungültige Disc-Nummer meldet `checkDiscs`; für die
+            // Gruppierung zählt sie wie „keine Angabe“ (Disc 1).
             let disc = parseNumber(item.value("DISCNUMBER"),
-                                   totalFields: item.values("DISCTOTAL") + item.values("TOTALDISCS")).number ?? 1
+                                   totalFields: item.values("DISCTOTAL") + item.values("TOTALDISCS")).number
+                .flatMap { $0 >= 1 ? $0 : nil } ?? 1
             parsed.append(Parsed(item: item, disc: disc, number: number, total: track.total))
             if track.total == nil { missingTotal.append(item.url) }
             if let total = track.total, number > total { exceeding.append(item.url) }
         }
         if !missing.isEmpty {
             findings.append(Finding(code: .trackMissing, group: group, message: "", files: missing))
+        }
+        if !invalid.isEmpty {
+            findings.append(Finding(code: .trackInvalid, group: group, message: "", files: invalid))
         }
         if !exceeding.isEmpty {
             findings.append(Finding(code: .trackExceedsTotal, group: group, message: "", files: exceeding))
@@ -649,12 +668,21 @@ public enum LibraryCheck {
         var findings: [Finding] = []
         struct Parsed { var url: URL; var number: Int; var total: Int? }
         var parsed: [Parsed] = []
+        var invalid: [URL] = []
         for item in items {
             let raw = item.value("DISCNUMBER")
             guard !raw.isEmpty else { continue }
             let disc = parseNumber(raw, totalFields: item.values("DISCTOTAL") + item.values("TOTALDISCS"))
             guard let number = disc.number else { continue }
+            // 0 oder negativ: keine Disc-Position (siehe `checkTracks`).
+            guard number >= 1 else {
+                invalid.append(item.url)
+                continue
+            }
             parsed.append(Parsed(url: item.url, number: number, total: disc.total))
+        }
+        if !invalid.isEmpty {
+            findings.append(Finding(code: .discInvalid, group: group, message: "", files: invalid))
         }
         // Ohne Disc-Nummern (einfaches Album) gibt es nichts zu prüfen.
         guard !parsed.isEmpty else { return findings }

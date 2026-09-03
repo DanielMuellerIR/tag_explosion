@@ -358,20 +358,27 @@ public enum KodiNFOFile {
             guard value != original, !value.isEmpty, Int(value) == nil else { return }
             throw TagError.invalidDocumentValue(field: field, reason: "expected a whole number")
         }
-        func requireDecimal(_ value: String, _ original: String, field: String) throws {
-            guard value != original, !value.isEmpty, Double(value) == nil else { return }
-            throw TagError.invalidDocumentValue(field: field, reason: "expected a number such as 7.5")
+        // Bewertungen sind in Kodi Zahlen von 0 bis 10 (`rating`,
+        // `userrating`); `11` oder `inf` sind zwar Zahlen, aber kein Wert
+        // des NFO-Modells und würden von Kodi verworfen oder umgedeutet.
+        func requireRating(_ value: String, _ original: String, field: String) throws {
+            guard value != original, !value.isEmpty else { return }
+            guard let number = Double(value), number.isFinite, (0...10).contains(number) else {
+                throw TagError.invalidDocumentValue(field: field, reason: "expected a number from 0 to 10, such as 7.5")
+            }
         }
         if fields.year != original.year, !fields.year.isEmpty,
            fields.year.range(of: #"^\d{4}$"#, options: .regularExpression) == nil {
             throw TagError.invalidDocumentValue(field: "year", reason: "expected a four-digit year")
         }
+        // Erst die Form, dann der Kalender: `2026-02-31` sieht aus wie ein
+        // Datum, existiert aber nicht.
         if fields.premiered != original.premiered, !fields.premiered.isEmpty,
-           fields.premiered.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) == nil {
-            throw TagError.invalidDocumentValue(field: "premiered", reason: "expected ISO 8601 (YYYY-MM-DD)")
+           !ISODate.isCalendarDay(fields.premiered) {
+            throw TagError.invalidDocumentValue(field: "premiered", reason: "expected an existing calendar day in ISO 8601 (YYYY-MM-DD)")
         }
-        try requireDecimal(fields.rating, original.rating, field: "rating")
-        try requireDecimal(fields.userRating, original.userRating, field: "userrating")
+        try requireRating(fields.rating, original.rating, field: "rating")
+        try requireRating(fields.userRating, original.userRating, field: "userrating")
         try requireInteger(fields.runtime, original.runtime, field: "runtime")
         try requireInteger(fields.season, original.season, field: "season")
         try requireInteger(fields.episode, original.episode, field: "episode")

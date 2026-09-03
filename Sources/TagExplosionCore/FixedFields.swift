@@ -84,8 +84,12 @@ public enum FixedFields {
 
     /// Lyrics und ReplayGain gehen überall, wo TagLib freie Schlüssel
     /// speichert — nicht bei Tracker-Modulen und reinen Anzeige-Formaten.
+    /// `writableTagKeys == nil` heißt nur „keine Tracker-Einschränkung“ und
+    /// gilt auch für Bilder, Dokumente und unbekannte Endungen; deshalb
+    /// zusätzlich an die TagLib-Medienart (Audio/Video) binden.
     public static func supportsLyrics(_ url: URL) -> Bool {
-        MediaFormats.writableTagKeys(for: url) == nil
+        MediaFormats.kind(of: url) == .audio
+            && MediaFormats.writableTagKeys(for: url) == nil
             && !MediaFormats.displayOnly.contains(url.pathExtension.lowercased())
     }
 

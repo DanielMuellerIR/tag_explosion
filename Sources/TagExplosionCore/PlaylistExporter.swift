@@ -92,9 +92,19 @@ public enum PlaylistExporter {
             .joined(separator: "/")
     }
 
-    /// „Interpret - Titel" bzw. nur Titel.
+    /// „Interpret - Titel" bzw. nur Titel — auf einer Zeile, denn M3U und
+    /// PLS kennen kein Escaping: Ein Zeilenumbruch im Tag würde beim
+    /// nächsten Lesen als weiterer Pfad oder verschobene Angabe gelten.
     static func displayText(_ item: Item) -> String {
-        item.artist.isEmpty ? item.title : "\(item.artist) - \(item.title)"
+        singleLine(item.artist.isEmpty ? item.title : "\(item.artist) - \(item.title)")
+    }
+
+    /// Zeilenumbrüche (auch CR) zu einem Leerzeichen zusammenziehen.
+    static func singleLine(_ text: String) -> String {
+        text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     public static func render(items: [Item], format: PlaylistFormat, playlist: URL,
@@ -102,7 +112,7 @@ public enum PlaylistExporter {
         switch format {
         case .m3u, .m3u8:
             var lines = ["#EXTM3U"]
-            if !title.isEmpty { lines.append("#PLAYLIST:\(title)") }
+            if !title.isEmpty { lines.append("#PLAYLIST:\(singleLine(title))") }
             for item in items {
                 let seconds = item.durationMilliseconds.map { ($0 + 500) / 1000 } ?? -1
                 lines.append("#EXTINF:\(seconds),\(displayText(item))")
@@ -157,7 +167,10 @@ public enum PlaylistExporter {
 
     /// Erzeugt die Playlist-Datei. Auch ein Export ist ein Schreibweg: Ohne
     /// `overwrite` wird eine vorhandene Datei nie ersetzt (exklusives
-    /// Anlegen, kein Zeitfenster zwischen Prüfung und Schreiben).
+    /// Anlegen, kein Zeitfenster zwischen Prüfung und Schreiben). Mit
+    /// `overwrite` läuft der Austausch wie jeder Schreibweg: Papierkorb-
+    /// Sicherung der alten Playlist, Geschwisterkopie, Rücklese-Prüfung,
+    /// atomarer Tausch — die vorige Fassung bleibt wiederherstellbar.
     @discardableResult
     public static func export(files: [URL], to playlist: URL, format: PlaylistFormat,
                               absolutePaths: Bool = false, title: String = "",
@@ -167,12 +180,24 @@ public enum PlaylistExporter {
         let items = collect(files: files)
         let data = try render(items: items, format: format, playlist: playlist,
                               absolutePaths: absolutePaths, title: title)
-        do {
-            try data.write(to: playlist, options: overwrite ? .atomic : .withoutOverwriting)
-        } catch where !overwrite && FileManager.default.fileExists(atPath: playlist.path) {
-            throw ExportError.outputExists(playlist.path)
-        } catch {
-            throw TagError.saveFailed(path: playlist.path)
+        let mutate: (URL) throws -> Void = { temp in try data.write(to: temp) }
+        // Prüfung vor dem Austausch: Die Datei muss byte-gleich zurücklesbar sein.
+        let validate: (URL) throws -> Void = { temp in
+            guard try Data(contentsOf: temp) == data else { throw TagError.saveFailed(path: playlist.path) }
+        }
+        if FileManager.default.fileExists(atPath: playlist.path) {
+            guard overwrite else { throw ExportError.outputExists(playlist.path) }
+            try TrashBackup.shared.backUp(playlist, reason: BackupReason.playlist)
+            try AtomicFileRewrite.run(url: playlist, mutate: mutate, validate: validate)
+        } else {
+            do {
+                try AtomicFileRewrite.create(url: playlist, replacingOriginal: true, beforeReplace: {},
+                                             mutate: mutate, validate: validate)
+            } catch TagError.fileChangedOnDisk {
+                // Zwischen Prüfung und Anlegen hat jemand die Datei erzeugt:
+                // dessen Stand bleibt, der Export meldet die Kollision.
+                throw ExportError.outputExists(playlist.path)
+            }
         }
         return Summary(playlist: playlist, count: items.count,
                        untagged: items.filter(\.untagged).map(\.url))

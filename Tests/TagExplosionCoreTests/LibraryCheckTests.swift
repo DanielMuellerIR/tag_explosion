@@ -301,6 +301,23 @@ struct LibraryCheckTests {
         #expect(ImagePixelSize.read(from: bmp)?.height == 10) // negative Höhe = Betrag
         #expect(ImagePixelSize.read(from: Data("kein Bild, wirklich nicht".utf8)) == nil)
     }
+
+    @Test("Track-/Disc-Nummern 0 oder negativ sind ungültig und verdecken keine Lücken")
+    func zeroAndNegativeNumbersAreInvalid() {
+        var items = cleanAlbum()
+        items[0].properties.removeAll { $0.key == "TRACKNUMBER" }
+        items[0].properties.append(TagProperty(key: "TRACKNUMBER", value: "0/3"))
+        items[1].properties.removeAll { $0.key == "TRACKNUMBER" }
+        items[1].properties.append(TagProperty(key: "TRACKNUMBER", value: "-1"))
+        items[2].properties.append(TagProperty(key: "DISCNUMBER", value: "0"))
+        let report = LibraryCheck.run(items)
+        #expect(codes(report).contains(.trackInvalid))
+        #expect(report.findings.first { $0.code == .trackInvalid }?.files.count == 2)
+        #expect(codes(report).contains(.discInvalid))
+        // Die ungültigen Nummern gelten nicht als Track 1 und 2: Track 3
+        // allein lässt die Lücken 1 und 2 sichtbar.
+        #expect(codes(report).contains(.trackGap))
+    }
 }
 
 /// Lauf über echte Dateien: Fixture-Kopien bekommen gezielt Tags über den
@@ -379,4 +396,5 @@ struct LibraryCheckFixtureTests {
         #expect(items.first?.covers == [LibraryCheck.CoverSummary(mimeType: "", bytes: 0)])
         #expect(LibraryCheck.run(items).findings.isEmpty)
     }
+
 }

@@ -459,4 +459,45 @@ struct SidecarTests {
         #expect(rejected.failed.map(\.0) == ["film.nfo"])
         #expect(rejected.failed.first?.1.contains("year") == true)
     }
+
+
+    @Test("NFO-Prüfung: Bewertung nur 0…10, premiered nur existierende Kalendertage")
+    func nfoValidationRanges() throws {
+        let original = NFOFields()
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(rating: "11"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(rating: "-0.5"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(rating: "inf"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(userRating: "10.5"), original: original) }
+        #expect(throws: Never.self) { try KodiNFOFile.validate(NFOFields(rating: "7.5", userRating: "10"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(premiered: "2026-02-31"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(premiered: "2026-99-99"), original: original) }
+        #expect(throws: TagError.self) { try KodiNFOFile.validate(NFOFields(premiered: "2023-02-29"), original: original) }
+        #expect(throws: Never.self) { try KodiNFOFile.validate(NFOFields(premiered: "2024-02-29"), original: original) }
+        // Ein unveränderter (schon vorher ungültiger) Altwert blockiert
+        // andere Änderungen nicht.
+        let legacy = NFOFields(premiered: "2026-02-31", rating: "11")
+        var edited = legacy
+        edited.title = "Neu"
+        #expect(throws: Never.self) { try KodiNFOFile.validate(edited, original: legacy) }
+    }
+
+    @Test("ISODate: Schaltjahre und Monatslängen")
+    func isoCalendarDays() {
+        #expect(ISODate.isCalendarDay("2000-02-29"))
+        #expect(!ISODate.isCalendarDay("1900-02-29"))
+        #expect(ISODate.isCalendarDay("2024-04-30"))
+        #expect(!ISODate.isCalendarDay("2024-04-31"))
+        #expect(!ISODate.isCalendarDay("2024-00-10"))
+        #expect(!ISODate.isCalendarDay("2024-1-10"))
+        #expect(!ISODate.isCalendarDay("24-01-10"))
+    }
+
+    @Test("Untertitel-Verschiebung: unendliche oder riesige Sekunden enden als Fehler, nicht als Absturz")
+    func subtitleShiftRange() throws {
+        #expect(try SubtitleFile.shiftMilliseconds(seconds: 1.5) == 1500)
+        #expect(try SubtitleFile.shiftMilliseconds(seconds: -0.25) == -250)
+        #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: 1e16) }
+        #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: .infinity) }
+        #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: .nan) }
+    }
 }

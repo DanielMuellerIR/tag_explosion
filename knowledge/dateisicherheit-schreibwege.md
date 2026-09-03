@@ -79,6 +79,21 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   Auslöser `restore`, dann `AtomicFileRewrite`). Details und Fallen:
   [undo-historie-journal.md](undo-historie-journal.md).
 
+- **Sidecars haben eigene Stempel, und ein Save mit zwei Zieldateien ist
+  zweiphasig.** Der App-Audio-Schreibweg (`AppModel.write`) schreibt bei
+  Formaten ohne SYLT die `.lrc` und bei Videos die `.nfo` zusätzlich zum
+  Container. Beide bekommen beim Lesen einen eigenen `FileStamp`
+  (`AudioSidecars`), der vor dem Austausch geprüft wird — sonst
+  überschriebe die App eine zwischenzeitlich fremd geänderte Sidecar ohne
+  Konfliktdialog. Reihenfolge: erst alles, was an den Sidecars scheitern
+  kann (Stempel, Feldprüfung, Papierkorb-Sicherung), dann der Container,
+  zuletzt der Sidecar-Austausch mit `backUp: false`. So kann ein Save nie
+  Containerfelder dauerhaft übernehmen, während die Sidecar an einem
+  Sicherungsfehler scheitert (Review 2026-09-02). Auch Nebenwege wie
+  `tagx playlist export --force` und das erste `folder.jpg` laufen über
+  `TrashBackup` und `AtomicFileRewrite.run`/`.create` — ein direkter
+  `Data.write` ist kein Schreibweg dieses Projekts.
+
 ## Wenn ein neuer Schreibweg entsteht
 
 Vor der ersten Mutation `TrashBackup.shared.backUp(url, reason:)` aufrufen

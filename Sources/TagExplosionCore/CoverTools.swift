@@ -631,30 +631,36 @@ public enum FolderCover {
     }
 
     /// Schreibt das eingebettete Cover als `folder.<ext>` ins Verzeichnis.
-    /// Ohne `force` bleibt eine vorhandene Datei stehen (`targetExists`); die
-    /// exklusive Schreiboption schließt auch das Rennen zwischen Prüfung und
-    /// Anlegen. Mit `force` läuft der Austausch wie jeder Schreibweg:
+    /// Ohne `force` bleibt eine vorhandene Datei stehen (`targetExists`); das
+    /// exklusive Anlegen (`link`) schließt auch das Rennen zwischen Prüfung
+    /// und Anlegen. Mit `force` läuft der Austausch wie jeder Schreibweg:
     /// Papierkorb-Sicherung, Geschwisterkopie, Prüfung, atomarer Tausch.
+    /// Auch eine NEUE Datei entsteht erst als geprüfte Geschwister-Temp-Datei
+    /// — ein Abbruch mittendrin hinterlässt so nie ein halbes `folder.jpg`,
+    /// das später als vorhandenes Cover gälte.
     @discardableResult
     public static func export(_ artwork: Artwork, to directory: URL, force: Bool = false) throws -> URL {
         guard let name = exportFileName(for: artwork) else { throw CoverToolError.unsupportedImage }
         let target = directory.appendingPathComponent(name)
         let fileManager = FileManager.default
+        let expected = artwork.resolvedMimeType
+        let mutate: (URL) throws -> Void = { temp in try artwork.data.write(to: temp) }
+        // Magic-Byte-Prüfung: Die geschriebene Datei muss das Bild sein, das
+        // der Dateiname verspricht.
+        let validate: (URL) throws -> Void = { temp in
+            guard Artwork.sniffMimeType(from: try Data(contentsOf: temp)) == expected else {
+                throw TagError.saveFailed(path: target.path)
+            }
+        }
         if force, fileManager.fileExists(atPath: target.path) {
             try TrashBackup.shared.backUp(target)
-            let expected = artwork.resolvedMimeType
-            try AtomicFileRewrite.run(url: target) { temp in
-                try artwork.data.write(to: temp)
-            } validate: { temp in
-                guard Artwork.sniffMimeType(from: try Data(contentsOf: temp)) == expected else {
-                    throw TagError.saveFailed(path: target.path)
-                }
-            }
+            try AtomicFileRewrite.run(url: target, mutate: mutate, validate: validate)
             return target
         }
         do {
-            try artwork.data.write(to: target, options: .withoutOverwriting)
-        } catch where fileManager.fileExists(atPath: target.path) {
+            try AtomicFileRewrite.create(url: target, replacingOriginal: true, beforeReplace: {},
+                                         mutate: mutate, validate: validate)
+        } catch TagError.fileChangedOnDisk {
             throw CoverToolError.targetExists(path: target.path)
         }
         return target

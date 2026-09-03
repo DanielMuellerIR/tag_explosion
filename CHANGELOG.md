@@ -8,6 +8,58 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## [0.40.0] — 2026-09-03
+
+Abarbeitung des Code-Reviews vom 2026-09-02 (20 Funde, alle behoben).
+
+### Behoben
+
+- Lyrics-CLI: `lyrics set --sidecar` bei ID3v2-Dateien war für `show`,
+  `export` und `clear` unsichtbar. Jetzt gilt überall dieselbe Regel:
+  eingebettete SYLT-Zeilen haben Vorrang, sonst zählt die Sidecar
+  `<name>.lrc` — auch bei MP3. `--sidecar` neben vorhandenem SYLT wird
+  abgelehnt statt still geschrieben; `clear` räumt beide Speicherorte.
+- App: Die `.lrc`-Sidecar bekommt beim Lesen einen eigenen Dateistempel.
+  Ändert ein anderes Programm sie zwischen Öffnen und Speichern, erscheint
+  der Konfliktdialog wie beim Medium; „Trotzdem überschreiben“ gilt dann
+  auch für die Sidecar. Die CLI prüft den Stempel ebenso.
+- App: Audio-Speichern läuft zweiphasig — erst Stempel, Feldprüfung und
+  Papierkorb-Sicherung der Sidecars (`.lrc`, NFO), dann der Container,
+  zuletzt der Sidecar-Austausch. Ein Save übernimmt so nie Containerfelder,
+  während die Lyrics-Änderung an einem Sicherungsfehler scheitert.
+- App: Die NFO-Felder neben einem Video liegen jetzt im Eintrag und werden
+  mit ihm gespeichert (⌘S). Sie zählen zu den ungespeicherten Änderungen —
+  Schließen und Beenden fragen nach, statt Eingaben still zu verwerfen. Am
+  Video selbst ändert sich dabei nichts, wenn nur die NFO bearbeitet wurde.
+- Kapitel: Überlappende Bereiche (`[0,1000]`, `[500,1500]`) werden wie
+  dokumentiert abgelehnt; bisher prüfte die Validierung nur den Beginn gegen
+  den vorigen Beginn.
+- `tagx playlist export --force` und das Anlegen eines neuen Ordner-Covers
+  (`folder.jpg`) laufen jetzt über Papierkorb-Sicherung beziehungsweise die
+  geprüfte Geschwisterkopie mit atomarem Austausch wie jeder andere
+  Schreibweg; ein Abbruch hinterlässt keine halbe Datei mehr.
+- Untertitel-Verschiebung: Riesige oder unendliche Sekundenwerte (`1e16`,
+  `inf`) enden als Fehler statt als Laufzeitabbruch (CLI und App); zulässig
+  sind bis zu 1000 Stunden.
+- NFO-Prüfung: `rating`/`userrating` nur als Zahl von 0 bis 10; `premiered`
+  nur als existierender Kalendertag (`2026-02-31` wird abgelehnt).
+- Markdown-Frontmatter: Leer- und Kommentarzeilen hinter einem geänderten
+  oder entfernten Wert bleiben stehen.
+- Playlists: Windows-Pfade (`C:\…`, `\\server\…`) gelten als absolut und
+  werden nicht mehr an den Playlist-Ordner gehängt; unendliche oder riesige
+  `#EXTINF`-/`Length`-Werte werden als unbekannte Dauer gelesen statt den
+  Prozess zu beenden; Zeilenumbrüche in Titel oder Interpret landen beim
+  M3U-/PLS-Export auf einer Zeile.
+- Konsistenzprüfung: Track- und Disc-Nummern 0 oder negativ sind eigene
+  Befunde (`track-invalid`, `disc-invalid`) und verdecken keine Lücken mehr.
+- `lyrics set` lehnt Nicht-Audio (Bilder, Dokumente, unbekannte Endungen)
+  vor dem Öffnen mit klarer Meldung ab.
+- Umbenennen: Neben `.xmp` wandern jetzt auch `.lrc` (Audio) und `.nfo`
+  (Video) mit; schlägt der Rückweg nach einem Sidecar-Fehler fehl, nennt das
+  Ergebnis den Zustand ausdrücklich. Die Undo-Historie folgt dem neuen Namen
+  (Journalpfade werden nachgezogen) und zeigt bei Audio und Video auch die
+  Sicherungen ihrer `.lrc`-/`.nfo`-Sidecars.
+
 ## [0.39.0] — 2026-09-03
 
 ### Hinzugefügt

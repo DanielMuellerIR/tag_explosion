@@ -60,8 +60,10 @@
   age rating, runtime, season/episode; actors, unique ids and artwork are
   shown read-only. Unknown elements, their order and the file's indentation
   survive a save; a URL-only NFO is shown but never written. A video with
-  `<name>.nfo` next to it gets an "NFO sidecar" section in its editor that
-  writes to the NFO, never to the video. Subtitles `.srt`/`.vtt`: cue count,
+  `<name>.nfo` next to it gets an "NFO sidecar" section in its editor; its
+  fields are saved together with the entry (⌘S) and count as unsaved changes
+  when closing — only the NFO is written unless the video's own tags changed
+  too. Subtitles `.srt`/`.vtt`: cue count,
   time span, encoding (UTF-8/BOM/Latin-1), language and flags from the file
   name (`film.en.forced.vtt`), the WebVTT header (title and `Language:`
   editable) and a time shift for all cues (`tagx subtitle shift`).
@@ -130,7 +132,9 @@
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target
-  name twice, target already taken, empty name); the reverse direction fills
+  name twice, target already taken, empty name); same-name sidecars move
+  along (`.xmp` with images, `.lrc` with audio, `.nfo` with videos) and the
+  undo history follows the new name; the reverse direction fills
   the fields from the name and is saved the usual way. Available for audio,
   video, images (`%{creator}`, `%{date}`) and e-books (`%{author}`,
   `%{series}`), in the editors and as `tagx rename` / `tagx parse` (dry run by
@@ -138,7 +142,7 @@
 - **Consistency check** — one report for a folder or selection: missing
   cover art, cover size/format differing within an album, album artist
   differing or missing on a compilation, track and disc numbers (missing,
-  gaps, duplicates, no total, above the total), year, genre and album
+  zero or negative, gaps, duplicates, no total, above the total), year, genre and album
   spelling differing within an album, empty title/artist/album, the same
   title + artist + duration (±2 s) across all files, and optionally file
   names against a pattern. Files are grouped by album (ALBUM + ALBUMARTIST,
@@ -337,7 +341,8 @@ tagx layers strip song.mp3 --layer id3v1       # remove one layer, keep the othe
 tagx set song.mp3 -t TITLE=X --id3v23          # write ID3v2.3 instead of v2.4 (old players)
 tagx lyrics set song.mp3 --from song.lrc --language deu   # LRC → SYLT (+ text, language)
 tagx lyrics set song.flac --from song.lrc      # no ID3v2: writes the song.lrc sidecar
-tagx lyrics show song.mp3 --lrc                # synchronized lines as LRC
+tagx lyrics set song.mp3 --from song.lrc --sidecar   # force the sidecar; refused while SYLT exists (embedded wins)
+tagx lyrics show song.mp3 --lrc                # synchronized lines as LRC (SYLT, else the sidecar)
 tagx lyrics export song.mp3                    # → song.lrc (or .txt without sync)
 tagx set song.mp3 -t REPLAYGAIN_TRACK_GAIN="-6.50 dB" PODCAST=1 TVSEASON=2   # range-checked, exit 1 if invalid
 tagx exif set photo.jpg --copy description=IFD0:ImageDescription

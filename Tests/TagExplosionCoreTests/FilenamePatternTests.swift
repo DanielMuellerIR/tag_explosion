@@ -344,4 +344,49 @@ struct FileRenamerTests {
         let listing = try FileManager.default.contentsOfDirectory(atPath: directory.path)
         #expect(listing.contains("02 SONG.mp3"))
     }
+
+
+    @Test("LRC- und NFO-Sidecars wandern mit Audio bzw. Video; Journalpfade folgen")
+    func audioAndVideoSidecarsFollowRename() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let flac = directory.appendingPathComponent("song.flac")
+        let lrc = directory.appendingPathComponent("song.lrc")
+        let mkv = directory.appendingPathComponent("film.mkv")
+        let nfo = directory.appendingPathComponent("film.nfo")
+        let lonely = directory.appendingPathComponent("solo.mp3")
+        for url in [flac, lrc, mkv, nfo, lonely] { try touch(url) }
+        let journal = BackupJournal(url: directory.appendingPathComponent("journal.json"))
+        let copy = directory.appendingPathComponent("kopie.bin")
+        try touch(copy)
+        try journal.record(original: flac, backup: copy, size: 1, reason: BackupReason.tags)
+        try journal.record(original: lrc, backup: copy, size: 1, reason: BackupReason.sidecar)
+
+        let pattern = try FilenamePattern("%{title}")
+        let plan = FileRenamer.plan([
+            .init(url: flac, fields: ["TITLE": "Lied"]),
+            // "Kino" statt "Film": Auf case-insensitiven Datenträgern gälte
+            // `film.nfo` sonst weiter als vorhanden, weil `Film.nfo` da ist.
+            .init(url: mkv, fields: ["TITLE": "Kino"]),
+            .init(url: lonely, fields: ["TITLE": "Solo"]),
+        ], pattern: pattern)
+        #expect(!plan.hasConflicts)
+        #expect(plan.items[0].sidecarSource == lrc.path && plan.items[0].sidecarTarget == "Lied.lrc")
+        #expect(plan.items[1].sidecarSource == nfo.path && plan.items[1].sidecarTarget == "Kino.nfo")
+        #expect(plan.items[2].sidecarSource == nil)
+
+        let outcomes = try FileRenamer.apply(plan, journal: journal)
+        #expect(outcomes.allSatisfy { $0.succeeded && $0.warning == nil })
+        let fm = FileManager.default
+        #expect(fm.fileExists(atPath: directory.appendingPathComponent("Lied.lrc").path))
+        #expect(fm.fileExists(atPath: directory.appendingPathComponent("Kino.nfo").path))
+        #expect(!fm.fileExists(atPath: lrc.path) && !fm.fileExists(atPath: nfo.path))
+        // Historie: die Einträge zeigen jetzt auf die neuen Namen.
+        let paths = journal.rawEntries().map(\.originalPath)
+        let newFlac = directory.appendingPathComponent("Lied.flac")
+        #expect(paths.contains(MediaFormats.canonicalFileURL(newFlac).path))
+        #expect(paths.contains(MediaFormats.canonicalFileURL(directory.appendingPathComponent("Lied.lrc")).path))
+        #expect(!paths.contains(MediaFormats.canonicalFileURL(flac).path))
+        #expect(BackupHistory.versions(of: newFlac, journal: journal).count == 2)
+    }
 }

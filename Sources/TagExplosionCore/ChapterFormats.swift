@@ -14,9 +14,12 @@ public enum ChapterList {
     // MARK: - Prüfung
 
     /// Lehnt Kapitellisten ab, die kein Format sinnvoll speichern kann:
-    /// negative Zeiten, Ende vor Beginn, unsortierte Reihenfolge.
+    /// negative Zeiten, Ende vor Beginn, unsortierte Reihenfolge und
+    /// Überlappung (ein Kapitel beginnt, bevor das vorige endet). Ein
+    /// Beginn genau am Ende des Vorgängers ist die Regel und erlaubt.
     public static func validate(_ chapters: [Chapter]) throws {
         var previousStart = 0
+        var previousEnd = 0
         for (index, chapter) in chapters.enumerated() {
             let number = index + 1
             if chapter.startMilliseconds < 0 || chapter.endMilliseconds < 0 {
@@ -28,7 +31,12 @@ public enum ChapterList {
             if chapter.startMilliseconds < previousStart {
                 throw TagError.invalidChapters(reason: "chapter \(number) starts before chapter \(number - 1)")
             }
+            if chapter.startMilliseconds < previousEnd {
+                throw TagError.invalidChapters(
+                    reason: "chapter \(number) starts before chapter \(number - 1) ends (overlap)")
+            }
             previousStart = chapter.startMilliseconds
+            previousEnd = chapter.endMilliseconds
         }
     }
 

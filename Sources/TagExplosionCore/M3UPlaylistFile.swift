@@ -51,7 +51,7 @@ enum M3UPlaylistFile: PlaylistBackend {
                     let durationPart = comma.map { String(body[..<$0]) } ?? body
                     let display = comma.map { String(body[body.index(after: $0)...]) } ?? ""
                     let secondsToken = durationPart.split(separator: " ").first.map(String.init) ?? ""
-                    let seconds = Double(secondsToken).flatMap { $0 >= 0 ? $0 : nil }
+                    let seconds = PlaylistTool.parseSeconds(secondsToken)
                     pendingExtinf = (index, seconds, display.trimmingCharacters(in: .whitespaces))
                 }
                 continue
@@ -73,7 +73,7 @@ enum M3UPlaylistFile: PlaylistBackend {
             let location = file.lines[item.locationLine].text.trimmingCharacters(in: .whitespaces)
             entries.append(PlaylistTool.makeEntry(
                 number: offset + 1, location: location, base: base, title: item.text,
-                performer: "", durationMilliseconds: item.seconds.map { Int(($0 * 1000).rounded()) }))
+                performer: "", durationMilliseconds: item.seconds.map(PlaylistTool.milliseconds(fromSeconds:))))
         }
         let fields = PlaylistCoreFields(title: parsed.title, entries: entries.map(\.fields))
         let format: PlaylistFormat = url.pathExtension.lowercased() == "m3u8" ? .m3u8 : .m3u

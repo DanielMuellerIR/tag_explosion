@@ -21,11 +21,14 @@ enum SyncedLyricsSource: String, Codable {
     case sidecar
 }
 
-/// Synchronisierte Zeilen samt Quelle: SYLT bei ID3v2-Trägern, sonst die
-/// Sidecar. nil, wenn es nirgends welche gibt.
+/// Synchronisierte Zeilen samt Quelle. Vorrang: eingebettete SYLT-Zeilen
+/// (ID3v2), sonst die Sidecar `<name>.lrc` — auch bei ID3v2-Trägern, denn
+/// `lyrics set --sidecar` legt sie dort bewusst an. Dieselbe Regel gilt für
+/// show, export und clear, damit ein Sidecar-Import nie unsichtbar wird.
+/// nil, wenn es nirgends welche gibt.
 func loadSyncedLyrics(for url: URL, data: TagData) throws -> (lines: [SyncedLyricLine], source: SyncedLyricsSource)? {
-    if data.supportsSyncedLyrics {
-        return data.syncedLyrics.isEmpty ? nil : (data.syncedLyrics, .embedded)
+    if data.supportsSyncedLyrics, !data.syncedLyrics.isEmpty {
+        return (data.syncedLyrics, .embedded)
     }
     guard let lines = try LRC.loadSidecar(for: url), !lines.isEmpty else { return nil }
     return (lines, .sidecar)
@@ -141,6 +144,13 @@ struct LyricsSet: ParsableCommand {
 
         let snapshot = try FileSnapshot.capture(at: url) { try TagFile.read(at: url) }
         let existing = snapshot.value
+        // Eingebettete SYLT-Zeilen haben beim Lesen Vorrang vor der Sidecar.
+        // Ein erzwungener Sidecar-Import neben vorhandenem SYLT wäre für
+        // show/export unsichtbar — deshalb ablehnen statt still schreiben.
+        if sidecar, syncedLines != nil, existing.supportsSyncedLyrics, !existing.syncedLyrics.isEmpty {
+            throw ValidationError(
+                "\(url.lastPathComponent) already has embedded synchronized lyrics (SYLT); they take precedence over a sidecar. Run `lyrics clear` first or drop --sidecar.")
+        }
         if language != nil, !existing.supportsSyncedLyrics {
             FileHandle.standardError.write(
                 Data("Note: \(url.lastPathComponent) — this format stores no lyrics language; ignored\n".utf8))
@@ -178,10 +188,14 @@ struct LyricsSet: ParsableCommand {
         }
         if useSidecar, let syncedLines {
             let sidecarURL = LRC.sidecarURL(for: url)
+            // Stempel der Sidecar VOR dem Vergleich erheben: Ändert ein anderes
+            // Programm die .lrc zwischen Lesen und Austausch, bricht der
+            // Schreibweg ab, statt dessen Änderung zu überschreiben.
+            let sidecarStamp = FileStamp.current(of: sidecarURL)
             if try LRC.loadSidecar(for: url) == syncedLines {
                 messages.append("sidecar unchanged")
             } else {
-                try LRC.writeSidecar(syncedLines, for: url)
+                try LRC.writeSidecar(syncedLines, for: url, expecting: sidecarStamp)
                 messages.append("\(syncedLines.count) synchronized line(s) → \(sidecarURL.lastPathComponent)")
             }
         }
@@ -271,8 +285,11 @@ struct LyricsClear: ParsableCommand {
         } else {
             try snapshot.requireCurrent(at: url)
         }
-        if !existing.supportsSyncedLyrics, try LRC.loadSidecar(for: url) != nil {
-            try LRC.writeSidecar([], for: url)
+        // Eine Sidecar kann auch neben einem ID3v2-Träger liegen
+        // (`lyrics set --sidecar`); clear räumt beide Speicherorte.
+        let sidecarStamp = FileStamp.current(of: LRC.sidecarURL(for: url))
+        if try LRC.loadSidecar(for: url) != nil {
+            try LRC.writeSidecar([], for: url, expecting: sidecarStamp)
             messages.append("sidecar removed")
         }
         print("OK \(url.lastPathComponent): " + (messages.isEmpty ? "no lyrics to remove" : messages.joined(separator: ", ")))

@@ -42,7 +42,7 @@ enum PLSPlaylistFile: PlaylistBackend {
             switch key {
             case "FILE": items[number] = Item(number: number, fileLine: index)
             case "TITLE": titles[number] = (index, value)
-            case "LENGTH": lengths[number] = Double(value).flatMap { $0 >= 0 ? $0 : nil }
+            case "LENGTH": lengths[number] = PlaylistTool.parseSeconds(value)
             default: break
             }
         }
@@ -68,7 +68,7 @@ enum PLSPlaylistFile: PlaylistBackend {
             let location = keyValue(of: file.lines[item.fileLine].text)?.value ?? ""
             entries.append(PlaylistTool.makeEntry(
                 number: item.number, location: location, base: base, title: item.title,
-                performer: "", durationMilliseconds: item.seconds.map { Int(($0 * 1000).rounded()) }))
+                performer: "", durationMilliseconds: item.seconds.map(PlaylistTool.milliseconds(fromSeconds:))))
         }
         var info: [DocumentInfoItem] = []
         for line in file.lines {

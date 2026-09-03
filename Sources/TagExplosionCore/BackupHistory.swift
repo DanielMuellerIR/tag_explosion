@@ -48,15 +48,26 @@ public enum BackupHistory {
 
     // MARK: - Versionsliste
 
-    /// Alle noch vorhandenen Sicherungen der Datei, jüngste zuerst. Bei
-    /// Bildern zählen auch Sicherungen der XMP-Sidecar `<name>.xmp` dazu —
-    /// dorthin schreibt der Bild-Schreibweg bei RAW und auf Wunsch.
+    /// Alle noch vorhandenen Sicherungen der Datei, jüngste zuerst. Dazu
+    /// zählen die Sicherungen der namensgebundenen Sidecars, in die die
+    /// Schreibwege ausweichen: `<name>.xmp` bei Bildern (RAW und auf
+    /// Wunsch), `<name>.lrc` bei Audio ohne SYLT (synchronisierte Lyrics)
+    /// und `<name>.nfo` bei Videos (Kodi-Felder). Ein Restore einer solchen
+    /// Version schreibt die Sidecar zurück, nicht das Medium.
     public static func versions(of url: URL,
                                 journal: BackupJournal = .standard) -> [BackupVersion] {
         let canonical = MediaFormats.canonicalFileURL(url)
         var paths: Set<String> = [canonical.path]
+        let ext = canonical.pathExtension.lowercased()
         if MediaFormats.kind(of: canonical) == .image, !MediaFormats.isXMPSidecar(canonical) {
             paths.insert(MediaFormats.canonicalFileURL(MediaFormats.sidecarURL(for: canonical)).path)
+        }
+        if MediaFormats.audio.contains(ext) {
+            paths.insert(MediaFormats.canonicalFileURL(LRC.sidecarURL(for: canonical)).path)
+        }
+        if MediaFormats.nfoVideo.contains(ext) {
+            let nfo = canonical.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension)
+            paths.insert(MediaFormats.canonicalFileURL(nfo).path)
         }
         // Jüngste zuerst; bei gleicher Zeit entscheidet die Journal-Reihenfolge
         // (später angehängt = neuer).
@@ -115,6 +126,12 @@ public enum BackupHistory {
     /// sichtbar wird. Die übrigen Medienarten werden aus ihren Kernfeldern
     /// generisch abgeflacht (`authors` → "A / B", `custom[1].key` …).
     public static func fieldMap(of url: URL, kind: MediaFormats.Kind?) throws -> [String: String] {
+        // LRC-Sidecar (keine eigene Medienart): die Zeilen als ein Feld, damit
+        // ein Vergleich zweier Lyrics-Stände etwas zeigt.
+        if url.pathExtension.lowercased() == "lrc" {
+            let lines = try LRC.load(from: url).lines
+            return lines.isEmpty ? [:] : ["SYNCEDLYRICS": LRC.render(lines)]
+        }
         switch kind {
         case .audio:
             let data = try TagFile.read(at: url)

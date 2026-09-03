@@ -101,20 +101,39 @@ enum MarkdownDocumentFile: DocumentBackend {
         var document = try load(url: url)
         var entries = document.entries ?? []
 
+        // Leer- und Kommentarzeilen hinter einem Wert gehören beim Parsen zu
+        // dessen `rawLines`. Beim Ersetzen bleiben sie erhalten, sonst
+        // verschwänden sie mit dem alten Wert — der Schreibweg verspricht,
+        // nur das Geänderte anzufassen.
+        func trailingCommentLines(of entry: FrontmatterEntry) -> [String] {
+            entry.rawLines.dropFirst().filter {
+                let trimmed = $0.trimmingCharacters(in: .whitespaces)
+                return trimmed.isEmpty || trimmed.hasPrefix("#")
+            }
+        }
         func replace(_ key: String, with entry: FrontmatterEntry?) throws {
             if let index = entries.firstIndex(where: { $0.key == key }) {
                 if case .complex = entries[index].value {
                     throw TagError.invalidDocumentValue(
                         field: key, reason: "the existing value is a nested structure and stays untouched")
                 }
-                if let entry {
-                    entries[index] = entry
-                } else {
-                    entries.remove(at: index)
+                let kept = trailingCommentLines(of: entries[index])
+                var replacement: FrontmatterEntry?
+                if var entry {
+                    entry.rawLines += kept
+                    replacement = entry
+                } else if !kept.isEmpty {
+                    // Der Wert geht, seine Kommentare bleiben als eigener
+                    // Block stehen (wie Kommentare vor dem ersten Schlüssel).
+                    replacement = FrontmatterEntry(key: "", value: .complex, rawLines: kept)
                 }
                 // Weitere gleichnamige Einträge wären nach dem Schreiben
-                // mehrdeutig — sie gehen mit.
-                entries.removeAll { $0.key == key && $0 != entry }
+                // mehrdeutig — sie gehen mit; nur die Position `index`
+                // bekommt den Ersatz (oder fällt weg).
+                entries = entries.enumerated().compactMap { offset, existing in
+                    if offset == index { return replacement }
+                    return existing.key == key ? nil : existing
+                }
             } else if let entry {
                 entries.append(entry)
             }

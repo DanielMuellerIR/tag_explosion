@@ -82,4 +82,48 @@ struct SidecarEntryTests {
             try entry.applyParsedFields(["TITLE": "x"])
         }
     }
+
+
+    @Test("Video mit NFO daneben: NFO-Puffer liegt im Eintrag, zählt zu isDirty, Snapshot und acceptSaved")
+    func videoNFOLivesInEntry() {
+        let nfoURL = URL(fileURLWithPath: "/tmp/film.nfo")
+        let reading = NFOSidecarReading(url: nfoURL, contents: nfoContents(title: "Alt"), stamp: nil)
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/film.mkv"),
+                              loaded: .audio(TagData(properties: [], artworks: [], audio: nil),
+                                             sidecars: AudioSidecars(nfo: reading)),
+                              stamp: nil)
+        #expect(entry.kind == .audio)
+        #expect(entry.videoNFO?.isEditable == true)
+        #expect(!entry.isDirty)
+
+        // Der Schließ-/Beenden-Guard sieht die NFO-Änderung über isDirty.
+        entry.videoNFOFields.title = "Neu"
+        #expect(entry.isDirty)
+        entry.revert()
+        #expect(!entry.isDirty && entry.videoNFOFields.title == "Alt")
+
+        entry.videoNFOFields.title = "Neu"
+        guard case .audio(let snapshot)? = entry.beginSaving() else {
+            Issue.record("Snapshot fehlt")
+            return
+        }
+        #expect(!snapshot.mediaChanged)          // nur die NFO wird geschrieben
+        #expect(snapshot.nfo?.fields.title == "Neu")
+        #expect(snapshot.nfo?.original.title == "Alt")
+        #expect(snapshot.nfo?.url == nfoURL)
+
+        // Weitertippen während des Schreibens bleibt dirty gegenüber dem Read-back.
+        entry.videoNFOFields.plot = "Getippt"
+        let saved = NFOSidecarReading(url: nfoURL, contents: nfoContents(title: "Neu"), stamp: nil)
+        entry.acceptSaved(.audio(snapshot),
+                          reloaded: .audio(TagData(properties: [], artworks: [], audio: nil),
+                                           sidecars: AudioSidecars(nfo: saved)),
+                          stamp: nil)
+        entry.finishSaving()
+        #expect(entry.videoNFOFields.title == "Neu")
+        #expect(entry.videoNFOFields.plot == "Getippt")
+        #expect(entry.isDirty)
+        entry.revert()
+        #expect(!entry.isDirty)
+    }
 }

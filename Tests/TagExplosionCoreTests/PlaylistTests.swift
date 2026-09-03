@@ -532,4 +532,56 @@ struct PlaylistTests {
         #expect(MediaFormats.expandMediaFiles([dir]).map(\.lastPathComponent) == ["liste.m3u"])
         #expect(try TagArchiveIO.build(files: [url], baseDirectory: dir, includeCovers: false).files.isEmpty)
     }
+
+
+    @Test("Windows-Pfade in Playlists: Laufwerk und UNC gelten als absolut, nicht als relativ")
+    func windowsPathsStayAbsolute() throws {
+        let base = URL(fileURLWithPath: "/music/lists")
+        let drive = PlaylistTool.resolve(location: "C:\\Musik\\lied.mp3", base: base)
+        #expect(drive.path == "C:/Musik/lied.mp3")
+        #expect(!drive.isRemote)
+        let unc = PlaylistTool.resolve(location: "\\\\server\\share\\lied.mp3", base: base)
+        #expect(unc.path == "//server/share/lied.mp3")
+        #expect(!unc.isRemote)
+        // Relative Windows-Pfade werden weiterhin an den Ordner gehängt.
+        #expect(PlaylistTool.resolve(location: "sub\\lied.mp3", base: base).path == "/music/lists/sub/lied.mp3")
+        #expect(PlaylistTool.resolve(location: "http://example.org/a.mp3", base: base).isRemote)
+    }
+
+    @Test("m3u/pls: unendliche oder riesige Dauern werden als unbekannt gelesen statt abzustürzen")
+    func absurdDurationsAreUnknown() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let m3u = dir.appendingPathComponent("liste.m3u")
+        try write("#EXTM3U\n#EXTINF:inf,A\na.mp3\n#EXTINF:1e16,B\nb.mp3\n#EXTINF:nan,C\nc.mp3\n#EXTINF:12.4,D\nd.mp3\n", to: m3u)
+        let entries = try PlaylistTool.read(url: m3u).entries
+        #expect(entries.map(\.durationMilliseconds) == [nil, nil, nil, 12_400])
+        let pls = dir.appendingPathComponent("liste.pls")
+        try write("[playlist]\nFile1=a.mp3\nLength1=inf\nFile2=b.mp3\nLength2=1e16\nFile3=c.mp3\nLength3=7\nNumberOfEntries=3\nVersion=2\n", to: pls)
+        #expect(try PlaylistTool.read(url: pls).entries.map(\.durationMilliseconds) == [nil, nil, 7000])
+    }
+
+    @Test("Export: Zeilenumbrüche in Titel/Interpret bleiben auf einer Zeile; overwrite ersetzt atomar ohne Reste",
+          .enabled(if: FileManager.default.fileExists(atPath: Fixtures.directory.appendingPathComponent("sample.mp3").path)))
+    func exportEscapesNewlinesAndOverwritesSafely() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let mp3 = dir.appendingPathComponent("01.mp3")
+        try FileManager.default.copyItem(at: Fixtures.directory.appendingPathComponent("sample.mp3"), to: mp3)
+        try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Zeile eins\nZeile zwei"),
+                                       TagProperty(key: "ARTIST", value: "Band\r\nName")], to: mp3)
+        for format in [PlaylistFormat.m3u, .pls] {
+            let out = dir.appendingPathComponent("liste.\(format.rawValue)")
+            try PlaylistExporter.export(files: [mp3], to: out, format: format, title: "Titel\nZwei")
+            let contents = try PlaylistTool.read(url: out)
+            #expect(contents.entries.count == 1, Comment(rawValue: format.rawValue))
+            #expect(contents.entries[0].title == "Band Name - Zeile eins Zeile zwei")
+            if format == .m3u { #expect(contents.fields.title == "Titel Zwei") }
+            // Erneut mit overwrite: Datei wird ersetzt, keine Temp-Reste.
+            try PlaylistExporter.export(files: [mp3], to: out, format: format, overwrite: true)
+            #expect(try PlaylistTool.read(url: out).entries.count == 1)
+        }
+        let leftovers = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.hasPrefix(".") }
+        #expect(leftovers.isEmpty)
+    }
 }

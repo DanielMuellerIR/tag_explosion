@@ -44,9 +44,20 @@ Video-Editor.
   `<name>.nfo` neben mkv/mp4/m4v/mov/avi/webm/… (`nfoVideo`), umgekehrt
   `videoURL(forNFO:)` das erste Video zum Namen. Ordner-Drops verstecken die
   NFO eines gelisteten Videos (`hidingSidecars`, wie `.xmp`). Der Abschnitt
-  im Video-Editor (`NFOSidecarSection`) hat einen eigenen Speichern-Knopf
-  und eigenen Dateistempel; er hängt nicht am Speichern der Video-Tags —
-  und deshalb auch nicht an der Schließen-Rückfrage (offener Punkt).
+  im Video-Editor (`NFOSidecarSection`) hat seit 0.40.0 keinen eigenen
+  Speichern-Knopf mehr: Der NFO-Puffer liegt im `FileEntry`
+  (`videoNFOFields`/`videoNFOOriginal`, Lesestand in
+  `audioSidecars.nfo` mit eigenem Stempel), zählt zu `isDirty` und wird
+  über `AppModel.write` mit dem Eintrag gespeichert — nur die NFO, wenn
+  `AudioSnapshot.mediaChanged` false ist. Damit greift die
+  Schließen-/Beenden-Rückfrage auch für NFO-Eingaben (Review 2026-09-02).
+  Beim Umbenennen des Videos wandert die NFO mit (`FileRenamer.companionSidecar`),
+  der Eintrag bekommt den neuen NFO-Pfad über `init(relocating:sidecar:)`.
+- **Prüfung:** `rating`/`userrating` nur als endliche Zahl 0…10, `premiered`
+  nur als existierender Kalendertag (`ISODate.isCalendarDay`); ein schon
+  vorher ungültiger, unveränderter Altwert blockiert andere Änderungen nicht.
+  `SubtitleFile.shiftMilliseconds(seconds:)` begrenzt die Verschiebung auf
+  1000 Stunden — `Int(1e16 * 1000)` wäre sonst ein Laufzeitabbruch.
 - **Zeichensatz:** UTF-8 (BOM bleibt erhalten); bei Deklaration
   `iso-8859-1`/`windows-1252` wird in diesem Zeichensatz zurückgeschrieben,
   andere Angaben fallen auf UTF-8 zurück.

@@ -279,4 +279,14 @@ struct CoverToolsTests {
         for i in 0..<(bytes.count - 1) where bytes[i] == 0xFF && bytes[i + 1] == marker { return true }
         return false
     }
+
+
+    @Test("Export legt eine neue Datei über die geprüfte Geschwisterkopie an — ohne Temp-Reste")
+    func folderCoverExportLeavesNoTempFiles() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let png = Artwork(data: try Fixtures.coverData("cover.png"))
+        _ = try FolderCover.export(png, to: directory)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["folder.png"])
+    }
 }

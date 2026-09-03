@@ -937,7 +937,7 @@ struct AppModelReadTests {
         try Data("nicht lesbar".utf8).write(to: url)
 
         let loaded = try AppModel.readLoaded(url: url, kind: .audio)
-        guard case .audio(let data) = loaded else {
+        guard case .audio(let data, _) = loaded else {
             Issue.record("Erwartet wurde ein Audio-Zustand")
             return
         }
@@ -958,7 +958,7 @@ struct AppModelReadTests {
         try Data("nicht lesbar".utf8).write(to: url)
 
         let loaded = try AppModel.readLoaded(url: url, kind: .audio)
-        guard case .audio(let data) = loaded else {
+        guard case .audio(let data, _) = loaded else {
             Issue.record("Erwartet wurde ein Audio-Zustand")
             return
         }

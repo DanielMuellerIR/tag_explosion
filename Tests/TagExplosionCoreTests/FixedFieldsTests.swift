@@ -368,4 +368,13 @@ struct FixedFieldsTests {
             try LRC.writeSidecar([SyncedLyricLine(milliseconds: -1, text: "x")], for: media)
         }
     }
+
+
+    @Test("supportsLyrics gilt nur für TagLib-Audio/Video, nicht für Bilder, Dokumente oder Unbekanntes")
+    func lyricsCapabilityIsBoundToAudio() {
+        func supports(_ name: String) -> Bool { FixedFields.supportsLyrics(URL(fileURLWithPath: "/x/\(name)")) }
+        #expect(supports("a.mp3") && supports("a.flac") && supports("a.opus") && supports("a.mkv"))
+        #expect(!supports("a.jpg") && !supports("a.docx") && !supports("a.xyz") && !supports("a.mod"))
+        #expect(!supports("a.au"))
+    }
 }

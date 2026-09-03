@@ -168,13 +168,24 @@ public enum LRC {
     /// Schreibt die Sidecar (leere Liste = Sidecar löschen). Vorhandene
     /// Sidecars wandern vorher in den Papierkorb (abgesicherter Modus) und
     /// werden atomar ersetzt; eine neue entsteht exklusiv.
-    public static func writeSidecar(_ lines: [SyncedLyricLine], for mediaURL: URL) throws {
+    ///
+    /// `expecting` ist der Stempel der Sidecar, wie er beim Lesen war (nil =
+    /// keine Sidecar vorhanden oder kein bekannter Ausgangsstand): Hat ein
+    /// anderes Programm die `.lrc` seither geändert, bricht der Austausch mit
+    /// `fileChangedOnDisk` ab — genauso wie beim Medium selbst. Eine
+    /// inzwischen fremd angelegte Sidecar fängt der exklusive Anlege-Weg ab.
+    /// `backUp: false` überspringt die Papierkorb-Sicherung, wenn der Aufrufer
+    /// sie schon vorher erledigt hat (zweiphasiges Speichern in der App).
+    public static func writeSidecar(_ lines: [SyncedLyricLine], for mediaURL: URL,
+                                    expecting stamp: FileStamp? = nil,
+                                    backUp: Bool = true) throws {
         try validate(lines)
         let url = sidecarURL(for: mediaURL)
         let exists = FileManager.default.fileExists(atPath: url.path)
         if lines.isEmpty {
             guard exists else { return }
-            try TrashBackup.shared.backUp(url)
+            try FileStamp.requireUnchanged(stamp, at: url)
+            if backUp { try TrashBackup.shared.backUp(url) }
             try FileManager.default.removeItem(at: url)
             return
         }
@@ -186,11 +197,19 @@ public enum LRC {
             guard try load(from: temp).lines == lines else { throw TagError.saveFailed(path: url.path) }
         }
         if exists {
-            try TrashBackup.shared.backUp(url)
-            try AtomicFileRewrite.run(url: url, mutate: mutate, validate: validate)
+            try FileStamp.requireUnchanged(stamp, at: url)
+            if backUp { try TrashBackup.shared.backUp(url) }
+            try AtomicFileRewrite.run(url: url, expecting: stamp, mutate: mutate, validate: validate)
         } else {
             try AtomicFileRewrite.create(url: url, replacingOriginal: true, beforeReplace: {},
                                          mutate: mutate, validate: validate)
         }
+    }
+
+    /// Stempel der Sidecar beim Lesen — nil, wenn keine daneben liegt. Wird
+    /// zusammen mit dem Medium erhoben und beim Schreiben als `expecting`
+    /// zurückgegeben.
+    public static func sidecarStamp(for mediaURL: URL) -> FileStamp? {
+        FileStamp.current(of: sidecarURL(for: mediaURL))
     }
 }

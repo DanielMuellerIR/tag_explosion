@@ -506,4 +506,40 @@ struct DocumentToolTests {
         #expect(try Data(contentsOf: url) == bytes)
         #expect(FileStamp.current(of: url) == stamp)
     }
+
+
+    @Test("Markdown: Leer- und Kommentarzeilen hinter einem geänderten oder entfernten Wert bleiben stehen")
+    func markdownKeepsCommentsAfterChangedValue() throws {
+        let url = try markdownFile("""
+        ---
+        title: Alt
+        # Kommentar zum Titel
+
+        author: Erika
+        weight: 10
+        # Kommentar zum Gewicht
+        ---
+        Body
+
+        """)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let original = try DocumentTool.readCoreFields(url: url)
+        var edited = original
+        edited.title = "Neu"
+        edited.setCustom("weight", "")
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        let text = String(decoding: try Data(contentsOf: url), as: UTF8.self)
+        #expect(text == """
+        ---
+        title: Neu
+        # Kommentar zum Titel
+
+        author: Erika
+        # Kommentar zum Gewicht
+        ---
+        Body
+
+        """)
+        #expect(try DocumentTool.readCoreFields(url: url) == edited)
+    }
 }

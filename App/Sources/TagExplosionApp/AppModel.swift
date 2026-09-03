@@ -46,6 +46,16 @@ final class FileEntry: Identifiable {
     /// aus der Sidecar `<name>.lrc` neben der Datei (siehe `readLoaded`).
     var lyricsLanguage: String = ""
     var syncedLyrics: [SyncedLyricLine] = []
+    /// Sidecars eines Audio-/Video-Eintrags laut letztem Lesestand: Stempel
+    /// der `<name>.lrc` und die Kodi-NFO neben einem Video. Beide gehören
+    /// zur Konfliktprüfung beim Speichern — sonst überschriebe die App eine
+    /// zwischenzeitlich fremd geänderte Sidecar ohne Rückfrage.
+    private(set) var audioSidecars = AudioSidecars()
+    /// Original und Bearbeitungspuffer der NFO neben einem Video. Sie zählen
+    /// zu `isDirty`, damit Schließen/Beenden auch NFO-Eingaben nicht still
+    /// verwerfen; gespeichert werden sie mit dem Eintrag (nur in die NFO).
+    private(set) var videoNFOOriginal = NFOFields()
+    var videoNFOFields = NFOFields()
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
     /// `imageOriginal` ist der zusammengeführte Stand (Sidecar-Werte
@@ -141,14 +151,39 @@ final class FileEntry: Identifiable {
         /// nil = unverändert (nur ID3v2 speichert eine Sprache).
         var lyricsLanguage: String?
         var original: TagData
+        /// Stempel der `<name>.lrc` beim Lesen (nil = keine Sidecar). Der
+        /// Schreibweg prüft ihn unmittelbar vor dem Austausch der Sidecar.
+        var lrcStamp: FileStamp? = nil
+        /// Geänderte Felder der NFO neben einem Video samt Lesestand;
+        /// nil = NFO unverändert oder keine vorhanden.
+        var nfo: NFOSnapshot? = nil
 
-        /// Ob in der Mediendatei selbst etwas zu schreiben ist.
+        /// Ob in der Mediendatei selbst etwas zu schreiben ist. Sidecars
+        /// (LRC bei Formaten ohne SYLT, NFO) zählen nicht dazu.
         var mediaChanged: Bool {
             properties != original.properties || artworks != original.artworks
                 || (chapters != nil && chapters != original.chapters)
                 || (original.supportsSyncedLyrics && syncedLyrics != nil)
                 || lyricsLanguage != nil
         }
+
+        /// Dieselbe Momentaufnahme ohne Sidecar-Stempel — für das bewusste
+        /// Überschreiben nach dem Konfliktdialog (wie `expecting: nil` beim
+        /// Medium). Ohne das liefe die Person in denselben Konflikt erneut.
+        func ignoringSidecarStamps() -> AudioSnapshot {
+            var copy = self
+            copy.lrcStamp = nil
+            copy.nfo?.stamp = nil
+            return copy
+        }
+    }
+
+    /// NFO-Stand zu Beginn eines Speichervorgangs (siehe `AudioSnapshot.nfo`).
+    struct NFOSnapshot: Sendable {
+        var url: URL
+        var fields: NFOFields
+        var original: NFOFields
+        var stamp: FileStamp?
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
@@ -158,7 +193,7 @@ final class FileEntry: Identifiable {
         self.url = url
         self.diskStamp = stamp
         switch loaded {
-        case .audio(let data):
+        case .audio(let data, let sidecars):
             self.kind = .audio
             self.original = data
             self.properties = data.properties
@@ -166,6 +201,9 @@ final class FileEntry: Identifiable {
             self.chapters = data.chapters
             self.lyricsLanguage = data.lyricsLanguage
             self.syncedLyrics = data.syncedLyrics
+            self.audioSidecars = sidecars
+            self.videoNFOOriginal = sidecars.nfoFields
+            self.videoNFOFields = sidecars.nfoFields
         case .image(let reading):
             self.kind = .image
             self.imageReading = reading
@@ -218,9 +256,16 @@ final class FileEntry: Identifiable {
             reading.sidecarURL = sidecar
             loaded = .image(reading)
         }
+        // Die NFO ist mit dem Video umbenannt worden: neuer Pfad, gleicher Inhalt.
+        if let sidecar, case .audio(let data, var sidecars) = loaded, sidecars.nfo != nil,
+           sidecar.pathExtension.lowercased() == SidecarTool.nfoExtension {
+            sidecars.nfo?.url = sidecar
+            loaded = .audio(data, sidecars: sidecars)
+        }
         self.init(url: url, loaded: loaded, stamp: other.diskStamp)
         properties = other.properties
         artworks = other.artworks
+        videoNFOFields = other.videoNFOFields
         imageFields = other.imageFields
         ebookFields = other.ebookFields
         ebookCoverReplacement = other.ebookCoverReplacement
@@ -236,7 +281,7 @@ final class FileEntry: Identifiable {
     /// ohne Dokument, den der Initialisierer gar nicht erzeugt.
     var loadedState: LoadedData? {
         switch kind {
-        case .audio: return .audio(original)
+        case .audio: return .audio(original, sidecars: audioSidecars)
         case .image: return .image(imageReading)
         case .ebook: return .ebook(ebookOriginal, cover: ebookOriginalCover)
         case .invoice: return invoiceDocument.map(LoadedData.invoice)
@@ -270,6 +315,7 @@ final class FileEntry: Identifiable {
             return properties != original.properties || artworks != original.artworks
                 || chapters != original.chapters || syncedLyrics != original.syncedLyrics
                 || lyricsLanguage != original.lyricsLanguage
+                || videoNFOFields != videoNFOOriginal
         case .image:
             return imageFields != imageOriginal
         case .ebook:
@@ -293,6 +339,7 @@ final class FileEntry: Identifiable {
         chapters = original.chapters
         syncedLyrics = original.syncedLyrics
         lyricsLanguage = original.lyricsLanguage
+        videoNFOFields = videoNFOOriginal
         imageFields = imageOriginal
         ebookFields = ebookOriginal
         ebookCoverReplacement = nil
@@ -304,15 +351,21 @@ final class FileEntry: Identifiable {
     }
 
     /// Nach erfolgreichem Speichern/Neuladen den Originalzustand ersetzen.
-    func acceptNewOriginal(_ data: TagData) {
+    func acceptNewOriginal(_ data: TagData, sidecars: AudioSidecars = AudioSidecars()) {
         original = data
         properties = data.properties
         artworks = data.artworks
         chapters = data.chapters
         syncedLyrics = data.syncedLyrics
         lyricsLanguage = data.lyricsLanguage
+        audioSidecars = sidecars
+        videoNFOOriginal = sidecars.nfoFields
+        videoNFOFields = sidecars.nfoFields
         lastError = nil
     }
+
+    /// NFO neben dem Video laut letztem Lesestand (nil = keine).
+    var videoNFO: NFOSidecarReading? { audioSidecars.nfo }
 
     /// Bild-Pendant zu `acceptNewOriginal`.
     func acceptNewImageOriginal(_ reading: ImageCoreReading) {
@@ -388,7 +441,7 @@ final class FileEntry: Identifiable {
     func acceptNew(_ loaded: LoadedData, stamp: FileStamp?) {
         diskStamp = stamp
         switch loaded {
-        case .audio(let data): acceptNewOriginal(data)
+        case .audio(let data, let sidecars): acceptNewOriginal(data, sidecars: sidecars)
         case .image(let reading): acceptNewImageOriginal(reading)
         case .ebook(let fields, let cover): acceptNewEbookOriginal(fields, cover: cover)
         case .invoice(let document):
@@ -415,7 +468,14 @@ final class FileEntry: Identifiable {
                 chapters: supportsChapters ? chapters : nil,
                 syncedLyrics: syncedLyrics != original.syncedLyrics ? syncedLyrics : nil,
                 lyricsLanguage: lyricsLanguage != original.lyricsLanguage ? lyricsLanguage : nil,
-                original: original))
+                original: original,
+                lrcStamp: audioSidecars.lrcStamp,
+                nfo: videoNFOFields != videoNFOOriginal
+                    ? audioSidecars.nfo.map {
+                        NFOSnapshot(url: $0.url, fields: videoNFOFields,
+                                    original: videoNFOOriginal, stamp: $0.stamp)
+                    }
+                    : nil))
         case .image:
             return .image(fields: imageFields, original: imageOriginal,
                           sidecar: imageReading.sidecar)
@@ -470,8 +530,15 @@ final class FileEntry: Identifiable {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
         diskStamp = stamp
         switch (snapshot, reloaded) {
-        case (.audio(let saved), .audio(let data)):
+        case (.audio(let saved), .audio(let data, let sidecars)):
             original = data
+            audioSidecars = sidecars
+            videoNFOOriginal = sidecars.nfoFields
+            // NFO: nur übernehmen, was gespeichert wurde; weitergetippte
+            // Eingaben bleiben dirty gegenüber dem neuen Original.
+            if saved.nfo == nil || videoNFOFields == saved.nfo?.fields {
+                videoNFOFields = sidecars.nfoFields
+            }
             if properties == saved.properties { properties = data.properties }
             if artworks == saved.artworks { artworks = data.artworks }
             if saved.chapters == nil || chapters == saved.chapters { chapters = data.chapters }
@@ -623,9 +690,36 @@ final class FileEntry: Identifiable {
     }
 }
 
+/// Sidecars, die zu einem Audio-/Video-Eintrag gehören und beim Lesen mit
+/// erhoben werden. Sie hängen am selben Namensstamm wie das Medium.
+struct AudioSidecars: Sendable, Equatable {
+    /// Stempel der `<name>.lrc` beim Lesen; nil = keine Sidecar. Beim
+    /// Speichern wird dagegen geprüft (fremde Änderung → Konflikt).
+    var lrcStamp: FileStamp? = nil
+    /// Kodi-NFO neben einem Video; nil = keine NFO daneben.
+    var nfo: NFOSidecarReading? = nil
+
+    /// Felder der NFO als Bearbeitungsgrundlage (leer ohne lesbare NFO).
+    var nfoFields: NFOFields { nfo?.contents?.fields ?? NFOFields() }
+}
+
+/// Gelesene NFO-Sidecar eines Videos: Inhalt (nil, wenn unlesbar — dann
+/// steht der Grund in `error`) und Stempel für die Konfliktprüfung.
+struct NFOSidecarReading: Sendable, Equatable {
+    var url: URL
+    var contents: NFOContents?
+    var stamp: FileStamp?
+    var error: String? = nil
+
+    /// Nur eine lesbare NFO mit Feldern (keine Nur-URL-NFO) ist editierbar.
+    var isEditable: Bool { contents.map { !$0.isURLOnly } ?? false }
+}
+
 /// Frisch gelesener Datei-Zustand (Audio, Bild, E-Book oder E-Rechnung).
 enum LoadedData: Sendable {
-    case audio(TagData)
+    /// Audio/Video samt Sidecar-Zustand (`.lrc`-Stempel, NFO) — beides wird
+    /// mit dem Medium gelesen und beim Speichern gegen die Platte geprüft.
+    case audio(TagData, sidecars: AudioSidecars = AudioSidecars())
     /// Bilder tragen ihren Sidecar-Zustand mit: welche Felder aus der
     /// XMP-Sidecar stammen und wie deren Stempel beim Lesen war.
     case image(ImageCoreReading)
@@ -880,24 +974,31 @@ final class AppModel {
         case .audio:
             do {
                 var data = try TagFile.read(at: url)
+                var sidecars = AudioSidecars()
                 // Formate ohne ID3v2 haben kein SYLT; dort zählt die Sidecar
                 // `<name>.lrc`. Eine unlesbare Sidecar blockiert das Öffnen
-                // nicht — sie gilt dann als leer.
-                if !data.supportsSyncedLyrics, FixedFields.supportsLyrics(url),
-                   let sidecar = try? LRC.loadSidecar(for: url) {
-                    data.syncedLyrics = sidecar
+                // nicht — sie gilt dann als leer. Ihr Stempel wandert mit,
+                // damit das Speichern eine fremde Änderung erkennt.
+                if !data.supportsSyncedLyrics, FixedFields.supportsLyrics(url) {
+                    sidecars.lrcStamp = LRC.sidecarStamp(for: url)
+                    if let sidecar = try? LRC.loadSidecar(for: url) {
+                        data.syncedLyrics = sidecar
+                    }
                 }
-                return .audio(data)
+                sidecars.nfo = readVideoNFO(for: url)
+                return .audio(data, sidecars: sidecars)
             } catch {
                 // Container, für die TagLib keinen Tag-Leser hat (AVI, manche
                 // MOV-Varianten, Sun-AU, Ogg-Video), sollen trotzdem geöffnet
                 // werden können: Der Technik-Tab über mediainfo funktioniert
                 // für sie, bearbeitbar sind sie nicht. Ohne diesen Weg endet
-                // das Öffnen mit einem Fehler statt mit einer Ansicht.
+                // das Öffnen mit einem Fehler statt mit einer Ansicht. Eine
+                // NFO daneben bleibt trotzdem editierbar.
                 guard MediaFormats.toleratesMissingTagReader(url) else {
                     throw error
                 }
-                return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true))
+                return .audio(TagData(properties: [], artworks: [], audio: nil, isReadOnly: true),
+                              sidecars: AudioSidecars(nfo: readVideoNFO(for: url)))
             }
         case .image: return .image(try ExifTool.readCoreReading(url: url))
         case .ebook:
@@ -932,6 +1033,31 @@ final class AppModel {
         case .playlist:
             return .playlist(try PlaylistTool.readSnapshot(url: url).value)
         }
+    }
+
+    /// Kodi-NFO neben einem Video: Inhalt und Stempel in einem Schnappschuss.
+    /// Eine unlesbare NFO blockiert das Öffnen nicht — der Abschnitt zeigt
+    /// dann den Grund statt Felder. nil, wenn keine NFO daneben liegt.
+    nonisolated static func readVideoNFO(for url: URL) -> NFOSidecarReading? {
+        guard let nfoURL = MediaFormats.nfoURL(forVideo: url) else { return nil }
+        do {
+            let snapshot = try KodiNFOFile.readSnapshot(url: nfoURL)
+            return NFOSidecarReading(url: nfoURL, contents: snapshot.value, stamp: snapshot.stamp)
+        } catch {
+            return NFOSidecarReading(url: nfoURL, contents: nil, stamp: nil,
+                                     error: error.localizedDescription)
+        }
+    }
+
+    /// Schreibweg der NFO neben einem Video (wie im CLI): Prüfen, Stempel,
+    /// Papierkorb-Sicherung, atomarer Austausch. `backUp: false`, wenn die
+    /// Sicherung schon in der Vorbereitungsphase erfolgt ist.
+    nonisolated private static func writeVideoNFO(_ nfo: FileEntry.NFOSnapshot, backUp: Bool = true) throws {
+        try KodiNFOFile.validate(nfo.fields, original: nfo.original)
+        try FileStamp.requireUnchanged(nfo.stamp, at: nfo.url)
+        if backUp { try TrashBackup.shared.backUp(nfo.url, reason: BackupReason.sidecar) }
+        try KodiNFOFile.write(url: nfo.url, fields: nfo.fields, original: nfo.original,
+                              expecting: nfo.stamp)
     }
 
     /// Liest Datei-Zustand UND Stempel als konsistenten Schnappschuss: Der
@@ -1293,7 +1419,15 @@ final class AppModel {
         guard entry.kind == .sidecar, !entry.isSaving, !entry.isDirty else { return false }
         let url = entry.url
         let stamp = entry.diskStamp
-        let milliseconds = Int((seconds * 1000).rounded())
+        // Bereichsprüfung im Core (endlich, höchstens 1000 Stunden) — ein zu
+        // großer Wert endet als Fehlertext am Eintrag statt als Absturz.
+        let milliseconds: Int
+        do {
+            milliseconds = try SubtitleFile.shiftMilliseconds(seconds: seconds)
+        } catch {
+            entry.lastError = error.localizedDescription
+            return false
+        }
         guard milliseconds != 0 else { return false }
         entry.isSaving = true
         defer { entry.finishSaving() }
@@ -1561,8 +1695,15 @@ final class AppModel {
         let kind = entry.kind
         let stamp = ignoringDiskChange ? nil : entry.diskStamp
         return await save(entry: entry, staleCandidate: ignoringDiskChange ? nil : entry) { snapshot in
+            // Bewusstes Überschreiben gilt auch für die Sidecars (.lrc, NFO):
+            // deren Stempel fallen ebenso weg wie der des Mediums.
+            var snapshot = snapshot
+            if ignoringDiskChange, case .audio(let audio) = snapshot {
+                snapshot = .audio(audio.ignoringSidecarStamps())
+            }
+            let prepared = snapshot
             return try await Task.detached(priority: .userInitiated) {
-                try Self.write(snapshot: snapshot, to: url, kind: kind, expecting: stamp)
+                try Self.write(snapshot: prepared, to: url, kind: kind, expecting: stamp)
             }.value
         }
     }
@@ -1705,10 +1846,14 @@ final class AppModel {
                     field: "LYRICS language",
                     reason: "expected three letters (ISO 639-2), got \"\(language)\"")
             }
-            // Nur die Sidecar hat sich geändert: Medium und Sicherung bleiben
-            // unangetastet; `writeSidecar` sichert die Sidecar selbst.
+            // Nur Sidecars haben sich geändert: Medium und dessen Sicherung
+            // bleiben unangetastet; jede Sidecar sichert sich selbst und
+            // prüft ihren eigenen Lesestempel.
             if !audio.mediaChanged {
-                try LRC.writeSidecar(audio.syncedLyrics ?? [], for: url)
+                if let lines = audio.syncedLyrics {
+                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp)
+                }
+                if let nfo = audio.nfo { try writeVideoNFO(nfo) }
                 return try readStamped(url: url, kind: kind)
             }
         }
@@ -1738,16 +1883,35 @@ final class AppModel {
         switch (kind, snapshot) {
         case (.audio, .audio(let audio)):
             let embedsSynced = audio.original.supportsSyncedLyrics
+            // Formate ohne SYLT: geänderte Zeilen gehören in die Sidecar.
+            let sidecarLines = embedsSynced ? nil : audio.syncedLyrics
+            // Zweiphasig: Erst alles, was an den Sidecars scheitern kann
+            // (Lesestempel, Feldprüfung, Papierkorb-Sicherung), DANN der
+            // Container, zuletzt der Austausch der Sidecars. So übernimmt ein
+            // Save nie Containerfelder dauerhaft, während Lyrics oder NFO
+            // wegen eines Sicherungsfehlers liegen bleiben — der Fehler kommt
+            // vor dem ersten Austausch.
+            if sidecarLines != nil {
+                let sidecarURL = LRC.sidecarURL(for: url)
+                try FileStamp.requireUnchanged(audio.lrcStamp, at: sidecarURL)
+                // Eine noch fehlende Sidecar hat nichts zu sichern (backUp
+                // überspringt sie).
+                try TrashBackup.shared.backUp(sidecarURL, reason: BackupReason.sidecar)
+            }
+            if let nfo = audio.nfo {
+                try KodiNFOFile.validate(nfo.fields, original: nfo.original)
+                try FileStamp.requireUnchanged(nfo.stamp, at: nfo.url)
+                try TrashBackup.shared.backUp(nfo.url, reason: BackupReason.sidecar)
+            }
             try TagFile.write(properties: audio.properties, artworks: audio.artworks,
                               chapters: audio.chapters,
                               syncedLyrics: embedsSynced ? audio.syncedLyrics : nil,
                               lyricsLanguage: embedsSynced ? audio.lyricsLanguage : nil,
                               to: url, expecting: stamp, id3Version: preferredID3Version)
-            // Formate ohne SYLT: geänderte Zeilen in die Sidecar (Sicherung
-            // und atomarer Austausch liegen in `writeSidecar`).
-            if !embedsSynced, let lines = audio.syncedLyrics {
-                try LRC.writeSidecar(lines, for: url)
+            if let lines = sidecarLines {
+                try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp, backUp: false)
             }
+            if let nfo = audio.nfo { try writeVideoNFO(nfo, backUp: false) }
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,

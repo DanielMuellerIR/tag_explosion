@@ -106,7 +106,14 @@ struct SubtitleShift: ParsableCommand {
     func run() throws {
         safeMode.apply()
         let url = try resolveFile(file)
-        let milliseconds = Int((seconds * 1000).rounded())
+        // Bereichsprüfung im Core: `inf`, `nan` oder 1e16 sind gültige
+        // Doubles, aber keine Verschiebung — Fehler statt Laufzeitabbruch.
+        let milliseconds: Int
+        do {
+            milliseconds = try SubtitleFile.shiftMilliseconds(seconds: seconds)
+        } catch TagError.invalidSubtitleShift(let reason) {
+            throw ValidationError(TagError.invalidSubtitleShift(reason: reason).localizedDescription)
+        }
         guard milliseconds != 0 else {
             print("No changes")
             return

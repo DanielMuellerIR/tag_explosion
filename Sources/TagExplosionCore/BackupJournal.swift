@@ -188,6 +188,29 @@ public final class BackupJournal: @unchecked Sendable {
         return entry
     }
 
+    /// Nach einer Umbenennung: Alle Einträge, deren Original `from` war,
+    /// zeigen auf `to` — die Kopien im Papierkorb bleiben, wo sie sind.
+    /// Liefert die Zahl der umgeschriebenen Einträge (0, wenn die Datei
+    /// nie gesichert wurde; das ist kein Fehler).
+    @discardableResult
+    public func relocate(from: URL, to: URL) throws -> Int {
+        let oldPath = MediaFormats.canonicalFileURL(from).path
+        let newPath = MediaFormats.canonicalFileURL(to).path
+        guard oldPath != newPath else { return 0 }
+        return try lock.withLock {
+            try withFileLock {
+                var entries = try readUnlocked()
+                var changed = 0
+                for index in entries.indices where entries[index].originalPath == oldPath {
+                    entries[index].originalPath = newPath
+                    changed += 1
+                }
+                if changed > 0 { try writeUnlocked(entries) }
+                return changed
+            }
+        }
+    }
+
     /// Entfernt Journal-Einträge: verfallene (Kopie fehlt) immer, dazu alle,
     /// die älter als `olderThan` sind. Dateien im Papierkorb bleiben
     /// unangetastet. Liefert die Zahl der entfernten Einträge.

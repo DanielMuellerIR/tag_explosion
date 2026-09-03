@@ -434,6 +434,24 @@ public enum SubtitleFile {
 
     // MARK: - Zeitverschiebung
 
+    /// Größte Verschiebung, die App und CLI annehmen: 1000 Stunden. Alles
+    /// darüber ist keine Untertitel-Korrektur mehr, und die Umrechnung in
+    /// Millisekunden bleibt so sicher im `Int`-Bereich.
+    public static let maxShiftMilliseconds = 1000 * 3_600_000
+
+    /// Sekunden (Eingabe von Person oder Kommandozeile) in Millisekunden.
+    /// Wirft `invalidSubtitleShift` statt abzustürzen, wenn der Wert nicht
+    /// endlich ist oder über `maxShiftMilliseconds` liegt — `Int(1e16 * 1000)`
+    /// wäre sonst ein Laufzeitabbruch.
+    public static func shiftMilliseconds(seconds: Double) throws -> Int {
+        guard seconds.isFinite,
+              abs(seconds) * 1000 <= Double(maxShiftMilliseconds) else {
+            throw TagError.invalidSubtitleShift(
+                reason: "offset must be a finite number of at most 1000 hours (3600000 s)")
+        }
+        return Int((seconds * 1000).rounded())
+    }
+
     /// Verschiebt alle Zeitangaben um `milliseconds`; nur Zeilen mit `-->`
     /// ändern sich. Negative Ergebnisse werden abgelehnt.
     public static func shifted(text: String, milliseconds delta: Int) throws -> String {

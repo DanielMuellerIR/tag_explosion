@@ -170,6 +170,20 @@ struct ChapterTests {
             Chapter(title: "A", startMilliseconds: 0, endMilliseconds: 900),
         ]
         #expect(throws: TagError.self) { try TagFile.write(chapters: unsorted, to: url) }
+        // Überlappung: Kapitel 2 beginnt, bevor Kapitel 1 endet — sortiert,
+        // aber trotzdem kein gültiger Bereich (Review 2026-09-02).
+        let overlapping = [
+            Chapter(title: "A", startMilliseconds: 0, endMilliseconds: 1000),
+            Chapter(title: "B", startMilliseconds: 500, endMilliseconds: 1500),
+        ]
+        #expect(throws: TagError.self) { try TagFile.write(chapters: overlapping, to: url) }
+        #expect(throws: TagError.self) { try ChapterList.validate(overlapping) }
+        // Nahtlos (Ende = nächster Beginn) bleibt erlaubt.
+        let seamless = [
+            Chapter(title: "A", startMilliseconds: 0, endMilliseconds: 1000),
+            Chapter(title: "B", startMilliseconds: 1000, endMilliseconds: 1500),
+        ]
+        #expect(throws: Never.self) { try ChapterList.validate(seamless) }
         #expect(try Data(contentsOf: url) == before)
     }
 

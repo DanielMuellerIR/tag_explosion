@@ -42,7 +42,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Arbeit an `FilenamePattern`, `FileRenamer`, `tagx rename`/`parse` oder den
   Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
   Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
-  lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen.
+  lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen, mitwandernde
+  Sidecars (xmp/lrc/nfo, `companionSidecar`) samt Rollback-Ehrlichkeit und
+  Journal-Nachzug.
 - [dokument-container-metadaten.md](dokument-container-metadaten.md) — Bei
   Arbeit an DocumentTool, ZipContainer, `tagx doc` oder dem Dokument-Editor:
   ODF-`mimetype` an erster Stelle, fehlendes core.xml registrieren,
@@ -78,8 +80,10 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [kodi-nfo-untertitel.md](kodi-nfo-untertitel.md) — Bei Kodi-/Jellyfin-
   NFO, `.srt`/`.vtt`, `tagx nfo`/`subtitle` oder dem NFO-Abschnitt im
   Video-Editor: eigener XML-Serialisierer für Einrückungserhalt, Nur-URL-NFO,
-  Inhaltsprüfung der Endung, Zeitverschiebung nur auf `-->`-Zeilen,
-  `--seconds=-1.5`, Sprache aus dem Dateinamen.
+  Inhaltsprüfung der Endung, Zeitverschiebung nur auf `-->`-Zeilen
+  (begrenzt auf 1000 h), `--seconds=-1.5`, Sprache aus dem Dateinamen,
+  NFO-Puffer im `FileEntry` (dirty/Schließ-Guard, mit dem Eintrag
+  gespeichert), Wertebereiche für rating/premiered.
 - [cover-werkzeuge.md](cover-werkzeuge.md) — Bei Arbeit an CoverTools,
   `tagx cover info/convert/from-folder/to-folder` oder dem Cover-Menü der
   App: Header-Parser statt ImageIO für JPEG/PNG, was das Strip-Segment
@@ -95,7 +99,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   `BackupHistory`, `tagx history` oder dem Versionen-Blatt: warum die
   Papierkorb-Kopien ein Journal brauchen, Journal-Regeln (nur `shared`
   schreibt, Verfall, `flock`, Bruchteil-Sekunden, Prüfsummen-Limit), Restore
-  als normaler Schreibweg, XMP-Sidecar-Fall, Grenzen nach Umbenennen.
+  als normaler Schreibweg, Sidecar-Versionen (xmp/lrc/nfo), Pfadnachzug im
+  Journal nach `tagx rename` (`relocate`), Grenzen bei Umbenennen von außen.
 - [online-lookup-dienste.md](online-lookup-dienste.md) — Bei Arbeit am
   Online-Lookup (MusicBrainz/Discogs/AcoustID, `tagx lookup`, Sheet,
   Einstellungen): Freigabe liegt beim Aufrufer, User-Agent und 1 Anfrage/s,

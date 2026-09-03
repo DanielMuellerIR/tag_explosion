@@ -309,6 +309,13 @@ public enum PlaylistTool {
     static func resolve(location: String, base: URL) -> (path: String?, isRemote: Bool) {
         let trimmed = location.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return (nil, false) }
+        // Windows-Laufwerk (`C:\Musik\…`) oder UNC (`\\server\share\…`): ein
+        // absoluter Fremdpfad. Ihn an den Playlist-Ordner zu hängen ergäbe
+        // `<Ordner>/C:/Musik/…` — ein Pfad, den es nie gibt. Er bleibt als
+        // absoluter Pfad stehen und gilt hier schlicht als nicht vorhanden.
+        if isWindowsAbsolutePath(trimmed) {
+            return (trimmed.replacingOccurrences(of: "\\", with: "/"), false)
+        }
         if let scheme = URL(string: trimmed)?.scheme?.lowercased(), !scheme.isEmpty,
            scheme.count > 1 {  // "C:" wäre sonst ein Schema
             if scheme == "file" {
@@ -325,6 +332,35 @@ public enum PlaylistTool {
             return (URL(fileURLWithPath: path).standardizedFileURL.path, false)
         }
         return (base.appendingPathComponent(path).standardizedFileURL.path, false)
+    }
+
+    /// `C:\…`, `C:/…` (Laufwerksbuchstabe) oder `\\server\…` (UNC).
+    static func isWindowsAbsolutePath(_ text: String) -> Bool {
+        if text.hasPrefix("\\\\") { return true }
+        let scalars = Array(text.unicodeScalars.prefix(3))
+        guard scalars.count == 3 else { return false }
+        return CharacterSet.letters.contains(scalars[0]) && scalars[1] == ":"
+            && (scalars[2] == "\\" || scalars[2] == "/")
+    }
+
+    /// Größte Dauer, die als Millisekunden-`Int` übernommen wird (1e12 s,
+    /// über 30 000 Jahre). Alles darüber, `inf` und `nan` sind zwar
+    /// parsebare Doubles, aber keine Dauer — `Int(1e16 * 1000)` wäre ein
+    /// Laufzeitabbruch mitten im Lesen einer sonst brauchbaren Playlist.
+    static let maxDurationSeconds: Double = 1e12
+
+    /// Sekunden aus einer Playlist-Angabe (`#EXTINF:`, PLS `Length`): nur
+    /// endliche Werte von 0 bis `maxDurationSeconds`; sonst nil (= unbekannt).
+    static func parseSeconds(_ text: String) -> Double? {
+        guard let value = Double(text.trimmingCharacters(in: .whitespaces)),
+              value.isFinite, value >= 0, value <= maxDurationSeconds else { return nil }
+        return value
+    }
+
+    /// Sekunden → Millisekunden für Dauer-Felder (Eingabe vorher über
+    /// `parseSeconds` begrenzt, damit die Umrechnung nicht überläuft).
+    static func milliseconds(fromSeconds seconds: Double) -> Int {
+        Int((seconds * 1000).rounded())
     }
 
     /// Existenzprüfung als Teil des Lesens (nur reguläre Dateien zählen).

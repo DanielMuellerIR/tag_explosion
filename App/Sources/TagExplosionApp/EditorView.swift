@@ -99,10 +99,10 @@ struct TagEditorTab: View {
                 if entry.supportsChapters {
                     ChapterSection(entry: entry)
                 }
-                // Video mit `<name>.nfo` daneben: Kodi-/Jellyfin-Felder,
-                // gespeichert wird nur in die NFO (eigener Knopf).
-                if MediaFormats.nfoVideo.contains(entry.url.pathExtension.lowercased()) {
-                    NFOSidecarSection(videoURL: entry.url)
+                // Video mit `<name>.nfo` daneben: Kodi-/Jellyfin-Felder; der
+                // Puffer liegt im Eintrag und wird mit ihm gespeichert.
+                if entry.videoNFO != nil {
+                    NFOSidecarSection(entry: entry)
                 }
                 if !entry.layers.isEmpty {
                     TagLayerSection(entry: entry)

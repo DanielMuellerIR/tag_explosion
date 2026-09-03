@@ -1,6 +1,6 @@
 # Roadmap — Tag Explosion
 
-Stand: 2026-09-03 (Wellen 1–3 abgeschlossen mit 0.24.0 bis 0.38.0, AP16 mit 0.39.0; offen bleibt nur das zurückgestellte AP17). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
+Stand: 2026-09-03 (Wellen 1–3 abgeschlossen mit 0.24.0 bis 0.38.0, AP16 mit 0.39.0, Review-Funde vom 2026-09-02 mit 0.40.0; offen bleibt nur das zurückgestellte AP17). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
 Meilensteine) um die noch offenen Erweiterungen. Jeder Punkt ist ein
 Arbeitspaket (AP) mit Status; abgeschlossene Pakete wandern mit Version in den
 [CHANGELOG](../CHANGELOG.md) und werden hier nur noch als „✅ x.y.z" geführt.

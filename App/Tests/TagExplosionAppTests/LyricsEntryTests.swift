@@ -98,7 +98,7 @@ struct LyricsEntryTests {
 
         // Neu laden: die Sidecar-Zeilen erscheinen wieder im Puffer.
         let (reloaded, _) = try AppModel.readStamped(url: url, kind: .audio)
-        guard case .audio(let data) = reloaded else {
+        guard case .audio(let data, _) = reloaded else {
             Issue.record("Erwartet wurde ein Audio-Zustand")
             return
         }
@@ -126,6 +126,35 @@ struct LyricsEntryTests {
         #expect(entry.lastError?.contains("REPLAYGAIN_TRACK_GAIN") == true, Comment(rawValue: entry.lastError ?? ""))
         #expect(entry.isDirty)
         #expect(try Data(contentsOf: url) == bytes)
+    }
+
+    @Test("FLAC: eine fremd geänderte Sidecar wird beim Speichern erkannt, nicht überschrieben",
+          .enabled(if: LyricsFixture.isAvailable, "Audio-Fixture fehlt"))
+    func foreignSidecarChangeIsDetected() async throws {
+        let url = try LyricsFixture.workingCopy("sample.flac")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let sidecar = LRC.sidecarURL(for: url)
+        try LRC.writeSidecar(lines, for: url)
+        let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
+        let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
+        #expect(entry.syncedLyrics == lines)
+
+        // Ein anderes Programm schreibt die Sidecar um (andere Größe → anderer Stempel).
+        let foreign = [SyncedLyricLine(milliseconds: 0, text: "Fremde Fassung, deutlich länger")]
+        try Data(LRC.render(foreign).utf8).write(to: sidecar)
+
+        entry.syncedLyrics = lines + [SyncedLyricLine(milliseconds: 2000, text: "Neu")]
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == false)
+        #expect(entry.lastError?.contains("changed on disk") == true, Comment(rawValue: entry.lastError ?? ""))
+        #expect(model.pendingStaleWrite != nil)
+        // Die fremde Fassung liegt unverändert auf der Platte.
+        #expect(try LRC.loadSidecar(for: url) == foreign)
+
+        // Bewusstes Überschreiben nach der Rückfrage gilt auch für die Sidecar.
+        #expect(await model.save(entry: entry, ignoringDiskChange: true), Comment(rawValue: entry.lastError ?? ""))
+        #expect(try LRC.loadSidecar(for: url)?.count == 3)
+        #expect(!entry.isDirty)
     }
 }
 
@@ -162,4 +191,5 @@ private enum LyricsFixture {
         try FileManager.default.copyItem(at: directory.appendingPathComponent(name), to: target)
         return target
     }
+
 }

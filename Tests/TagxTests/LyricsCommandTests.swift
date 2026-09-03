@@ -188,4 +188,45 @@ struct LyricsCommandTests {
             currentDirectory: root
         )
     }
+
+
+    @Test("MP3 mit --sidecar: show/export/clear sehen die Sidecar; neben vorhandenem SYLT wird sie abgelehnt",
+          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
+    func forcedSidecarIsVisibleEverywhere() throws {
+        let directory = try makeWorkDirectory("tagx-lyrics-sidecar")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("song.mp3")
+        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: file)
+        let input = directory.appendingPathComponent("text.lrc")
+        try Data(lrc.utf8).write(to: input)
+        let sidecar = LRC.sidecarURL(for: file)
+
+        let set = try runTagx(arguments: ["lyrics", "set", file.path, "--from", input.path, "--sidecar", "--no-backup"])
+        #expect(set.status == 0, Comment(rawValue: set.stderr))
+        #expect(FileManager.default.fileExists(atPath: sidecar.path))
+        #expect(try TagFile.read(at: file).syncedLyrics.isEmpty)
+
+        let json = try runTagx(arguments: ["lyrics", "show", file.path, "--json"])
+        let report = try JSONDecoder().decode(Report.self, from: Data(json.stdout.utf8))
+        #expect(report.syncedSource == "sidecar")
+        #expect(report.synced.count == 3)
+
+        let target = directory.appendingPathComponent("export.lrc")
+        let export = try runTagx(arguments: ["lyrics", "export", file.path, "--to", target.path])
+        #expect(export.status == 0, Comment(rawValue: export.stderr))
+        #expect(try LRC.load(from: target).lines.count == 3)
+
+        // Jetzt SYLT einbetten: Eingebettet hat Vorrang, --sidecar daneben wird abgelehnt.
+        let embed = try runTagx(arguments: ["lyrics", "set", file.path, "--from", input.path, "--no-backup"])
+        #expect(embed.status == 0, Comment(rawValue: embed.stderr))
+        let refused = try runTagx(arguments: ["lyrics", "set", file.path, "--from", input.path, "--sidecar", "--no-backup"])
+        #expect(refused.status != 0)
+        #expect(refused.stderr.contains("SYLT"))
+
+        let clear = try runTagx(arguments: ["lyrics", "clear", file.path, "--no-backup"])
+        #expect(clear.status == 0, Comment(rawValue: clear.stderr))
+        #expect(clear.stdout.contains("sidecar removed"))
+        #expect(!FileManager.default.fileExists(atPath: sidecar.path))
+        #expect(try TagFile.read(at: file).syncedLyrics.isEmpty)
+    }
 }

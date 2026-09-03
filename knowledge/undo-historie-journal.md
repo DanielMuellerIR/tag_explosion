@@ -77,10 +77,16 @@ fest: Originalpfad (kanonisch), Sicherungspfad, Zeit, Größe, SHA-256, Auslöse
 
 ## Grenzen
 
-- Umbenannte Originale: Der Eintrag kennt nur den Pfad zur Zeit der
-  Sicherung. Nach `tagx rename` findet `history list <neuer Name>` die
-  alten Versionen nicht (der alte Pfad ist im Journal, `history list <alter
-  Pfad>` und Restore dorthin gehen weiterhin).
+- Umbenannte Originale: Seit 0.40.0 zieht `FileRenamer.apply` die
+  Journalpfade nach (`BackupJournal.relocate(from:to:)`, für Medium und
+  mitbewegte Sidecar); `history list <neuer Name>` findet die alten
+  Versionen. Scheitert nur das Journal, bleibt die Umbenennung bestehen und
+  `Outcome.warning` nennt es. Umbenennungen von außen (Finder, `mv`) kennt
+  das Journal weiterhin nicht — dann gilt nur `history list <alter Pfad>`.
+- Sidecars in `versions(of:)`: neben `<name>.xmp` (Bilder) auch
+  `<name>.lrc` (Audio) und `<name>.nfo` (Video); ein Restore einer solchen
+  Version schreibt die Sidecar zurück, nicht das Medium. `fieldMap` zeigt
+  für eine `.lrc` die Zeilen als ein Feld `SYNCEDLYRICS`.
 - Ein Restore holt die ganze Datei zurück, nicht einzelne Felder — dafür
   gibt es Export/Import (`TagArchive`).
 - Linux: Ohne Papierkorb entsteht keine Sicherung und damit kein Journal-

@@ -36,6 +36,30 @@ struct BackupHistoryTests {
         try body(backup)
     }
 
+    @Test("Historie eines Audios zeigt auch die Sicherungen seiner LRC-Sidecar; relocate zieht Pfade nach")
+    func audioHistoryIncludesLyricsSidecar() throws {
+        try withJournal { journal, directory in
+            let copy = directory.appendingPathComponent("kopie.lrc")
+            let data = Data("[00:01.00]Zeile\n".utf8)
+            try data.write(to: copy)
+            let flac = directory.appendingPathComponent("song.flac")
+            let lrc = LRC.sidecarURL(for: flac)
+            try journal.record(original: lrc, backup: copy, size: Int64(data.count), reason: BackupReason.sidecar)
+            let versions = BackupHistory.versions(of: flac, journal: journal)
+            #expect(versions.count == 1)
+            #expect(versions[0].entry.originalPath == MediaFormats.canonicalFileURL(lrc).path)
+            // Der Feldvergleich einer LRC-Sicherung zeigt die Zeilen.
+            let fields = try BackupHistory.fieldMap(of: copy, kind: nil)
+            #expect(fields["SYNCEDLYRICS"] == "[00:01.00]Zeile\n")
+
+            let renamed = directory.appendingPathComponent("lied.lrc")
+            #expect(try journal.relocate(from: lrc, to: renamed) == 1)
+            #expect(try journal.relocate(from: lrc, to: renamed) == 0)
+            #expect(BackupHistory.versions(of: flac, journal: journal).isEmpty)
+            #expect(BackupHistory.versions(of: directory.appendingPathComponent("lied.flac"), journal: journal).count == 1)
+        }
+    }
+
     @Test("Journal-Roundtrip: Einträge kommen mit Zeit, Größe, Prüfsumme und Auslöser zurück")
     func journalRoundtrip() throws {
         try withJournal { journal, directory in

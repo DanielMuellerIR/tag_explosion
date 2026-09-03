@@ -50,12 +50,25 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
   **nicht auf die Zeiten angewendet** — Player deuten das Vorzeichen
   unterschiedlich. Wort-Zeitstempel `<mm:ss.xx>` (Enhanced LRC) werden
   entfernt; mehrere `[..]` vor einer Zeile ergeben mehrere Zeilen.
-- Sidecar `<name>.lrc` gilt nur für Formate ohne ID3v2 (FLAC, Ogg, Opus,
-  MP4, Matroska …). Die App liest sie in `readLoaded` in `syncedLyrics` ein;
-  ändert sich nur die Sidecar, wird die Mediendatei nicht neu geschrieben
-  (`AudioSnapshot.mediaChanged`). Der Stempel-Konfliktschutz gilt für die
-  Mediendatei, nicht für die Sidecar. Beim Umbenennen wird die Sidecar
-  (noch) nicht mitgenommen — offener Punkt.
+- Sidecar `<name>.lrc`: In der App nur für Formate ohne ID3v2 (FLAC, Ogg,
+  Opus, MP4, Matroska …); `readLoaded` liest sie in `syncedLyrics` ein und
+  merkt sich ihren Stempel (`AudioSidecars.lrcStamp`). Ändert sich nur die
+  Sidecar, wird die Mediendatei nicht neu geschrieben
+  (`AudioSnapshot.mediaChanged`). Seit 0.40.0 gilt der Stempel-Konfliktschutz
+  auch für die Sidecar: `LRC.writeSidecar(_:for:expecting:backUp:)` prüft
+  ihn vor dem Austausch, „Trotzdem überschreiben“ setzt ihn per
+  `AudioSnapshot.ignoringSidecarStamps()` zurück. Der App-Schreibweg ist
+  zweiphasig (Sidecar-Stempel und -Sicherung VOR dem Container, Austausch
+  danach), damit nie Containerfelder übernommen sind, während die Lyrics an
+  einem Sicherungsfehler scheitern. Beim Umbenennen nimmt
+  `FileRenamer.companionSidecar` die `.lrc` mit.
+- CLI-Vorrang (`loadSyncedLyrics` in `LyricsCommand.swift`): eingebettete
+  SYLT-Zeilen zuerst, sonst die Sidecar — auch bei MP3, denn `lyrics set
+  --sidecar` legt sie dort bewusst an. Neben vorhandenem SYLT wird
+  `--sidecar` abgelehnt (sonst wäre der Import für show/export unsichtbar);
+  `clear` räumt beide Speicherorte. `FixedFields.supportsLyrics` ist an
+  `MediaFormats.kind == .audio` gebunden — `writableTagKeys == nil` allein
+  hieße nur „keine Tracker-Einschränkung“ und ließe `.jpg`/`.docx` durch.
 
 ## Lautheit
 
