@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.44.1 — 2026-09-05
+
+- Gemeinsame Prozessausführung, Werkzeugauflösung und Byte-Dekodierung aus
+  MediaInfoReader in ExternalToolRunner/ExternalToolText verschoben.
+  ExifTool, Calibre und AcoustID verwenden diese Mechanik direkt; Verhalten
+  und kompatible MediaInfo-Einstiege bleiben unverändert.
+
 ## 0.44.0 — 2026-09-05
 
 - Dateiliste mit Suche, Medienart-/Änderungs-/Fehlerfilter und stabiler Sortierung.

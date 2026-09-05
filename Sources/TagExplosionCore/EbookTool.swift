@@ -99,7 +99,7 @@ public enum EbookTool {
     /// Einmal pro Prozess gesucht — eine Calibre-Installation ändert sich zur
     /// Laufzeit nicht, und der Pfad-Scan liefe sonst bei jeder Datei-Operation.
     private static let calibreLocation: String? =
-        try? MediaInfoReader.locateTool(candidates: calibreCandidates, name: "ebook-meta")
+        try? ExternalToolRunner.locateTool(candidates: calibreCandidates, name: "ebook-meta")
 
     public static func locateCalibre() throws -> String {
         guard let calibreLocation else { throw TagError.toolNotFound(name: "ebook-meta (Calibre)") }
@@ -366,7 +366,7 @@ public enum EbookTool {
             let temp = FileManager.default.temporaryDirectory
                 .appendingPathComponent("tagx-cover-\(UUID().uuidString).jpg")
             defer { try? FileManager.default.removeItem(at: temp) }
-            _ = try runCalibre(exe, [MediaInfoReader.toolArgument(for: url), "--get-cover", temp.path])
+            _ = try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url), "--get-cover", temp.path])
             guard let data = try? Data(contentsOf: temp), !data.isEmpty else { return nil }
             return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
                            pictureType: "Front Cover")
@@ -386,7 +386,7 @@ public enum EbookTool {
                 .appendingPathComponent("tagx-cover-\(UUID().uuidString).\(ext)")
             defer { try? FileManager.default.removeItem(at: temp) }
             try data.write(to: temp)
-            _ = try runCalibre(exe, [MediaInfoReader.toolArgument(for: url), "--cover", temp.path])
+            _ = try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url), "--cover", temp.path])
         }
     }
 
@@ -411,8 +411,8 @@ public enum EbookTool {
         let args = ["-j", "-XMP-dc:Title", "-PDF:Title", "-XMP-dc:Creator", "-PDF:Author",
                     "-XMP-dc:Description", "-PDF:Subject", "-XMP-dc:Subject", "-PDF:Keywords",
                     "-XMP-dc:Publisher", "-XMP-dc:Language", "-XMP-dc:Date",
-                    "-XMP-prism:ISBN", MediaInfoReader.toolArgument(for: url)]
-        let data = try MediaInfoReader.run(exe, args)
+                    "-XMP-prism:ISBN", ExternalToolRunner.toolArgument(for: url)]
+        let data = try ExternalToolRunner.run(exe, args)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
         else { return EbookCoreFields() }
@@ -476,7 +476,7 @@ public enum EbookTool {
 
         guard !args.isEmpty else { return }
         let exe = try ExifTool.locateExecutable()
-        _ = try MediaInfoReader.run(exe, ["-overwrite_original", "-m"] + args + [MediaInfoReader.toolArgument(for: url)])
+        _ = try ExternalToolRunner.run(exe, ["-overwrite_original", "-m"] + args + [ExternalToolRunner.toolArgument(for: url)])
     }
 
     // MARK: - mobi/azw3/fb2 via Calibre ebook-meta
@@ -486,8 +486,8 @@ public enum EbookTool {
     /// Fortsetzungszeilen angehängt.
     private static func readCalibre(url: URL) throws -> EbookCoreFields {
         let exe = try locateCalibre()
-        let output = MediaInfoReader.decodeLossyPlainText(
-            try runCalibre(exe, [MediaInfoReader.toolArgument(for: url)]))
+        let output = ExternalToolText.decodeLossyPlainText(
+            try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url)]))
 
         var values: [String: String] = [:]
         var currentKey: String?
@@ -549,7 +549,7 @@ public enum EbookTool {
     }
 
     private static func writeCalibre(url: URL, fields: EbookCoreFields, original: EbookCoreFields) throws {
-        var args: [String] = [MediaInfoReader.toolArgument(for: url)]
+        var args: [String] = [ExternalToolRunner.toolArgument(for: url)]
         if fields.title != original.title { args += ["--title", fields.title] }
         if fields.authors != original.authors {
             args += ["--authors", fields.authors.joined(separator: " & ")]
@@ -588,7 +588,7 @@ public enum EbookTool {
 
     /// ebook-meta mit stabiler englischer Ausgabe (Labels sind lokalisiert).
     private static func runCalibre(_ executable: String, _ arguments: [String]) throws -> Data {
-        try MediaInfoReader.run("/usr/bin/env", ["LC_ALL=C", executable] + arguments)
+        try ExternalToolRunner.run("/usr/bin/env", ["LC_ALL=C", executable] + arguments)
     }
 
     // MARK: - Intern

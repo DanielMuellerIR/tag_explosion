@@ -29,14 +29,14 @@ public enum Fpcalc {
     ]
 
     public static func locateExecutable() throws -> String {
-        try MediaInfoReader.locateTool(candidates: executableCandidates, name: toolName)
+        try ExternalToolRunner.locateTool(candidates: executableCandidates, name: toolName)
     }
 
     /// Fingerabdruck einer Datei. Wirft `toolNotFound("fpcalc")`, wenn das
     /// Programm fehlt — App und CLI bieten dann die Installation an.
     public static func fingerprint(of url: URL) throws -> AudioFingerprint {
         let exe = try locateExecutable()
-        let output = try MediaInfoReader.run(exe, ["-json", MediaInfoReader.toolArgument(for: url)])
+        let output = try ExternalToolRunner.run(exe, ["-json", ExternalToolRunner.toolArgument(for: url)])
         return try parse(output)
     }
 

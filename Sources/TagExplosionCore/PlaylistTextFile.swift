@@ -6,7 +6,7 @@
 //
 // Encoding: UTF-8 ist der Normalfall (m3u8, moderne cue-Dateien). Ältere
 // Dateien liegen oft in Latin1 oder MacRoman vor; dann greift dieselbe
-// Reparatur wie beim mediainfo-JSON (`MediaInfoReader.decodeLossyPlainText`:
+// Reparatur wie beim mediainfo-JSON (`ExternalToolText.decodeLossyPlainText`:
 // UTF-8-Läufe behalten, Restbytes als MacRoman/Latin1 werten). Eine so
 // gelesene Datei wird beim Schreiben als UTF-8 abgelegt — der Rest der
 // Zeilen wird also mit umkodiert (siehe knowledge/playlists-cue.md).
@@ -53,7 +53,7 @@ struct PlaylistTextFile: Equatable {
             text = utf8
             usedFallback = false
         } else {
-            text = MediaInfoReader.decodeLossyPlainText(payload)
+            text = ExternalToolText.decodeLossyPlainText(payload)
             usedFallback = true
         }
         return PlaylistTextFile(hasBOM: hasBOM, lines: splitLines(text),

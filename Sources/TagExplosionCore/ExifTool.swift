@@ -153,7 +153,7 @@ public enum ExifTool {
     ]
 
     public static func locateExecutable() throws -> String {
-        try MediaInfoReader.locateTool(candidates: executableCandidates, name: "exiftool")
+        try ExternalToolRunner.locateTool(candidates: executableCandidates, name: "exiftool")
     }
 
     // MARK: - Lesen
@@ -163,12 +163,12 @@ public enum ExifTool {
     public static func readAllGroups(url: URL) throws -> [MetadataGroup] {
         let exe = try locateExecutable()
         // -G1 = Untergruppen (IFD0, ExifIFD, XMP-dc …), -s = Tag-Namen statt Beschreibungen
-        let data = try MediaInfoReader.run(exe, ["-use", "MWG", "-j", "-G1", "-s", MediaInfoReader.toolArgument(for: url)])
+        let data = try ExternalToolRunner.run(exe, ["-use", "MWG", "-j", "-G1", "-s", ExternalToolRunner.toolArgument(for: url)])
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
         else { return [] }
 
-        let jsonText = MediaInfoReader.decodeLossyJSON(data)
+        let jsonText = ExternalToolText.decodeLossyJSON(data)
         // Gruppen in stabiler Reihenfolge des JSON-Textes aufbauen
         var groups: [String: [TagProperty]] = [:]
         var groupOrder: [String] = []
@@ -211,11 +211,11 @@ public enum ExifTool {
         // Original). Alle bekommen dasselbe Tag-Wörterbuch.
         var inputsByToolPath: [String: [String]] = [:]
         for url in urls {
-            inputsByToolPath[MediaInfoReader.toolArgument(for: url), default: []].append(url.path)
+            inputsByToolPath[ExternalToolRunner.toolArgument(for: url), default: []].append(url.path)
         }
         let exe = try locateExecutable()
-        let data = try MediaInfoReader.run(
-            exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map { MediaInfoReader.toolArgument(for: $0) })
+        let data = try ExternalToolRunner.run(
+            exe, ["-use", "MWG", "-j", "-G1", "-s"] + urls.map { ExternalToolRunner.toolArgument(for: $0) })
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else { return [:] }
 
@@ -279,8 +279,8 @@ public enum ExifTool {
         let args = ["-use", "MWG", "-j", "-n", "-XMP-dc:Title", "-MWG:Description", "-MWG:Keywords",
                     "-MWG:Creator", "-MWG:Copyright", "-MWG:DateTimeOriginal",
                     "-MWG:Rating", "-GPSLatitude", "-GPSLongitude",
-                    MediaInfoReader.toolArgument(for: url)]
-        let data = try MediaInfoReader.run(exe, args)
+                    ExternalToolRunner.toolArgument(for: url)]
+        let data = try ExternalToolRunner.run(exe, args)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let dict = root.first
         else { return (ImageCoreFields(), []) }
@@ -371,8 +371,8 @@ public enum ExifTool {
     /// geraten.
     public static func writableExtensions() throws -> Set<String> {
         let exe = try locateExecutable()
-        let data = try MediaInfoReader.run(exe, ["-listwf"])
-        let text = MediaInfoReader.decodeLossyPlainText(data)
+        let data = try ExternalToolRunner.run(exe, ["-listwf"])
+        let text = ExternalToolText.decodeLossyPlainText(data)
         var result: Set<String> = []
         for line in text.split(whereSeparator: \.isNewline) {
             // Die erste Zeile ist eine Überschrift ("Writable file extensions:").
@@ -582,10 +582,10 @@ public enum ExifTool {
         // legt exiftool selbst an (eine fehlende .xmp entsteht beim Schreiben).
         // -overwrite_original: kein "_original"-Duplikat; -m: kleinere Warnungen tolerieren
         let mutate: (URL) throws -> Void = { temp in
-            _ = try MediaInfoReader.run(
+            _ = try ExternalToolRunner.run(
                 exe,
                 ["-use", "MWG", "-overwrite_original", "-m"] + args
-                    + [MediaInfoReader.toolArgument(for: temp)])
+                    + [ExternalToolRunner.toolArgument(for: temp)])
         }
         // exiftool bricht bei einem Bild, das es nicht versteht, selbst ab
         // (Exit-Code ungleich 0, oben als `toolFailed` sichtbar) und lässt
