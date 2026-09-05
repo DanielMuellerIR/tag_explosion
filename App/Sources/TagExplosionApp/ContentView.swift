@@ -130,6 +130,9 @@ struct ContentView: View {
                     .help("Alle geänderten Dateien speichern (⌥⌘S)")
                 }
 
+                if !model.batchResults.isEmpty {
+                    Button("Speicherergebnisse") { model.showBatchResults = true }
+                }
                 // Konsistenzprüfung über alle geladenen Dateien (nur lesend).
                 Button {
                     model.libraryCheckTargets = model.entries
@@ -145,6 +148,9 @@ struct ContentView: View {
             set: { if !$0 { model.libraryCheckTargets = nil } }
         )) {
             LibraryCheckSheet(entries: model.libraryCheckTargets ?? [])
+        }
+        .sheet(isPresented: .init(get: { model.showBatchResults }, set: { model.showBatchResults = $0 })) {
+            BatchSaveResultsView()
         }
         // Während der tatsächlichen Entscheidung darf kein Editor-Puffer noch
         // eine weitere Eingabe annehmen. Der Dialog selbst bleibt außerhalb

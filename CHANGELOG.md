@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.43.0 — 2026-09-05
+
+- Speicheraufträge behalten Status und Ursache je Datei in einer Ergebnisliste.
+  Fehlgeschlagene Dateien lassen sich gezielt wiederholen; Abbruch überspringt
+  die verbleibenden Dateien nach dem laufenden sicheren Schreibvorgang.
+- Konfliktentscheidungen aktualisieren das Dateiergebnis. Scheitert eine
+  Audio-Sidecar nach dem Container, nennt die Fehlermeldung bereits geschriebene
+  Ziele; der Bearbeitungspuffer bleibt erhalten.
+
 ## 0.42.0 — 2026-09-05
 
 - Öffnen zeigt fertige Einträge während weitere Leser arbeiten. Dateizähler

@@ -820,6 +820,25 @@ final class AppModel {
     private var openingURLs: Set<URL> = []
     /// Läuft mindestens ein Ladevorgang? (Fortschritt in der Sidebar)
     var isLoading: Bool { loadingOperationCount > 0 }
+    var batchResults: [BatchSaveResult] = []
+    private(set) var isBatchSaving = false
+    private var cancelBatchRequested = false
+    var showBatchResults = false
+    func cancelBatchSave() { cancelBatchRequested = true }
+
+    func retryFailedSaves() async {
+        await retryFailedSaves { await self.save(entry: $0) }
+    }
+
+    func retryFailedSaves(saveEntry: @escaping @MainActor (FileEntry) async -> Bool) async {
+        guard !isBatchSaving, !isDestructiveActionLocked else { return }
+        let previous = batchResults
+        let failed = Set(previous.filter { $0.status == .failed }.map(\.url))
+        await saveEntries(entries.filter { failed.contains($0.url) }, saveEntry: saveEntry)
+        let retried = Dictionary(uniqueKeysWithValues: batchResults.map { ($0.url, $0) })
+        batchResults = previous.map { retried[$0.url] ?? $0 }
+    }
+
     /// Fehlermeldung für Alert-Anzeige.
     var alertMessage: String?
     /// Einträge, für die das Sheet der Konsistenzprüfung offen ist (nil =
@@ -1202,18 +1221,43 @@ final class AppModel {
     /// Variante mit austauschbarem Einzel-Speicherweg für headless Tests. Die
     /// Sicherung, Wartezeit und Erfolgsprüfung bleiben identisch zur App.
     @discardableResult
-    private func saveEntries(
+    func saveEntries(
         _ dirty: [FileEntry],
         saveEntry: @escaping @MainActor (FileEntry) async -> Bool
     ) async -> Bool {
+        guard !isBatchSaving else { return false }
+        isBatchSaving = true
+        cancelBatchRequested = false
+        defer { isBatchSaving = false }
         let targets = uniqueEntries(dirty)
+        batchResults = targets.map { BatchSaveResult(url: $0.url) }
         await waitForSaves(in: targets)
         let pending = targets.filter(\.isDirty)
-        guard !pending.isEmpty else { return true }
-        guard await backupIfNeeded(before: pending) else { return false }
+        guard await backupIfNeeded(before: pending) else {
+            batchResults = targets.map {
+                BatchSaveResult(url: $0.url, status: $0.isDirty ? .failed : .skipped,
+                                reason: alertMessage ?? String(localized: "Sicherung fehlgeschlagen"))
+            }
+            return false
+        }
         var succeeded = true
-        for entry in pending {
-            if !(await saveEntry(entry)) { succeeded = false }
+        for (index, entry) in targets.enumerated() {
+            if cancelBatchRequested || Task.isCancelled {
+                batchResults[index].status = .skipped
+                batchResults[index].reason = String(localized: "Abgebrochen")
+                succeeded = false
+                continue
+            }
+            guard entry.isDirty else {
+                batchResults[index].status = .skipped
+                batchResults[index].reason = String(localized: "Unverändert")
+                continue
+            }
+            batchResults[index].status = .saving
+            let saved = await saveEntry(entry)
+            batchResults[index].status = saved ? .success : .failed
+            batchResults[index].reason = saved ? "" : (entry.lastError ?? String(localized: "Speichern fehlgeschlagen"))
+            if !saved { succeeded = false }
         }
         return succeeded
     }
@@ -1755,7 +1799,13 @@ final class AppModel {
     func resolveClaimedStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
         guard let claim = claimedStaleWrite else { return }
         claimedStaleWrite = nil
-        if claim.write { _ = await saveEntry(claim.entry) }
+        if claim.write {
+            let saved = await saveEntry(claim.entry)
+            if let index = batchResults.firstIndex(where: { $0.url == claim.entry.url }) {
+                batchResults[index].status = saved ? .success : .failed
+                batchResults[index].reason = saved ? "" : (claim.entry.lastError ?? "")
+            }
+        }
         refreshPendingStaleWrite()
     }
 
@@ -1801,6 +1851,14 @@ final class AppModel {
             let (reloaded, stamp) = try await writeSnapshot(snapshot)
             entry.acceptSaved(snapshot, reloaded: reloaded, stamp: stamp)
             return true
+        } catch let error as PartialSaveError {
+            entry.lastError = error.localizedDescription
+            if case TagError.fileChangedOnDisk = error.underlying, let staleCandidate {
+                if !staleEntries.contains(where: { $0 === staleCandidate }) { staleEntries.append(staleCandidate) }
+                if pendingStaleWrite == nil { refreshPendingStaleWrite() }
+            }
+            if !isBatchSaving { alertMessage = error.localizedDescription }
+            return false
         } catch TagError.fileChangedOnDisk(let path) where staleCandidate != nil {
             // Kein normaler Fehler, sondern eine Entscheidung: überschreiben
             // oder nicht. Der Puffer bleibt in jedem Fall erhalten.
@@ -1814,8 +1872,10 @@ final class AppModel {
         } catch {
             // Der Puffer und das letzte gute Original bleiben unverändert.
             entry.lastError = error.localizedDescription
-            alertMessage = String(localized: "Speichern fehlgeschlagen: \(entry.url.lastPathComponent)")
-                + "\n" + error.localizedDescription
+            if !isBatchSaving {
+                alertMessage = String(localized: "Speichern fehlgeschlagen: \(entry.url.lastPathComponent)")
+                    + "\n" + error.localizedDescription
+            }
             return false
         }
     }
@@ -1911,10 +1971,16 @@ final class AppModel {
                               syncedLyrics: embedsSynced ? audio.syncedLyrics : nil,
                               lyricsLanguage: embedsSynced ? audio.lyricsLanguage : nil,
                               to: url, expecting: stamp, id3Version: preferredID3Version)
-            if let lines = sidecarLines {
-                try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp, backUp: false)
+            var completed = [url.lastPathComponent]
+            do {
+                if let lines = sidecarLines {
+                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp, backUp: false)
+                    completed.append(LRC.sidecarURL(for: url).lastPathComponent)
+                }
+                if let nfo = audio.nfo { try writeVideoNFO(nfo, backUp: false) }
+            } catch {
+                throw PartialSaveError(completed: completed, underlying: error)
             }
-            if let nfo = audio.nfo { try writeVideoNFO(nfo, backUp: false) }
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,
