@@ -84,8 +84,12 @@ final class AppModel {
     var loadingTotal: Int { loading.total }
     var isLoading: Bool { loading.operationCount > 0 }
     var batchResults: [BatchSaveResult] = []
+    var batchCompletedCount: Int {
+        batchResults.filter { $0.status != .pending && $0.status != .saving }.count
+    }
     private(set) var isBatchSaving = false
     private var cancelBatchRequested = false
+    private var batchSaveWaiters: [CheckedContinuation<Void, Never>] = []
     var showBatchResults = false
     func cancelBatchSave() { cancelBatchRequested = true }
 
@@ -128,7 +132,7 @@ final class AppModel {
     private var claimedExternalImportApproval: Bool?
 
     var isDestructiveActionLocked: Bool {
-        pendingConflict != nil || pendingExternalImport != nil
+        isBatchSaving || pendingConflict != nil || pendingExternalImport != nil
             || pendingStaleWrite != nil || claimedStaleWrite != nil
             || isPreparingDestructiveAction || isResolvingConflict
     }
@@ -280,7 +284,12 @@ final class AppModel {
         guard !isBatchSaving else { return false }
         isBatchSaving = true
         cancelBatchRequested = false
-        defer { isBatchSaving = false }
+        defer {
+            isBatchSaving = false
+            let waiters = batchSaveWaiters
+            batchSaveWaiters.removeAll()
+            for waiter in waiters { waiter.resume() }
+        }
         let targets = uniqueEntries(dirty)
         batchResults = targets.map { BatchSaveResult(url: $0.url) }
         await waitForSaves(in: targets)
@@ -850,6 +859,11 @@ final class AppModel {
     /// Logik ist identisch zum Produktionsweg oben.
     func resolveClaimedStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
         guard let claim = claimedStaleWrite else { return }
+        // Eine bestätigte Konfliktwiederholung darf den noch laufenden
+        // seriellen Auftrag nicht mit einem zweiten Schreiber überholen.
+        if claim.write && isBatchSaving {
+            await withCheckedContinuation { batchSaveWaiters.append($0) }
+        }
         claimedStaleWrite = nil
         if claim.write {
             let saved = await saveEntry(claim.entry)

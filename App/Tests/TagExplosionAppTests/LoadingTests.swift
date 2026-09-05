@@ -49,8 +49,7 @@ struct LoadingTests {
 
     @Test("Messung mit 1000 generierten FLAC-Dateien", .enabled(if: ProcessInfo.processInfo.environment["TAGX_LOAD_BENCHMARK"] == "1"))
     func benchmark() async throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let fixture = root.appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated/sample.flac")
+        let fixture = AppTestFixtures.directory.appendingPathComponent("sample.flac")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }

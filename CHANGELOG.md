@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.1 — 2026-09-05
+
+- Laufende Speicheraufträge sperren konkurrierende Entfernen-/Import-/Schließen-
+  Aktionen für alle Auftragsziele. Bestätigte Konfliktwiederholungen warten auf
+  das Auftragsende und starten keinen parallelen Schreiber.
+- Speicherfortschritt und Abbruch sind auch direkt unter der Dateiliste sichtbar.
+- Mehrwertige Regelketten zusätzlich per CLI in MP3 und M4A geprüft; die Tests
+  vergleichen die vollständigen JSON-Wertelisten.
+
 ## 0.46.0 — 2026-09-05
 
 - FileEntry samt Speicher-Snapshots, geladene Daten, Ladeablauf und Medien-IO

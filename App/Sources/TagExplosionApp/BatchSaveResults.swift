@@ -37,7 +37,7 @@ struct BatchSaveResultsView: View {
         VStack(alignment: .leading) {
             Text("Speicherergebnisse").font(.headline)
             if model.isBatchSaving {
-                ProgressView(value: Double(model.batchResults.filter { $0.status != .pending && $0.status != .saving }.count),
+                ProgressView(value: Double(model.batchCompletedCount),
                              total: Double(max(1, model.batchResults.count)))
                 Button("Abbrechen") { model.cancelBatchSave() }
             }

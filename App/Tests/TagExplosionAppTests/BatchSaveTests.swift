@@ -11,8 +11,7 @@ struct BatchSaveTests {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let fixture = root.appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated/sample.flac")
+        let fixture = AppTestFixtures.directory.appendingPathComponent("sample.flac")
         let entries = try (0..<3).map { index in
             let url = directory.appendingPathComponent("\(index).flac")
             try FileManager.default.copyItem(at: fixture, to: url)
@@ -54,10 +53,57 @@ struct BatchSaveTests {
         var calls = 0
         _ = await model.saveEntries(entries) { _ in
             calls += 1
+            // Ein späteres Ziel gehört bereits zum Auftrag, auch wenn es
+            // gerade noch keinen individuellen isSaving-Marker trägt.
+            await model.remove(urls: [entries[1].url])
+            #expect(model.pendingConflict == nil)
+            #expect(model.entries.count == 3)
             model.cancelBatchSave()
             return true
         }
         #expect(calls == 1)
         #expect(model.batchResults.map(\.status) == [.success, .skipped, .skipped])
+        let gate = BatchGate()
+        let batch = Task {
+            await model.saveEntries(entries) { entry in
+                if entry === entries[0] {
+                    return await model.save(entry: entry, staleCandidate: entry) { _ in
+                        throw TagError.fileChangedOnDisk(path: entry.url.path)
+                    }
+                }
+                if entry === entries[1] { await gate.wait() }
+                return true
+            }
+        }
+        for _ in 0..<2000 {
+            if await gate.started { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(await gate.started)
+        #expect(model.pendingStaleWrite != nil)
+        let confirm = Task {
+            await model.confirmStaleWrite { _ in
+                #expect(!model.isBatchSaving)
+                return true
+            }
+        }
+        for _ in 0..<2000 {
+            if model.pendingStaleWrite == nil { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        await gate.release()
+        _ = await batch.value
+        await confirm.value
+
     }
+}
+
+private actor BatchGate {
+    var started = false
+    private var continuation: CheckedContinuation<Void, Never>?
+    func wait() async {
+        started = true
+        await withCheckedContinuation { continuation = $0 }
+    }
+    func release() { continuation?.resume(); continuation = nil }
 }

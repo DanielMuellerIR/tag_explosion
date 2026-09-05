@@ -43,16 +43,21 @@ struct TagRulesTests {
         #expect(set.changes[0].allNewValues == ["Solo"])
     }
 
-    @Test("CLI-Regeln: mehrwertiger FLAC-Roundtrip entspricht dem Core-Plan")
-    func cliRoundtrip() throws {
-        let url = try Fixtures.workingCopy("sample.flac")
+    @Test("CLI-Regeln: mehrwertiger Roundtrip entspricht dem Core-Plan", arguments: ["sample.flac", "sample.mp3", "sample.m4a"])
+    func cliRoundtrip(_ fixture: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let properties = [TagProperty(key: "ARTIST", value: " Miles "),
                           TagProperty(key: "ARTIST", value: "Coltrane"),
                           TagProperty(key: "GENRE", value: " Jazz "),
                           TagProperty(key: "GENRE", value: "Bebop")]
         try TagFile.write(properties: properties, to: url)
-        let document = doc(TagRule(action: .trim, field: "*"))
+        let document = doc(TagRule(action: .trim, field: "*"),
+                           TagRule(action: .case, field: "ARTIST", mode: .upper),
+                           TagRule(action: .replace, field: "ARTIST", search: "MILES", replacement: "Davis"),
+                           TagRule(action: .copy, field: "ALBUMARTIST", from: "ARTIST"),
+                           TagRule(action: .set, field: "COMMENT", value: "one"),
+                           TagRule(action: .remove, field: "TITLE"))
         let rules = url.deletingLastPathComponent().appendingPathComponent("rules.json")
         try TagRulesIO.save(document, to: rules)
         let process = Process()
@@ -67,7 +72,16 @@ struct TagRulesTests {
         #expect(process.terminationStatus == 0)
         #expect(String(decoding: report, as: UTF8.self).contains("newValues"))
         let values = TagRuleFields.values(from: try TagFile.read(at: url).properties)
-        #expect(values["ARTIST"] == ["Miles", "Coltrane"])
+        #expect(values["ARTIST"] == ["Davis", "COLTRANE"])
+        #expect(values["ALBUMARTIST"] == ["Davis", "COLTRANE"])
+        #expect(values["COMMENT"] == ["one"])
+        #expect(values["TITLE"] == nil)
+        let json = try #require(JSONSerialization.jsonObject(with: report) as? [String: Any])
+        let items = try #require(json["items"] as? [[String: Any]])
+        let changes = try #require(items.first?["changes"] as? [[String: Any]])
+        let artist = try #require(changes.first { $0["field"] as? String == "ARTIST" })
+        #expect(artist["oldValues"] as? [String] == [" Miles ", "Coltrane"])
+        #expect(artist["newValues"] as? [String] == ["Davis", "COLTRANE"])
         #expect(values["GENRE"] == ["Jazz", "Bebop"])
     }
 

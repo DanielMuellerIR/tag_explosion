@@ -152,6 +152,9 @@ struct ContentView: View {
         .sheet(isPresented: .init(get: { model.showBatchResults }, set: { model.showBatchResults = $0 })) {
             BatchSaveResultsView()
         }
+        .onChange(of: model.pendingStaleWrite) { _, pending in
+            if pending != nil { model.showBatchResults = false }
+        }
         // Während der tatsächlichen Entscheidung darf kein Editor-Puffer noch
         // eine weitere Eingabe annehmen. Der Dialog selbst bleibt außerhalb
         // dieses Modifiers bedienbar.
@@ -298,6 +301,14 @@ struct ContentView: View {
         }
         .safeAreaInset(edge: .top) { FileListControls() }
         .safeAreaInset(edge: .bottom) {
+            if model.isBatchSaving {
+                HStack {
+                    ProgressView(value: Double(model.batchCompletedCount), total: Double(max(1, model.batchResults.count)))
+                    Text("\(model.batchCompletedCount) / \(model.batchResults.count)").monospacedDigit()
+                    Button("Abbrechen") { model.cancelBatchSave() }
+                }.padding().background(.regularMaterial)
+            }
+
             if model.isLoading {
                 HStack {
                     ProgressView(value: Double(model.loadingCompleted), total: Double(max(1, model.loadingTotal)))
