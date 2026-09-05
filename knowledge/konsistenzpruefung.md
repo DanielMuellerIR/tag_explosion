@@ -93,3 +93,17 @@ Das Sheet hängt an `ContentView` und wird über `AppModel.libraryCheckTargets`
 geöffnet — nicht am Batch-Editor. Der Batch-Editor bekommt `.id(model.selection)`
 und wird bei jedem Auswahlwechsel neu aufgebaut; ein dort angehängtes Sheet
 würde beim Klick auf eine Datei (der die Auswahl setzt) sofort verschwinden.
+
+## App: Filter und Berechnung (2026-09-05)
+
+`FileList.swift` filtert die Ansicht nach Dateiname/Titel/Interpret, Medienart,
+Pufferänderung und Fehler; die ursprüngliche Eintragsliste bleibt unverändert.
+Sortiergleichstände folgen der Öffnungsreihenfolge. Versteckte Auswahl zählt
+weiter für Stapelaktionen und wird sichtbar gezählt. Die Auswahl lässt sich
+auf eine Medienart begrenzen. Stapel verwenden die Modell-/Öffnungsreihenfolge;
+`number` in Regeldateien verwendet ausdrücklich seine eigene `sortBy`-Sortierung.
+
+`LibraryCheckState` wartet 250 ms Eingabepause, übergibt unveränderliche Items
+an einen Hintergrund-Task und nimmt nur das Ergebnis der aktuellen Anforderung
+an. Ungültige Muster entfernen den Bericht sofort. Bereits rechnende synchrone
+Prüfungen dürfen auslaufen; ihr veraltetes Ergebnis wird verworfen.

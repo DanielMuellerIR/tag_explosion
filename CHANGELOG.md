@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.44.0 — 2026-09-05
+
+- Dateiliste mit Suche, Medienart-/Änderungs-/Fehlerfilter und stabiler Sortierung.
+  Ausgeblendete Auswahl bleibt erhalten und wird gezählt; gemischte Auswahl
+  lässt sich auf eine Medienart begrenzen.
+- Konsistenzprüfung läuft nach 250 ms Eingabepause im Hintergrund auf Snapshots.
+  Veraltete Ergebnisse und Berichte zu ungültigen Mustern werden verworfen.
+
 ## 0.43.0 — 2026-09-05
 
 - Speicheraufträge behalten Status und Ursache je Datei in einer Ergebnisliste.

@@ -6120,6 +6120,76 @@
           }
         }
       }
+    },
+    "Öffnungsreihenfolge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening order"
+          }
+        }
+      }
+    },
+    "Dateiname, Titel oder Interpret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filename, title or artist"
+          }
+        }
+      }
+    },
+    "Sortierung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort order"
+          }
+        }
+      }
+    },
+    "Ungespeichert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved"
+          }
+        }
+      }
+    },
+    "%lld ausgewählt · %lld ausgeblendet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld selected · %lld hidden"
+          }
+        }
+      }
+    },
+    "Auswahl auf Medienart begrenzen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limit selection to media kind"
+          }
+        }
+      }
+    },
+    "Prüfe …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking…"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

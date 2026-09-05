@@ -272,8 +272,8 @@ struct ContentView: View {
     @ViewBuilder
     private var sidebar: some View {
         @Bindable var model = model
-        List(selection: $model.selection) {
-            ForEach(model.entries) { entry in
+        List(selection: $model.visibleSelection) {
+            ForEach(model.visibleEntries) { entry in
                 FileRow(entry: entry)
                     .tag(entry.url)
                     .contextMenu {
@@ -296,6 +296,7 @@ struct ContentView: View {
             }
 
         }
+        .safeAreaInset(edge: .top) { FileListControls() }
         .safeAreaInset(edge: .bottom) {
             if model.isLoading {
                 HStack {

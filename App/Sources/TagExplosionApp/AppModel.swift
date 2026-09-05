@@ -799,6 +799,12 @@ final class AppModel {
 
     var entries: [FileEntry] = []
     var selection: Set<URL> = []
+    var listSearch = ""
+    var listKind: MediaKind?
+    var listDirtyOnly = false
+    var listErrorsOnly = false
+    var listSort: FileListSort = .input
+
     /// Das Fenster, in dem dieses Modell steckt — gesetzt von `WindowBridge`.
     /// `WindowSessions` erkennt daran, welche Modelle wirklich sichtbar sind;
     /// ein Modell ohne Fenster darf keine Dateien mehr zugeteilt bekommen.

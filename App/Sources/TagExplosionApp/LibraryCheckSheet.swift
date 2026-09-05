@@ -98,12 +98,10 @@ struct LibraryCheckSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var checkNames = false
     @State private var patternText = PatternHistory.initialPattern(.rename)
-    @State private var report: LibraryCheck.Report?
-
-    /// Muster nur, wenn der Schalter an ist; ein Fehler zeigt sich unter dem Feld.
-    private var compiled: Result<FilenamePattern?, Error> {
-        guard checkNames, !patternText.isEmpty else { return .success(nil) }
-        return Result { try FilenamePattern(patternText) }
+    @State private var check = LibraryCheckState()
+    private var report: LibraryCheck.Report? { check.report }
+    private var request: LibraryCheckRequest {
+        LibraryCheckRequest(items: entries.compactMap(\.libraryCheckItem), checkNames: checkNames, pattern: patternText)
     }
 
     /// Eine Gruppe (Album/Ordner) mit ihren Befunden für die Anzeige.
@@ -142,6 +140,7 @@ struct LibraryCheckSheet: View {
                     .font(.caption)
                     .foregroundStyle(report.hasFindings(atLeast: .warning) ? Color.orange : Color.secondary)
             }
+            if check.isChecking { ProgressView("Prüfe …") }
             patternRow
             List(sections) { section in
                 SwiftUI.Section {
@@ -172,9 +171,8 @@ struct LibraryCheckSheet: View {
         }
         .padding(20)
         .frame(minWidth: 680, idealWidth: 780, minHeight: 460, idealHeight: 560)
-        .onAppear { runCheck() }
-        .onChange(of: checkNames) { runCheck() }
-        .onChange(of: patternText) { runCheck() }
+        .onChange(of: request, initial: true) { _, request in check.submit(request) }
+        .onDisappear { check.cancel() }
     }
 
     /// Schalter und Musterfeld für die optionale Dateinamenprüfung.
@@ -201,8 +199,8 @@ struct LibraryCheckSheet: View {
                 .disabled(!checkNames)
                 .help("Vorgaben für das Muster")
             }
-            if case .failure(let error) = compiled {
-                Label(error.localizedDescription, systemImage: "exclamationmark.triangle.fill")
+            if let error = check.error {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -215,11 +213,6 @@ struct LibraryCheckSheet: View {
         }
         return String(localized:
             "\(report.checkedFiles) Dateien geprüft · \(report.warningCount) Warnungen · \(report.hintCount) Hinweise")
-    }
-
-    private func runCheck() {
-        guard case .success(let pattern) = compiled else { return }
-        report = model.libraryCheckReport(for: entries, pattern: pattern)
     }
 
     private func copyReport() {
