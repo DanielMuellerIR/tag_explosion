@@ -291,8 +291,9 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   kombinierter `ebook-meta`-Aufruf (Felder + Cover in einem Prozess).
   Lohnt bei Ordnern mit vielen E-Books; Details im Commit 352be5c.
 
-- TagLib schreibt ID3v2.4; Option für ID3v2.3 (Kompatibilität alter Player) über
-  Shim-Erweiterung (`MPEG::File::save`-Overload) später anbieten.
+- ID3v2.3 ist seit AP6 verfügbar: `tagx set --id3v23` und App-Einstellung
+  für ältere Player. Standard bleibt ID3v2.4; Formatgrenzen stehen in
+  [id3-schichten.md](../knowledge/id3-schichten.md).
 - ~~Kapitel (CHAP/CTOC bzw. MP4-Chapters) für Hörbücher: eigener Shim-Teil, später.~~
   Erledigt (AP5): `tx_get_chapters`/`tx_set_chapters` im Shim für MP3, MP4 und
   Matroska, `Chapter` im Modell, `tagx chapters`, Kapitel-Abschnitt im Editor;
@@ -341,3 +342,17 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 | 0.16.1  | Datei aus dem Finder öffnen wieder möglich (beim Start mit Datei legte SwiftUI kein Fenster an) — ✅ |
 | 0.17.0  | Verteilung: `install.sh` (notarisiert nach /Applications) und `release.sh` (notarisiertes DMG), public-safe Notary-Profil je Mac, vollständige Third-Party-Lizenzen, READMEs mit Icon und Sicherheitsabschnitt, AVI-Read-only-Fallback repariert — ✅ |
 | 0.21.0  | E-Rechnungs-Anzeige (nur Lesen): ZUGFeRD/Factur-X/XRechnung/Peppol in CII + UBL, Profil aus BT-24, alle Felder mit EN-16931-Bezeichnungen (BT/BG), eigenes Modul `EInvoiceCore`, `tagx invoice`, App-Ansicht + PDF-Tab — ✅ (0.18–0.20 siehe CHANGELOG) |
+
+## Zuständigkeiten der App (2026-09-05)
+
+- `FileEntry.swift`: Originalzustand, Bearbeitungspuffer, Snapshot-Erzeugung und
+  Übernahme von Speicherrückmeldungen. Keine Auswahl-/Fensterverwaltung.
+- `LoadedData.swift`: unveränderliche Backend-Ergebnisse mit Sidecar-Stempeln.
+- `AppModel+Loading.swift`: Reservierung, acht Leser pro Auftrag, frühe Übernahme,
+  Abbruch und Fortschritt. Der Zustand gehört jeweils einem Fenster.
+- `AppFileIO.swift`: gemeinsame Lese-/Schreibadapter und Stempel-Retry. Kein
+  Zugriff auf AppModel oder UserDefaults; die Speichersteuerung übergibt
+  Bild-Sidecar- und ID3-Optionen explizit. Fachliche Formatregeln bleiben im Core.
+- `AppModel.swift`: Auswahl, Fenster, Archive, Speicheraufträge und zentrale
+  Entscheidungen bei Puffer- oder Dateikonflikten. Bestehende Lese-Einstiege
+  delegieren an den IO-Adapter, damit Aufrufer und Tests kompatibel bleiben.

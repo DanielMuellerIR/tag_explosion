@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.0 — 2026-09-05
+
+- FileEntry samt Speicher-Snapshots, geladene Daten, Ladeablauf und Medien-IO
+  aus AppModel in ihre zuständigen Dateien verschoben. IO erhält Schreiboptionen
+  als Parameter und kennt keinen Fensterzustand; Konfliktentscheidungen bleiben
+  zentral im AppModel. Keine Änderung der Format- oder Speicherregeln.
+
 ## 0.45.0 — 2026-09-05
 
 - `tagx info` startet nur die angeforderte JSON- oder Textabfrage.
