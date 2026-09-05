@@ -42,7 +42,7 @@ extension AppModel {
     /// ungültigen Regel (`TagRulesError`).
     func rulePlan(for targets: [FileEntry], document: TagRuleDocument) throws -> [TagRulePlan] {
         let inputs = targets.filter(\.supportsFilenamePatterns).map {
-            TagRuleInput(url: $0.url, kind: $0.kind, fields: $0.patternFields)
+            TagRuleInput(url: $0.url, kind: $0.kind, values: $0.kind == .audio ? TagRuleFields.values(from: $0.properties) : $0.patternFields.mapValues { [$0] })
         }
         return try TagRuleEngine.plan(document, inputs: inputs).filter { !$0.changes.isEmpty }
     }
@@ -57,7 +57,13 @@ extension AppModel {
         for plan in plans where !plan.changes.isEmpty {
             guard let entry = byURL[plan.url] else { continue }
             do {
-                try entry.applyParsedFields(plan.newValues)
+                if entry.kind == .audio {
+                    TagRuleFields.apply(Dictionary(uniqueKeysWithValues: plan.changes.map {
+                        ($0.field, $0.allNewValues)
+                    }), to: &entry.properties)
+                } else {
+                    try entry.applyParsedFields(plan.newValues)
+                }
                 outcome.changed += 1
             } catch {
                 outcome.failed.append("\(entry.url.lastPathComponent): \(error.localizedDescription)")

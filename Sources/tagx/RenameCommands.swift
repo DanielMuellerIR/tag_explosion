@@ -251,12 +251,14 @@ struct Parse: ParsableCommand {
     /// Schreibt die geparsten Werte auf dem bestehenden Weg der Medienart:
     /// Lese-Schnappschuss, No-op-Erkennung, Papierkorb-Sicherung, atomarer
     /// Austausch. Liefert die Zahl der geänderten Felder.
-    static func write(fields parsed: [String: String], to url: URL) throws -> Int {
+    static func write(fields parsed: [String: String], to url: URL, ruleValues: [String: [String]]? = nil, expecting: FileStamp? = nil) throws -> Int {
         switch MediaFormats.kind(of: url) {
         case .audio:
             let snapshot = try FileSnapshot.capture(at: url) { try TagFile.read(at: url) }
             var properties = snapshot.value.properties
-            PatternFields.apply(parsed, to: &properties)
+            if let expecting { try FileStamp.requireUnchanged(expecting, at: url) }
+            if let ruleValues { TagRuleFields.apply(ruleValues, to: &properties) }
+            else { PatternFields.apply(parsed, to: &properties) }
             let before = valueMap(snapshot.value.properties)
             let after = valueMap(properties)
             let changed = Swift.Set(before.keys).union(after.keys)

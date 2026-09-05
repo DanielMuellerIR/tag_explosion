@@ -7,7 +7,7 @@ App (`TagRulesSheet.swift`, `TagRulesActions.swift`).
 ## Aufbau
 
 - **Engine ist eine reine Funktion.** `TagRuleEngine.plan` bekommt je Datei
-  ein flaches Feld-Wörterbuch (`PatternFields.fields(from:)`, Schlüssel wie
+  Wertelisten (`TagRuleFields.values(from:)` für Audio, Schlüssel wie
   `TITLE`) und liefert je Datei die Änderungen alt → neu. Geschrieben wird
   ausschließlich über die bestehenden Wege: CLI über `Parse.write` (derselbe
   Weg wie `tagx parse`), App über `applyParsedFields` in die Puffer und dann
@@ -21,11 +21,19 @@ App (`TagRulesSheet.swift`, `TagRulesActions.swift`).
 
 ## Fallen
 
-- **Nur der erste Wert je Schlüssel.** Das Feld-Wörterbuch kennt bei
-  mehrwertigen Audio-Feldern (zwei GENRE) nur den ersten Wert; ein gesetztes
-  Feld ersetzt beim Schreiben alle Werte des Schlüssels
-  (`PatternFields.apply`). `remove` löscht damit alle Werte — gewollt —,
-  `case`/`trim` auf einem mehrwertigen Feld verlieren die weiteren Werte.
+- **Mehrwertige Audiofelder bleiben Listen.** `trim`, `case` und `replace`
+  bearbeiten jeden Wert einzeln, erhalten Reihenfolge, Duplikate und leere
+  Elemente. `copy` ersetzt das Ziel durch die ganze Quellliste; eine vollständig
+  leere Quelle verändert nichts. `onlyIfEmpty` prüft alle Zielwerte (Whitespace
+  zählt als leer). `set` und `number` ersetzen durch einen Wert; `set` mit leerem
+  Text und `remove` entfernen das Feld. Backend-spezifische Normalisierung
+  leerer Tags bleibt möglich. Bedingungen, Platzhalter und Nummernsortierung
+  verwenden weiterhin den ersten Wert. Regeldateien bleiben Schema 1.
+  Die Vorschau zeigt Listen als JSON-Arrays. CLI-JSON erhält `old`/`new` als
+  ersten Wert und ergänzt bei Mehrwertigkeit oder einem leeren Element
+  `oldValues`/`newValues`; fehlende Listen bedeuten die bisherige Skalarform.
+  Dateinamenmuster bleiben absichtlich einwertig. Andere Medienarten behalten
+  ihre bisherigen Feldadapter (etwa kommaseparierte E-Book-Autoren).
 - **Medienart-Grenzen greifen erst beim Schreiben.** Die Engine setzt auch
   `ALBUM` für ein Bild; erst `PatternFields.apply(_:to: &image)` lehnt den
   Schlüssel ab. CLI meldet das als `FAILED` (Exit 1), die App als „Nicht

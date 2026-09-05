@@ -14,9 +14,8 @@
 //      App über die bestehenden Schreibwege (Sicherung + atomarer Austausch).
 //   4. Textwerkzeuge (Groß-/Kleinschreibung, Trimmen, Platzhalter).
 //
-// Die Engine arbeitet auf dem flachen Feld-Wörterbuch aus `PatternFields`
-// (Schlüssel wie "TITLE", erster Wert je Schlüssel). Ein gesetztes Feld
-// ersetzt beim Schreiben alle bisherigen Werte des Schlüssels.
+// Audio-Regeln erhalten alle Werte. Dateinamen, Bedingungen und Platzhalter
+// verwenden weiterhin den ersten Wert je Schlüssel.
 import Foundation
 
 // MARK: - Datenmodell
@@ -668,13 +667,20 @@ public struct TagRuleInput: Sendable, Equatable {
     public var url: URL
     public var kind: MediaFormats.Kind
     /// Flaches Feld-Wörterbuch (siehe `PatternFields.fields(from:)`).
-    public var fields: [String: String]
+    public var values: [String: [String]]
+    public var fields: [String: String] { values.mapValues { $0.first ?? "" } }
 
     public init(url: URL, kind: MediaFormats.Kind, fields: [String: String]) {
         self.url = url
         self.kind = kind
-        self.fields = fields
+        self.values = fields.mapValues { [$0] }
     }
+    public init(url: URL, kind: MediaFormats.Kind, values: [String: [String]]) {
+        self.url = url
+        self.kind = kind
+        self.values = values
+    }
+
 }
 
 /// Eine geplante Feldänderung: alt → neu. `new` leer heißt „Feld löschen".
@@ -682,12 +688,29 @@ public struct TagFieldChange: Codable, Sendable, Equatable, Hashable {
     public var field: String
     public var old: String
     public var new: String
+    // Optionale Ergänzung zum bisherigen JSON-Vertrag; Skalare bleiben erhalten.
+    public var oldValues: [String]?
+    public var newValues: [String]?
+    public var allOldValues: [String] { oldValues ?? (old.isEmpty ? [] : [old]) }
+    public var allNewValues: [String] { newValues ?? (new.isEmpty ? [] : [new]) }
+    public var oldDisplay: String { Self.display(allOldValues) }
+    public var newDisplay: String { Self.display(allNewValues) }
+    private static func display(_ values: [String]) -> String {
+        guard values.count > 1 || values == [""] else { return values.first ?? "" }
+        return String(data: try! JSONEncoder().encode(values), encoding: .utf8)!
+    }
 
     public init(field: String, old: String, new: String) {
         self.field = field
         self.old = old
         self.new = new
     }
+    public init(field: String, oldValues: [String], newValues: [String]) {
+        self.init(field: field, old: oldValues.first ?? "", new: newValues.first ?? "")
+        self.oldValues = oldValues.count > 1 || oldValues == [""] ? oldValues : nil
+        self.newValues = newValues.count > 1 || newValues == [""] ? newValues : nil
+    }
+
 }
 
 /// Änderungsplan einer Datei. Ohne `changes` ist die Datei unverändert.
@@ -720,31 +743,61 @@ public enum TagRuleEngine {
     /// Aktion `number` betrachtet alle Dateien gemeinsam (Sortierung).
     public static func plan(_ document: TagRuleDocument, inputs: [TagRuleInput]) throws -> [TagRulePlan] {
         try document.validate()
-        var working = inputs.map(\.fields)
+        var working = inputs.map(\.values)
         for rule in document.rules {
             // Betroffene Dateien: Medienart und Bedingung auf dem AKTUELLEN
             // Stand — eine frühere Regel kann die Bedingung erst erfüllen.
             let affected = inputs.indices.filter { index in
-                applies(rule, to: inputs[index], fields: working[index])
+                applies(rule, to: inputs[index], fields: working[index].mapValues { $0.first ?? "" })
             }
             if rule.action == .number {
-                number(rule, inputs: inputs, indices: affected, fields: &working)
+                var flat = working.map { $0.mapValues { $0.first ?? "" } }
+                number(rule, inputs: inputs, indices: affected, fields: &flat)
+                for index in affected { working[index][rule.field] = [flat[index][rule.field] ?? ""] }
                 continue
             }
             for index in affected {
-                try apply(rule, to: &working[index])
+                try applyValues(rule, to: &working[index])
             }
         }
         return inputs.indices.map { index in
-            let before = inputs[index].fields
+            let before = inputs[index].values
             let after = working[index]
             let keys = Set(before.keys).union(after.keys).sorted()
             let changes = keys.compactMap { key -> TagFieldChange? in
-                let old = before[key] ?? ""
-                let new = after[key] ?? ""
-                return old == new ? nil : TagFieldChange(field: key, old: old, new: new)
+                let old = before[key] ?? []
+                let new = after[key] ?? []
+                return old == new ? nil : TagFieldChange(field: key, oldValues: old, newValues: new)
             }
             return TagRulePlan(url: inputs[index].url, kind: inputs[index].kind, changes: changes)
+        }
+    }
+
+    /// Bereinigung arbeitet pro Wert; explizites Setzen ersetzt die Liste.
+    private static func applyValues(_ rule: TagRule, to values: inout [String: [String]]) throws {
+        switch rule.action {
+        case .trim, .case, .replace:
+            let keys = rule.field == "*" ? values.keys.sorted() : [rule.field]
+            for key in keys {
+                guard let current = values[key] else { continue }
+                values[key] = try current.map { value in
+                    var single = [key: value]
+                    try apply(rule, to: &single)
+                    return single[key] ?? ""
+                }
+            }
+        case .copy:
+            let source = values[rule.from ?? ""] ?? []
+            let target = values[rule.field] ?? []
+            if rule.onlyIfEmpty == true,
+               target.contains(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) { return }
+            guard source.contains(where: { !$0.isEmpty }) else { return }
+            values[rule.field] = source
+        case .set:
+            let value = TagRuleText.expandPlaceholders(rule.value ?? "", fields: values.mapValues { $0.first ?? "" })
+            values[rule.field] = value.isEmpty ? nil : [value]
+        case .remove: values[rule.field] = nil
+        case .number: break
         }
     }
 
@@ -1076,6 +1129,22 @@ public enum TagRuleTemplate: String, CaseIterable, Sendable {
             return TagRuleDocument(rules: [
                 TagRule(action: .number, field: "TRACKNUMBER", sortBy: "filename", start: 1, total: true),
             ])
+        }
+    }
+}
+
+/// Audio-Regelfelder sind unabhängig von den einwertigen Dateinamenmustern.
+public enum TagRuleFields {
+    public static func values(from properties: [TagProperty]) -> [String: [String]] {
+        var result: [String: [String]] = [:]
+        for property in properties { result[property.key, default: []].append(property.value) }
+        return result
+    }
+
+    public static func apply(_ values: [String: [String]], to properties: inout [TagProperty]) {
+        for key in values.keys.sorted() {
+            properties.removeAll { $0.key == key }
+            properties += (values[key] ?? []).map { TagProperty(key: key, value: $0) }
         }
     }
 }

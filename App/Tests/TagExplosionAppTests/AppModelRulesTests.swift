@@ -25,6 +25,21 @@ struct AppModelRulesTests {
         return FileEntry(url: url, loaded: .audio(TagData(properties: properties, artworks: [], audio: nil)))
     }
 
+    @Test("App und Core übernehmen dieselben vollständigen Wertelisten")
+    func multipleValues() throws {
+        let entry = FileEntry(url: URL(fileURLWithPath: "/multi.flac"), loaded: .audio(
+            TagData(properties: [TagProperty(key: "ARTIST", value: "Miles"),
+                                 TagProperty(key: "ARTIST", value: " Coltrane ")], artworks: [], audio: nil)))
+        let model = AppModel()
+        let document = TagRuleDocument(rules: [TagRule(action: .trim, field: "*")])
+        let plans = try model.rulePlan(for: [entry], document: document)
+        let core = try TagRuleEngine.plan(document, inputs: [TagRuleInput(url: entry.url, kind: .audio,
+            values: TagRuleFields.values(from: entry.properties))])
+        #expect(plans == core)
+        #expect(model.applyRulePlan(plans, to: [entry]).changed == 1)
+        #expect(TagRuleFields.values(from: entry.properties)["ARTIST"] == ["Miles", "Coltrane"])
+    }
+
     @Test("Plan aus den Puffern, Übernahme macht dirty, unveränderte Einträge bleiben sauber")
     func planAndApplyIntoBuffers() throws {
         let directory = try makeDirectory("rules")

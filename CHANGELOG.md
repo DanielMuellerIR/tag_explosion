@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.41.0 — 2026-09-05
+
+- Audio-Regeln erhalten mehrere Werte pro Feld bei Bereinigung und Kopieren.
+  App und CLI zeigen vollständige Listen in der Vorschau; bestehende Regeldateien
+  und skalare JSON-Felder bleiben kompatibel.
+- CLI-Regelpläne prüfen den Dateistempel vor dem Schreiben; doppelte Eingabepfade
+  erzeugen keine doppelten Aufträge.
+
 ## [0.40.0] — 2026-09-03
 
 Abarbeitung des Code-Reviews vom 2026-09-02 (20 Funde, alle behoben).

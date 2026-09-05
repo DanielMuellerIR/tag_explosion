@@ -92,13 +92,21 @@ struct Apply: ParsableCommand {
 
         // Erst alle Dateien lesen; eine unlesbare Datei landet als Fehler im
         // Bericht und blockiert die anderen nicht.
+        var seen = Swift.Set<URL>()
+        files = files.filter { seen.insert($0).inserted }
+        var stamps: [URL: FileStamp] = [:]
         var items: [Item] = []
         var inputs: [TagRuleInput] = []
         var readErrors: [String: String] = [:]
         for url in files {
             let kind = MediaFormats.kind(of: url) ?? .audio
             do {
-                inputs.append(TagRuleInput(url: url, kind: kind, fields: try readPatternFields(at: url)))
+                let snapshot = try FileSnapshot.capture(at: url) {
+                    if kind == .audio { return TagRuleFields.values(from: try TagFile.read(at: url).properties) }
+                    return try readPatternFields(at: url).mapValues { [$0] }
+                }
+                stamps[url] = snapshot.stamp
+                inputs.append(TagRuleInput(url: url, kind: kind, values: snapshot.value))
             } catch {
                 readErrors[url.path] = Self.describe(error)
                 items.append(Item(file: url.path, kind: kind, changes: [], changed: nil,
@@ -133,7 +141,9 @@ struct Apply: ParsableCommand {
             let url = URL(fileURLWithPath: items[index].file)
             let newValues = Dictionary(uniqueKeysWithValues: items[index].changes.map { ($0.field, $0.new) })
             do {
-                items[index].changed = try Parse.write(fields: newValues, to: url)
+                if let stamp = stamps[url] { try FileStamp.requireUnchanged(stamp, at: url) }
+                let values = Dictionary(uniqueKeysWithValues: items[index].changes.map { ($0.field, $0.allNewValues) })
+                items[index].changed = try Parse.write(fields: newValues, to: url, ruleValues: values, expecting: stamps[url])
             } catch {
                 items[index].error = Self.describe(error)
                 failed = true
@@ -167,8 +177,8 @@ struct Apply: ParsableCommand {
         }
         print("CHANGE \(item.file)")
         for change in item.changes {
-            let target = change.new.isEmpty ? "(remove)" : change.new
-            print("  \(change.field): \(change.old) -> \(target)")
+            let target = change.newDisplay.isEmpty ? "(remove)" : change.newDisplay
+            print("  \(change.field): \(change.oldDisplay) -> \(target)")
         }
     }
 

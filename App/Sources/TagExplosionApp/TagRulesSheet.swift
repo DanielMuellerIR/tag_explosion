@@ -316,12 +316,12 @@ struct TagRulesSheet: View {
                 }
                 .width(min: 90, ideal: 120)
                 TableColumn("Bisher") { row in
-                    Text(row.change.old.isEmpty ? "—" : row.change.old)
+                    Text(row.change.oldDisplay.isEmpty ? "—" : row.change.oldDisplay)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 TableColumn("Neu") { row in
-                    Text(row.change.new.isEmpty ? String(localized: "(entfernen)") : row.change.new)
+                    Text(row.change.newDisplay.isEmpty ? String(localized: "(entfernen)") : row.change.newDisplay)
                         .lineLimit(1)
                 }
             }

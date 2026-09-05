@@ -16,6 +16,61 @@ struct TagRulesTests {
         try TagRulesIO.parse(Data(json.utf8))
     }
 
+    @Test("Bereinigung erhält zusätzliche Werte auch bei unverändertem ersten Wert")
+    func preservesAdditionalValues() throws {
+        let properties = [TagProperty(key: "ARTIST", value: "Miles"),
+                          TagProperty(key: "ARTIST", value: " Coltrane "),
+                          TagProperty(key: "GENRE", value: "Jazz"),
+                          TagProperty(key: "GENRE", value: "")]
+        // Dieser Test trifft schon vor der Korrektur den produktiven Adapter.
+        let input = TagRuleInput(url: URL(fileURLWithPath: "/test.flac"), kind: .audio,
+                                 values: TagRuleFields.values(from: properties))
+        let plan = try TagRuleEngine.plan(doc(TagRule(action: .trim, field: "*")), inputs: [input])
+        #expect(plan[0].changes.count == 1)
+        #expect(plan[0].changes[0].allNewValues == ["Miles", "Coltrane"])
+        var output = properties
+        TagRuleFields.apply(["ARTIST": plan[0].changes[0].allNewValues], to: &output)
+        #expect(TagRuleFields.values(from: output)["GENRE"] == ["Jazz", ""])
+        let chain = try TagRuleEngine.plan(doc(
+            TagRule(action: .trim, field: "*"),
+            TagRule(action: .case, field: "ARTIST", mode: .upper),
+            TagRule(action: .replace, field: "ARTIST", search: "MILES", replacement: "Davis"),
+            TagRule(action: .copy, field: "ALBUMARTIST", from: "ARTIST")), inputs: [input])[0]
+        #expect(chain.changes.first { $0.field == "ALBUMARTIST" }?.allNewValues == ["Davis", "COLTRANE"])
+        let removed = try TagRuleEngine.plan(doc(TagRule(action: .remove, field: "ARTIST")), inputs: [input])[0]
+        #expect(removed.changes[0].allNewValues == [])
+        let set = try TagRuleEngine.plan(doc(TagRule(action: .set, field: "ARTIST", value: "Solo")), inputs: [input])[0]
+        #expect(set.changes[0].allNewValues == ["Solo"])
+    }
+
+    @Test("CLI-Regeln: mehrwertiger FLAC-Roundtrip entspricht dem Core-Plan")
+    func cliRoundtrip() throws {
+        let url = try Fixtures.workingCopy("sample.flac")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let properties = [TagProperty(key: "ARTIST", value: " Miles "),
+                          TagProperty(key: "ARTIST", value: "Coltrane"),
+                          TagProperty(key: "GENRE", value: " Jazz "),
+                          TagProperty(key: "GENRE", value: "Bebop")]
+        try TagFile.write(properties: properties, to: url)
+        let document = doc(TagRule(action: .trim, field: "*"))
+        let rules = url.deletingLastPathComponent().appendingPathComponent("rules.json")
+        try TagRulesIO.save(document, to: rules)
+        let process = Process()
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        process.executableURL = root.appendingPathComponent(".build/debug/tagx")
+        process.arguments = ["apply", rules.path, url.path, "--apply", "--json", "--no-backup"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        let report = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        #expect(process.terminationStatus == 0)
+        #expect(String(decoding: report, as: UTF8.self).contains("newValues"))
+        let values = TagRuleFields.values(from: try TagFile.read(at: url).properties)
+        #expect(values["ARTIST"] == ["Miles", "Coltrane"])
+        #expect(values["GENRE"] == ["Jazz", "Bebop"])
+    }
+
     // MARK: Aktionen
 
     @Test("set: Platzhalter aus anderen Feldern, Breite und Jahr wie bei Mustern")
