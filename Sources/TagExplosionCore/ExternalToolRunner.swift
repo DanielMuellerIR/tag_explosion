@@ -1,7 +1,16 @@
 // Gemeinsame Prozess- und Werkzeugmechanik für die Metadaten-Backends.
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 
 public enum ExternalToolRunner {
+    // Signale dürfen nicht hinter blockierenden IO-Arbeiten auf der globalen
+    // Queue warten, sonst verzögert Last gerade den benötigten Abbruch.
+    private static let signalQueue = DispatchQueue(label: "io.github.tagexplosion.process-signals", qos: .userInitiated)
+
     /// Interner Fehler für Tests, die einen bewusst kurzen Schutz gegen
     /// festhängende Hilfsprozesse einschalten. Die normalen Aufrufe verwenden
     /// keinen Timeout und behalten dadurch ihr bisheriges Verhalten.
@@ -31,66 +40,77 @@ public enum ExternalToolRunner {
         func data() -> Data { collected }
     }
 
-    /// Steuert genau einen optionalen Ablauf-Timer für einen Prozess. Das Lock
-    /// entscheidet atomar, ob der Prozess normal fertig wurde oder der Timer
-    /// ihn beendet; so kann ein bereits beendeter Prozess nicht nachträglich
-    /// als Timeout gelten. `Process` ist nicht als Sendable annotiert; der
-    /// Controller kapselt deshalb seinen einzigen Zugriff aus der Timer-Queue
-    /// und schützt seinen eigenen Zustand mit dem Lock.
-    private final class ProcessTimeoutController: @unchecked Sendable {
-        private let process: Process
+    /// Ein Abbruchsignal gehört einem Leseauftrag, auch wenn er nacheinander
+    /// mehrere Prozesse benötigt. Start und Abbruch sind unter demselben Lock.
+    public final class Cancellation: @unchecked Sendable {
         private let lock = NSLock()
-        private var timer: DispatchSourceTimer?
-        private var didTimeout = false
+        private var pid: pid_t?
+        private var cancelled = false
+        private var timedOut = false
+        private var escalated = false
 
-        init(process: Process) {
-            self.process = process
-        }
-
-        /// Startet den einmaligen Timer erst, nachdem der Prozess wirklich
-        /// läuft. Eine Referenz auf Argumente wird bewusst nicht gespeichert.
-        func start(after timeout: TimeInterval) {
-            let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
-            timer.setEventHandler { [weak self] in
-                self?.terminateIfStillRunning()
+        public init() {}
+        public func cancel() { stop(timeout: false) }
+        fileprivate func stop(timeout: Bool) {
+            lock.lock()
+            if cancelled || (timeout && pid == nil) { lock.unlock(); return }
+            cancelled = true
+            timedOut = timedOut || timeout
+            let running = pid
+            if let running { _ = kill(-running, SIGTERM) }
+            lock.unlock()
+            // Nur nach einem Abbruch, kein Zeitlimit für große Mediendateien.
+            ExternalToolRunner.signalQueue.asyncAfter(deadline: .now() + 0.3) { [self] in
+                lock.lock()
+                defer { lock.unlock() }
+                guard let running, pid == running else { return }
+                _ = kill(-running, SIGKILL)
+                escalated = true
             }
-            timer.schedule(deadline: .now() + timeout)
-
-            lock.lock()
-            self.timer = timer
-            lock.unlock()
-            timer.resume()
         }
-
-        /// Macht den Timer nach einem regulären Prozessende unschädlich und
-        /// meldet, ob er zuvor die Beendigung auslösen musste.
-        func finish() -> Bool {
+        fileprivate func start(_ launch: () throws -> pid_t) throws -> pid_t {
             lock.lock()
-            let timer = self.timer
-            self.timer = nil
-            let didTimeout = self.didTimeout
-            lock.unlock()
-
-            timer?.cancel()
-            return didTimeout
+            defer { lock.unlock() }
+            if cancelled { throw CancellationError() }
+            let child = try launch()
+            pid = child
+            return child
         }
-
-        private func terminateIfStillRunning() {
+        fileprivate func finish() {
             lock.lock()
-            guard timer != nil, process.isRunning else {
+            pid = nil
+            lock.unlock()
+        }
+        fileprivate func reap(_ child: pid_t) throws -> Int32 {
+            while true {
+                lock.lock()
+                // Auch ein Kind ohne offene Pipes muss den Gruppen-Kill bekommen.
+                // Bis dahin reserviert der unreapte Leiter die Prozessgruppen-ID.
+                if cancelled && !escalated {
+                    lock.unlock()
+                    Thread.sleep(forTimeInterval: 0.005)
+                    continue
+                }
+                var status: Int32 = 0
+                let waited = waitpid(child, &status, WNOHANG)
+                let failure = errno
+                if waited == child {
+                    pid = nil // Reaping und PID-Freigabe atomar gegenüber dem Gruppen-Kill.
+                    lock.unlock()
+                    return status
+                }
                 lock.unlock()
-                return
+                if waited == -1 && failure != EINTR {
+                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(failure))
+                }
+                Thread.sleep(forTimeInterval: 0.005)
             }
-            didTimeout = true
-            let timer = self.timer
-            self.timer = nil
-            lock.unlock()
-
-            // Erst den Einmal-Timer freigeben, dann den noch laufenden
-            // Kindprozess beenden. Nach `waitUntilExit()` liefern die beiden
-            // Pipe-Reader dadurch zuverlässig EOF.
-            timer?.cancel()
-            process.terminate()
+        }
+        public func check() throws {
+            lock.lock()
+            defer { lock.unlock() }
+            if timedOut { throw ProcessTimeoutError.exceeded }
+            if cancelled { throw CancellationError() }
         }
     }
 
@@ -129,25 +149,28 @@ public enum ExternalToolRunner {
     static func run(
         _ executable: String,
         _ arguments: [String],
-        processTimeout: TimeInterval? = nil
+        processTimeout: TimeInterval? = nil,
+        cancellation: Cancellation? = nil
     ) throws -> Data {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        process.environment = utf8Environment()
+        let stdinIsOpen = fcntl(STDIN_FILENO, F_GETFD) != -1
         let stdout = Pipe()
         let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        try process.run()
-
-        // Ein einziger Timer schützt den Hänger-Regressionstest. Er wird nach
-        // einem normalen Ende sofort abgebrochen und speichert keine Argumente.
-        let timeoutController = processTimeout.map { timeout in
-            let controller = ProcessTimeoutController(process: process)
-            controller.start(after: timeout)
-            return controller
+        let control = cancellation ?? Cancellation()
+        let child = try control.start {
+            try spawn(executable, arguments, stdout: stdout, stderr: stderr, stdinIsOpen: stdinIsOpen)
         }
+        // Nur die Kinder behalten die Schreibenden; sonst käme niemals EOF.
+        try? stdout.fileHandleForWriting.close()
+        try? stderr.fileHandleForWriting.close()
+        defer { control.finish() }
+        let timer = processTimeout.map { timeout in
+            let timer = DispatchSource.makeTimerSource(queue: signalQueue)
+            timer.setEventHandler { control.stop(timeout: true) }
+            timer.schedule(deadline: .now() + timeout)
+            timer.resume()
+            return timer
+        }
+        defer { timer?.cancel() }
 
         // Niemals zuerst stdout und danach stderr synchron lesen: Schreibt ein
         // Tool beide Pipes über ihren Kernel-Puffer hinaus, würde es beim
@@ -169,24 +192,82 @@ public enum ExternalToolRunner {
             errCollector.readToEnd()
             drainGroup.leave()
         }
-        process.waitUntilExit()
-        let didTimeout = timeoutController?.finish() ?? false
-        // EOF erst nach dem Prozessende abwarten, damit die Fehlerdiagnose die
-        // vollständige stderr-Ausgabe enthält, nicht nur ihren ersten Puffer.
+        // Vor dem Reaping leeren: Solange die PID nicht freigegeben ist,
+        // kann der verzögerte Gruppen-Kill keine wiederverwendete PID treffen.
         drainGroup.wait()
-        if didTimeout {
-            throw ProcessTimeoutError.exceeded
-        }
+        let status = try control.reap(child)
+        timer?.cancel()
+        try control.check()
+        let exitCode = (status & 0x7f) == 0 ? (status >> 8) & 0xff : status & 0x7f
         let outData = outCollector.data()
         let errData = errCollector.data()
-        guard process.terminationStatus == 0 else {
+        guard exitCode == 0 else {
             throw TagError.toolFailed(
                 name: (executable as NSString).lastPathComponent,
-                exitCode: process.terminationStatus,
+                exitCode: exitCode,
                 stderr: ExternalToolText.decodeLossyPlainText(errData)
             )
         }
         return outData
+    }
+
+    /// posix_spawn legt vor exec eine eigene Prozessgruppe an. Ein nachträgliches
+    /// setpgid beim Foundation-Process wäre ein Rennen gegen dessen exec.
+    private static func spawn(_ executable: String, _ arguments: [String], stdout: Pipe, stderr: Pipe, stdinIsOpen: Bool) throws -> pid_t {
+        #if canImport(Darwin)
+        var actions: posix_spawn_file_actions_t?
+        var attributes: posix_spawnattr_t?
+        #else
+        var actions = posix_spawn_file_actions_t()
+        var attributes = posix_spawnattr_t()
+        #endif
+        guard posix_spawn_file_actions_init(&actions) == 0 else { throw CocoaError(.fileReadUnknown) }
+        defer { posix_spawn_file_actions_destroy(&actions) }
+        guard posix_spawnattr_init(&attributes) == 0 else { throw CocoaError(.fileReadUnknown) }
+        defer { posix_spawnattr_destroy(&attributes) }
+        func require(_ result: Int32) throws {
+            if result != 0 { throw NSError(domain: NSPOSIXErrorDomain, code: Int(result)) }
+        }
+        // Geschlossene Standard-FDs können von Pipe() neu vergeben werden.
+        // Sichere Quell-FDs >= 3 verhindern Überschreiben durch die dup2-Aktionen.
+        let outputFD = fcntl(stdout.fileHandleForWriting.fileDescriptor, F_DUPFD_CLOEXEC, 3)
+        guard outputFD >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        defer { close(outputFD) }
+        let errorFD = fcntl(stderr.fileHandleForWriting.fileDescriptor, F_DUPFD_CLOEXEC, 3)
+        guard errorFD >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        defer { close(errorFD) }
+        if stdinIsOpen {
+            try require(posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDIN_FILENO))
+        } else {
+            try require(posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0))
+        }
+        try require(posix_spawn_file_actions_adddup2(&actions, outputFD, STDOUT_FILENO))
+        try require(posix_spawn_file_actions_adddup2(&actions, errorFD, STDERR_FILENO))
+        let descriptors = [stdout.fileHandleForReading, stdout.fileHandleForWriting,
+                           stderr.fileHandleForReading, stderr.fileHandleForWriting].map(\.fileDescriptor)
+        for descriptor in Set(descriptors + [outputFD, errorFD]) where descriptor > STDERR_FILENO {
+            try require(posix_spawn_file_actions_addclose(&actions, descriptor))
+        }
+        try require(posix_spawnattr_setpgroup(&attributes, 0))
+        var flags = Int16(POSIX_SPAWN_SETPGROUP)
+        #if canImport(Darwin)
+        flags |= Int16(POSIX_SPAWN_CLOEXEC_DEFAULT)
+        #endif
+        try require(posix_spawnattr_setflags(&attributes, flags))
+        let argv = ([executable] + arguments).map { strdup($0) } + [nil]
+        let environment = utf8Environment().map { strdup($0.key + "=" + $0.value) } + [nil]
+        defer {
+            for pointer in argv { free(pointer) }
+            for pointer in environment { free(pointer) }
+        }
+        var child: pid_t = 0
+        let result = argv.withUnsafeBufferPointer { args in
+            environment.withUnsafeBufferPointer { env in
+                posix_spawn(&child, executable, &actions, &attributes, args.baseAddress!, env.baseAddress!)
+            }
+        }
+        try require(result)
+        return child
     }
 
     /// Externes Programm über eine Kandidatenliste finden: Einträge mit "/"

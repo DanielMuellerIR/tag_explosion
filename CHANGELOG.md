@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.45.0 — 2026-09-05
+
+- `tagx info` startet nur die angeforderte JSON- oder Textabfrage.
+- Die MediaInfo-Ansicht teilt identische Leseaufträge und nutzt einen nach
+  Dateistempel invalidierten Cache (acht Berichte, acht MiB Textdaten).
+- Abbruch beendet den eigenen Abonnenten sofort; beim letzten Abonnenten
+  wird die Prozessgruppe mit SIGTERM, nötigenfalls SIGKILL beendet. Auch
+  geerbte Ausgabepipes blockieren den Abschluss dann nicht mehr.
+
 ## 0.44.1 — 2026-09-05
 
 - Gemeinsame Prozessausführung, Werkzeugauflösung und Byte-Dekodierung aus

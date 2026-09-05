@@ -30,13 +30,8 @@ struct MediaInfoTab: View {
             errorText = nil
             let target = url
             do {
-                let loaded = try await Task.detached(priority: .userInitiated) {
-                    try MediaInfoReader.read(url: target)
-                }.value
-                // `.task(id:)` bricht den alten View-Task beim Dateiwechsel
-                // ab, ein `Task.detached` läuft jedoch eigenständig weiter.
-                // Nach dem Await deshalb vor jeder State-Zuweisung prüfen,
-                // damit ein später alter Report nicht die neue Datei ersetzt.
+                let loaded = try await MediaInfoCache.shared.read(url: target)
+                // Auch bei geteilten Anfragen zählt ausschließlich die aktive Auswahl.
                 try Task.checkCancellation()
                 report = loaded
             } catch is CancellationError {

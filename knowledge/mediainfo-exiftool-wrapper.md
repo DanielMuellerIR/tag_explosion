@@ -54,11 +54,35 @@
 - Kaputtes oder strukturell falsches MediaInfo-JSON ist ein Fehler, kein
   erfolgreicher Bericht mit null Tracks. stdout und stderr externer Werkzeuge
   immer gleichzeitig leeren, damit keine volle Pipe den Prozess blockiert.
-- `mediainfo <datei>` (Textform) ist die beste Roh-Ansicht für Menschen —
-  beides einsammeln (JSON strukturiert + Text zum Kopieren).
-- `MediaInfoTab` liest in einem abgetrennten Hintergrund-Task. Nach dessen
-  Ergebnis muss der SwiftUI-Task erneut auf Abbruch geprüft werden; sonst kann
-  ein alter langsamer Report nach einem Dateiwechsel den neuen Tab ersetzen.
+- Die App liest JSON plus Text zum Kopieren. `tagx info` fordert nur Text
+  oder bei `--json` nur JSON an (jeweils ein Werkzeugprozess).
+- `MediaInfoTab` nutzt `MediaInfoCache`: Schlüssel aus kanonischem Pfad,
+  FileStamp und Ausgabeart; höchstens acht Berichte/8 MiB Textdaten, älteste
+  Benutzung zuerst verdrängt. Neue Stempel verwerfen alte Berichte.
+  Identische laufende Anfragen teilen einen Prozessauftrag, besitzen aber
+  getrennte Continuations: Abbruch beendet den eigenen Aufrufer sofort; erst
+  der letzte Abonnent beendet den gemeinsamen Werkzeugprozess.
+- `ExternalToolRunner` startet über `posix_spawn` eine eigene Prozessgruppe.
+  stdout und stderr werden parallel geleert. Abbruch sendet SIGTERM an die
+  Gruppe, nach 300 ms SIGKILL. Auch Nachkommen mit geerbten Pipes werden so
+  beendet. Reaping und Freigabe der PID erfolgen unter dem Signal-Lock, damit
+  kein verzögertes Signal eine wiederverwendete PID treffen kann. Bei Abbruch
+  bleibt der Leiter bis zum Gruppen-SIGKILL unreaped, auch wenn Nachkommen
+  ihre Pipes bereits geschlossen haben. Eine eigene
+  Queue verhindert, dass IO-Last die Abbruchsignale hinten anstellt.
+  Normale produktive Aufrufe haben weiterhin kein pauschales Zeitlimit.
+- Byte-Dekodierung liegt in `ExternalToolText`; Prozessrunner und andere
+  Backends benötigen dadurch keine MediaInfo-Parserlogik.
+
+### Messung 2026-09-05
+
+`MediaInfoCacheTests.demandAndCache` vergleicht die bisherige Doppelabfrage
+(`both`) mit Textbedarf und Cache. Fake-Werkzeug mit 50 ms Pause pro Aufruf,
+Einzelmessung im vollständigen Core-Testlauf: beide Ausgaben 0,227 s, nur Text
+0,065 s, Cache 0,000179 s. Prozessanzahl und Ausgabeidentität sind die stabilen
+Nachweise (2 → 1 bzw. 0); diese Zeiten gelten nicht allgemein für reale Medien.
+Der forkende Pipe-Test brauchte vor der Prozessgruppen-Korrektur 2,002 s nach
+Abbruch; danach 0,508 s unter voller Testlast (isoliert etwa 0,35 s).
 
 ## exiftool (13.55)
 

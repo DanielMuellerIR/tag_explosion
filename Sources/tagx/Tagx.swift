@@ -405,7 +405,7 @@ struct Info: ParsableCommand {
 
     func run() throws {
         let url = try resolveFile(file)
-        let report = try MediaInfoReader.read(url: url)
+        let report = try MediaInfoReader.read(url: url, output: json ? .json : .text)
         if json {
             try printJSON(report.tracks)
         } else {

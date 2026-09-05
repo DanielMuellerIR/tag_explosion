@@ -58,14 +58,22 @@ public enum MediaInfoReader {
 
     public static func toolArgument(for url: URL) -> String { ExternalToolRunner.toolArgument(for: url) }
 
-    /// Liest den kompletten technischen Report einer Datei.
-    public static func read(url: URL) throws -> MediaInfoReport {
-        let exe = try locateExecutable()
+    public enum Output: Sendable, Equatable { case both, json, text }
+
+    /// Nur die angeforderte Darstellung startet einen Prozess. App-Aufrufer
+    /// verwenden `MediaInfoCache` für Zusammenführung und Abbruch.
+    public static func read(url: URL, output: Output = .both,
+                            cancellation: ExternalToolRunner.Cancellation? = nil) throws -> MediaInfoReport {
+        try read(url: url, output: output, executable: locateExecutable(), cancellation: cancellation)
+    }
+
+    static func read(url: URL, output: Output, executable: String,
+                     cancellation: ExternalToolRunner.Cancellation? = nil) throws -> MediaInfoReport {
         let path = toolArgument(for: url)
-        let jsonData = try ExternalToolRunner.run(exe, ["--Output=JSON", path])
-        let textData = try ExternalToolRunner.run(exe, [path])
-        let tracks = try parseTracks(jsonData: jsonData)
-        let text = decodeLossyPlainText(textData)
+        let tracks = output == .text ? [] : try parseTracks(jsonData:
+            ExternalToolRunner.run(executable, ["--Output=JSON", path], cancellation: cancellation))
+        let text = output == .json ? "" : decodeLossyPlainText(try
+            ExternalToolRunner.run(executable, [path], cancellation: cancellation))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return MediaInfoReport(tracks: tracks, text: text)
     }
