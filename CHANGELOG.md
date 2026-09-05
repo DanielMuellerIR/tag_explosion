@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.2 — 2026-09-05
+
+- Der MediaInfo-Abbruchtest lässt seinem gesteuerten Leser unter paralleler
+  CI-Last mehr Zeit und gibt ihn auch bei einer fehlgeschlagenen Voraussetzung
+  frei. Das Verhalten der App bleibt unverändert.
+
 ## 0.46.1 — 2026-09-05
 
 - Laufende Speicheraufträge sperren konkurrierende Entfernen-/Import-/Schließen-

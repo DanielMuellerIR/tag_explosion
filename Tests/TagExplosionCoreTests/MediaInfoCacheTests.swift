@@ -98,18 +98,26 @@ struct MediaInfoCacheTests {
         try Data("a".utf8).write(to: a)
         try Data("b".utf8).write(to: b)
         let gate = DispatchSemaphore(value: 0)
+        // Diese Frist verhindert nur einen hängenden Test. Unter paralleler
+        // CI-Last kann schon die Fortsetzung des Test-Tasks mehrere Sekunden
+        // warten; der Leser darf deshalb nicht nach fünf Sekunden fertig sein.
         let cache = MediaInfoCache { url, _, cancellation in
-            guard gate.wait(timeout: .now() + 5) == .success else { throw CocoaError(.fileReadUnknown) }
+            guard gate.wait(timeout: .now() + 60) == .success else { throw CocoaError(.fileReadUnknown) }
             try cancellation.check()
             return MediaInfoReport(tracks: [], text: url.lastPathComponent)
         }
         let first = Task { try await cache.read(url: a) }
         let second = Task { try await cache.read(url: a) }
+        defer {
+            first.cancel()
+            second.cancel()
+            gate.signal()
+        }
         for _ in 0..<2000 {
             if await cache.subscriberCount == 2 { break }
             try await Task.sleep(for: .milliseconds(1))
         }
-        #expect(await cache.subscriberCount == 2)
+        try #require(await cache.subscriberCount == 2)
         first.cancel()
         // Ohne Freigabe des gemeinsamen Lesers muss der einzelne Abonnent enden.
         do { _ = try await first.value; Issue.record("Abgebrochener Abonnent bekam Erfolg") }
