@@ -808,6 +808,13 @@ final class AppModel {
     /// Öffnen-Dialog). Der Zähler hält den Fortschrittsindikator sichtbar,
     /// bis auch der letzte Auftrag fertig ist.
     private var loadingOperationCount = 0
+    private var loadingGeneration = 0
+    private(set) var loadingCompleted = 0
+    private(set) var loadingTotal = 0
+
+    /// Laufende Leser dürfen fertig werden; weitere Starts und Übernahmen enden.
+    func cancelLoading() { loadingGeneration += 1 }
+
     /// URLs werden noch vor dem ersten Hintergrundzugriff reserviert. So kann
     /// ein zweiter Auftrag dieselbe Datei nicht parallel ein zweites Mal laden.
     private var openingURLs: Set<URL> = []
@@ -890,6 +897,8 @@ final class AppModel {
     /// Konfliktprüfung für diesen Eintrag).
     func open(urls: [URL],
               read: @escaping @Sendable (URL, MediaKind) async throws -> (LoadedData, FileStamp?)) async {
+        if loadingOperationCount == 0 { loadingCompleted = 0; loadingTotal = 0 }
+        let generation = loadingGeneration
         loadingOperationCount += 1
         defer { loadingOperationCount -= 1 }
 
@@ -897,6 +906,8 @@ final class AppModel {
         let candidates = await Task.detached(priority: .userInitiated) {
             MediaFormats.expandMediaFiles(urls)
         }.value
+
+        guard generation == loadingGeneration, !Task.isCancelled else { return }
 
         // Bereits geladene UND gerade ladende Dateien in einem MainActor-Schritt
         // vergleichen und reservieren. Zwischen Prüfung und Eintragen kann kein
@@ -908,62 +919,54 @@ final class AppModel {
         guard !newFiles.isEmpty else { return }
         defer { openingURLs.subtract(newFiles) }
 
-        // Tags parallel lesen (begrenzte Nebenläufigkeit, damit auch riesige
-        // Ordner nicht zu viele offene Dateien erzeugen), Reihenfolge stabil.
-        let results = await Self.readFiles(newFiles, read: read)
-
+        loadingTotal += newFiles.count
         var failures: [String] = []
-        for (url, result) in results {
-            switch result {
-            case .success(let (loaded, stamp)):
-                entries.append(FileEntry(url: url, loaded: loaded, stamp: stamp))
-            case .failure:
-                failures.append(url.lastPathComponent)
-            }
-        }
-        if selection.isEmpty, let first = entries.first { selection = [first.url] }
-        if !failures.isEmpty {
-            alertMessage = String(localized: "Nicht lesbar (Format unbekannt?):") + "\n" + failures.joined(separator: "\n")
-        }
-    }
-
-    /// Liest maximal acht Dateien gleichzeitig. Der Rückgabepuffer wird über
-    /// den Eingabeindex sortiert, damit die Auswahl im Finder stabil bleibt.
-    nonisolated private static func readFiles(
-        _ urls: [URL],
-        read: @escaping @Sendable (URL, MediaKind) async throws -> (LoadedData, FileStamp?)
-    ) async -> [(URL, Result<(LoadedData, FileStamp?), Error>)] {
-        await withTaskGroup(
-            of: (Int, URL, Result<(LoadedData, FileStamp?), Error>).self,
-            returning: [(URL, Result<(LoadedData, FileStamp?), Error>)].self
-        ) { group in
-            let maxConcurrent = 8
-            var nextIndex = 0
-            func addNext() {
-                guard nextIndex < urls.count else { return }
-                let index = nextIndex
-                let url = urls[index]
-                nextIndex += 1
+        var settled = Set<Int>()
+        var selectionCursor = 0
+        // Jeder Abschluss ist ein kleines Paket. Bereits sichtbare Einträge
+        // bleiben dieselben Objekte, damit Bearbeitungspuffer erhalten bleiben.
+        let positions = Dictionary(uniqueKeysWithValues: newFiles.enumerated().map { ($1, $0) })
+        await withTaskGroup(of: (Int, Result<(LoadedData, FileStamp?), Error>).self) { group in
+            var next = 0
+            @MainActor func addNext() {
+                guard next < newFiles.count, generation == loadingGeneration, !Task.isCancelled else { return }
+                let index = next
+                let url = newFiles[index]
+                next += 1
                 group.addTask {
-                    let kind = MediaKind.forURL(url) ?? .audio
-                    do {
-                        // Der Read-only-Fallback für Container ohne TagLib-Leser
-                        // steckt in `readLoaded`, damit Öffnen, Neuladen und
-                        // Speichern-Read-back dieselbe Regel verwenden.
-                        return (index, url, .success(try await read(url, kind)))
-                    } catch {
-                        return (index, url, .failure(error))
-                    }
+                    do { return (index, .success(try await read(url, MediaKind.forURL(url) ?? .audio))) }
+                    catch { return (index, .failure(error)) }
                 }
             }
-            for _ in 0..<min(maxConcurrent, urls.count) { addNext() }
-            var buffer: [(Int, URL, Result<(LoadedData, FileStamp?), Error>)] = []
-            for await item in group {
-                buffer.append(item)
+            for _ in 0..<min(8, newFiles.count) { addNext() }
+            for await (index, result) in group {
+                guard generation == loadingGeneration, !Task.isCancelled else {
+                    group.cancelAll()
+                    continue
+                }
+                loadingCompleted += 1
+                let url = newFiles[index]
+                switch result {
+                case .success(let (loaded, stamp)):
+                    let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
+                    let insertion = entries.firstIndex { (positions[$0.url] ?? -1) > index } ?? entries.endIndex
+                    entries.insert(entry, at: insertion)
+
+                case .failure: failures.append(url.lastPathComponent)
+                }
+                settled.insert(index)
+                // Automatische Auswahl erst am ersten lesbaren Eingabepfad.
+                // Eine zwischenzeitliche Benutzerauswahl hat Vorrang.
+                while selection.isEmpty, settled.contains(selectionCursor) {
+                    let candidate = newFiles[selectionCursor]
+                    if entries.contains(where: { $0.url == candidate }) { selection = [candidate] }
+                    selectionCursor += 1
+                }
                 addNext()
             }
-            buffer.sort { $0.0 < $1.0 }
-            return buffer.map { ($0.1, $0.2) }
+        }
+        if !failures.isEmpty {
+            alertMessage = String(localized: "Nicht lesbar (Format unbekannt?):") + "\n" + failures.joined(separator: "\n")
         }
     }
 

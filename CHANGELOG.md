@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.42.0 — 2026-09-05
+
+- Öffnen zeigt fertige Einträge während weitere Leser arbeiten. Dateizähler
+  und Abbruch stehen unter der Dateiliste. Laufende Leser dürfen auslaufen;
+  weitere Starts enden, Reservierungen werden anschließend freigegeben.
+- Eingabereihenfolge, vorhandene Puffer und Benutzerauswahl bleiben erhalten.
+
 ## 0.41.0 — 2026-09-05
 
 - Audio-Regeln erhalten mehrere Werte pro Feld bei Bereinigung und Kopieren.

@@ -288,12 +288,19 @@ struct ContentView: View {
                     description: Text("Mediendateien hierher ziehen\noder mit ⌘O öffnen")
                 )
             }
+
+        }
+        .safeAreaInset(edge: .bottom) {
             if model.isLoading {
-                ProgressView("Lade …")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.regularMaterial)
+                HStack {
+                    ProgressView(value: Double(model.loadingCompleted), total: Double(max(1, model.loadingTotal)))
+                    Text("\(model.loadingCompleted) / \(model.loadingTotal)")
+                        .monospacedDigit()
+                    Button("Abbrechen") { model.cancelLoading() }
+                }.padding().background(.regularMaterial)
             }
         }
+
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
