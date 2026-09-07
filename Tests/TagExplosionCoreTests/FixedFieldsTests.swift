@@ -352,7 +352,11 @@ struct FixedFieldsTests {
 
     @Test("Sidecar <name>.lrc neben der Datei: anlegen, lesen, ersetzen, löschen")
     func sidecar() throws {
-        let media = try Fixtures.workingCopy("sample.flac")
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Der Sidecar-Schreibweg benötigt keine Medienbytes und kein ffmpeg.
+        let media = root.appendingPathComponent("sample.flac")
         let sidecar = LRC.sidecarURL(for: media)
         #expect(sidecar.lastPathComponent == "sample.lrc")
         #expect(try LRC.loadSidecar(for: media) == nil)
@@ -369,6 +373,31 @@ struct FixedFieldsTests {
         }
     }
 
+
+    @Test("LRC: bekannte Abwesenheit schützt vor fremdem Anlegen, bekannter Stand vor Löschen",
+          arguments: [false, true])
+    func sidecarExistenceConflicts(clear: Bool) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let media = root.appendingPathComponent("sample.flac")
+        let sidecar = LRC.sidecarURL(for: media)
+        let original = [SyncedLyricLine(milliseconds: 0, text: "Fremd")]
+        let replacement = clear ? [] : [SyncedLyricLine(milliseconds: 0, text: "Neu")]
+        let absent = SidecarState.current(of: sidecar)
+        try LRC.writeSidecar(original, for: media, expecting: absent)
+        let bytes = try Data(contentsOf: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try LRC.writeSidecar(replacement, for: media, expecting: absent)
+        }
+        #expect(try Data(contentsOf: sidecar) == bytes)
+        let present = SidecarState.current(of: sidecar)
+        try FileManager.default.removeItem(at: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try LRC.writeSidecar(replacement, for: media, expecting: present)
+        }
+        #expect(!FileManager.default.fileExists(atPath: sidecar.path))
+    }
 
     @Test("supportsLyrics gilt nur für TagLib-Audio/Video, nicht für Bilder, Dokumente oder Unbekanntes")
     func lyricsCapabilityIsBoundToAudio() {

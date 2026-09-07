@@ -191,11 +191,11 @@ struct LyricsSet: ParsableCommand {
             // Stempel der Sidecar VOR dem Vergleich erheben: Ändert ein anderes
             // Programm die .lrc zwischen Lesen und Austausch, bricht der
             // Schreibweg ab, statt dessen Änderung zu überschreiben.
-            let sidecarStamp = FileStamp.current(of: sidecarURL)
+            let sidecarState = SidecarState.current(of: sidecarURL)
             if try LRC.loadSidecar(for: url) == syncedLines {
                 messages.append("sidecar unchanged")
             } else {
-                try LRC.writeSidecar(syncedLines, for: url, expecting: sidecarStamp)
+                try LRC.writeSidecar(syncedLines, for: url, expecting: sidecarState)
                 messages.append("\(syncedLines.count) synchronized line(s) → \(sidecarURL.lastPathComponent)")
             }
         }
@@ -287,9 +287,9 @@ struct LyricsClear: ParsableCommand {
         }
         // Eine Sidecar kann auch neben einem ID3v2-Träger liegen
         // (`lyrics set --sidecar`); clear räumt beide Speicherorte.
-        let sidecarStamp = FileStamp.current(of: LRC.sidecarURL(for: url))
+        let sidecarState = SidecarState.current(of: LRC.sidecarURL(for: url))
         if try LRC.loadSidecar(for: url) != nil {
-            try LRC.writeSidecar([], for: url, expecting: sidecarStamp)
+            try LRC.writeSidecar([], for: url, expecting: sidecarState)
             messages.append("sidecar removed")
         }
         print("OK \(url.lastPathComponent): " + (messages.isEmpty ? "no lyrics to remove" : messages.joined(separator: ", ")))

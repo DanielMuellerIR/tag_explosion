@@ -18,7 +18,7 @@ enum AppFileIO {
                 // nicht — sie gilt dann als leer. Ihr Stempel wandert mit,
                 // damit das Speichern eine fremde Änderung erkennt.
                 if !data.supportsSyncedLyrics, FixedFields.supportsLyrics(url) {
-                    sidecars.lrcStamp = LRC.sidecarStamp(for: url)
+                    sidecars.lrcState = SidecarState.current(of: LRC.sidecarURL(for: url))
                     if let sidecar = try? LRC.loadSidecar(for: url) {
                         data.syncedLyrics = sidecar
                     }
@@ -165,7 +165,7 @@ enum AppFileIO {
             // prüft ihren eigenen Lesestempel.
             if !audio.mediaChanged {
                 if let lines = audio.syncedLyrics {
-                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp)
+                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcState)
                 }
                 if let nfo = audio.nfo { try writeVideoNFO(nfo) }
                 return try readStamped(url: url, kind: kind)
@@ -207,7 +207,7 @@ enum AppFileIO {
             // vor dem ersten Austausch.
             if sidecarLines != nil {
                 let sidecarURL = LRC.sidecarURL(for: url)
-                try FileStamp.requireUnchanged(audio.lrcStamp, at: sidecarURL)
+                try audio.lrcState.requireUnchanged(at: sidecarURL)
                 // Eine noch fehlende Sidecar hat nichts zu sichern (backUp
                 // überspringt sie).
                 try TrashBackup.shared.backUp(sidecarURL, reason: BackupReason.sidecar)
@@ -225,7 +225,7 @@ enum AppFileIO {
             var completed = [url.lastPathComponent]
             do {
                 if let lines = sidecarLines {
-                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcStamp, backUp: false)
+                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcState, backUp: false)
                     completed.append(LRC.sidecarURL(for: url).lastPathComponent)
                 }
                 if let nfo = audio.nfo { try writeVideoNFO(nfo, backUp: false) }

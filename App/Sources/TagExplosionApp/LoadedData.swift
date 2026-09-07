@@ -6,9 +6,9 @@ import TagExplosionCore
 /// Sidecars, die zu einem Audio-/Video-Eintrag gehören und beim Lesen mit
 /// erhoben werden. Sie hängen am selben Namensstamm wie das Medium.
 struct AudioSidecars: Sendable, Equatable {
-    /// Stempel der `<name>.lrc` beim Lesen; nil = keine Sidecar. Beim
+    /// Zustand der `<name>.lrc` beim Lesen, einschließlich Abwesenheit. Beim
     /// Speichern wird dagegen geprüft (fremde Änderung → Konflikt).
-    var lrcStamp: FileStamp? = nil
+    var lrcState: SidecarState = .absent
     /// Kodi-NFO neben einem Video; nil = keine NFO daneben.
     var nfo: NFOSidecarReading? = nil
 

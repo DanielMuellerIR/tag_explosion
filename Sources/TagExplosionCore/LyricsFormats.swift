@@ -169,23 +169,32 @@ public enum LRC {
     /// Sidecars wandern vorher in den Papierkorb (abgesicherter Modus) und
     /// werden atomar ersetzt; eine neue entsteht exklusiv.
     ///
-    /// `expecting` ist der Stempel der Sidecar, wie er beim Lesen war (nil =
-    /// keine Sidecar vorhanden oder kein bekannter Ausgangsstand): Hat ein
-    /// anderes Programm die `.lrc` seither geändert, bricht der Austausch mit
-    /// `fileChangedOnDisk` ab — genauso wie beim Medium selbst. Eine
-    /// inzwischen fremd angelegte Sidecar fängt der exklusive Anlege-Weg ab.
-    /// `backUp: false` überspringt die Papierkorb-Sicherung, wenn der Aufrufer
-    /// sie schon vorher erledigt hat (zweiphasiges Speichern in der App).
+    /// Der Stempel-Einstieg bleibt für bestehende Aufrufer erhalten. nil heißt
+    /// hier ausdrücklich „ohne bekannten Lesestand“. Neue Aufrufer reichen
+    /// `SidecarState.absent` weiter, wenn beim Lesen keine Sidecar existierte.
     public static func writeSidecar(_ lines: [SyncedLyricLine], for mediaURL: URL,
                                     expecting stamp: FileStamp? = nil,
                                     backUp: Bool = true) throws {
+        try writeSidecar(lines, for: mediaURL,
+                         expecting: stamp.map(SidecarState.present) ?? .unknown, backUp: backUp)
+    }
+
+    /// Prüft auch fremdes Anlegen und Löschen vor Sicherung und Austausch.
+    /// `backUp: false` gilt nur nach vorheriger Sicherung durch den Aufrufer.
+    public static func writeSidecar(_ lines: [SyncedLyricLine], for mediaURL: URL,
+                                    expecting state: SidecarState,
+                                    backUp: Bool = true) throws {
         try validate(lines)
         let url = sidecarURL(for: mediaURL)
-        let exists = FileManager.default.fileExists(atPath: url.path)
+        let observed = state == .unknown ? SidecarState.current(of: url) : state
+        try observed.requireUnchanged(at: url)
+        let stamp: FileStamp?
+        if case .present(let value) = observed { stamp = value } else { stamp = nil }
+        let exists = stamp != nil
         if lines.isEmpty {
             guard exists else { return }
-            try FileStamp.requireUnchanged(stamp, at: url)
             if backUp { try TrashBackup.shared.backUp(url) }
+            try observed.requireUnchanged(at: url)
             try FileManager.default.removeItem(at: url)
             return
         }
@@ -197,7 +206,6 @@ public enum LRC {
             guard try load(from: temp).lines == lines else { throw TagError.saveFailed(path: url.path) }
         }
         if exists {
-            try FileStamp.requireUnchanged(stamp, at: url)
             if backUp { try TrashBackup.shared.backUp(url) }
             try AtomicFileRewrite.run(url: url, expecting: stamp, mutate: mutate, validate: validate)
         } else {

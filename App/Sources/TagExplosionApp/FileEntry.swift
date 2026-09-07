@@ -150,9 +150,9 @@ final class FileEntry: Identifiable {
         /// nil = unverändert (nur ID3v2 speichert eine Sprache).
         var lyricsLanguage: String?
         var original: TagData
-        /// Stempel der `<name>.lrc` beim Lesen (nil = keine Sidecar). Der
+        /// Zustand der `<name>.lrc` beim Lesen (auch ihre Abwesenheit). Der
         /// Schreibweg prüft ihn unmittelbar vor dem Austausch der Sidecar.
-        var lrcStamp: FileStamp? = nil
+        var lrcState: SidecarState = .absent
         /// Geänderte Felder der NFO neben einem Video samt Lesestand;
         /// nil = NFO unverändert oder keine vorhanden.
         var nfo: NFOSnapshot? = nil
@@ -171,7 +171,7 @@ final class FileEntry: Identifiable {
         /// Medium). Ohne das liefe die Person in denselben Konflikt erneut.
         func ignoringSidecarStamps() -> AudioSnapshot {
             var copy = self
-            copy.lrcStamp = nil
+            copy.lrcState = .unknown
             copy.nfo?.stamp = nil
             return copy
         }
@@ -468,7 +468,7 @@ final class FileEntry: Identifiable {
                 syncedLyrics: syncedLyrics != original.syncedLyrics ? syncedLyrics : nil,
                 lyricsLanguage: lyricsLanguage != original.lyricsLanguage ? lyricsLanguage : nil,
                 original: original,
-                lrcStamp: audioSidecars.lrcStamp,
+                lrcState: audioSidecars.lrcState,
                 nfo: videoNFOFields != videoNFOOriginal
                     ? audioSidecars.nfo.map {
                         NFOSnapshot(url: $0.url, fields: videoNFOFields,

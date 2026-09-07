@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.9 — 2026-09-08
+
+- Lyrics-Sidecars erkennen auch fremdes Anlegen oder Löschen seit dem Lesen.
+  App und CLI unterscheiden bekannte Abwesenheit vom bewusst ungeprüften
+  Überschreiben. Vorab erkannte Konflikte verhindern Änderungen an beiden Dateien.
+- XMP und LRC teilen den Typ für den Sidecar-Lesestand; der bisherige
+  LRC-Schreibaufruf mit optionalem Dateistempel bleibt verfügbar.
+
 ## 0.46.8 — 2026-09-08
 
 - Core- und CLI-Konflikttests verwenden dieselbe Hilfe für den atomaren

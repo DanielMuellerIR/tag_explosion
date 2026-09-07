@@ -130,27 +130,31 @@ struct LyricsEntryTests {
     }
 
     @Test("FLAC: eine fremd geänderte Sidecar wird beim Speichern erkannt, nicht überschrieben",
-          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
-    func foreignSidecarChangeIsDetected() async throws {
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"),
+          arguments: [false, true], [false, true])
+    func foreignSidecarChangeIsDetected(existed: Bool, mediaChanged: Bool) async throws {
         let url = try MediaTestFixtures.workingCopy("sample.flac")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let sidecar = LRC.sidecarURL(for: url)
-        try LRC.writeSidecar(lines, for: url)
+        if existed { try LRC.writeSidecar(lines, for: url) }
+        let mediaBytes = try Data(contentsOf: url)
         let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
         let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
-        #expect(entry.syncedLyrics == lines)
+        #expect(entry.syncedLyrics == (existed ? lines : []))
 
         // Ein anderes Programm schreibt die Sidecar um (andere Größe → anderer Stempel).
         let foreign = [SyncedLyricLine(milliseconds: 0, text: "Fremde Fassung, deutlich länger")]
         try Data(LRC.render(foreign).utf8).write(to: sidecar)
 
         entry.syncedLyrics = lines + [SyncedLyricLine(milliseconds: 2000, text: "Neu")]
+        if mediaChanged { entry.setSingleValue("TITLE", "Neue Medien-Tags") }
         let model = AppModel()
         #expect(await model.save(entry: entry) == false)
         #expect(entry.lastError?.contains("changed on disk") == true, Comment(rawValue: entry.lastError ?? ""))
         #expect(model.pendingStaleWrite != nil)
         // Die fremde Fassung liegt unverändert auf der Platte.
         #expect(try LRC.loadSidecar(for: url) == foreign)
+        #expect(try Data(contentsOf: url) == mediaBytes)
 
         // Bewusstes Überschreiben nach der Rückfrage gilt auch für die Sidecar.
         #expect(await model.save(entry: entry, ignoringDiskChange: true), Comment(rawValue: entry.lastError ?? ""))

@@ -128,3 +128,19 @@ gezielt an und prüft vier Kombinationen: schon beim Start geändert oder noch
 unverändert, anschließend weiterbearbeitet oder nicht. Ohne Korrektur gehen
 im Fall „erst anschließend bearbeitet“ alle drei Felder verloren und der
 Eintrag erscheint fälschlich sauber.
+
+## Fehlende Sidecars als Lesestand
+
+`SidecarState` liegt in einer eigenen Core-Datei und wird für XMP und LRC
+verwendet. `.absent` schützt eine beim Lesen fehlende Sidecar vor fremdem
+Anlegen; `.present` erkennt auch ihr späteres Verschwinden. Nur `.unknown`
+verzichtet auf den Abgleich mit dem früheren Lesestand. Die App setzt diesen
+Wert erst beim bestätigten Überschreiben. Der kompatible LRC-Einstieg mit
+`expecting: FileStamp?` behandelt nil weiterhin als unbekannten Lesestand.
+
+Die App-Regressionsprüfung kombiniert vorhandene/fehlende Sidecars mit
+reinen Lyrics-Änderungen bzw. zusätzlichen Medien-Tags. Vor der Korrektur
+überschrieb sie eine inzwischen angelegte Sidecar in beiden Schreibzweigen;
+im zweiten Fall waren auch die Medien-Tags bereits geändert. Die Core-Tests
+prüfen zusätzlich, dass bekannte Abwesenheit nicht zum Löschen fremder
+Dateien führt und ein fremd gelöschter bekannter Stand nicht neu entsteht.

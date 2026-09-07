@@ -84,19 +84,6 @@ public enum ImageCoreFieldKey: String, Sendable, Codable, CaseIterable, Hashable
     case title, description, keywords, creator, copyright, dateTimeOriginal, rating, gps
 }
 
-/// Zustand der XMP-Sidecar-Datei zum Zeitpunkt des Lesens. Der Schreibweg
-/// prüft dagegen: Eine inzwischen fremd angelegte, geänderte oder gelöschte
-/// Sidecar wird als Konflikt gemeldet statt still überschrieben.
-public enum SidecarState: Sendable, Equatable {
-    /// Kein Lesestand bekannt — der Schreibweg nimmt die Sidecar, wie er sie
-    /// vorfindet (kein Konfliktschutz für die Sidecar).
-    case unknown
-    /// Beim Lesen gab es keine Sidecar (oder die Datei ist selbst eine).
-    case absent
-    /// Die Sidecar existierte beim Lesen mit diesem Stempel.
-    case present(FileStamp)
-}
-
 /// Ergebnis eines Lesevorgangs: die zusammengeführten Kernfelder plus die
 /// Angabe, welche davon aus der Sidecar stammen. Sidecar-Werte überlagern
 /// die eingebetteten Werte feldweise — so lesen auch Lightroom und Bridge.

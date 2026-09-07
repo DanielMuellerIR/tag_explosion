@@ -67,12 +67,13 @@
         "Tests/TagExplosionCoreTests/FileIntegrityTests.swift",
         "Tests/TagExplosionCoreTests/TrashBackupTests.swift",
         "Sources/TagExplosionCore/XDGTrash.swift",
-        "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
+        "Tests/TagExplosionCoreTests/XDGTrashTests.swift",
+        "Sources/TagExplosionCore/SidecarState.swift"
       ],
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
         "completed_at": "2026-09-08T00:40:26+02:00",
@@ -88,7 +89,10 @@
           "ExFAT-Probe: link und renamex_np(RENAME_EXCL) liefern beide ENOTSUP; unsicheren Fallback verworfen",
           "Diff geprüft; abschließender XDG-Cleanup-Test bestanden; native Linux-Ausführung steht noch aus"
         ]
-      }
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/SidecarState.swift"
+      ]
     },
     {
       "id": "app-save-coordination",
@@ -129,21 +133,18 @@
       "risk": "high",
       "priority": 2,
       "reason": "Gemeinsame Testdateien und Fixture-Erzeugung: Race-Freiheit, Fehlertransparenz und Laufzeit.",
-      "state": "in_progress",
-      "pending_paths": [
-        "Tests/Support",
-        "Tests/TagxTests/ProcessSupportTests.swift",
-        "Tests/TagxTests/FixtureSupportTests.swift"
-      ],
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:06:08+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": [
-          "Tests/Support",
-          "Tests/TagxTests/ProcessSupportTests.swift",
-          "Tests/TagxTests/FixtureSupportTests.swift"
+        "completed_at": "2026-09-08T01:07:26+02:00",
+        "observed_head": "10adb91a8424b68cc184929bbb10df69696daefc",
+        "content_sha256": "3eef15b5fdbee8ea7ab494a0e5e268cf048ab77b5898b4c59b4da76216ce2ad7",
+        "file_count": 6,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Gesamten gemeinsamen Support samt Prozess-/Fixture-Tests und App-Fixture-Einstieg geprüft. Doppelten atomaren Austausch in Tests/Support konsolidiert, Fixture-Lock mit O_CLOEXEC begrenzt. Separate reine Helfertests nicht hinzugefügt: bestehende Konfliktintegrationen verwenden reale Ersetzung. Commit 0.46.8.",
+        "tests": [
+          "Root vollständig: 473 Tests in 51 Suiten bestanden, 7.067 s. Vorherige App-Vollprüfung 111 Tests; Änderung betrifft gemeinsame Fixture-Sperre, deren Root-Regressionsprüfung bestanden ist."
         ]
       }
     },
@@ -930,9 +931,15 @@
         "Sources/TagExplosionCore/ExifTool.swift"
       ],
       "priority": 3,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T00:30:48+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T01:07:35+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:07:35+02:00",
+        "observed_head": "10adb91a8424b68cc184929bbb10df69696daefc"
+      }
     },
     {
       "id": "audio-sidecar-transaction",
