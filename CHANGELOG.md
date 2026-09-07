@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.19 — 2026-09-08
+
+- `lyrics set` und `lyrics clear` prüfen und sichern LRC-Sidecars vor
+  der Medienänderung. Unlesbare Sidecars lassen das Medium unverändert.
+- Bei einem späteren Sidecar-Schreibfehler nennt die CLI die bereits
+  gespeicherte Mediendatei in stderr und behält den Fehler-Exit-Code.
+
 ## 0.46.18 — 2026-09-08
 
 - Vier Testsuiten führen ffmpeg, ffprobe und kid3 über den gemeinsamen

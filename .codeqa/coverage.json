@@ -77,15 +77,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:40:52+02:00",
-        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
-        "content_sha256": "2211cad43b49477661fe1100237f35c4a536ddff98ca700501645220edec6f76",
+        "completed_at": "2026-09-08T01:54:15+02:00",
+        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
+        "content_sha256": "eab47ab1e155720d58f54b2b7db8c3a4305c9f21410c210530c5a169b422c91c",
         "file_count": 8,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "FileState und SidecarState-Alias samt Restore-/LRC-Grenzen nachgeprüft. Bekannte Abwesenheit bleibt getrennt von unbekannt; exklusive Anlage und Stempelprüfung bis zum Austausch. Vorige Safety-Implementierung unverändert. Tokenbuchung: gemeldete Root-Zähler seit nativem Pausenstand, ungecachte Eingabe plus Ausgabe; Basis danach 772916.",
+        "outcome": "improved",
+        "summary": "FileIntegrityTests nutzt gemeinsamen befristeten Prozessstarter; installiertes defektes ffmpeg überspringt keine Integritätsprüfung mehr.",
         "tests": [
-          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
+          "swift test: 477 Tests grün; kontrollierte Gegenprobe fünf Fehler statt Skip."
         ]
       }
     },
@@ -259,15 +259,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:51:57+02:00",
-        "observed_head": "2a19ece275fa0245d69fd247bb84aafe0c9e43fb",
-        "content_sha256": "fad15608600c7e7aa76acbd789113e3788e93073fb037a993709fa07a525bff0",
+        "completed_at": "2026-09-08T01:54:15+02:00",
+        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
+        "content_sha256": "90f6b2e2e70c8aac05bcb89fa357c7dc4bf0c0a0e9490d7574065f444fcb4650",
         "file_count": 21,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "TagLib-Shim, neue Kapitel/Schichten/Lyrics/FixedFields und CLI-Verträge geprüft. LRC-Millisekundenverlust, Zeitstempelüberlauf, falsches Podcast-Flag und nicht darstellbare Kapitelenden reproduziert und korrigiert. Bestehende Rundlauftests erweitert; externe Testzeugen und CLI-Teilfehler als eigene Querschnittsarbeit erfasst.",
+        "summary": "Querschnitts-Delta der externen Testzeugen nachgeprüft: gemeinsamer Prozessstarter, separate Werkzeugverfügbarkeit und verpflichtende Audioprüfsumme.",
         "tests": [
-          "swift test: 477 Tests/51 Suites grün (6.739 s); App swift test: 115 Tests/22 Suites grün (0.525 s). Gegenproben: LRC 3 Fehler, CLI-Überlauf Signalstatus 5, Podcast 9 Fehler, Kapitelgrenzen 4 Fehler vor Korrektur. Diff geprüft; Commits 24349ee und 2a19ece, minipc synchron."
+          "swift test: 477 Tests grün; fehlschlagender Decoder erzeugt fünf Testfehler."
         ]
       }
     },
@@ -1001,14 +1001,18 @@
         "Tests/TagExplosionCoreTests/FileIntegrityTests.swift"
       ],
       "priority": 5,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T01:49:43+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T01:51:57+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:51:57+02:00",
-        "observed_head": "2a19ece275fa0245d69fd247bb84aafe0c9e43fb"
+        "completed_at": "2026-09-08T01:54:15+02:00",
+        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
+        "summary": "Vier Prozessstarter auf runCapturedProcess konsolidiert; ffmpeg/ffprobe-Verfügbarkeit prüft ausführbare Datei statt erfolgreiche Dekodierung. Kapitel-Audioprüfung verlangt bei installiertem ffmpeg eine Prüfsumme. kid3-Suche Linux-tauglich.",
+        "tests": [
+          "59 Bereichstests grün; Gegenprobe mit ausführbarem false statt ffmpeg erzeugt fünf Fehler statt Skip; danach swift test 477 Tests grün in 6.631 s. Diff geprüft, Commit und minipc-Push."
+        ]
       }
     },
     {
@@ -1019,9 +1023,15 @@
         "App/Sources/TagExplosionApp/AppFileIO.swift"
       ],
       "priority": 5,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T01:50:22+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T01:54:15+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:54:15+02:00",
+        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4"
+      }
     }
   ]
 }

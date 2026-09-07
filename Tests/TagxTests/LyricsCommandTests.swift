@@ -156,6 +156,28 @@ struct LyricsCommandTests {
         #expect(!show.stdout.contains("PODCAST="))
     }
 
+    @Test("Unlesbare LRC-Sidecar verhindert Medienänderung", arguments: [false, true])
+    func sidecarFailurePrecedesMediaWrite(clear: Bool) throws {
+        let directory = try makeWorkDirectory("tagx-lyrics-preflight")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("song.flac")
+        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.flac"), to: file)
+        if clear { try TagFile.write(properties: [TagProperty(key: "LYRICS", value: "Vorher")], to: file) }
+        let sidecar = LRC.sidecarURL(for: file)
+        let invalid = Data([0xff, 0xfe])
+        try invalid.write(to: sidecar)
+        let input = directory.appendingPathComponent("input.lrc")
+        try Data(lrc.utf8).write(to: input)
+        let before = try Data(contentsOf: file)
+        let arguments = clear
+            ? ["lyrics", "clear", file.path, "--no-backup"]
+            : ["lyrics", "set", file.path, "--from", input.path, "--no-backup"]
+        let result = try runTagx(arguments: arguments)
+        #expect(result.status != 0)
+        #expect(try Data(contentsOf: file) == before)
+        #expect(try Data(contentsOf: sidecar) == invalid)
+    }
+
     // MARK: - Helfer
 
     private struct Report: Decodable {

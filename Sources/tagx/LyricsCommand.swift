@@ -34,6 +34,34 @@ func loadSyncedLyrics(for url: URL, data: TagData) throws -> (lines: [SyncedLyri
     return (lines, .sidecar)
 }
 
+/// Prüft und sichert die Sidecar vor jeder Medienänderung. nil bedeutet,
+/// dass kein Sidecar-Schreibschritt nötig ist.
+private func prepareLyricsSidecar(_ lines: [SyncedLyricLine], for url: URL) throws -> SidecarState? {
+    let sidecar = LRC.sidecarURL(for: url)
+    let state = SidecarState.current(of: sidecar)
+    let previous = try LRC.loadSidecar(for: url) ?? []
+    try state.requireUnchanged(at: sidecar)
+    guard previous != lines else { return nil }
+    try LRC.validate(lines)
+    if case .present = state { try TrashBackup.shared.backUp(sidecar) }
+    return state
+}
+
+/// Ein später Fehler kann nach einem erfolgreichen Medien-Save auftreten.
+/// Der Exit-Code bleibt ein Fehler; stderr benennt die bereits gespeicherte Datei.
+private func writeLyricsSidecar(_ lines: [SyncedLyricLine], for url: URL,
+                                expecting state: SidecarState, mediaChanged: Bool) throws {
+    do {
+        try LRC.writeSidecar(lines, for: url, expecting: state, backUp: false)
+    } catch {
+        if mediaChanged {
+            FileHandle.standardError.write(Data(
+                "Note: media file already saved: \(url.path); LRC sidecar update failed.\n".utf8))
+        }
+        throw error
+    }
+}
+
 /// JSON-Form von `lyrics show`.
 struct LyricsReport: Codable {
     var file: String
@@ -171,9 +199,11 @@ struct LyricsSet: ParsableCommand {
         let languageChanged = language.map { $0 != existing.lyricsLanguage } ?? false
         let embeddedChanged = embeddedLines.map { $0 != existing.syncedLyrics } ?? false
 
+        let sidecarState = useSidecar ? try prepareLyricsSidecar(syncedLines ?? [], for: url) : nil
+        let mediaChanged = propertiesChanged || languageChanged || embeddedChanged
+        try snapshot.requireCurrent(at: url)
         var messages: [String] = []
-        if propertiesChanged || languageChanged || embeddedChanged {
-            try snapshot.requireCurrent(at: url)
+        if mediaChanged {
             try TrashBackup.shared.backUp(url)
             try TagFile.write(properties: propertiesChanged ? properties : nil,
                               syncedLyrics: embeddedChanged ? embeddedLines : nil,
@@ -183,20 +213,15 @@ struct LyricsSet: ParsableCommand {
             if languageChanged { messages.append("language \(language ?? "")") }
             if let embeddedLines, embeddedChanged { messages.append("\(embeddedLines.count) synchronized line(s) (SYLT)") }
         } else if syncedLines == nil || !useSidecar {
-            try snapshot.requireCurrent(at: url)
             messages.append("unchanged")
         }
         if useSidecar, let syncedLines {
             let sidecarURL = LRC.sidecarURL(for: url)
-            // Stempel der Sidecar VOR dem Vergleich erheben: Ändert ein anderes
-            // Programm die .lrc zwischen Lesen und Austausch, bricht der
-            // Schreibweg ab, statt dessen Änderung zu überschreiben.
-            let sidecarState = SidecarState.current(of: sidecarURL)
-            if try LRC.loadSidecar(for: url) == syncedLines {
-                messages.append("sidecar unchanged")
-            } else {
-                try LRC.writeSidecar(syncedLines, for: url, expecting: sidecarState)
+            if let sidecarState {
+                try writeLyricsSidecar(syncedLines, for: url, expecting: sidecarState, mediaChanged: mediaChanged)
                 messages.append("\(syncedLines.count) synchronized line(s) → \(sidecarURL.lastPathComponent)")
+            } else {
+                messages.append("sidecar unchanged")
             }
         }
         print("OK \(url.lastPathComponent): " + messages.joined(separator: ", "))
@@ -274,22 +299,21 @@ struct LyricsClear: ParsableCommand {
         let properties = FixedFields.settingLyrics("", in: existing.properties)
         let propertiesChanged = properties != existing.properties
         let syncedChanged = existing.supportsSyncedLyrics && !existing.syncedLyrics.isEmpty
+        let sidecarState = try prepareLyricsSidecar([], for: url)
+        let mediaChanged = propertiesChanged || syncedChanged
+        try snapshot.requireCurrent(at: url)
         var messages: [String] = []
-        if propertiesChanged || syncedChanged {
-            try snapshot.requireCurrent(at: url)
+        if mediaChanged {
             try TrashBackup.shared.backUp(url)
             try TagFile.write(properties: propertiesChanged ? properties : nil,
                               syncedLyrics: syncedChanged ? [] : nil,
                               to: url, expecting: snapshot.stamp)
             messages.append("lyrics removed")
-        } else {
-            try snapshot.requireCurrent(at: url)
         }
         // Eine Sidecar kann auch neben einem ID3v2-Träger liegen
         // (`lyrics set --sidecar`); clear räumt beide Speicherorte.
-        let sidecarState = SidecarState.current(of: LRC.sidecarURL(for: url))
-        if try LRC.loadSidecar(for: url) != nil {
-            try LRC.writeSidecar([], for: url, expecting: sidecarState)
+        if let sidecarState {
+            try writeLyricsSidecar([], for: url, expecting: sidecarState, mediaChanged: mediaChanged)
             messages.append("sidecar removed")
         }
         print("OK \(url.lastPathComponent): " + (messages.isEmpty ? "no lyrics to remove" : messages.joined(separator: ", ")))
