@@ -1,6 +1,6 @@
 // Undo-Historie: Journal-Roundtrip, Verfall bei fehlender Kopie, Restore auf
-// einer Fixture-Kopie, Feld-Diff und prune. Wie in TrashBackupTests laufen die
-// Papierkorb-Teile nur unter macOS und räumen ihre Sitzungsordner wieder weg.
+// einer Fixture-Kopie, Feld-Diff und prune. Unter Linux liegt der Papierkorb
+// im Testverzeichnis; unter macOS werden eigene Sitzungsordner entfernt.
 // Jeder Test hat sein eigenes Journal in einem Temp-Ordner — das Journal des
 // Benutzers bleibt unangetastet.
 import Foundation
@@ -25,7 +25,13 @@ struct BackupHistoryTests {
     /// Papierkorb-Sicherung mit eigenem Journal; Sitzungsordner werden
     /// hinterher gelöscht.
     private func withBackup(journal: BackupJournal?, _ body: (TrashBackup) throws -> Void) throws {
+        #if os(macOS)
         let backup = TrashBackup(journal: journal)
+        #else
+        let trashRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: trashRoot) }
+        let backup = TrashBackup(journal: journal, xdgTrash: XDGTrash(dataHome: trashRoot))
+        #endif
         backup.isEnabled = true
         backup.folderLabel = "Tag Explosion Testsicherung"
         defer {
@@ -139,6 +145,34 @@ struct BackupHistoryTests {
             try Data("{ kein json".utf8).write(to: journal.url)
             #expect(journal.rawEntries().isEmpty)
             #expect(FileManager.default.fileExists(atPath: journal.url.path + ".corrupt"))
+            let first = try Data(contentsOf: journal.url.appendingPathExtension("corrupt"))
+            try Data("zweiter Defekt".utf8).write(to: journal.url)
+            #expect(journal.rawEntries().isEmpty)
+            #expect(try Data(contentsOf: journal.url.appendingPathExtension("corrupt")) == first)
+            let saved = try FileManager.default.contentsOfDirectory(at: journal.url.deletingLastPathComponent(),
+                includingPropertiesForKeys: nil).filter { $0.lastPathComponent.contains(".corrupt") }
+            #expect(saved.count == 2)
+        }
+    }
+
+    @Test("Unbekannte Journal-Version bleibt bei Lesen und Mutationen unverändert",
+          arguments: ["[]", "{\"new-layout\":true}"])
+    func futureJournalIsPreserved(entries: String) throws {
+        try withJournal { journal, directory in
+            let bytes = Data("{\"version\":2,\"entries\":\(entries),\"future\":true}".utf8)
+            try bytes.write(to: journal.url)
+            #expect(journal.rawEntries().isEmpty)
+            #expect(try Data(contentsOf: journal.url) == bytes)
+            let entry = BackupJournalEntry(originalPath: "old", backupPath: "copy",
+                date: Date(), size: 0, sha256: nil, reason: "test")
+            #expect(throws: TagError.self) { try journal.append(entry) }
+            #expect(throws: TagError.self) { try journal.prune() }
+            #expect(throws: TagError.self) {
+                try journal.relocate(from: directory.appendingPathComponent("old"),
+                                     to: directory.appendingPathComponent("new"))
+            }
+            #expect(try Data(contentsOf: journal.url) == bytes)
+            #expect(!FileManager.default.fileExists(atPath: journal.url.path + ".corrupt"))
         }
     }
 
@@ -171,12 +205,12 @@ struct BackupHistoryTests {
         #expect(flatDocument["custom[1].value"] == "X")
     }
 
-    #if os(macOS)
     @Test("Restore: Tags ändern → sichern → zurückholen → Datei byte-gleich wie vorher")
     func restoreRoundtrip() throws {
         try withJournal { journal, _ in
             try withBackup(journal: journal) { backup in
                 let url = try Fixtures.workingCopy("sample.mp3")
+                defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
                 let before = try Data(contentsOf: url)
                 let artistBefore = try TagFile.read(at: url).properties
                     .first { $0.key == "ARTIST" }?.value
@@ -221,6 +255,7 @@ struct BackupHistoryTests {
         try withJournal { journal, _ in
             try withBackup(journal: journal) { backup in
                 let url = try Fixtures.workingCopy("sample.mp3")
+                defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
                 try backup.backUp(url, reason: BackupReason.tags)
                 try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Neu")], to: url)
                 let changed = try Data(contentsOf: url)
@@ -242,16 +277,4 @@ struct BackupHistoryTests {
         }
     }
 
-    @Test("Ohne Journal verzeichnet eine Sicherung nichts")
-    func backupWithoutJournalRecordsNothing() throws {
-        try withJournal { journal, _ in
-            try withBackup(journal: nil) { backup in
-                let url = try Fixtures.workingCopy("sample.mp3")
-                try backup.backUp(url)
-                #expect(backup.currentFolders.count == 1)
-                #expect(BackupHistory.versions(of: url, journal: journal).isEmpty)
-            }
-        }
-    }
-    #endif
 }

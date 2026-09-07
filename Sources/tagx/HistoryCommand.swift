@@ -141,7 +141,8 @@ struct History: ParsableCommand {
             let chosen = try History.requireVersion(version, of: url)
             // Stempel VOR dem Vergleich: Ändert ein anderes Programm die Datei
             // zwischen Anzeige und Austausch, bricht das Zurückspielen ab.
-            let stamp = FileStamp.current(of: url)
+            let destination = URL(fileURLWithPath: chosen.entry.originalPath)
+            let stamp = FileStamp.current(of: destination)
             let changes = try BackupHistory.diff(current: url, against: chosen)
             History.printDiff(changes)
             guard apply else {

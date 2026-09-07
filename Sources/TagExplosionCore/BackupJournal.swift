@@ -131,14 +131,7 @@ public final class BackupJournal: @unchecked Sendable {
             return support.appendingPathComponent("TagExplosion", isDirectory: true)
         }
         #endif
-        let environment = ProcessInfo.processInfo.environment
-        let base: URL
-        if let xdg = environment["XDG_DATA_HOME"], !xdg.isEmpty {
-            base = URL(fileURLWithPath: xdg, isDirectory: true)
-        } else {
-            base = fileManager.homeDirectoryForCurrentUser
-                .appendingPathComponent(".local/share", isDirectory: true)
-        }
+        let base = XDGTrash.defaultDataHome(environment: ProcessInfo.processInfo.environment)
         return base.appendingPathComponent("TagExplosion", isDirectory: true)
     }
 
@@ -261,9 +254,28 @@ public final class BackupJournal: @unchecked Sendable {
 
     // MARK: - Intern
 
+    private struct UnsupportedVersion: Error { var version: Int }
+
     private struct Document: Codable {
         var version: Int
         var entries: [BackupJournalEntry]
+
+        init(version: Int, entries: [BackupJournalEntry]) {
+            self.version = version
+            self.entries = entries
+        }
+
+        private enum CodingKeys: String, CodingKey { case version, entries }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            version = try container.decode(Int.self, forKey: .version)
+            // Vor den Einträgen prüfen, deren Schema sich geändert haben kann.
+            guard version == BackupJournal.formatVersion else {
+                throw UnsupportedVersion(version: version)
+            }
+            entries = try container.decode([BackupJournalEntry].self, forKey: .entries)
+        }
     }
 
     /// Zeiten als ISO 8601 MIT Sekundenbruchteilen: Zwei Sicherungen derselben
@@ -303,10 +315,17 @@ public final class BackupJournal: @unchecked Sendable {
         let data = try Data(contentsOf: url)
         do {
             return try Self.decoder.decode(Document.self, from: data).entries
+        } catch let error as UnsupportedVersion {
+            throw TagError.backupFailed(path: url.path,
+                reason: "unsupported journal version \(error.version)")
         } catch {
-            let aside = url.appendingPathExtension("corrupt")
-            try? fileManager.removeItem(at: aside)
-            try? fileManager.moveItem(at: url, to: aside)
+            var aside = url.appendingPathExtension("corrupt")
+            if fileManager.fileExists(atPath: aside.path) {
+                aside = url.appendingPathExtension("corrupt-\(UUID().uuidString)")
+            }
+            // Frühere Defekte bleiben erhalten. Scheitert das Beiseitelegen,
+            // darf ein anschließendes append die Quelldatei nicht überschreiben.
+            try fileManager.moveItem(at: url, to: aside)
             return []
         }
     }
@@ -333,7 +352,7 @@ public final class BackupJournal: @unchecked Sendable {
         try fileManager.createDirectory(at: url.deletingLastPathComponent(),
                                         withIntermediateDirectories: true)
         let lockPath = url.path + ".lock"
-        let descriptor = open(lockPath, O_CREAT | O_RDWR, 0o600)
+        let descriptor = open(lockPath, O_CREAT | O_RDWR | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else {
             throw TagError.backupFailed(path: url.path, reason: "journal lock not available")
         }

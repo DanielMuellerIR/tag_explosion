@@ -110,3 +110,5 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Einstellungen): Freigabe liegt beim Aufrufer, User-Agent und 1 Anfrage/s,
   Token nur im Header, AcoustID per POST mit `%2B`, Discogs-Positionen und
   Titel-Splitting, Matcher-Schwellen, Keychain statt UserDefaults.
+
+- [backup-journal-format.md](backup-journal-format.md) — unbekannte Journal-Versionen erhalten, Defekte getrennt aufbewahren, Restore-Zielstempel.

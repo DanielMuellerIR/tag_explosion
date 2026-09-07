@@ -36,7 +36,26 @@ struct HistoryCommandTests {
         #expect(prune.stdout.contains("0 journal entries removed"))
     }
 
-    #if os(macOS)
+    @Test("Sidecar-Version am Medienpfad wiederherstellen prüft die Sidecar statt des Mediums")
+    func restoreLyricsSidecar() throws {
+        let directory = try makeWorkDirectory("tagx-history-lrc")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journalURL = directory.appendingPathComponent("journal.json")
+        let media = directory.appendingPathComponent("song.flac")
+        let sidecar = LRC.sidecarURL(for: media)
+        let copy = directory.appendingPathComponent("backup.lrc")
+        let bytes = Data("[00:01.00]Alt\n".utf8)
+        try Data("Medieninhalt".utf8).write(to: media)
+        try bytes.write(to: copy)
+        try Data("[00:02.00]Eine neuere Zeile\n".utf8).write(to: sidecar)
+        try BackupJournal(url: journalURL).record(original: sidecar, backup: copy,
+            size: Int64(bytes.count), reason: BackupReason.sidecar)
+        let result = try runTagx(["history", "restore", media.path, "--apply", "--no-backup"], journal: journalURL)
+        #expect(result.status == 0, Comment(rawValue: result.stderr))
+        #expect(try Data(contentsOf: sidecar) == bytes)
+        #expect(try Data(contentsOf: media) == Data("Medieninhalt".utf8))
+    }
+
     @Test("set mit Sicherung → list/diff → restore (Dry-run, dann --apply) → Tags wie vorher",
           .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
     func listDiffRestoreRoundtrip() throws {
@@ -99,7 +118,6 @@ struct HistoryCommandTests {
         #expect(missing.status != 0)
         #expect(missing.stderr.contains("available: 1…2"))
     }
-    #endif
 
     /// Spiegel der JSON-Ausgabe von `history list --json`.
     private struct VersionReport: Decodable {
@@ -119,6 +137,7 @@ struct HistoryCommandTests {
     /// Eigener Journal-Pfad hält die Benutzerhistorie aus diesem Test heraus.
     private func runTagx(_ arguments: [String], journal: URL) throws -> CapturedProcessResult {
         try TagExplosionTestSupport.runTagx(arguments: arguments,
-            environment: ["TAGX_BACKUP_JOURNAL": journal.path])
+            environment: ["TAGX_BACKUP_JOURNAL": journal.path,
+                          "XDG_DATA_HOME": journal.deletingLastPathComponent().appendingPathComponent("xdg").path])
     }
 }

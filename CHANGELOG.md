@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.12 — 2026-09-08
+
+- Journale mit unbekannter Formatversion bleiben unverändert; schreibende
+  Operationen melden einen Fehler. Mehrere defekte Journale werden getrennt
+  aufbewahrt, statt die vorherige Diagnosekopie zu löschen.
+- `history restore` prüft bei Sidecar-Versionen den Stempel der tatsächlichen
+  Zieldatei. Ein bislang fälschlicher Konflikt mit dem Medium entfällt.
+- Restore-Tests sind auch unter Linux aktiviert und räumen ihre eigenen
+  Dateien auf. Ein Test ohne Bezug zum geprüften Journal wurde entfernt.
+
 ## 0.46.11 — 2026-09-08
 
 - FileEntry nutzt beim Öffnen und Neuladen denselben Weg zum Übernehmen

@@ -162,13 +162,19 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Zentrale Editierpuffer, Dirty-Vergleich und Read-back müssen neue Medienfelder verlustfrei erhalten.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:15:19+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T01:17:12+02:00",
+        "observed_head": "dcccb67819fe6763279bfd8d69bcb18b71a5aa8a",
+        "content_sha256": "96db867713fd8108573fa4d08fdcf170a38d162fe2a28f0f7b3652c46307e4dd",
+        "file_count": 7,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "FileEntry, LoadedData und alle zugeordneten Lifecycle-Tests vollständig geprüft. Initialisierung verwendet acceptNew statt paralleler Feldzuweisungen. Relokation erhält bisher ausgelassene Kapitel-/Lyrics-/Sprachpuffer; normaler Rename-Dialog bereits geschützt. Vorige Querschnittsfixes in Zustandsmodell integriert. Commit 0.46.11.",
+        "tests": [
+          "Relokations-Repro vor Fix vier Fehler; danach bestanden. Vollständiges App-Paket: 114 Tests in 21 Suiten bestanden."
+        ]
       }
     },
     {
@@ -214,7 +220,14 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Wiederherstellung verändert Nutzdateien; Journal, Dateizuweisung und Hash-Prüfung bilden einen Vertrag.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:17:22+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "taglib-io",
@@ -973,6 +986,18 @@
           "Vorher MP4-Repro vier Fehler im reinen Sidecar-Zweig; danach beide Varianten inklusive korrigierter Wiederholung bestanden. Später NFO-Konflikt nach Vorbereitung kontrolliert geprüft. App vollständig: 113 Tests/21 Suiten, 0.394 s."
         ]
       }
+    },
+    {
+      "id": "history-read-state",
+      "summary": "AppModel.restoreVersion verwirft für Sidecar-Versionen bekannte Lesestände und verwendet nil; Bild-/AudioSidecars tragen inzwischen Stempel bzw. Abwesenheit. Restore-Konfliktschutz für konkrete Zieldatei prüfen, einschließlich inzwischen gelöschter Originale im Core.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/AppModel+VersionHistory.swift",
+        "Sources/TagExplosionCore/BackupHistory.swift"
+      ],
+      "priority": 4,
+      "state": "pending",
+      "noted_at": "2026-09-08T01:22:19+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }
