@@ -26,11 +26,11 @@ export DEBIAN_FRONTEND=noninteractive
 as_root apt-get update -qq
 # cmake/g++/zlib/utfcpp: TagLib bauen · pkg-config: SwiftPM findet TagLib ·
 # mediainfo/exiftool/ffmpeg: Tests, die ohne sie nur übersprungen würden ·
-# curl/ca-certificates: Quelltext laden · python3: Fixture-Skripte.
+# curl/ca-certificates: Quelltext laden · python3/zip: vollständige Fixtures.
 as_root apt-get install -y -qq --no-install-recommends \
     build-essential cmake pkg-config zlib1g-dev libutfcpp-dev \
     curl ca-certificates \
-    mediainfo libimage-exiftool-perl ffmpeg python3-minimal
+    mediainfo libimage-exiftool-perl ffmpeg python3-minimal zip
 
 # Schon vorhanden (zweiter Lauf im selben Container)? Dann nichts bauen.
 if pkg-config --exists "taglib_c >= $taglib_version" 2>/dev/null; then
@@ -51,7 +51,8 @@ cmake -S "$work/taglib-$taglib_version" -B "$work/build" \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
     -DBUILD_BINDINGS=ON -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
     -DWITH_ZLIB=ON -DCMAKE_INSTALL_PREFIX="$prefix" >/dev/null
-cmake --build "$work/build" -j "$(nproc)" >/dev/null
+# Auf gemeinsam genutzten Testrechnern lässt sich die Parallelität begrenzen.
+cmake --build "$work/build" -j "${TAGX_BUILD_JOBS:-$(nproc)}" >/dev/null
 as_root cmake --install "$work/build" >/dev/null
 # Der dynamische Linker muss die neue Bibliothek unter /usr/local/lib finden.
 as_root ldconfig

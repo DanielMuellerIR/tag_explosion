@@ -189,27 +189,19 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:34:33+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "e324048dc479eab1f3783474bd111308edfdacd1931670b1e184ec5c0035534d",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T01:27:52+02:00",
+        "observed_head": "e2017106d6e490e237925be51bfdc540805d38fe",
+        "content_sha256": "40ff2dc82e980ae00ec71bd3ea447612310ac31127c0d5d76e3835eb8b347711",
         "file_count": 5,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Bildimporte validieren den exakten Archiv-Sollwert jetzt im Dry-run und echten Lauf auf derselben Temp-Datei; die Sicherung liegt hinter dieser Prüfung. Der testbare Backup-Hook belegt null Sicherungsaufrufe bei Normalisierung, Audio-/E-Book-Pfade behalten ihre Reihenfolge.",
+        "summary": "Schema-3/4-Erweiterungen, Dokument-/NFO-Import, Bild-Sidecar-Grenzen, CLI/App-Aufrufer und Testdeltas geprüft. Ziel-Deduplizierung von paarweisen Vergleichen auf Mengen umgestellt, fachfremde NFO-Payloads abgelehnt; Fixture-Ordner-Cleanup ergänzt. Commit 0.46.13.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden, einschließlich TagArchive-Dry-run/Backup-Regression",
-          "swift test --package-path App: 65 Tests in 8 Suites bestanden; Archiv-Aufrufgrenze kompiliert und Importtests grün"
+          "40 Archiv-/Exporttests bestanden, 4.488 s, inklusive Symlink/Hardlink/No-op-Konflikten. NFO-Repro vor Fix vier Fehler. Temporäre 10000-Ziele-Messung: 6.377 -> 0.537 s; Benchmarktest anschließend entfernt."
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:23:58+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -321,7 +313,7 @@
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:00+02:00",
@@ -338,7 +330,16 @@
       },
       "pending_paths": [
         "scripts/linux-deps.sh"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:27:52+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "scripts/linux-deps.sh"
+        ]
+      }
     },
     {
       "id": "document-writing",

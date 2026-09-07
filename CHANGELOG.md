@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.14 — 2026-09-08
+
+- Linux-Abhängigkeiten enthalten `zip` für vollständige Fixtures; die
+  TagLib-Bauparallelität lässt sich mit `TAGX_BUILD_JOBS` begrenzen.
+- Die CI startet unmittelbar `swift test`, das Core, CLI und App selbst
+  baut. Separate vorgeschaltete Builds entfallen.
+- Der Plist-Test verwendet vorhandene Debug-Artefakte. Seine beiden Builds
+  benötigten lokal 3 statt 71 Sekunden; die Bundle-Prüfung bleibt erhalten.
+
 ## 0.46.13 — 2026-09-08
 
 - Archivziele werden über Mengen kanonischer Pfade und Dateiidentitäten

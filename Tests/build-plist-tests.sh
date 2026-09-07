@@ -7,7 +7,9 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 feed='https://example.invalid/appcast.xml?channel=test&arch=arm64'
 
-SPARKLE_FEED_URL="$feed" "$root/build.sh"
+# Die Plist entsteht unabhängig von der Optimierungsstufe. Debug verwendet
+# die bereits von swift test gebauten Artefakte statt eines zweiten Release-Baus.
+SPARKLE_FEED_URL="$feed" "$root/build.sh" --debug
 
 plist="$root/TagExplosion.app/Contents/Info.plist"
 plutil -lint "$plist" >/dev/null

@@ -115,23 +115,48 @@ SwiftPM) nach `/usr/local` und ruft `ldconfig`. Pakete dazu: `cmake`,
 `build-essential`, `pkg-config`, `zlib1g-dev`, `libutfcpp-dev`. Dasselbe
 Skript läuft im CI-Job und im lokalen Container.
 
-## Lokaler Linux-Lauf auf einem Linux-Rechner (Docker)
+## Lokaler Linux-Lauf in Docker
 
-Ein Linux-Rechner mit Docker (hier `linuxbox` als SSH-Alias, Ubuntu-24.04-
-Basis) genügt; eine Swift-Toolchain braucht er nicht. Bewährter Ablauf:
+Ein Archiv des zu prüfenden Commits enthält weder lokale Buildartefakte noch
+bereits auf macOS generierte Fixtures. Abhängigkeiten werden im Container
+installiert; die Tests laufen anschließend mit einem eigenen Benutzer.
+`--init` sorgt dafür, dass beendete Nachkommen aufgeräumt werden. Ohne diese
+Prozessbereinigung kann der Abbruchtest noch eine Zombie-Prozesskennung sehen.
 
 ```bash
-rsync -a --delete --exclude .build --exclude App/.build --exclude build --exclude .git --exclude Tests/TagExplosionCoreTests/Fixtures/generated ./ linuxbox:tmp/tagx-linux/
-ssh linuxbox 'docker run -d --name tagx-linux -v $HOME/tmp/tagx-linux:/src -w /src swift:6.0 sleep infinity'
-ssh linuxbox 'docker exec tagx-linux sh -c "scripts/linux-deps.sh && git config --global http.version HTTP/1.1 && swift test"'
+git archive --format=tar HEAD > /tmp/tagx-source.tar
+docker run --init --rm --cpus=2 --memory=6g -i swift:6.0 bash -c '
+  set -eu
+  mkdir /work
+  tar -x -C /work
+  cd /work
+  TAGX_BUILD_JOBS=2 ./scripts/linux-deps.sh
+  useradd --create-home --uid 10001 tagxqa
+  chown -R tagxqa:tagxqa /work
+  runuser -u tagxqa -- swift test -j 2
+' < /tmp/tagx-source.tar
 ```
 
-- **Falle: SwiftPM kann im Container nicht von GitHub klonen** („could not
-  read Username for https://github.com", „expected flush after ref
-  listing"), obwohl `git ls-remote` geht. Ursache ist HTTP/2 in der
-  Docker-Netzkette; `git config --global http.version HTTP/1.1` im Container
-  behebt es.
-- Der Container läuft als root auf einem Bind-Mount von `dm` → bei Git-
-  Meldungen zu „dubious ownership" `git config --global safe.directory '*'`.
-- Aufräumen danach: `docker rm -f tagx-linux` und `rm -rf ~/tmp/tagx-linux`
-  auf dem Linux-Rechner.
+Der Container benötigt keinen beschreibbaren Bind-Mount. Seine Dateien
+verschwinden mit `--rm`; das lokale Quellarchiv kann danach entfernt werden.
+Für uncommittierte Änderungen muss das Archiv vor dem Lauf gezielt ergänzt
+werden; der Prüfbericht nennt dann diesen abweichenden Stand.
+
+`scripts/linux-deps.sh` installiert auch `zip`: Ohne das Werkzeug erzeugt der
+Fixture-Generator keine EPUB-, Office- und Comic-Archive. Ein vollständiger
+Linux-Lauf vom 2026-09-08 machte diese zuvor implizite Abhängigkeit sichtbar.
+`TAGX_BUILD_JOBS` begrenzt den TagLib-Build; `swift test -j` begrenzt SwiftPM.
+
+Validierung am 2026-09-08: 469 Linux-Tests bestanden in 19,920 Sekunden
+reiner Testzeit (Swift 6.0, Container mit zwei CPU-Kernen, eigener Benutzer,
+frisch erzeugte Fixtures). Geprüft wurde 0.46.13 samt Änderungen am Linux-
+Abhängigkeitsskript. Der erste Kontrolllauf zeigte fehlende Archiv-Fixtures
+wegen `zip` sowie die genannten Root-/Prozessbereinigungsfehler; der korrigierte
+Lauf hatte keine Fehler. Beide Container wurden automatisch entfernt.
+
+Die CI benötigt keinen separaten `swift build` vor `swift test`: Das Testziel
+hängt ausdrücklich vom CLI-Produkt ab. Der macOS-Plist-Test baut weiterhin ein
+echtes Bundle, verwendet dafür aber `--debug`; die Feed-URL-Prüfung hängt nicht
+von der Optimierungsstufe ab. Lokal sanken seine beiden Buildzeiten von
+38,15 + 33,21 auf 0,20 + 2,83 Sekunden. Release-Signierung und Mindestversion
+prüfen weiterhin ihre eigenen Skripttests und der Release-Ablauf.

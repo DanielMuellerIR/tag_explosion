@@ -27,18 +27,13 @@ jobs:
           # sie erwünscht, damit die CI wirklich alles prüft.
           brew install taglib mediainfo exiftool ffmpeg
 
-      - name: Core und CLI bauen
-        run: swift build
-
-      - name: Core- und CLI-Tests
+      # swift test baut seine Abhängigkeiten einschließlich tagx selbst.
+      - name: Core und CLI bauen und testen
         run: swift test
 
       - name: App bauen und testen
         working-directory: App
-        run: |
-          set -euo pipefail
-          swift build
-          swift test
+        run: swift test
 
       # Shell-Tests der Auslieferungsskripte. SwiftPM findet sie nicht; ohne
       # diesen Schritt könnten sie unbemerkt brechen, während die CI grün bleibt.
@@ -73,8 +68,6 @@ jobs:
       - name: Abhängigkeiten installieren
         run: scripts/linux-deps.sh
 
-      - name: Core und CLI bauen
-        run: swift build
-
-      - name: Core- und CLI-Tests
+      # swift test baut seine Abhängigkeiten einschließlich tagx selbst.
+      - name: Core und CLI bauen und testen
         run: swift test
