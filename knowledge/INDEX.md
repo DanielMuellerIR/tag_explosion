@@ -2,6 +2,10 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [test-prozessausfuehrung.md](test-prozessausfuehrung.md) — Bei CLI-/Core-
+  Integrationstests: gemeinsamer Prozessstarter, richtiges Binary je
+  Testkonfiguration, große Ausgaben, Fristen und Umgebungswerte.
+
 - [dateisicherheit-schreibwege.md](dateisicherheit-schreibwege.md) — Bei jedem
   Schreibweg und beim abgesicherten Modus: atomarer Rahmen, Papierkorb-
   Sicherung, `URL.resourceValues`-Cache-Falle, Platz- und Pfad-Regeln.

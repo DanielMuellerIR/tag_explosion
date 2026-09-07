@@ -2,6 +2,7 @@
 // TAGX_ONLINE (Exit 1 mit Hinweis, bevor irgendetwas gelesen wird),
 // Datenschutztext, Argumentprüfung.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 
 @Suite("tagx lookup", .serialized)
@@ -35,23 +36,5 @@ struct LookupCommandTests {
         #expect(badChoice.status == 64 && badChoice.stderr.contains("--choose"))
     }
 
-    /// Baut das CLI-Produkt und startet es mit angepasster Umgebung.
-    private func runTagx(arguments: [String], environment: [String: String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Über /usr/bin/env laufen die Variablen als Argumente mit — der
-        // Kindprozess bekommt genau die gewünschte Umgebung.
-        let assignments = environment.map { "\($0.key)=\($0.value)" }
-        return try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: assignments + [URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path] + arguments,
-            currentDirectory: root
-        )
-    }
+
 }

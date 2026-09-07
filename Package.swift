@@ -56,16 +56,18 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
+        // Nur von Tests verwendet; kein ausgeliefertes Bibliotheksprodukt.
+        .target(name: "TagExplosionTestSupport", path: "Tests/Support"),
         .testTarget(
             name: "TagExplosionCoreTests",
-            dependencies: ["TagExplosionCore", "EInvoiceCore"],
+            dependencies: ["TagExplosionCore", "EInvoiceCore", "TagExplosionTestSupport", "tagx"],
             // Fixture-Generator liegt daneben; Tests rufen ihn bei Bedarf auf.
             exclude: ["Fixtures"]
         ),
         // Echte CLI-Regressionen prüfen ArgumentParser-Fehler und Exit-Codes.
         .testTarget(
             name: "TagxTests",
-            dependencies: ["TagExplosionCore"]
+            dependencies: ["TagExplosionCore", "TagExplosionTestSupport", "tagx"]
         ),
     ],
     cxxLanguageStandard: .cxx17

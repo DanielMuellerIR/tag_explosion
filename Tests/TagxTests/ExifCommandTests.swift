@@ -1,6 +1,7 @@
 // Echte CLI-Regressionen für Bildmetadaten. Sie prüfen nicht nur den Core,
 // sondern auch ArgumentParser, Exit-Code und die vom Befehl gebildeten Felder.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -89,24 +90,7 @@ struct ExifCommandTests {
         #expect(reading.sidecarURL == directory.appendingPathComponent("IMG_0001.xmp"))
     }
 
-    /// Baut das CLI-Produkt und startet genau das entstandene Binary.
-    private func runTagx(arguments: [String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory)
-                .appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 }
 
 private let exifToolIsAvailable = (try? ExifTool.locateExecutable()) != nil

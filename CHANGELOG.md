@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.5 — 2026-09-08
+
+- Core- und CLI-Tests teilen einen Prozessstarter statt 16 Kopien. Er verwendet
+  das Binary aus der laufenden Testkonfiguration und beendet hängende Prozesse
+  mit einem Fehler. Wiederholte SwiftPM-Unterprozesse entfallen.
+- Die unveränderte CLI-Suite mit 51 Tests benötigte im lokalen Vergleich
+  1,12 statt 6,93 Sekunden; ein zusätzlicher Test prüft die Prozessfrist.
+
 ## 0.46.4 — 2026-09-08
 
 - Sicherungen erkennen fremde Änderungen während der Kopie, bevor Größe und

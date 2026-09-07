@@ -2,6 +2,7 @@
 // E-Rechnungen: --terms-only muss auch die JSON-Ausgabe filtern, und
 // `tagx export` darf Rechnungen weder mitzählen noch still überspringen.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 
 @Suite("tagx invoice CLI", .serialized)
@@ -130,23 +131,6 @@ struct InvoiceCommandTests {
 
     // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
 
-    private func runTagx(arguments: [String]) throws
-    -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory)
-                .appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 
 }

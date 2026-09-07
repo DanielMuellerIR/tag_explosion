@@ -1,4 +1,5 @@
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -67,22 +68,15 @@ struct MediaInfoCacheTests {
         print("MEDIAINFO_BENCHMARK both=\(bothDuration) text=\(textDuration) cached=\(cachedDuration)")
 
         // Der echte CLI-Einstieg nutzt den Fake über PATH und genau einen Prozess.
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         for (json, closed) in [(false, ""), (true, ""), (true, "exec 2>&-;"), (true, "exec 0<&-;")] {
             let count = try calls()
-            let cli = Process()
-            cli.executableURL = URL(fileURLWithPath: "/bin/sh")
-            cli.arguments = ["-c", closed + " exec \"$@\"", "test", root.appendingPathComponent(".build/debug/tagx").path,
-                             "info", file.path] + (json ? ["--json"] : [])
-            var environment = ProcessInfo.processInfo.environment
-            environment["PATH"] = dir.path + ":" + (environment["PATH"] ?? "")
-            cli.environment = environment
-            let pipe = Pipe()
-            cli.standardOutput = pipe
-            try cli.run()
-            let output = pipe.fileHandleForReading.readDataToEndOfFile()
-            cli.waitUntilExit()
-            #expect(cli.terminationStatus == 0)
+            let result = try runCapturedProcess(executable: "/bin/sh",
+                arguments: ["-c", closed + " exec \"$@\"", "test", try TagxTestProcess.binaryURL().path,
+                    "info", file.path] + (json ? ["--json"] : []),
+                currentDirectory: TagxTestProcess.repoRoot,
+                environment: ["PATH": dir.path + ":" + (ProcessInfo.processInfo.environment["PATH"] ?? "")])
+            let output = Data(result.stdout.utf8)
+            #expect(result.status == 0)
             #expect(try calls() == count + 1)
             if json { #expect(try JSONDecoder().decode([MediaInfoTrack].self, from: output) == full.tracks) }
             else { #expect(String(decoding: output, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) == full.text) }

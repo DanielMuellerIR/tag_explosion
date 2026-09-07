@@ -2,6 +2,7 @@
 // Verknüpfung auf dieselbe Datei öffnen. Die Byte-Prüfung misst dabei das
 // sichtbare Ergebnis statt nur die interne Kollisions-Hilfsfunktion.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -108,26 +109,6 @@ struct ExportCollisionTests {
                 "Die Eingabedatei wurde trotz abgelehntem Export verändert")
     }
 
-    /// Baut das CLI-Produkt einmal über SwiftPM und startet anschließend genau
-    /// das entstandene Binary. Dadurch prüft der Test auch ArgumentParser und
-    /// seinen nicht-null Exit-Code statt nur eine Swift-Methode.
-    private func runTagx(arguments: [String]) throws -> (status: Int32, stderr: String) {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let result = try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory)
-                .appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-        return (result.status, result.stderr)
-    }
+
 
 }

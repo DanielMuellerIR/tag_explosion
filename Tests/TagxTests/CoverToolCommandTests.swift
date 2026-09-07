@@ -1,6 +1,7 @@
 // CLI-Regressionen der Cover-Werkzeuge: `cover info --json`, `--strict`,
 // `cover convert`, `cover from-folder`, `cover to-folder` samt --force.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -159,20 +160,5 @@ struct CoverToolCommandTests {
         return directory
     }
 
-    /// Baut das CLI-Produkt und startet genau das entstandene Binary.
-    private func runTagx(arguments: [String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 }

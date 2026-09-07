@@ -2,6 +2,7 @@
 // mit --apply genau den angekündigten Plan über den sicheren Weg, erkennt
 // beim zweiten Lauf den No-op und meldet eine kaputte Regeldatei mit Exit 64.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -141,19 +142,5 @@ struct ApplyCommandTests {
         #expect(try Data(contentsOf: image) == bytesBefore)
     }
 
-    private func runTagx(arguments: [String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 }

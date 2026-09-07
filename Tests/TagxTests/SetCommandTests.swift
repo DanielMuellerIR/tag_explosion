@@ -3,6 +3,7 @@
 // aufbauen (neue Inode/mtime, unnötige Sicherung) noch "geänderte" Felder
 // melden.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -160,43 +161,8 @@ struct SetCommandTests {
             atPath: directory.appendingPathComponent("song-cover.jpg").path))
     }
 
-    @Test("Gemeinsamer Prozesshelfer leert große stdout- und stderr-Pipes parallel")
-    func processHelperDrainsBothPipes() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let byteCount = 1_048_576
-        let command = """
-        dd if=/dev/zero bs=\(byteCount) count=1 2>/dev/null
-        dd if=/dev/zero bs=\(byteCount) count=1 1>&2 2>/dev/null
-        """
 
-        let result = try runCapturedProcess(
-            executable: "/bin/sh", arguments: ["-c", command], currentDirectory: root)
 
-        #expect(result.status == 0)
-        #expect(result.stdout.utf8.count == byteCount)
-        #expect(result.stderr.utf8.count == byteCount)
-    }
 
-    /// Baut das CLI-Produkt über SwiftPM und startet genau das entstandene
-    /// Binary (gleiches Muster wie in ExportCollisionTests).
-    private func runTagx(arguments: [String]) throws
-    -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory)
-                .appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
 
 }

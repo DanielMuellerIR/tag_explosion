@@ -2,6 +2,7 @@
 // ohne Mediendateien prüfbar. Je Aktion ein Test, dazu Filter, Reihenfolge,
 // No-op-Erkennung und die Fehlermeldungen der Regeldatei (mit Zeilenangabe).
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -60,17 +61,10 @@ struct TagRulesTests {
                            TagRule(action: .remove, field: "TITLE"))
         let rules = url.deletingLastPathComponent().appendingPathComponent("rules.json")
         try TagRulesIO.save(document, to: rules)
-        let process = Process()
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        process.executableURL = root.appendingPathComponent(".build/debug/tagx")
-        process.arguments = ["apply", rules.path, url.path, "--apply", "--json", "--no-backup"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        try process.run()
-        let report = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        #expect(process.terminationStatus == 0)
-        #expect(String(decoding: report, as: UTF8.self).contains("newValues"))
+        let result = try runTagx(arguments: ["apply", rules.path, url.path, "--apply", "--json", "--no-backup"])
+        let report = Data(result.stdout.utf8)
+        #expect(result.status == 0)
+        #expect(result.stdout.contains("newValues"))
         let values = TagRuleFields.values(from: try TagFile.read(at: url).properties)
         #expect(values["ARTIST"] == ["Davis", "COLTRANE"])
         #expect(values["ALBUMARTIST"] == ["Davis", "COLTRANE"])

@@ -5,7 +5,8 @@
     "id": "20260908T002532864338+0200",
     "token_budget": 8000000,
     "status": "active",
-    "started_at": "2026-09-08T00:25:32+02:00"
+    "started_at": "2026-09-08T00:25:32+02:00",
+    "tokens_spent": 473412
   },
   "campaign_history": [
     {
@@ -71,33 +72,21 @@
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:34:20+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "fa5220b7957f4be6e9e4dcb170cbd32efa595cbe57c252b4e06bbc5ccaceb3a4",
-        "file_count": 5,
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T00:40:26+02:00",
+        "observed_head": "e9f4fe56d9ac599c2a96921bacc778cfdcae5e0b",
+        "content_sha256": "07ee1be6fcba6a6c12bf4790acb9a2ba668dc3ba0744de255a6180c1d9665f8c",
+        "file_count": 7,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der atomare Rahmen kann eine mutierte Kopie nach erfolgreicher Validierung bewusst verwerfen oder erst danach einen Sicherungs-Hook ausführen; vor und nach dem Hook schützt der Dateistempel den Austausch. Bestehende Aufrufer behalten den unveränderten Standardpfad.",
+        "summary": "XDG-Verzeichnisse gegen Symlinks, fremde Besitzer und fremde Schreibrechte geschützt; Datenträgerwahl folgt dem Ziel, relative Datenpfade werden ignoriert. Sicherungen prüfen Quellstempel vor und nach der Kopie. Überlappende Sicherungstests zusammengeführt und Quellordner aufgeräumt. Exklusive Dateineuanlage direkt geprüft; exFAT-Unterstützung bleibt mangels link/RENAME_EXCL als dokumentierte Dateisystemgrenze offen.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden; TagArchive-Normalisierungsregression belegt Dry-run ohne Austausch und ohne Sicherung",
-          "swift test --package-path App: 65 Tests in 8 Suites bestanden"
-        ]
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/XDGTrash.swift",
-        "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
-      ],
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T00:27:32+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "Sources/TagExplosionCore/XDGTrash.swift",
-          "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
+          "Vorzustand: XDG-Symlink-/Rechte-/Datenträgerfälle 14 Abweichungen; kontrollierte Quelländerung 3 Abweichungen",
+          "swift test: 469 Tests in 49 Suites bestanden, 9.666 s; App: 111 Tests in 21 Suites bestanden, 0.667 s",
+          "ExFAT-Probe: link und renamex_np(RENAME_EXCL) liefern beide ENOTSUP; unsicheren Fallback verworfen",
+          "Diff geprüft; abschließender XDG-Cleanup-Test bestanden; native Linux-Ausführung steht noch aus"
         ]
       }
     },
@@ -137,12 +126,18 @@
       "id": "test-support",
       "paths": [
         "Tests/TagExplosionCoreTests/TestFiles.swift",
-        "App/Tests/TagExplosionAppTests/FixtureSupport.swift"
+        "App/Tests/TagExplosionAppTests/FixtureSupport.swift",
+        "Tests/Support",
+        "Tests/TagxTests/ProcessSupportTests.swift"
       ],
       "risk": "high",
       "priority": 2,
       "reason": "Gemeinsame Testdateien und Fixture-Erzeugung: Race-Freiheit, Fehlertransparenz und Laufzeit.",
-      "state": "pending"
+      "state": "pending",
+      "pending_paths": [
+        "Tests/Support",
+        "Tests/TagxTests/ProcessSupportTests.swift"
+      ]
     },
     {
       "id": "app-entry-state",
@@ -877,9 +872,15 @@
         "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
       ],
       "priority": 2,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T00:27:32+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T00:40:26+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T00:40:26+02:00",
+        "observed_head": "e9f4fe56d9ac599c2a96921bacc778cfdcae5e0b"
+      }
     },
     {
       "id": "fixture-infrastructure",

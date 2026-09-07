@@ -3,6 +3,7 @@
 // Journal liegt per `TAGX_BACKUP_JOURNAL` in einem Temp-Ordner; die dabei
 // entstehenden Papierkorb-Ordner räumt der Test selbst wieder weg.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -115,22 +116,9 @@ struct HistoryCommandTests {
         return directory
     }
 
-    /// Baut das CLI-Produkt und startet das Binary mit eigenem Journal-Pfad
-    /// (über `/usr/bin/env`, damit das Journal des Benutzers unberührt bleibt).
+    /// Eigener Journal-Pfad hält die Benutzerhistorie aus diesem Test heraus.
     private func runTagx(_ arguments: [String], journal: URL) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tagx = URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path
-        return try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["TAGX_BACKUP_JOURNAL=\(journal.path)", tagx] + arguments,
-            currentDirectory: root
-        )
+        try TagExplosionTestSupport.runTagx(arguments: arguments,
+            environment: ["TAGX_BACKUP_JOURNAL": journal.path])
     }
 }

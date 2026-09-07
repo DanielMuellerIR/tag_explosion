@@ -1,6 +1,7 @@
 // CLI-Regression: `tagx check` liest nur, gruppiert nach Album, liefert JSON
 // und wechselt den Exit-Code (4) erst mit --fail-on.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -88,19 +89,5 @@ struct CheckCommandTests {
         #expect(badLevel.status == 64)
     }
 
-    private func runTagx(arguments: [String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 }

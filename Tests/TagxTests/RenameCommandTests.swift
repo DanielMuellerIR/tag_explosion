@@ -2,6 +2,7 @@
 // Probelauf, ändern mit --apply genau das Angekündigte und lassen bei einem
 // Konflikt beziehungsweise Nicht-Treffer ALLE Dateien in Ruhe (Exit 2).
 import Foundation
+import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
@@ -157,21 +158,5 @@ struct RenameCommandTests {
         #expect(result.stderr.contains("file name, not a folder path"))
     }
 
-    /// Baut das CLI-Produkt über SwiftPM und startet genau das entstandene
-    /// Binary (gleiches Muster wie in SetCommandTests).
-    private func runTagx(arguments: [String]) throws -> CapturedProcessResult {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let binPath = try runCapturedProcess(
-            executable: "/usr/bin/env",
-            arguments: ["swift", "build", "--product", "tagx", "--show-bin-path"],
-            currentDirectory: root
-        )
-        let binaryDirectory = binPath.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try runCapturedProcess(
-            executable: URL(fileURLWithPath: binaryDirectory).appendingPathComponent("tagx").path,
-            arguments: arguments,
-            currentDirectory: root
-        )
-    }
+
 }
