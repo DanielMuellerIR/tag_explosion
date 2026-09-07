@@ -1,14 +1,14 @@
 import Foundation
 
-/// Lesestand einer Sidecar (XMP oder LRC). Abwesenheit ist ein bekannter
+/// Lesestand einer Datei. Abwesenheit ist ein bekannter
 /// Zustand; nur `unknown` verzichtet auf den Vergleich mit einem Lesestand.
-public enum SidecarState: Sendable, Equatable {
+public enum FileState: Sendable, Equatable {
     case unknown
     case absent
     case present(FileStamp)
 
-    public static func current(of url: URL) -> SidecarState {
-        FileStamp.current(of: url).map(SidecarState.present) ?? .absent
+    public static func current(of url: URL) -> FileState {
+        FileStamp.current(of: url).map(FileState.present) ?? .absent
     }
 
     public func requireUnchanged(at url: URL) throws {
@@ -27,3 +27,6 @@ public enum SidecarState: Sendable, Equatable {
         }
     }
 }
+
+/// Kompatibler Name für bestehende XMP-/LRC-Aufrufer.
+public typealias SidecarState = FileState

@@ -131,8 +131,8 @@ Eintrag erscheint fälschlich sauber.
 
 ## Fehlende Sidecars als Lesestand
 
-`SidecarState` liegt in einer eigenen Core-Datei und wird für XMP und LRC
-verwendet. `.absent` schützt eine beim Lesen fehlende Sidecar vor fremdem
+`FileState` liegt in einer eigenen Core-Datei; der kompatible Alias
+`SidecarState` wird für XMP und LRC verwendet. `.absent` schützt eine beim Lesen fehlende Sidecar vor fremdem
 Anlegen; `.present` erkennt auch ihr späteres Verschwinden. Nur `.unknown`
 verzichtet auf den Abgleich mit dem früheren Lesestand. Die App setzt diesen
 Wert erst beim bestätigten Überschreiben. Der kompatible LRC-Einstieg mit

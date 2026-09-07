@@ -176,6 +176,34 @@ struct BackupHistoryTests {
         }
     }
 
+    @Test("Restore respektiert bekannte Existenz und Abwesenheit des Ziels")
+    func restoreChecksDestinationState() throws {
+        try withJournal { journal, root in
+            let destination = root.appendingPathComponent("original.bin")
+            let copy = root.appendingPathComponent("backup.bin")
+            let bytes = Data("Version".utf8)
+            try bytes.write(to: copy)
+            let record = try journal.record(original: destination, backup: copy,
+                size: Int64(bytes.count), reason: BackupReason.save)
+            let version = BackupVersion(number: 1, entry: record)
+            let absent = FileState.current(of: destination)
+            try Data("Fremd".utf8).write(to: destination)
+            #expect(throws: TagError.fileChangedOnDisk(path: destination.path)) {
+                try BackupHistory.restore(version, expecting: absent, backup: TrashBackup())
+            }
+            #expect(try Data(contentsOf: destination) == Data("Fremd".utf8))
+            let present = FileState.current(of: destination)
+            try FileManager.default.removeItem(at: destination)
+            #expect(throws: TagError.fileChangedOnDisk(path: destination.path)) {
+                try BackupHistory.restore(version, expecting: present, backup: TrashBackup())
+            }
+            #expect(!FileManager.default.fileExists(atPath: destination.path))
+            // Das Ziel fehlt tatsächlich noch: Wiederherstellen bleibt erlaubt.
+            try BackupHistory.restore(version, expecting: absent, backup: TrashBackup())
+            #expect(try Data(contentsOf: destination) == bytes)
+        }
+    }
+
     @Test("Feld-Diff: nur geänderte Felder, sortiert, mit beiden Seiten")
     func fieldDiff() {
         let changes = BackupHistory.diff(

@@ -242,17 +242,27 @@ public enum BackupHistory {
     /// Ablauf: Kopie prüfen → Original zur Geschwisterkopie klonen (Rahmen) →
     /// Geschwisterkopie durch die Sicherung ersetzen → erneut prüfen → den
     /// jetzigen Stand des Originals in den Papierkorb sichern (`backup`) →
-    /// atomarer Austausch. Fehlt das Original inzwischen, wird es exklusiv
+    /// atomarer Austausch. Ein beim Lesen fehlendes Original wird exklusiv
     /// neu angelegt. `expecting` schützt wie beim Speichern vor einer fremden
     /// Änderung zwischen Anzeige und Austausch.
     public static func restore(_ version: BackupVersion,
                                expecting stamp: FileStamp? = nil,
                                backup: TrashBackup = .shared) throws {
-        try verify(version)
+        try restore(version, expecting: stamp.map(FileState.present) ?? .unknown, backup: backup)
+    }
+
+    /// Bekannte Abwesenheit schützt auch eine noch fehlende Zieldatei vor
+    /// fremdem Anlegen. Der alte Stempel-Einstieg bleibt quellkompatibel.
+    public static func restore(_ version: BackupVersion,
+                               expecting state: FileState,
+                               backup: TrashBackup = .shared) throws {
         let entry = version.entry
         let source = URL(fileURLWithPath: entry.backupPath)
         let destination = URL(fileURLWithPath: entry.originalPath)
         let fileManager = FileManager.default
+        let expected = state == .unknown ? FileState.current(of: destination) : state
+        try expected.requireUnchanged(at: destination)
+        try verify(version)
 
         let mutate: (URL) throws -> Void = { temp in
             // Die Geschwisterkopie des jetzigen Stands wird durch die
@@ -267,13 +277,16 @@ public enum BackupHistory {
             try backup.backUp(destination, reason: BackupReason.restore)
         }
 
-        if fileManager.fileExists(atPath: destination.path) {
+        switch expected {
+        case .present(let stamp):
             try AtomicFileRewrite.run(url: destination, expecting: stamp, replacingOriginal: true,
                                       beforeReplace: beforeReplace,
                                       mutate: mutate, validate: validate)
-        } else {
+        case .absent:
             try AtomicFileRewrite.create(url: destination, replacingOriginal: true,
                                          beforeReplace: {}, mutate: mutate, validate: validate)
+        case .unknown:
+            preconditionFailure("Unknown state must be resolved before restoring")
         }
     }
 

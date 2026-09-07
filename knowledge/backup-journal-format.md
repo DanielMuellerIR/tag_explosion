@@ -21,3 +21,20 @@ dass die Medienbytes unverändert bleiben.
 Die Restore-Roundtrips sind auf beiden Plattformen aktiviert. Linux-Tests
 verwenden einen eigenen XDG-Papierkorb im temporären Testordner, macOS-Tests
 entfernen ihre eigenen Sitzungsordner im Systempapierkorb.
+
+## Lesestand beim Restore
+
+`FileEntry.restoreState` ordnet eine Version der Originaldatei oder einer
+zugehörigen Sidecar zu. LRC-, NFO- und XMP-Stände gehen mit in den Core-Restore.
+Sechs App-Regressionfälle prüfen fremdes Anlegen und Ändern dieser drei
+Sidecar-Arten; zuvor wurden die fremden Bytes in allen sechs Fällen ersetzt.
+Nicht gelesene Sidecars behalten den Zustand „unbekannt“, statt Abwesenheit
+vorzutäuschen. Eine lesefehlerhafte NFO ohne Stempel bleibt ebenfalls unbekannt.
+
+Der gemeinsame Typ heißt nun `FileState` (`SidecarState` bleibt als Alias
+quellkompatibel). `BackupHistory.restore` prüft bekannte Zustände vor dem
+Hashen der Sicherung und nochmals über den atomaren Austausch. Bekannte
+Abwesenheit verwendet exklusives Anlegen; ein inzwischen verschwundenes
+bekanntes Ziel ist ein Konflikt. Die Core-Prüfung deckt fremdes Anlegen,
+fremdes Löschen und die zulässige Wiederherstellung eines weiterhin fehlenden
+Ziels ab. Der alte optionale `FileStamp`-Einstieg bleibt verfügbar.

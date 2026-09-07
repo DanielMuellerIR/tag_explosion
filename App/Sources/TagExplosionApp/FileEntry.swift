@@ -152,7 +152,7 @@ final class FileEntry: Identifiable {
         var original: TagData
         /// Zustand der `<name>.lrc` beim Lesen (auch ihre Abwesenheit). Der
         /// Schreibweg prüft ihn unmittelbar vor dem Austausch der Sidecar.
-        var lrcState: SidecarState = .absent
+        var lrcState: SidecarState = .unknown
         /// Geänderte Felder der NFO neben einem Video samt Lesestand;
         /// nil = NFO unverändert oder keine vorhanden.
         var nfo: NFOSnapshot? = nil

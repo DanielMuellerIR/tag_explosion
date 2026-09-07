@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.15 — 2026-09-08
+
+- Die App berücksichtigt beim Wiederherstellen von LRC-, NFO- und XMP-
+  Sicherungen deren Lesestand. Fremde Änderungen und neu angelegte Sidecars
+  bleiben bei einem Konflikt erhalten.
+- Core und CLI unterscheiden beim Restore bekannte Existenz, Abwesenheit
+  und unbekannten Zustand. Ein inzwischen gelöschtes bekanntes Ziel wird
+  nicht ungefragt neu angelegt. Der bisherige Stempel-Aufruf bleibt verfügbar.
+
 ## 0.46.14 — 2026-09-08
 
 - Linux-Abhängigkeiten enthalten `zip` für vollständige Fixtures; die

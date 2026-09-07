@@ -68,7 +68,8 @@
         "Tests/TagExplosionCoreTests/TrashBackupTests.swift",
         "Sources/TagExplosionCore/XDGTrash.swift",
         "Tests/TagExplosionCoreTests/XDGTrashTests.swift",
-        "Sources/TagExplosionCore/SidecarState.swift"
+        "Sources/TagExplosionCore/SidecarState.swift",
+        "Sources/TagExplosionCore/FileState.swift"
       ],
       "risk": "critical",
       "priority": 1,
@@ -91,7 +92,8 @@
         ]
       },
       "pending_paths": [
-        "Sources/TagExplosionCore/SidecarState.swift"
+        "Sources/TagExplosionCore/SidecarState.swift",
+        "Sources/TagExplosionCore/FileState.swift"
       ]
     },
     {
@@ -214,12 +216,13 @@
         "Tests/TagExplosionCoreTests/BackupHistoryTests.swift",
         "Tests/TagxTests/HistoryCommandTests.swift",
         "App/Sources/TagExplosionApp/AppModel+VersionHistory.swift",
-        "App/Sources/TagExplosionApp/VersionHistoryView.swift"
+        "App/Sources/TagExplosionApp/VersionHistoryView.swift",
+        "App/Tests/TagExplosionAppTests/VersionHistoryTests.swift"
       ],
       "risk": "critical",
       "priority": 4,
       "reason": "Wiederherstellung verändert Nutzdateien; Journal, Dateizuweisung und Hash-Prüfung bilden einen Vertrag.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
         "completed_at": "2026-09-08T01:23:27+02:00",
@@ -232,7 +235,10 @@
         "tests": [
           "Drei Repros vor Fix neun Fehler; danach bestanden. Root-Vollprüfung 475 Tests/51 Suiten, 7.255 s. Finale Einpass-Decoder-Prüfung 10 Historien-Tests bestanden, 0.052 s. Linux-Vollprüfung folgt separat."
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Tests/TagExplosionAppTests/VersionHistoryTests.swift"
+      ]
     },
     {
       "id": "taglib-io",
@@ -313,31 +319,18 @@
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:35:00+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "01f9247bec50f52ad4b6e28c0c1c88c0c72d9b68519faeb37f619a7f22f60d89",
-        "file_count": 16,
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T01:33:19+02:00",
+        "observed_head": "f984672f4505373460170980041833b0bbaf945a",
+        "content_sha256": "5a2805abcdb88830a42814d8f6fe93b4a054c7b26a125b0b27fc4659dd28f8ca",
+        "file_count": 17,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der Installer-Test räumt jeden Hintergrundlauf über einen gemeinsamen Wait-Helfer unabhängig vom Exit-Code aus der Registry. Der EXIT-Handler vergleicht zusätzlich Eltern-PID und Startzeit; zwei Gegenproben belegen fehlgeschlagenen Wait und abweichende Prozessidentität. Produktiver Installer-, Signatur- und Rollback-Code blieb unverändert.",
+        "summary": "Linux-CI/Abhängigkeiten, Dokument-Plist-Delta, Package-Testziele und Grenzen zu Bundle/Installer/Mindestversion geprüft. zip explizit ergänzt, Buildparallelität steuerbar, doppelte CI-Builds entfernt; Plist-Test verwendet Debug. Docker-Anleitung ohne Root-Tests/Bind-Mount/Sicherheits-Bypass aktualisiert. Commit 0.46.14.",
         "tests": [
-          "Tests/install-verified-app-tests.sh: Installer-Rollback-Tests OK, einschließlich neuer Prozessbesitz-Gegenproben",
-          "bash -n Tests/install-verified-app-tests.sh: bestanden"
-        ]
-      },
-      "pending_paths": [
-        "scripts/linux-deps.sh"
-      ],
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:27:52+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "scripts/linux-deps.sh"
+          "Linux Swift 6.0: 469 Tests bestanden, 19.920 s, frische Fixtures, uid 10001 und --init. Shell-Support-, Plist-, Installer-Rollback- und Mindestversions-Tests bestanden. Debug-Plist-Builds 0.20+2.83 s statt 38.15+33.21 s; echte Bundle-Feedprüfung erfolgreich."
         ]
       }
     },
@@ -1009,9 +1002,15 @@
         "Sources/TagExplosionCore/BackupHistory.swift"
       ],
       "priority": 4,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T01:22:19+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T01:33:37+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:33:37+02:00",
+        "observed_head": "f984672f4505373460170980041833b0bbaf945a"
+      }
     }
   ]
 }

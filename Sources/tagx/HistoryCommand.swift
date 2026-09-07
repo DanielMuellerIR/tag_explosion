@@ -142,7 +142,7 @@ struct History: ParsableCommand {
             // Stempel VOR dem Vergleich: Ändert ein anderes Programm die Datei
             // zwischen Anzeige und Austausch, bricht das Zurückspielen ab.
             let destination = URL(fileURLWithPath: chosen.entry.originalPath)
-            let stamp = FileStamp.current(of: destination)
+            let state = FileState.current(of: destination)
             let changes = try BackupHistory.diff(current: url, against: chosen)
             History.printDiff(changes)
             guard apply else {
@@ -150,7 +150,7 @@ struct History: ParsableCommand {
                       + "(\(History.isoString(chosen.entry.date)))")
                 return
             }
-            try BackupHistory.restore(chosen, expecting: stamp)
+            try BackupHistory.restore(chosen, expecting: state)
             print("OK \(url.lastPathComponent): version \(chosen.number) restored"
                   + (TrashBackup.shared.isEnabled
                      ? " (previous state backed up to the trash)" : ""))

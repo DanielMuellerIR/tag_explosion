@@ -15,20 +15,20 @@ extension AppModel {
     /// im Puffer werden durch den neu gelesenen Stand ersetzt — die Rückfrage
     /// dazu stellt die View.
     @discardableResult
-    func restoreVersion(_ version: BackupVersion, for entry: FileEntry) async -> Bool {
+    func restoreVersion(_ version: BackupVersion, for entry: FileEntry,
+                        backup: TrashBackup = .shared) async -> Bool {
         guard !entry.isSaving, !isDestructiveActionLocked else { return false }
         entry.isSaving = true
         defer { entry.finishSaving() }
         let url = entry.url
         let kind = entry.kind
-        // Der Stempel gehört zur Datei des Eintrags. Bei Bildern kann die
-        // Version zur XMP-Sidecar gehören — dann gibt es keinen bekannten
-        // Ausgangsstand, und der Core prüft nur die Kopie selbst.
-        let target = MediaFormats.canonicalFileURL(url).path
-        let stamp = version.entry.originalPath == target ? entry.diskStamp : nil
+        let destination = URL(fileURLWithPath: version.entry.originalPath)
         do {
+            guard let state = entry.restoreState(for: destination) else {
+                throw TagError.saveFailed(path: destination.path)
+            }
             let (loaded, newStamp) = try await Task.detached(priority: .userInitiated) {
-                try BackupHistory.restore(version, expecting: stamp)
+                try BackupHistory.restore(version, expecting: state, backup: backup)
                 return try Self.readStamped(url: url, kind: kind)
             }.value
             entry.acceptNew(loaded, stamp: newStamp)
@@ -109,5 +109,33 @@ extension FileEntry.SaveSnapshot {
         case .sidecar: return BackupReason.sidecar
         case .playlist: return BackupReason.playlist
         }
+    }
+}
+
+extension FileEntry {
+    /// Nur Datei und zugehörige Sidecars gehören zur Historie dieses Eintrags.
+    /// Ihre Lesestände bleiben auch nach Auswahl einer alten Sicherung gültig.
+    func restoreState(for destination: URL) -> FileState? {
+        let target = MediaFormats.canonicalFileURL(destination)
+        let media = MediaFormats.canonicalFileURL(url)
+        if target == media { return diskStamp.map(FileState.present) ?? .unknown }
+        switch loadedState {
+        case .audio(_, let sidecars):
+            if target == MediaFormats.canonicalFileURL(LRC.sidecarURL(for: media)) {
+                return sidecars.lrcState
+            }
+            let nfo = media.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension)
+            if MediaFormats.nfoVideo.contains(media.pathExtension.lowercased()),
+               target == MediaFormats.canonicalFileURL(nfo) {
+                guard let nfo = sidecars.nfo else { return .absent }
+                return nfo.stamp.map(FileState.present) ?? .unknown
+            }
+        case .image(let reading):
+            if target == MediaFormats.canonicalFileURL(MediaFormats.sidecarURL(for: media)) {
+                return reading.sidecar
+            }
+        default: break
+        }
+        return nil
     }
 }
