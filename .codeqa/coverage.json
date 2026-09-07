@@ -102,7 +102,7 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:14:39+02:00",
@@ -120,7 +120,18 @@
         "App/Sources/TagExplosionApp/AppFileIO.swift",
         "App/Sources/TagExplosionApp/BatchSaveResults.swift",
         "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:02:09+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "App/Sources/TagExplosionApp/AppFileIO.swift",
+          "App/Sources/TagExplosionApp/BatchSaveResults.swift",
+          "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
+        ]
+      }
     },
     {
       "id": "test-support",
@@ -901,14 +912,18 @@
         "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh"
       ],
       "priority": 2,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T00:27:32+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T00:49:11+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T00:49:11+02:00",
-        "observed_head": "19ad07983d0ab200da7c59c150139492a1c0b4a7"
+        "completed_at": "2026-09-08T01:02:01+02:00",
+        "observed_head": "9b8fd5e59c2fd5751a46c1f3273abf1db7332c45",
+        "summary": "Fixture-Aufbau für Core, CLI und App zusammengeführt, parallele Erzeugung per flock geschützt; fehlende DOCX-/Comic-Varianten werden einzeln ergänzt. Commit 9b8fd5e.",
+        "tests": [
+          "Root: 473 Tests/51 Suiten, 9.637 s; App: 111 Tests/21 Suiten, 0.549 s. Lock-Gegenprobe scheitert ohne Sperre; bestehende Basisarchive bytegleich; vollständige Fixtures ohne ffmpeg geprüft."
+        ]
       }
     },
     {
@@ -922,6 +937,18 @@
       "priority": 3,
       "state": "pending",
       "noted_at": "2026-09-08T00:30:48+02:00",
+      "campaign_id": "20260908T002532864338+0200"
+    },
+    {
+      "id": "audio-sidecar-transaction",
+      "summary": "AppFileIO bereitet LRC und NFO bei mediaChanged=false nicht gemeinsam vor: LRC kann geschrieben sein, bevor NFO-Validierung/Backup scheitert; PartialSaveError fehlt dort. Gemeinsame Vorprüfung und ehrliche Teilerfolgsmeldung für beide Audiozweige prüfen.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/AppFileIO.swift",
+        "App/Tests/TagExplosionAppTests/LyricsEntryTests.swift"
+      ],
+      "priority": 3,
+      "state": "pending",
+      "noted_at": "2026-09-08T01:05:42+02:00",
       "campaign_id": "20260908T002532864338+0200"
     }
   ]

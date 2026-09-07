@@ -113,3 +113,18 @@ Vor der ersten Mutation `TrashBackup.shared.backUp(url, reason:)` aufrufen
 (Auslöser aus `BackupReason`, damit die Historie ihn anzeigen kann) und die
 Änderung über `AtomicFileRewrite.run` führen. Die Sicherung ist bewusst
 fehlerhart: Schlägt sie fehl, wird nicht geschrieben.
+
+## Editoränderungen während des Speicherns
+
+`FileEntry.acceptSaved` ersetzt Originaldaten durch den zurückgelesenen Stand,
+übernimmt ihn aber nur in unveränderte Bearbeitungspuffer. Bei optionalen
+Audio-Änderungen bedeutet `nil` im Auftrag „beim Start unverändert“. Der
+Vergleich muss dann die damaligen Originalwerte verwenden. Ein bedingungsloses
+Übernehmen bei `nil` verwirft Lyrics, deren Sprache und Video-NFO-Felder, die
+erst während des laufenden Speicherns eingegeben wurden.
+
+`AppModelSaveTests.optionalAudioChangesDuringSave` hält den Schreibauftrag
+gezielt an und prüft vier Kombinationen: schon beim Start geändert oder noch
+unverändert, anschließend weiterbearbeitet oder nicht. Ohne Korrektur gehen
+im Fall „erst anschließend bearbeitet“ alle drei Felder verloren und der
+Eintrag erscheint fälschlich sauber.

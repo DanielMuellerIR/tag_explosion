@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.7 — 2026-09-08
+
+- Lyrics, deren Sprache und Video-NFO-Felder behalten Eingaben, die erst
+  während eines laufenden Speichervorgangs begonnen wurden.
+- Doppelte Testhilfen und AVI-Lesetests zusammengeführt; der Test für
+  konsistente Dateischnappschüsse prüft nun auch den zurückgegebenen Inhalt.
+
 ## 0.46.6 — 2026-09-08
 
 - Core-, CLI- und App-Tests teilen die Fixture-Erzeugung und Kopierhilfe.

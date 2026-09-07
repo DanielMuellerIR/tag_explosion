@@ -530,21 +530,21 @@ final class FileEntry: Identifiable {
         diskStamp = stamp
         switch (snapshot, reloaded) {
         case (.audio(let saved), .audio(let data, let sidecars)):
+            // nil im Schreibauftrag bedeutet unverändert. Verglichen wird
+            // deshalb mit dem damaligen Original, bevor das Read-back es ersetzt.
+            // Auch erstmals während des Speicherns eingegebene Werte bleiben so erhalten.
+            let savedNFOFields = saved.nfo?.fields ?? videoNFOOriginal
             original = data
             audioSidecars = sidecars
             videoNFOOriginal = sidecars.nfoFields
-            // NFO: nur übernehmen, was gespeichert wurde; weitergetippte
-            // Eingaben bleiben dirty gegenüber dem neuen Original.
-            if saved.nfo == nil || videoNFOFields == saved.nfo?.fields {
-                videoNFOFields = sidecars.nfoFields
-            }
+            if videoNFOFields == savedNFOFields { videoNFOFields = sidecars.nfoFields }
             if properties == saved.properties { properties = data.properties }
             if artworks == saved.artworks { artworks = data.artworks }
-            if saved.chapters == nil || chapters == saved.chapters { chapters = data.chapters }
-            if saved.syncedLyrics == nil || syncedLyrics == saved.syncedLyrics {
+            if chapters == (saved.chapters ?? saved.original.chapters) { chapters = data.chapters }
+            if syncedLyrics == (saved.syncedLyrics ?? saved.original.syncedLyrics) {
                 syncedLyrics = data.syncedLyrics
             }
-            if saved.lyricsLanguage == nil || lyricsLanguage == saved.lyricsLanguage {
+            if lyricsLanguage == (saved.lyricsLanguage ?? saved.original.lyricsLanguage) {
                 lyricsLanguage = data.lyricsLanguage
             }
         case (.image(let savedFields, _, _), .image(let reading)):

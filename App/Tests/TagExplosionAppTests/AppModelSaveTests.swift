@@ -529,7 +529,7 @@ struct AppModelSaveTests {
         try Data("b".utf8).write(to: second)
 
         let model = AppModel()
-        let gate = LoadGate()
+        let gate = SaveGate()
         let secondOpenCalls = CallCounter()
         let firstOpen = Task { @MainActor in
             await model.open(urls: [first, folder]) { url, _ in
@@ -604,6 +604,61 @@ struct AppModelSaveTests {
         #expect(entry.original.firstValue(for: "TITLE") == "Gespeicherter Stand")
         #expect(entry.firstValue("TITLE") == "Neuere Eingabe")
         #expect(entry.isDirty)
+    }
+
+    @Test("Lyrics und Video-NFO behalten Eingaben nach dem Speichersnapshot",
+          arguments: [false, true], [false, true])
+    func optionalAudioChangesDuringSave(alreadyChanged: Bool, editDuringSave: Bool) async {
+        let initialLines = [SyncedLyricLine(milliseconds: 0, text: "Original")]
+        let savedLines = [SyncedLyricLine(milliseconds: 0, text: "Gespeichert")]
+        let newerLines = [SyncedLyricLine(milliseconds: 0, text: "Weiter")]
+        let original = TagData(properties: [], artworks: [], audio: nil,
+                               lyricsLanguage: "deu", syncedLyrics: initialLines,
+                               supportsSyncedLyrics: true)
+        let nfo = NFOContents(rootName: "movie", fields: NFOFields(title: "Original"),
+                              info: [], urls: [])
+        let sidecars = AudioSidecars(nfo: NFOSidecarReading(
+            url: URL(fileURLWithPath: "/tmp/save-fields.nfo"), contents: nfo, stamp: nil))
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/save-fields.mp4"),
+                              loaded: .audio(original, sidecars: sidecars))
+        entry.setSingleValue("TITLE", "Titeländerung")
+        if alreadyChanged {
+            entry.syncedLyrics = savedLines
+            entry.lyricsLanguage = "eng"
+            entry.videoNFOFields.title = "Gespeichert"
+        }
+        let model = AppModel()
+        let gate = SaveGate()
+        let save = Task { @MainActor in
+            await model.save(entry: entry) { snapshot in
+                guard case .audio(let audio) = snapshot else {
+                    throw ConflictTestError.expectedSaveFailure
+                }
+                await gate.markStarted()
+                await gate.waitForRelease()
+                var reloaded = original
+                reloaded.properties = audio.properties
+                reloaded.syncedLyrics = audio.syncedLyrics ?? original.syncedLyrics
+                reloaded.lyricsLanguage = audio.lyricsLanguage ?? original.lyricsLanguage
+                let writtenNFO = NFOContents(rootName: "movie",
+                    fields: audio.nfo?.fields ?? nfo.fields, info: [], urls: [])
+                return (.audio(reloaded, sidecars: AudioSidecars(nfo: NFOSidecarReading(
+                    url: sidecars.nfo!.url, contents: writtenNFO, stamp: nil))), nil)
+            }
+        }
+        await gate.waitUntilStarted()
+        if editDuringSave {
+            entry.syncedLyrics = newerLines
+            entry.lyricsLanguage = "fra"
+            entry.videoNFOFields.title = "Weiter"
+        }
+        await gate.release()
+        #expect(await save.value)
+        #expect(entry.original.syncedLyrics == (alreadyChanged ? savedLines : initialLines))
+        #expect(entry.syncedLyrics == (editDuringSave ? newerLines : alreadyChanged ? savedLines : initialLines))
+        #expect(entry.lyricsLanguage == (editDuringSave ? "fra" : alreadyChanged ? "eng" : "deu"))
+        #expect(entry.videoNFOFields.title == (editDuringSave ? "Weiter" : alreadyChanged ? "Gespeichert" : "Original"))
+        #expect(entry.isDirty == editDuringSave)
     }
 
     @Test("Fremde Änderung auf der Platte wird nicht stillschweigend überschrieben",
@@ -768,9 +823,11 @@ struct AppModelSaveTests {
         // Der Leser verändert die Datei nach dem Lesen selbst. Ein getrennt
         // erhobener Stempel gehörte dann zur neuen Datei, der Inhalt zur alten.
         var reads = 0
-        let (_, stamp) = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
+        let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
             reads += 1
-            let loaded = LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
+            let title = try String(contentsOf: url, encoding: .utf8)
+            let loaded = LoadedData.audio(TagData(
+                properties: [TagProperty(key: "TITLE", value: title)], artworks: [], audio: nil))
             if reads == 1 {
                 try Data("fremde Änderung mit anderer Länge".utf8).write(to: url)
             }
@@ -779,6 +836,11 @@ struct AppModelSaveTests {
 
         // Genau ein Wiederholungsversuch, und der Stempel passt zum Endstand.
         #expect(reads == 2)
+        guard case .audio(let data, _) = loaded else {
+            Issue.record("Audio-Schnappschuss fehlt")
+            return
+        }
+        #expect(data.firstValue(for: "TITLE") == "fremde Änderung mit anderer Länge")
         #expect(stamp == FileStamp.current(of: url))
 
         // Kommt die Datei nie zur Ruhe, bricht das Lesen ab, statt einen
@@ -787,7 +849,7 @@ struct AppModelSaveTests {
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
             _ = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
                 restlessReads += 1
-                try Data("Änderung Nr. \(restlessReads) ...".utf8).write(to: url)
+                try Data(repeating: 65, count: restlessReads).write(to: url)
                 return LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
             }
         }
@@ -808,8 +870,8 @@ private func dirtyAudioEntry(url: URL, changedTitle: String) -> FileEntry {
     return entry
 }
 
-/// Zwei kleine Actors machen den Testablauf deterministisch: Kein sleep und
-/// damit kein zufälliges Timing-Rennen auf langsamen oder schnellen Rechnern.
+/// Kontrollierter Start und Abschluss für Lese- und Speicheraufträge.
+/// Derselbe Ablauf benötigt weder Sleeps noch getrennte Helferkopien.
 private actor SaveGate {
     private var started = false
     private var released = false
@@ -817,38 +879,6 @@ private actor SaveGate {
     private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
 
     func markStarted() {
-        started = true
-        startWaiters.forEach { $0.resume() }
-        startWaiters = []
-    }
-
-    func waitUntilStarted() async {
-        if started { return }
-        await withCheckedContinuation { startWaiters.append($0) }
-    }
-
-    func waitForRelease() async {
-        if released { return }
-        await withCheckedContinuation { releaseWaiters.append($0) }
-    }
-
-    func release() {
-        released = true
-        releaseWaiters.forEach { $0.resume() }
-        releaseWaiters = []
-    }
-}
-
-/// Der Lese-Gate macht überlappende Öffnen-Aufträge ohne zeitabhängige Sleeps
-/// reproduzierbar: Der erste Auftrag reserviert seine URLs, bevor er wartet.
-private actor LoadGate {
-    private var started = false
-    private var released = false
-    private var startWaiters: [CheckedContinuation<Void, Never>] = []
-    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
-
-    func markStarted() {
-        guard !started else { return }
         started = true
         startWaiters.forEach { $0.resume() }
         startWaiters = []
@@ -883,32 +913,10 @@ private actor CallCounter {
 @MainActor
 struct AppModelReadTests {
 
-    /// Container ohne TagLib-Leser (AVI) müssen sich trotzdem öffnen lassen —
-    /// schreibgeschützt, damit der Technik-Tab nutzbar bleibt.
-    @Test("AVI öffnet schreibgeschützt statt mit einem Fehler")
-    func aviOpensReadOnly() throws {
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-avi-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent("clip.avi")
-        // Der Inhalt ist bewusst kein gültiges AVI: TagLib kann AVI generell
-        // nicht lesen, der Fallback darf nicht vom Dateiinhalt abhängen.
-        try Data("nicht lesbar".utf8).write(to: url)
-
-        let loaded = try AppModel.readLoaded(url: url, kind: .audio)
-        guard case .audio(let data, _) = loaded else {
-            Issue.record("Erwartet wurde ein Audio-Zustand")
-            return
-        }
-        #expect(data.isReadOnly)
-        #expect(data.properties.isEmpty)
-    }
-
     /// Sun-AU und Ogg-Video haben in TagLib keinen Leser — derselbe
     /// schreibgeschützte Anzeige-Weg wie bei AVI.
     @Test("Anzeige-Formate ohne TagLib-Leser öffnen schreibgeschützt",
-          arguments: ["ton.au", "clip.ogv"])
+          arguments: ["clip.avi", "ton.au", "clip.ogv"])
     func displayOnlyFormatsOpenReadOnly(name: String) throws {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("tagx-display-only-\(UUID().uuidString)")
