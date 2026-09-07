@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.18 — 2026-09-08
+
+- Vier Testsuiten führen ffmpeg, ffprobe und kid3 über den gemeinsamen
+  Prozessstarter mit Zeitlimit aus. Doppelte Pipe-Verwaltung entfällt.
+- Ein installiertes, aber fehlschlagendes Prüfwerkzeug deaktiviert keine
+  Integritätsprüfung mehr. kid3-Prüfungen finden auch die Linux-Installation.
+
 ## 0.46.17 — 2026-09-08
 
 - `PODCAST=0`, `false` und `no` entfernen das Podcast-Flag in ID3v2 und

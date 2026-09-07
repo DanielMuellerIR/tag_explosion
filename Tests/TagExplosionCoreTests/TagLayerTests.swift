@@ -4,30 +4,27 @@
 // Emoji und Datum müssen den Weg über UTF-16 und TYER/TDAT überleben).
 // Cross-Check mit kid3-cli, wo es installiert ist.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
 /// kid3-cli als unabhängiger Zeuge: liest jede Schicht getrennt („Tag 1" =
 /// ID3v1, „Tag 2" = ID3v2/APE) und nennt die ID3v2-Version.
 private enum Kid3 {
-    static let path = "/Applications/kid3.app/Contents/MacOS/kid3-cli"
-    static var isAvailable: Bool { FileManager.default.isExecutableFile(atPath: path) }
+    static let path = ["/Applications/kid3.app/Contents/MacOS/kid3-cli", "/opt/homebrew/bin/kid3-cli",
+                       "/usr/local/bin/kid3-cli", "/usr/bin/kid3-cli"]
+        .first { FileManager.default.isExecutableFile(atPath: $0) }
+    static var isAvailable: Bool { path != nil }
 
     /// Führt kid3-cli-Befehle auf einer Datei aus und liefert stdout.
     @discardableResult
     static func run(_ commands: [String], on url: URL) -> String? {
-        guard isAvailable else { return nil }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = commands.flatMap { ["-c", $0] } + [url.path]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        return String(decoding: data, as: UTF8.self)
+        guard let path,
+              let result = try? runCapturedProcess(executable: path,
+                  arguments: commands.flatMap { ["-c", $0] } + [url.path],
+                  currentDirectory: TagxTestProcess.repoRoot),
+              result.status == 0 else { return nil }
+        return result.stdout
     }
 }
 

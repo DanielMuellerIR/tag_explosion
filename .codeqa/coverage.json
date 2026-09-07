@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 1103304
+    "tokens_spent": 1208672
   },
   "campaign_history": [
     {
@@ -256,53 +256,18 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:34:48+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "010d1d1730e3e32d9ceefa491739037e7d89d19b9f24a4e826ae6b633b6b59d0",
-        "file_count": 9,
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T01:51:57+02:00",
+        "observed_head": "2a19ece275fa0245d69fd247bb84aafe0c9e43fb",
+        "content_sha256": "fad15608600c7e7aa76acbd789113e3788e93073fb037a993709fa07a525bff0",
+        "file_count": 21,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Die einzige Änderung im Bereich ist die MediaInfo-Roundtrip-Regression: Sie benennt den JSON-Dekodiervertrag jetzt ausdrücklich. TagLib-Shim, PropertyMap-, Cover- und atomare Schreibgrenzen sind im Delta unverändert; repo-weit bleibt kein alter decodeLossy-Aufruf.",
+        "summary": "TagLib-Shim, neue Kapitel/Schichten/Lyrics/FixedFields und CLI-Verträge geprüft. LRC-Millisekundenverlust, Zeitstempelüberlauf, falsches Podcast-Flag und nicht darstellbare Kapitelenden reproduziert und korrigiert. Bestehende Rundlauftests erweitert; externe Testzeugen und CLI-Teilfehler als eigene Querschnittsarbeit erfasst.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden, einschließlich 13 Roundtrip-/Tag-Roundtrip-Tests im vollständigen Lauf",
-          "Tests/taglib-refs-tests.sh war im unmittelbar vorangegangenen vollständigen CodeQA-Stand grün; der aktuelle Delta berührt weder Skript noch Ladepfad"
-        ]
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/ChapterFormats.swift",
-        "Sources/TagExplosionCore/FixedFields.swift",
-        "Sources/TagExplosionCore/LyricsFormats.swift",
-        "Sources/tagx/ChaptersCommand.swift",
-        "Sources/tagx/LayersCommand.swift",
-        "Sources/tagx/LyricsCommand.swift",
-        "Tests/TagExplosionCoreTests/ChapterTests.swift",
-        "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
-        "Tests/TagExplosionCoreTests/TagLayerTests.swift",
-        "Tests/TagxTests/ChaptersCommandTests.swift",
-        "Tests/TagxTests/LayersCommandTests.swift",
-        "Tests/TagxTests/LyricsCommandTests.swift"
-      ],
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:41:26+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "Sources/TagExplosionCore/ChapterFormats.swift",
-          "Sources/TagExplosionCore/FixedFields.swift",
-          "Sources/TagExplosionCore/LyricsFormats.swift",
-          "Sources/tagx/ChaptersCommand.swift",
-          "Sources/tagx/LayersCommand.swift",
-          "Sources/tagx/LyricsCommand.swift",
-          "Tests/TagExplosionCoreTests/ChapterTests.swift",
-          "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
-          "Tests/TagExplosionCoreTests/TagLayerTests.swift",
-          "Tests/TagxTests/ChaptersCommandTests.swift",
-          "Tests/TagxTests/LayersCommandTests.swift",
-          "Tests/TagxTests/LyricsCommandTests.swift"
+          "swift test: 477 Tests/51 Suites grün (6.739 s); App swift test: 115 Tests/22 Suites grün (0.525 s). Gegenproben: LRC 3 Fehler, CLI-Überlauf Signalstatus 5, Podcast 9 Fehler, Kapitelgrenzen 4 Fehler vor Korrektur. Diff geprüft; Commits 24349ee und 2a19ece, minipc synchron."
         ]
       }
     },
@@ -1036,9 +1001,15 @@
         "Tests/TagExplosionCoreTests/FileIntegrityTests.swift"
       ],
       "priority": 5,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T01:49:43+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T01:51:57+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:51:57+02:00",
+        "observed_head": "2a19ece275fa0245d69fd247bb84aafe0c9e43fb"
+      }
     },
     {
       "id": "cli-lyrics-partial-save",

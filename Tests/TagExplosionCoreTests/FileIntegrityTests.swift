@@ -6,6 +6,7 @@
 // keine halb geschriebenen Zustände. Sie ersetzen das, was sonst nur
 // menschliches Ausprobieren finden würde.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -14,29 +15,22 @@ struct FileIntegrityTests {
 
     // MARK: - Nutzdaten
 
-    /// Prüfsumme des reinen Audiostreams (ohne Tags/Container-Metadaten).
-    /// Ohne ffmpeg wird der Test übersprungen.
-    static func audioStreamChecksum(of url: URL) -> String? {
-        guard let ffmpeg = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
-            .first(where: { FileManager.default.isExecutableFile(atPath: $0) })
-        else { return nil }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: ffmpeg)
-        process.arguments = ["-v", "error", "-i", url.path, "-map", "0:a",
-                             "-f", "md5", "-"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        return String(decoding: data, as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    private static let ffmpegPath = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
+        .first { FileManager.default.isExecutableFile(atPath: $0) }
 
-    static let ffmpegAvailable = audioStreamChecksum(
-        of: Fixtures.directory.appendingPathComponent("sample.mp3")) != nil
+    /// Nur ein fehlendes Werkzeug darf Prüfungen deaktivieren. Ein installiertes
+    /// ffmpeg, das die Datei nicht dekodieren kann, lässt die Prüfung scheitern.
+    static let ffmpegAvailable = ffmpegPath != nil
+
+    /// Prüfsumme des reinen Audiostreams (ohne Tags/Container-Metadaten).
+    static func audioStreamChecksum(of url: URL) -> String? {
+        guard let ffmpeg = ffmpegPath,
+              let result = try? runCapturedProcess(executable: ffmpeg,
+                  arguments: ["-nostdin", "-v", "error", "-i", url.path, "-map", "0:a", "-f", "md5", "-"],
+                  currentDirectory: TagxTestProcess.repoRoot),
+              result.status == 0 else { return nil }
+        return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     @Test("Tag-Schreiben lässt den Audiostream unverändert",
           .enabled(if: Self.ffmpegAvailable, "ffmpeg fehlt"),

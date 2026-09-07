@@ -2,6 +2,7 @@
 // Wertebereichsprüfung, Podcast-Felder — Roundtrip je Format, Ablehnung
 // ungültiger Werte ohne Dateiänderung, LRC-Parser-Grenzfälle und Sidecar.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -19,16 +20,10 @@ private let kid3Path = tool(["/Applications/kid3.app/Contents/MacOS/kid3-cli",
 
 /// Startet ein Werkzeug und liefert stdout (nil bei Fehler).
 private func run(_ executable: String, _ arguments: [String]) -> String? {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executable)
-    process.arguments = arguments
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = FileHandle.nullDevice
-    guard (try? process.run()) != nil else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self) : nil
+    guard let result = try? runCapturedProcess(executable: executable, arguments: arguments,
+                                               currentDirectory: TagxTestProcess.repoRoot),
+          result.status == 0 else { return nil }
+    return result.stdout
 }
 
 @Suite("Feste Felder", .serialized)

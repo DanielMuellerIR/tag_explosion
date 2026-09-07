@@ -2,26 +2,22 @@
 // schreibbarem Format, Cross-Check mit ffprobe, Erhalt beim Tag-Schreiben,
 // Austauschformate (JSON/Text) und Plausibilitätsprüfung.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
+
+private let ffprobePath = ["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe"]
+    .first { FileManager.default.isExecutableFile(atPath: $0) }
 
 /// Kapitel, wie ffprobe sie sieht — der externe Beweis, dass andere Programme
 /// unsere Kapitel lesen können (nicht nur TagLib selbst).
 private func ffprobeChapters(of url: URL) -> [(title: String, start: Int, end: Int)]? {
-    guard let ffprobe = ["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe"]
-        .first(where: { FileManager.default.isExecutableFile(atPath: $0) })
-    else { return nil }
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: ffprobe)
-    process.arguments = ["-v", "error", "-print_format", "json", "-show_chapters", url.path]
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = FileHandle.nullDevice
-    guard (try? process.run()) != nil else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    guard process.terminationStatus == 0,
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    guard let ffprobe = ffprobePath,
+          let result = try? runCapturedProcess(executable: ffprobe,
+              arguments: ["-v", "error", "-print_format", "json", "-show_chapters", url.path],
+              currentDirectory: TagxTestProcess.repoRoot),
+          result.status == 0,
+          let json = try? JSONSerialization.jsonObject(with: Data(result.stdout.utf8)) as? [String: Any],
           let list = json["chapters"] as? [[String: Any]]
     else { return nil }
     return list.map { entry in
@@ -34,8 +30,7 @@ private func ffprobeChapters(of url: URL) -> [(title: String, start: Int, end: I
     }
 }
 
-private let ffprobeAvailable = ffprobeChapters(
-    of: Fixtures.directory.appendingPathComponent("chapters.mp3")) != nil
+private let ffprobeAvailable = ffprobePath != nil
 
 /// Alle Formate, in die Kapitel geschrieben werden können.
 let chapterFormats = ["sample.mp3", "sample.m4a", "sample.m4b", "sample.mkv"]
@@ -145,7 +140,8 @@ struct ChapterTests {
         let cover = try Fixtures.coverData("cover.jpg")
         try TagFile.write(properties: [TagProperty(key: "ALBUM", value: "Hörbuch")],
                           artworks: [Artwork(data: cover, pictureType: "Front Cover")], to: url)
-        let audioBefore = FileIntegrityTests.audioStreamChecksum(of: url)
+        let audioBefore = FileIntegrityTests.ffmpegAvailable
+            ? try #require(FileIntegrityTests.audioStreamChecksum(of: url)) : nil
 
         try TagFile.write(chapters: Self.sample, to: url)
         let after = try TagFile.read(at: url)
