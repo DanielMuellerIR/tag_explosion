@@ -187,6 +187,15 @@ struct ChapterTests {
         #expect(try Data(contentsOf: url) == before)
     }
 
+    @Test("Nicht darstellbare Kapitelenden verändern die Datei nicht", arguments: ["sample.mp3", "sample.mkv"])
+    func rejectsUnrepresentableEnd(format: String) throws {
+        let url = try Fixtures.workingCopy(format)
+        let before = try Data(contentsOf: url)
+        let chapters = [Chapter(title: "Zu lang", startMilliseconds: 0, endMilliseconds: Int.max)]
+        #expect(throws: TagError.self) { try TagFile.write(chapters: chapters, to: url) }
+        #expect(try Data(contentsOf: url) == before)
+    }
+
     // MARK: - Austauschformate
 
     @Test("Zeitstempel lesen und schreiben")

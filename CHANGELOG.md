@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.17 — 2026-09-08
+
+- `PODCAST=0`, `false` und `no` entfernen das Podcast-Flag in ID3v2 und
+  MP4 korrekt, statt es wegen des nicht leeren Textwerts einzuschalten.
+- MP3- und Matroska-Kapitel mit nicht darstellbaren Zeitgrenzen werden
+  abgelehnt. Die Originaldatei bleibt dabei unverändert.
+
 ## 0.46.16 — 2026-09-08
 
 - LRC-Export und Sidecar-Speicherung erhalten Millisekunden statt auf

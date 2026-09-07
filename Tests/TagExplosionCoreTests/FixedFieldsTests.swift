@@ -271,6 +271,15 @@ struct FixedFieldsTests {
             #expect(kept.firstValue(for: value.key) == value.value, Comment(rawValue: "\(format) \(value.key) nach Titel"))
         }
 
+        // Flag-Werte für „Nein“ müssen PCST/pcst entfernen, nicht allein durch
+        // ihren nicht leeren Text wieder einschalten.
+        for flag in ["0", "false", "no"] {
+            let disabled = kept.properties.filter { $0.key != FixedFields.podcast }
+                + [TagProperty(key: FixedFields.podcast, value: flag)]
+            try TagFile.write(properties: disabled, to: url)
+            #expect(try TagFile.read(at: url).firstValue(for: FixedFields.podcast) == nil)
+        }
+
         // Entfernen: alle Podcast-Schlüssel weg.
         try TagFile.write(properties: kept.properties.filter { !FixedFields.podcastKeys.contains($0.key) }, to: url)
         let cleared = try TagFile.read(at: url)

@@ -258,7 +258,12 @@ public final class TagFile {
         // der neuen Map entfernt (das PCST-Flag) — der eigene Weg setzt sie
         // anschließend wieder. Ein fehlender Schlüssel entfernt das Feld.
         for slot in nativeSlots {
-            let value = properties.first { $0.key == slot.key }?.value ?? ""
+            var value = properties.first { $0.key == slot.key }?.value ?? ""
+            // PCST/pcst speichert Anwesenheit statt Text. Auch erlaubte Werte
+            // wie "0" und "false" müssen deshalb den nativen Eintrag löschen.
+            if slot.key == FixedFields.podcast, let enabled = FixedFields.parseFlag(value) {
+                value = enabled ? "1" : ""
+            }
             guard tx_set_native_field(h, slot.id3Frame, slot.mp4Atom, value) == 1 else {
                 throw TagError.saveFailed(path: path)
             }

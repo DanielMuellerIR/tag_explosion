@@ -315,6 +315,13 @@ std::vector<ChapterEntry> read_id3_chapters(TagLib::MPEG::File* file) {
 }
 
 bool write_id3_chapters(TagLib::MPEG::File* file, const std::vector<ChapterEntry>& chapters) {
+    // CHAP speichert Millisekunden als UInt32. Stilles Kürzen wäre ein
+    // erfolgreicher Save mit anderen Kapitelgrenzen als angefordert.
+    for (const auto& chapter : chapters) {
+        if (chapter.startMs < 0 || chapter.endMs < 0
+            || chapter.startMs > std::numeric_limits<unsigned int>::max()
+            || chapter.endMs > std::numeric_limits<unsigned int>::max()) return false;
+    }
     // Beim Entfernen keinen leeren ID3v2-Tag anlegen, wenn es noch keinen gibt.
     TagLib::ID3v2::Tag* tag = file->ID3v2Tag(!chapters.empty());
     if (!tag) return true;
@@ -413,6 +420,13 @@ unsigned long long random_uid() {
 }
 
 bool write_matroska_chapters(TagLib::Matroska::File* file, const std::vector<ChapterEntry>& chapters) {
+    // Die Umrechnung zu UInt64-Nanosekunden muss vor clear() möglich sein.
+    constexpr auto maxMs = std::numeric_limits<unsigned long long>::max() / 1000000ULL;
+    for (const auto& chapter : chapters) {
+        if (chapter.startMs < 0 || chapter.endMs < 0
+            || static_cast<unsigned long long>(chapter.startMs) > maxMs
+            || static_cast<unsigned long long>(chapter.endMs) > maxMs) return false;
+    }
     TagLib::Matroska::Chapters* target = file->chapters(!chapters.empty());
     if (!target) return true; // nichts vorhanden, nichts zu entfernen
     target->clear();

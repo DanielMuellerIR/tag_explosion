@@ -1025,6 +1025,32 @@
           "App-Repro vor Fix acht Fehler in sechs Kombinationen, danach bestanden. Root 476 Tests/51 Suiten, 7.494 s; App 115 Tests/22 Suiten, 0.528 s. Finale Core-/CLI-Historienprüfung nach vorgezogener Zustandsprüfung bestanden."
         ]
       }
+    },
+    {
+      "id": "external-test-witnesses",
+      "summary": "Externe Testzeugen verwenden teils eigene unbefristete Prozessstarter und deuten defekte Werkzeuge als fehlend; gemeinsame Ausführung verwenden und Verfügbarkeit von erfolgreicher Dekodierung trennen.",
+      "evidence": [
+        "Tests/TagExplosionCoreTests/ChapterTests.swift",
+        "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+        "Tests/TagExplosionCoreTests/TagLayerTests.swift",
+        "Tests/TagExplosionCoreTests/FileIntegrityTests.swift"
+      ],
+      "priority": 5,
+      "state": "pending",
+      "noted_at": "2026-09-08T01:49:43+02:00",
+      "campaign_id": "20260908T002532864338+0200"
+    },
+    {
+      "id": "cli-lyrics-partial-save",
+      "summary": "LyricsSet/Clear schreiben das Medium vor dem Lesen und Prüfen der LRC-Sidecar. Sidecar-Lesefehler können erst nach Medienänderung auftreten; Vorprüfung und ehrliche Teilfehler analog zum App-Schreibweg prüfen.",
+      "evidence": [
+        "Sources/tagx/LyricsCommand.swift",
+        "App/Sources/TagExplosionApp/AppFileIO.swift"
+      ],
+      "priority": 5,
+      "state": "pending",
+      "noted_at": "2026-09-08T01:50:22+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }
