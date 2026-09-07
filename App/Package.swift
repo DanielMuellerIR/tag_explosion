@@ -36,7 +36,8 @@ let package = Package(
         // Nebenläufigkeitsfehler auch in der macOS-CI sichtbar.
         .testTarget(
             name: "TagExplosionAppTests",
-            dependencies: ["TagExplosionApp"]
+            dependencies: ["TagExplosionApp",
+                .product(name: "TagExplosionTestSupport", package: "TagExplosion")]
         ),
     ]
 )

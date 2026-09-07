@@ -3,6 +3,7 @@
 // echten Weg — SYLT in MP3, Sidecar `<name>.lrc` bei FLAC ohne Neuschreiben
 // der Mediendatei — und Ablehnung ungültiger Lautheitswerte vor der Sicherung.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
 import TagExplosionCore
@@ -58,9 +59,9 @@ struct LyricsEntryTests {
     }
 
     @Test("MP3: LRC-Zeilen und Sprache landen als SYLT/USLT in der Datei",
-          .enabled(if: LyricsFixture.isAvailable, "Audio-Fixture fehlt"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
     func mp3SavesSyncedLyrics() async throws {
-        let url = try LyricsFixture.workingCopy("sample.mp3")
+        let url = try MediaTestFixtures.workingCopy("sample.mp3")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
         let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
@@ -79,9 +80,9 @@ struct LyricsEntryTests {
     }
 
     @Test("FLAC: synchronisierte Zeilen gehen in die Sidecar, die Mediendatei bleibt byteweise gleich",
-          .enabled(if: LyricsFixture.isAvailable, "Audio-Fixture fehlt"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
     func flacSavesSidecarOnly() async throws {
-        let url = try LyricsFixture.workingCopy("sample.flac")
+        let url = try MediaTestFixtures.workingCopy("sample.flac")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let bytes = try Data(contentsOf: url)
         let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
@@ -111,9 +112,9 @@ struct LyricsEntryTests {
     }
 
     @Test("Ungültiger ReplayGain-Wert scheitert vor der Sicherung mit Feldname, Datei unverändert",
-          .enabled(if: LyricsFixture.isAvailable, "Audio-Fixture fehlt"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
     func invalidLoudnessIsRejectedBeforeWriting() async throws {
-        let url = try LyricsFixture.workingCopy("sample.mp3")
+        let url = try MediaTestFixtures.workingCopy("sample.mp3")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let bytes = try Data(contentsOf: url)
         let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
@@ -129,9 +130,9 @@ struct LyricsEntryTests {
     }
 
     @Test("FLAC: eine fremd geänderte Sidecar wird beim Speichern erkannt, nicht überschrieben",
-          .enabled(if: LyricsFixture.isAvailable, "Audio-Fixture fehlt"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
     func foreignSidecarChangeIsDetected() async throws {
-        let url = try LyricsFixture.workingCopy("sample.flac")
+        let url = try MediaTestFixtures.workingCopy("sample.flac")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let sidecar = LRC.sidecarURL(for: url)
         try LRC.writeSidecar(lines, for: url)
@@ -156,40 +157,4 @@ struct LyricsEntryTests {
         #expect(try LRC.loadSidecar(for: url)?.count == 3)
         #expect(!entry.isDirty)
     }
-}
-
-/// Audio-Fixtures des Root-Pakets (Generator läuft bei Bedarf selbst).
-private enum LyricsFixture {
-    static let directory: URL? = {
-        let repoRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-        let generated = repoRoot.appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated")
-        if !FileManager.default.fileExists(atPath: generated.appendingPathComponent("sample.flac").path) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = [repoRoot.appendingPathComponent(
-                "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh").path]
-            process.standardOutput = FileHandle.nullDevice
-            try? process.run()
-            process.waitUntilExit()
-        }
-        return FileManager.default.fileExists(atPath: generated.appendingPathComponent("sample.flac").path)
-            ? generated : nil
-    }()
-
-    static var isAvailable: Bool { directory != nil }
-
-    enum FixtureError: Error { case missing }
-
-    static func workingCopy(_ name: String) throws -> URL {
-        guard let directory else { throw FixtureError.missing }
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-app-lyrics-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let target = folder.appendingPathComponent(name)
-        try FileManager.default.copyItem(at: directory.appendingPathComponent(name), to: target)
-        return target
-    }
-
 }

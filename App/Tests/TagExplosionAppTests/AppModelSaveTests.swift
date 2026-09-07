@@ -2,6 +2,7 @@
 // Fenster prüfen, dass neuere Editoränderungen und ein zweiter Speichern-Klick
 // nicht im Rennen verlorengehen.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
 import TagExplosionCore
@@ -126,14 +127,14 @@ struct AppModelSaveTests {
     }
 
     @Test("Ein während des Dialogs umgebogenes Archivziel wird nicht geschrieben",
-          .enabled(if: AudioFixture.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
     func retargetedImportDuringConflictDialogIsRejected() async throws {
         // Zwischen der geprüften Zielliste und dem eigentlichen Schreiben liegt
         // der Save/Discard-Dialog. Wird das Ziel in diesem Fenster auf eine
         // ANDERE geöffnete Datei umgebogen, darf der Import sie weder ändern
         // noch ihren ungespeicherten Puffer per Neuladen verwerfen — auch wenn
         // gar kein Ziel außerhalb des Archivordners im Spiel ist.
-        let source = try AudioFixture.workingCopy()
+        let source = try MediaTestFixtures.workingCopy()
         let dir = source.deletingLastPathComponent()
         defer { try? FileManager.default.removeItem(at: dir) }
         let victim = dir.appendingPathComponent("opfer.mp3")
@@ -278,7 +279,7 @@ struct AppModelSaveTests {
     }
 
     @Test("Serienindex ohne Serie: der EPUB-Produktionsweg speichert ihn",
-          .enabled(if: AudioFixture.isAvailable, "Fixtures fehlen (ffmpeg?)"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Fixtures fehlen (ffmpeg?)"))
     func bareSeriesIndexSavesOnEpub() async throws {
         // EPUB kennt mit calibre:series_index einen Speicherort auch ohne
         // Serie; der Produktions-Schreibweg muss diesen Zustand speichern
@@ -286,7 +287,7 @@ struct AppModelSaveTests {
         // Dass Formate OHNE diesen Speicherort weiterhin vor jeder Mutation
         // ablehnen, deckt der Core-Test "Serienindex ohne Serie: EPUB
         // speichert ihn, andere Formate lehnen ab" ab.
-        guard let directory = AudioFixture.directory else { return }
+        guard let directory = MediaTestFixtures.availableDirectory else { return }
         let source = directory.appendingPathComponent("book2.epub")
         // Die EPUB-Fixture entsteht nur, wenn zip verfügbar war.
         guard FileManager.default.fileExists(atPath: source.path) else { return }
@@ -313,9 +314,9 @@ struct AppModelSaveTests {
     }
 
     @Test("Dokument: Speichern über den Produktionsweg, unspeicherbares Feld scheitert vorab",
-          .enabled(if: AudioFixture.isAvailable, "Fixtures fehlen (ffmpeg?)"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Fixtures fehlen (ffmpeg?)"))
     func documentSavesAndRejectsUnsupportedField() async throws {
-        guard let directory = AudioFixture.directory else { return }
+        guard let directory = MediaTestFixtures.availableDirectory else { return }
         let source = directory.appendingPathComponent("doc.odt")
         guard FileManager.default.fileExists(atPath: source.path) else { return }
         let folder = FileManager.default.temporaryDirectory
@@ -353,7 +354,7 @@ struct AppModelSaveTests {
 
     @Test("Ungültige Bild-GPS-Werte scheitern vor jeder Datei-Mutation")
     func invalidImageGPSFailsBeforeAnyMutation() async throws {
-        guard let directory = AudioFixture.directory else { return }
+        guard let directory = MediaTestFixtures.availableDirectory else { return }
         let source = directory.appendingPathComponent("cover.jpg")
         guard FileManager.default.fileExists(atPath: source.path) else { return }
         let folder = FileManager.default.temporaryDirectory
@@ -606,9 +607,9 @@ struct AppModelSaveTests {
     }
 
     @Test("Fremde Änderung auf der Platte wird nicht stillschweigend überschrieben",
-          .enabled(if: AudioFixture.isAvailable, "Audio-Fixture fehlt"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
     func externalChangeStopsSaveUntilConfirmed() async throws {
-        let url = try AudioFixture.workingCopy()
+        let url = try MediaTestFixtures.workingCopy()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
 
         let entry = FileEntry(url: url, loaded: .audio(try TagFile.read(at: url)))
@@ -790,47 +791,6 @@ struct AppModelSaveTests {
                 return LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
             }
         }
-    }
-}
-
-/// Zugriff auf die Audio-Fixtures des Root-Pakets. Der Generator wird bei
-/// Bedarf selbst ausgeführt (idempotent) — sonst hinge dieser App-Test davon
-/// ab, dass vorher zufällig die Root-Tests liefen. Übersprungen wird nur noch,
-/// wenn die Erzeugung selbst nicht möglich ist (ffmpeg fehlt).
-private enum AudioFixture {
-    static let directory: URL? = {
-        let repoRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // TagExplosionAppTests
-            .deletingLastPathComponent() // Tests
-            .deletingLastPathComponent() // App
-            .deletingLastPathComponent() // Repo-Wurzel
-        let generated = repoRoot
-            .appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated")
-        let sample = generated.appendingPathComponent("sample.mp3")
-        if !FileManager.default.fileExists(atPath: sample.path) {
-            let script = repoRoot.appendingPathComponent(
-                "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh")
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = [script.path]
-            process.standardOutput = FileHandle.nullDevice
-            try? process.run()
-            process.waitUntilExit()
-        }
-        return FileManager.default.fileExists(atPath: sample.path) ? generated : nil
-    }()
-
-    static var isAvailable: Bool { directory != nil }
-
-    static func workingCopy() throws -> URL {
-        guard let directory else { throw ConflictTestError.expectedSaveFailure }
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-app-stale-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let target = folder.appendingPathComponent("sample.mp3")
-        try FileManager.default.copyItem(
-            at: directory.appendingPathComponent("sample.mp3"), to: target)
-        return target
     }
 }
 

@@ -128,7 +128,8 @@
         "Tests/TagExplosionCoreTests/TestFiles.swift",
         "App/Tests/TagExplosionAppTests/FixtureSupport.swift",
         "Tests/Support",
-        "Tests/TagxTests/ProcessSupportTests.swift"
+        "Tests/TagxTests/ProcessSupportTests.swift",
+        "Tests/TagxTests/FixtureSupportTests.swift"
       ],
       "risk": "high",
       "priority": 2,
@@ -136,7 +137,8 @@
       "state": "pending",
       "pending_paths": [
         "Tests/Support",
-        "Tests/TagxTests/ProcessSupportTests.swift"
+        "Tests/TagxTests/ProcessSupportTests.swift",
+        "Tests/TagxTests/FixtureSupportTests.swift"
       ]
     },
     {
@@ -872,14 +874,21 @@
         "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
       ],
       "priority": 2,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T00:27:32+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T00:40:26+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T00:40:26+02:00",
-        "observed_head": "e9f4fe56d9ac599c2a96921bacc778cfdcae5e0b"
+        "completed_at": "2026-09-08T00:48:59+02:00",
+        "observed_head": "19ad07983d0ab200da7c59c150139492a1c0b4a7",
+        "summary": "16 duplizierte CLI-Starter durch gemeinsames Test-Support-Target ersetzt. Das CLI wird aus dem geladenen Testbundle gefunden und als Testabhängigkeit gebaut; Umgebungswerte bleiben aus argv. Temporäre Ausgabedateien ersetzen Pipe-Threads, ein Fristfehler beendet hängende direkte Prozesse. Zwei Core-CLI-Tests verwenden dieselbe Mechanik.",
+        "tests": [
+          "CLI-Vergleich unverändert 51 Tests: 6.926 s vorher, 1.115 s nachher",
+          "swift test: 470 Tests in 50 Suites bestanden, 8.071 s; Prozesssupport final 2 Tests bestanden",
+          "macOS-Release: 5 Tests in 2 Suites bestanden; Swift 6.0 unter Linux: Binary-Suche, stdout/stderr und Frist geprüft",
+          "Diff geprüft; bestehende Bereichsänderungen stammen bereits aus der Ausgangsinventur und werden im jeweiligen vollständigen Review nachgeführt"
+        ]
       }
     },
     {
@@ -892,9 +901,15 @@
         "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh"
       ],
       "priority": 2,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T00:27:32+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T00:49:11+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T00:49:11+02:00",
+        "observed_head": "19ad07983d0ab200da7c59c150139492a1c0b4a7"
+      }
     },
     {
       "id": "absent-sidecar-state",

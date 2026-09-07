@@ -8,10 +8,8 @@ here="$(cd "$(dirname "$0")" && pwd)"
 out="${1:-$here/generated}"
 mkdir -p "$out"
 
-if ! command -v ffmpeg >/dev/null 2>&1; then
-    echo "ffmpeg nicht gefunden — Fixtures können nicht erzeugt werden" >&2
-    exit 1
-fi
+# Ein vollständig vorhandener Satz benötigt ffmpeg nicht erneut. Fehlt eine
+# Audio-/Bilddatei, meldet erst deren tatsächlicher Erzeugungsaufruf den Fehler.
 
 # 2 Sekunden 440-Hz-Sinus als Quelle (einmalig als wav)
 src="$out/source.wav"
@@ -321,7 +319,7 @@ fi
 # Markdown-Fixtures schreiben die Tests direkt (reiner Text).
 
 # docx mit core.xml und app.xml
-if [ ! -f "$out/doc.docx" ] && command -v zip >/dev/null 2>&1; then
+if { [ ! -f "$out/doc.docx" ] || [ ! -f "$out/doc-nocore.docx" ]; } && command -v zip >/dev/null 2>&1; then
     tmp="$out/docx-tmp"
     rm -rf "$tmp"
     mkdir -p "$tmp/_rels" "$tmp/docProps" "$tmp/word"
@@ -372,7 +370,9 @@ XML
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hallo.</w:t></w:r></w:p></w:body></w:document>
 XML
-    (cd "$tmp" && zip -rX -q ../doc.docx "[Content_Types].xml" _rels docProps word)
+    if [ ! -f "$out/doc.docx" ]; then
+        (cd "$tmp" && zip -rX -q ../doc.docx "[Content_Types].xml" _rels docProps word)
+    fi
     # Variante ohne core.xml: der Schreibweg muss die Datei anlegen und in
     # [Content_Types].xml und _rels/.rels registrieren.
     rm "$tmp/docProps/core.xml"
@@ -381,7 +381,9 @@ XML
     for f in "$tmp/[Content_Types].xml" "$tmp/_rels/.rels"; do
         sed '/core-properties/d' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
     done
-    (cd "$tmp" && zip -rX -q ../doc-nocore.docx "[Content_Types].xml" _rels docProps word)
+    if [ ! -f "$out/doc-nocore.docx" ]; then
+        (cd "$tmp" && zip -rX -q ../doc-nocore.docx "[Content_Types].xml" _rels docProps word)
+    fi
     rm -rf "$tmp"
 fi
 
@@ -431,7 +433,7 @@ fi
 
 # cbz: ComicInfo.xml + Seiten, deren Namen die natürliche Sortierung prüfen
 # (page-2 vor page-10). Zweite Variante ohne ComicInfo.xml.
-if [ ! -f "$out/comic.cbz" ] && command -v zip >/dev/null 2>&1; then
+if { [ ! -f "$out/comic.cbz" ] || [ ! -f "$out/comic-noinfo.cbz" ]; } && command -v zip >/dev/null 2>&1; then
     tmp="$out/cbz-tmp"
     rm -rf "$tmp"
     mkdir -p "$tmp"
@@ -456,8 +458,12 @@ if [ ! -f "$out/comic.cbz" ] && command -v zip >/dev/null 2>&1; then
 XML
     cp "$out/cover.jpg" "$tmp/page-2.jpg"
     cp "$out/cover.png" "$tmp/page-10.png"
-    (cd "$tmp" && zip -X -q ../comic.cbz page-10.png page-2.jpg ComicInfo.xml)
-    (cd "$tmp" && zip -X -q ../comic-noinfo.cbz page-10.png page-2.jpg)
+    if [ ! -f "$out/comic.cbz" ]; then
+        (cd "$tmp" && zip -X -q ../comic.cbz page-10.png page-2.jpg ComicInfo.xml)
+    fi
+    if [ ! -f "$out/comic-noinfo.cbz" ]; then
+        (cd "$tmp" && zip -X -q ../comic-noinfo.cbz page-10.png page-2.jpg)
+    fi
     rm -rf "$tmp"
 fi
 

@@ -13,6 +13,9 @@ let package = Package(
         // Eigenständig nutzbar (kein TagLib nötig); die App bindet es direkt.
         .library(name: "EInvoiceCore", targets: ["EInvoiceCore"]),
         .executable(name: "tagx", targets: ["tagx"]),
+        // Gemeinsame Hilfen auch für das separate App-Testpaket; die App selbst
+        // bindet dieses Produkt nicht ein.
+        .library(name: "TagExplosionTestSupport", targets: ["TagExplosionTestSupport"]),
     ],
     dependencies: [
         // Apache-2.0, MIT-kompatibel
@@ -56,7 +59,7 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
-        // Nur von Tests verwendet; kein ausgeliefertes Bibliotheksprodukt.
+        // Nur von Tests verwendet; nicht Bestandteil des App-Bundles.
         .target(name: "TagExplosionTestSupport", path: "Tests/Support"),
         .testTarget(
             name: "TagExplosionCoreTests",

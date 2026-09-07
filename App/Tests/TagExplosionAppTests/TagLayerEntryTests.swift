@@ -2,6 +2,7 @@
 // sauberer Datei, echter Strip auf einer Fixture-Kopie mit Neuladen — und
 // die Einstellung „ID3v2.3 schreiben" mit Voreinstellung aus. Headless.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
 import TagExplosionCore
@@ -45,9 +46,9 @@ struct TagLayerEntryTests {
     }
 
     @Test("Echter Strip: ID3v1 weg, Eintrag neu geladen und sauber",
-          .enabled(if: LayerFixture.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
     func stripReloadsEntry() async throws {
-        let url = try LayerFixture.workingCopy()
+        let url = try MediaTestFixtures.workingCopy()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Zwei Schichten")], to: url)
 
@@ -83,45 +84,5 @@ struct TagLayerEntryTests {
         #expect(AppModel.preferredID3Version == .v24)
         defaults.set(true, forKey: AppModel.id3v23DefaultsKey)
         #expect(AppModel.preferredID3Version == .v23)
-    }
-}
-
-/// Audio-Fixtures des Root-Pakets, bei Bedarf selbst erzeugt (idempotent).
-private enum LayerFixture {
-    static let directory: URL? = {
-        let repoRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // TagExplosionAppTests
-            .deletingLastPathComponent() // Tests
-            .deletingLastPathComponent() // App
-            .deletingLastPathComponent() // Repo-Wurzel
-        let generated = repoRoot
-            .appendingPathComponent("Tests/TagExplosionCoreTests/Fixtures/generated")
-        let sample = generated.appendingPathComponent("sample.mp3")
-        if !FileManager.default.fileExists(atPath: sample.path) {
-            let script = repoRoot.appendingPathComponent(
-                "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh")
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = [script.path]
-            process.standardOutput = FileHandle.nullDevice
-            try? process.run()
-            process.waitUntilExit()
-        }
-        return FileManager.default.fileExists(atPath: sample.path) ? generated : nil
-    }()
-
-    static var isAvailable: Bool { directory != nil }
-
-    enum FixtureError: Error { case notGenerated }
-
-    static func workingCopy() throws -> URL {
-        guard let directory else { throw FixtureError.notGenerated }
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-app-layers-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let target = folder.appendingPathComponent("sample.mp3")
-        try FileManager.default.copyItem(
-            at: directory.appendingPathComponent("sample.mp3"), to: target)
-        return target
     }
 }

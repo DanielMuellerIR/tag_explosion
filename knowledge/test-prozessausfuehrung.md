@@ -25,3 +25,21 @@ danach in 1,115 Sekunden (jeweils reine Testzeit eines lokalen Debug-Laufs).
 Das ist eine lokale Vergleichsmessung, keine feste CI-Laufzeitgarantie.
 Der große Ausgabetest wurde in `ProcessSupportTests.swift` verschoben; dort
 prüft zusätzlich ein kurzer Schlafprozess die Abbruchfrist.
+
+## Gemeinsame Medien-Fixtures
+
+`Tests/Support/MediaFixtures.swift` erzeugt den Satz einmal pro Testprozess.
+Eine `flock`-Sperre im generierten Ordner koordiniert alle Testprozesse, die
+diesen Helfer verwenden. Die Sperre wird beim Schließen des Deskriptors auch
+nach einem Prozessabbruch freigegeben. Das separate App-Testtarget bindet das
+Test-Support-Produkt ein; das App-Produkt selbst benötigt es nicht.
+
+Ein kontrollierter Generator prüft über ein exklusives Arbeitsverzeichnis,
+dass sich drei gleichzeitige Aufträge nicht überschneiden. Ohne Dateisperre
+scheitert diese Gegenprobe. Ein weiterer Test prüft den echten Shell-Generator:
+Fehlende `doc-nocore.docx` und `comic-noinfo.cbz` werden ergänzt, während die
+schon vorhandenen Basisdateien bytegleich bleiben. Ein vollständiger Satz
+funktioniert auch mit einem PATH ohne ffmpeg (separat ausgeführt).
+
+Die Sperre liegt im Swift-Testhelfer. Direkte manuelle Aufrufe des Shell-
+Generators dürfen nicht gleichzeitig in denselben Ausgabeordner schreiben.

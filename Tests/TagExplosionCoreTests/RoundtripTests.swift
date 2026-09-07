@@ -3,38 +3,19 @@
 // und pro Test in ein Temp-Verzeichnis kopiert, damit Tests einander nicht
 // beeinflussen.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
 /// Erzeugt die Fixtures einmal pro Testlauf (ffmpeg, idempotent).
 enum Fixtures {
     static let directory: URL = {
-        let script = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("Fixtures/generate_fixtures.sh")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = [script.path]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        try! process.run()
-        let out = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        precondition(process.terminationStatus == 0, "Fixture-Generierung fehlgeschlagen")
-        let path = String(decoding: out, as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return URL(fileURLWithPath: path)
+        do { return try MediaTestFixtures.directory() }
+        catch { preconditionFailure("Fixture-Generierung: \(error)") }
     }()
 
-    /// Kopiert eine Fixture in ein frisches Temp-Verzeichnis (beschreibbar).
     static func workingCopy(_ name: String) throws -> URL {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-tests-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let source = directory.appendingPathComponent(name)
-        let target = dir.appendingPathComponent(name)
-        try FileManager.default.copyItem(at: source, to: target)
-        return target
+        try MediaTestFixtures.workingCopy(name)
     }
 
     static func coverData(_ name: String) throws -> Data {
