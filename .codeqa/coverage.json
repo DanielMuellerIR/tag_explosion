@@ -189,7 +189,7 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:34:33+02:00",
@@ -203,6 +203,13 @@
           "swift test: 176 Tests in 14 Suites bestanden, einschließlich TagArchive-Dry-run/Backup-Regression",
           "swift test --package-path App: 65 Tests in 8 Suites bestanden; Archiv-Aufrufgrenze kompiliert und Importtests grün"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:23:58+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -220,13 +227,19 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Wiederherstellung verändert Nutzdateien; Journal, Dateizuweisung und Hash-Prüfung bilden einen Vertrag.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:17:22+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T01:23:27+02:00",
+        "observed_head": "ee1942ea33d3cad9ed7ed9fbf50dd01d98220f97",
+        "content_sha256": "52d9a8406d545e95085c80fed759000e71e04c08655667620f11c81fbaaff72e",
+        "file_count": 8,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Core-Historie/Journal/SHA, CLI-Historie, App-Historienmodell und View sowie Tests geprüft. Unbekannte Formate erhalten, Diagnosekopien nicht mehr gelöscht; tatsächliches Sidecar-Restore-Ziel im CLI geprüft. Redundanten Nichtnachweis entfernt, Restore-Tests für Linux aktiviert und Cleanup ergänzt. App-Sidecar-Lesestand separat als Querschnitt notiert. Commit 0.46.12.",
+        "tests": [
+          "Drei Repros vor Fix neun Fehler; danach bestanden. Root-Vollprüfung 475 Tests/51 Suiten, 7.255 s. Finale Einpass-Decoder-Prüfung 10 Historien-Tests bestanden, 0.052 s. Linux-Vollprüfung folgt separat."
+        ]
       }
     },
     {

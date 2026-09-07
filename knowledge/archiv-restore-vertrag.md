@@ -64,3 +64,20 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   ungültige Bildwerte…“, „EPUB: Serienindex ohne Serie…“, „EPUB: GIF-Cover…“.
 - `EbookToolTests`: „Serienindex ohne Serie: EPUB speichert ihn…“,
   GIF-Abschnitt in „Cover ohne gültige Bildsignatur wird abgelehnt“.
+
+## Zielprüfung großer Archive
+
+`validateResolvedEntries` hält kanonische Pfade und vorhandene Datenträger-/
+Inode-Paare in getrennten Mengen. So benötigt ein neues Ziel keinen Vergleich
+mit sämtlichen früheren Einträgen. Fehlende Ziele werden weiterhin anhand
+des Pfads dedupliziert. Die bisherigen Symlink- und Hardlink-Regressionsfälle
+prüfen denselben Ablehnungsvertrag.
+
+Eine temporäre Debug-Messung mit 10.000 nicht vorhandenen Audiozielen ergab
+am 2026-09-08 lokal 6,377 Sekunden vor und 0,537 Sekunden nach der Änderung.
+Der Messcode ist kein dauerhafter Test; er soll die Suite nicht verlängern.
+Die Zahlen sind kein fester Grenzwert für andere Rechner oder Dateisysteme.
+
+NFO-Nutzdaten gehören ausschließlich zu `kind: sidecar`. Die Schemaprüfung
+lehnt sie auch dann ab, wenn ein anderer Medientyp seine eigenen Pflichtfelder
+korrekt mitliefert; sonst würde der Import diesen Teil still ignorieren.

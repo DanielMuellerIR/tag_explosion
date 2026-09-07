@@ -602,6 +602,11 @@ public enum TagArchiveIO {
                 throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "path appears more than once")
             }
 
+            if entry.kind != .sidecar, entry.nfo != nil {
+                throw TagArchiveError.inconsistentEntry(
+                    path: entry.path, detail: "nfo data requires a sidecar entry")
+            }
+
             switch entry.kind {
             case .audio:
                 guard let properties = entry.properties else {
@@ -722,7 +727,8 @@ public enum TagArchiveIO {
         allowExternalTargets: Bool
     ) throws -> [ValidatedTarget] {
         let canonicalBase = MediaFormats.canonicalFileURL(baseDirectory)
-        var identities: [FileIdentity] = []
+        var canonicalPaths: Set<String> = []
+        var diskIdentities: Set<DiskIdentity> = []
         var targets: [ValidatedTarget] = []
         for entry in archive.files {
             let url = MediaFormats.canonicalFileURL(
@@ -741,11 +747,14 @@ public enum TagArchiveIO {
             // erhobener Stempel könnte bereits zu einer untergeschobenen Datei
             // gehören und wäre als Ausgangsbeweis wertlos.
             let identity = FileIdentity(url, validatedStamp: stamp)
-            guard !identities.contains(where: { $0.resolvesToSameTarget(as: identity) }) else {
+            // Jede Identität nur einmal nachschlagen, statt alle bisherigen
+            // Ziele erneut zu vergleichen. Auch fehlende Ziele haben einen Pfad.
+            let uniquePath = canonicalPaths.insert(identity.canonicalPath).inserted
+            let uniqueFile = identity.diskIdentity.map { diskIdentities.insert($0).inserted } ?? true
+            guard uniquePath && uniqueFile else {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "different paths resolve to the same target")
             }
-            identities.append(identity)
             targets.append(ValidatedTarget(url: url, stamp: stamp))
 
             guard exists else { continue }
@@ -807,9 +816,19 @@ public enum TagArchiveIO {
         let stamp: FileStamp?
     }
 
+    private struct DiskIdentity: Hashable {
+        let device: UInt64
+        let inode: UInt64
+    }
+
     private struct FileIdentity {
         let canonicalPath: String
         let stamp: FileStamp?
+
+        var diskIdentity: DiskIdentity? {
+            guard let device = stamp?.device, let inode = stamp?.inode else { return nil }
+            return DiskIdentity(device: device, inode: inode)
+        }
 
         init(_ url: URL) {
             canonicalPath = url.standardizedFileURL.resolvingSymlinksInPath().path

@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.13 — 2026-09-08
+
+- Archivziele werden über Mengen kanonischer Pfade und Dateiidentitäten
+  dedupliziert. Eine lokale Prüfung mit 10.000 Zielen sank von 6,38 auf
+  0,54 Sekunden; Symlink- und Hardlink-Kollisionen werden weiter abgelehnt.
+- NFO-Daten in Audio-, Bild-, E-Book- oder Dokument-Einträgen werden vor
+  dem Import abgelehnt. Archivtests räumen ihre temporären Medienordner auf.
+
 ## 0.46.12 — 2026-09-08
 
 - Journale mit unbekannter Formatversion bleiben unverändert; schreibende

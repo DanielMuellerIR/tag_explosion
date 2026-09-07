@@ -30,6 +30,7 @@ struct TagArchiveTests {
     @Test("Eine schreibgeschützte Datei stoppt den Batch nicht")
     func batchContinuesAfterOneFailure() throws {
         let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         let flac = dir.appendingPathComponent("sample.flac")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Soll")], to: mp3)
@@ -59,6 +60,7 @@ struct TagArchiveTests {
     @Test("Dokumente: Export → Ändern → Import stellt Felder wieder her, unspeicherbare Felder scheitern vorab")
     func documentRestore() throws {
         let dir = try makeFolder(["doc.docx", "doc.odt", "comic.cbz"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let docx = dir.appendingPathComponent("doc.docx")
         let odt = dir.appendingPathComponent("doc.odt")
         let cbz = dir.appendingPathComponent("comic.cbz")
@@ -101,6 +103,7 @@ struct TagArchiveTests {
     @Test("Audio: Export → Ändern → Import stellt Tags und Cover wieder her")
     func audioRestore() throws {
         let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         let cover = try Fixtures.coverData("cover.jpg")
 
@@ -134,6 +137,7 @@ struct TagArchiveTests {
     @Test("Bild und EPUB: Import stellt Kernfelder wieder her")
     func imageAndEbookRestore() throws {
         let dir = try makeFolder(["cover.jpg", "book2.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let jpg = dir.appendingPathComponent("cover.jpg")
         let epub = dir.appendingPathComponent("book2.epub")
 
@@ -165,6 +169,7 @@ struct TagArchiveTests {
     @Test("Fehlende und zusätzliche Dateien werden gemeldet, dry-run schreibt nicht")
     func missingExtraAndDryRun() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
                           artworks: [], to: mp3)
@@ -192,6 +197,7 @@ struct TagArchiveTests {
     @Test("--without-covers lässt vorhandene Cover beim Import unangetastet")
     func withoutCoversKeepsArtworks() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         let cover = try Fixtures.coverData("cover.jpg")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
@@ -226,6 +232,7 @@ struct TagArchiveTests {
     @Test("Explizit leere Audio-Cover werden exportiert und beim Import entfernt")
     func emptyAudioCoverRemovesLaterCover() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Ohne Cover")],
                           artworks: [], to: mp3)
@@ -245,6 +252,7 @@ struct TagArchiveTests {
     @Test("Explizit leere EPUB-Cover werden exportiert und beim Import entfernt")
     func emptyEpubCoverRemovesLaterCover() throws {
         let dir = try makeFolder(["book2.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let epub = dir.appendingPathComponent("book2.epub")
         try EbookTool.removeCover(url: epub)
         #expect(try EbookTool.readCover(url: epub) == nil)
@@ -263,6 +271,7 @@ struct TagArchiveTests {
     @Test("EPUB ohne archivierte Cover lässt ein späteres Cover unverändert")
     func epubWithoutCoversKeepsLaterCover() throws {
         let dir = try makeFolder(["book2.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let epub = dir.appendingPathComponent("book2.epub")
         let original = try EbookTool.readCoreFields(url: epub)
         let json = dir.appendingPathComponent("tags.json")
@@ -288,6 +297,7 @@ struct TagArchiveTests {
     ))
     func emptyCalibreCoverIsRejectedBeforeArchiveWrites() throws {
         let dir = try makeFolder(["sample.mp3", "book.azw3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         let azw3 = dir.appendingPathComponent("book.azw3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Vorher")],
@@ -323,6 +333,7 @@ struct TagArchiveTests {
     @Test("Ungültiges Archiv wird vor jeder Mutation vollständig abgelehnt")
     func invalidArchiveDoesNotChangeEarlierEntries() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")], to: mp3)
         let before = try TagFile.read(at: mp3)
@@ -346,6 +357,7 @@ struct TagArchiveTests {
         // geändert. Die vollständige Archivprüfung muss das erkennen, bevor
         // ein früherer, gültiger Eintrag im selben Batch geschrieben wird.
         let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let first = dir.appendingPathComponent("sample.mp3")
         let bytesBefore = try Data(contentsOf: first)
         let archive = TagArchive(created: "2026-08-15T00:00:00Z", files: [
@@ -367,6 +379,7 @@ struct TagArchiveTests {
     @Test("Symlink-Ziele im Archiv werden vor der ersten Mutation dedupliziert")
     func symlinkArchiveTargetsDoNotMutateFirstEntry() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
                           artworks: [], to: mp3)
@@ -393,6 +406,7 @@ struct TagArchiveTests {
     @Test("Hardlink-Ziele im Archiv werden vor der ersten Mutation dedupliziert")
     func hardlinkArchiveTargetsDoNotMutateFirstEntry() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")],
                           artworks: [], to: mp3)
@@ -418,6 +432,7 @@ struct TagArchiveTests {
     @Test("Atomare Ersetzung am gleichen Pfad nach der Zielprüfung wird abgelehnt")
     func samePathReplacementAfterValidationIsRejected() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let target = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(
             properties: [TagProperty(key: "TITLE", value: "Geprüfter Stand")],
@@ -449,6 +464,7 @@ struct TagArchiveTests {
     @Test("Ein Archiv-No-op prüft den verglichenen Stand unmittelbar vor Erfolg")
     func noopChangedAfterComparisonIsRejected() throws {
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let target = dir.appendingPathComponent("sample.mp3")
         let archive = try TagArchiveIO.build(
             files: [target], baseDirectory: dir, includeCovers: true)
@@ -471,6 +487,7 @@ struct TagArchiveTests {
     @Test("Externe Archivziele brauchen eine ausdrückliche Freigabe")
     func externalArchiveTargetRequiresApproval() throws {
         let parent = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: parent) }
         let base = parent.appendingPathComponent("archive")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         let external = parent.appendingPathComponent("sample.mp3")
@@ -516,6 +533,7 @@ struct TagArchiveTests {
         // erneut kanonisiert, ergäben beide Seiten denselben NEUEN Pfad und
         // das nie angezeigte Ziel würde überschrieben.
         let parent = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: parent) }
         let base = parent.appendingPathComponent("archive")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         let victim = parent.appendingPathComponent("sample.mp3")
@@ -561,6 +579,7 @@ struct TagArchiveTests {
         // selben Ordner umgebogen, fällt das nur auf, wenn die geprüfte
         // Zielliste mitgegeben wird — externe Ziele sind hier keine im Spiel.
         let dir = try makeFolder(["sample.mp3", "sample.flac"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let entry = dir.appendingPathComponent("sample.mp3")
         let other = dir.appendingPathComponent("sample.flac")
         let otherBytes = try Data(contentsOf: other)
@@ -951,6 +970,7 @@ struct TagArchiveTests {
         // PDF hat keinen Serien-Ort; das Backend ignoriert das Feld still.
         // Ohne Vorprüfung meldete der Import Erfolg, ohne den Wert zu schreiben.
         let dir = try makeFolder(["sample.mp3", "book.pdf"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         let bytesBefore = try Data(contentsOf: mp3)
         var ebook = try EbookTool.readCoreFields(url: dir.appendingPathComponent("book.pdf"))
@@ -976,6 +996,7 @@ struct TagArchiveTests {
         // desselben Ordners innerhalb einer Sekunde brauchen trotzdem je
         // eine eigene Datei.
         let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
 
         var written: [URL] = []
@@ -997,6 +1018,19 @@ struct TagArchiveTests {
         let unsupported = TagArchive(version: TagArchive.currentVersion + 1,
                                      created: "2026-07-19T00:00:00Z", files: [])
         #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(unsupported) }
+
+        let entries: [TagArchive.Entry] = [
+            .init(path: "audio.mp3", kind: .audio, properties: [:]),
+            .init(path: "image.jpg", kind: .image, image: ImageCoreFields()),
+            .init(path: "ebook.epub", kind: .ebook, ebook: EbookCoreFields()),
+            .init(path: "document.docx", kind: .document, document: DocumentCoreFields()),
+        ]
+        for var entry in entries {
+            entry.nfo = NFOFields(title: "Würde still ignoriert")
+            #expect(throws: TagArchiveError.self) {
+                try TagArchiveIO.validate(TagArchive(created: "2026-09-08T00:00:00Z", files: [entry]))
+            }
+        }
 
         let missingImage = TagArchive(created: "2026-07-19T00:00:00Z", files: [
             .init(path: "cover.jpg", kind: .image, image: nil),
