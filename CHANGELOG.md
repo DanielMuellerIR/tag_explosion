@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.10 — 2026-09-08
+
+- LRC und Video-NFO werden auch bei reinen Sidecar-Änderungen gemeinsam
+  geprüft und gesichert. Ungültige NFO-Felder verhindern damit einen
+  vorzeitigen LRC-Austausch; nach Korrektur gelingt der erneute Versuch.
+- Beide Audio-Speicherzweige teilen Vorbereitung und Sidecar-Schreiber.
+  Bei späteren Fehlern nennt die App bereits geschriebene Dateien.
+
 ## 0.46.9 — 2026-09-08
 
 - Lyrics-Sidecars erkennen auch fremdes Anlegen oder Löschen seit dem Lesen.

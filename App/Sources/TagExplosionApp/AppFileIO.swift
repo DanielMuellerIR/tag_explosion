@@ -87,15 +87,39 @@ enum AppFileIO {
         }
     }
 
-    /// Schreibweg der NFO neben einem Video (wie im CLI): Prüfen, Stempel,
-    /// Papierkorb-Sicherung, atomarer Austausch. `backUp: false`, wenn die
-    /// Sicherung schon in der Vorbereitungsphase erfolgt ist.
-    nonisolated private static func writeVideoNFO(_ nfo: FileEntry.NFOSnapshot, backUp: Bool = true) throws {
-        try KodiNFOFile.validate(nfo.fields, original: nfo.original)
-        try FileStamp.requireUnchanged(nfo.stamp, at: nfo.url)
-        if backUp { try TrashBackup.shared.backUp(nfo.url, reason: BackupReason.sidecar) }
-        try KodiNFOFile.write(url: nfo.url, fields: nfo.fields, original: nfo.original,
-                              expecting: nfo.stamp)
+    /// Alle Sidecars prüfen und sichern, bevor die erste Zieldatei geschrieben
+    /// wird. Das gilt ebenso für reine Sidecar-Änderungen ohne Container-Save.
+    nonisolated static func prepareAudioSidecars(_ audio: FileEntry.AudioSnapshot,
+                                                for url: URL) throws {
+        let lrcURL = audio.sidecarLyrics.map { _ in LRC.sidecarURL(for: url) }
+        if let lrcURL { try audio.lrcState.requireUnchanged(at: lrcURL) }
+        if let nfo = audio.nfo {
+            try KodiNFOFile.validate(nfo.fields, original: nfo.original)
+            try FileStamp.requireUnchanged(nfo.stamp, at: nfo.url)
+        }
+        if let lrcURL { try TrashBackup.shared.backUp(lrcURL, reason: BackupReason.sidecar) }
+        if let nfo = audio.nfo { try TrashBackup.shared.backUp(nfo.url, reason: BackupReason.sidecar) }
+    }
+
+    /// Nach gemeinsamer Vorbereitung schreiben; spätere IO-Fehler können
+    /// trotzdem auftreten. Die Meldung nennt dann jedes bereits geänderte Ziel.
+    nonisolated static func writeAudioSidecars(_ audio: FileEntry.AudioSnapshot,
+                                              for url: URL,
+                                              completed: [String] = []) throws {
+        var completed = completed
+        do {
+            if let lines = audio.sidecarLyrics {
+                try LRC.writeSidecar(lines, for: url, expecting: audio.lrcState, backUp: false)
+                completed.append(LRC.sidecarURL(for: url).lastPathComponent)
+            }
+            if let nfo = audio.nfo {
+                try KodiNFOFile.write(url: nfo.url, fields: nfo.fields,
+                                      original: nfo.original, expecting: nfo.stamp)
+            }
+        } catch {
+            guard !completed.isEmpty else { throw error }
+            throw PartialSaveError(completed: completed, underlying: error)
+        }
     }
 
     /// Liest Datei-Zustand UND Stempel als konsistenten Schnappschuss: Der
@@ -161,13 +185,11 @@ enum AppFileIO {
                     reason: "expected three letters (ISO 639-2), got \"\(language)\"")
             }
             // Nur Sidecars haben sich geändert: Medium und dessen Sicherung
-            // bleiben unangetastet; jede Sidecar sichert sich selbst und
-            // prüft ihren eigenen Lesestempel.
+            // bleiben unangetastet. Die gemeinsame Vorbereitung schützt
+            // beide Sidecars, bevor eine davon geschrieben wird.
+            try prepareAudioSidecars(audio, for: url)
             if !audio.mediaChanged {
-                if let lines = audio.syncedLyrics {
-                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcState)
-                }
-                if let nfo = audio.nfo { try writeVideoNFO(nfo) }
+                try writeAudioSidecars(audio, for: url)
                 return try readStamped(url: url, kind: kind)
             }
         }
@@ -197,41 +219,12 @@ enum AppFileIO {
         switch (kind, snapshot) {
         case (.audio, .audio(let audio)):
             let embedsSynced = audio.original.supportsSyncedLyrics
-            // Formate ohne SYLT: geänderte Zeilen gehören in die Sidecar.
-            let sidecarLines = embedsSynced ? nil : audio.syncedLyrics
-            // Zweiphasig: Erst alles, was an den Sidecars scheitern kann
-            // (Lesestempel, Feldprüfung, Papierkorb-Sicherung), DANN der
-            // Container, zuletzt der Austausch der Sidecars. So übernimmt ein
-            // Save nie Containerfelder dauerhaft, während Lyrics oder NFO
-            // wegen eines Sicherungsfehlers liegen bleiben — der Fehler kommt
-            // vor dem ersten Austausch.
-            if sidecarLines != nil {
-                let sidecarURL = LRC.sidecarURL(for: url)
-                try audio.lrcState.requireUnchanged(at: sidecarURL)
-                // Eine noch fehlende Sidecar hat nichts zu sichern (backUp
-                // überspringt sie).
-                try TrashBackup.shared.backUp(sidecarURL, reason: BackupReason.sidecar)
-            }
-            if let nfo = audio.nfo {
-                try KodiNFOFile.validate(nfo.fields, original: nfo.original)
-                try FileStamp.requireUnchanged(nfo.stamp, at: nfo.url)
-                try TrashBackup.shared.backUp(nfo.url, reason: BackupReason.sidecar)
-            }
             try TagFile.write(properties: audio.properties, artworks: audio.artworks,
                               chapters: audio.chapters,
                               syncedLyrics: embedsSynced ? audio.syncedLyrics : nil,
                               lyricsLanguage: embedsSynced ? audio.lyricsLanguage : nil,
                               to: url, expecting: stamp, id3Version: id3Version)
-            var completed = [url.lastPathComponent]
-            do {
-                if let lines = sidecarLines {
-                    try LRC.writeSidecar(lines, for: url, expecting: audio.lrcState, backUp: false)
-                    completed.append(LRC.sidecarURL(for: url).lastPathComponent)
-                }
-                if let nfo = audio.nfo { try writeVideoNFO(nfo, backUp: false) }
-            } catch {
-                throw PartialSaveError(completed: completed, underlying: error)
-            }
+            try writeAudioSidecars(audio, for: url, completed: [url.lastPathComponent])
         case (.image, .image(let fields, let original, let sidecar)):
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: stamp, to: imageDestination,

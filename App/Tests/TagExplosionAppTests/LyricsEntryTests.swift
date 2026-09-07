@@ -129,6 +129,66 @@ struct LyricsEntryTests {
         #expect(try Data(contentsOf: url) == bytes)
     }
 
+    @Test("Später NFO-Konflikt nennt die bereits geschriebene LRC")
+    func sidecarFailureReportsCompletedFile() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let media = root.appendingPathComponent("video.mp4")
+        let nfoURL = root.appendingPathComponent("video.nfo")
+        try Data("<movie><title>Alt</title></movie>".utf8).write(to: nfoURL)
+        let reading = try KodiNFOFile.readSnapshot(url: nfoURL)
+        let audio = FileEntry.AudioSnapshot(properties: [], artworks: [], chapters: nil,
+            syncedLyrics: lines, lyricsLanguage: nil,
+            original: TagData(properties: [], artworks: [], audio: nil),
+            nfo: FileEntry.NFOSnapshot(url: nfoURL, fields: NFOFields(title: "Neu"),
+                original: reading.value.fields, stamp: reading.stamp))
+        try AppFileIO.prepareAudioSidecars(audio, for: media)
+        // Genau zwischen Vorprüfung und Austausch ändert ein fremder Schreiber
+        // die zweite Datei. Die erste ist beim Entdecken des Konflikts fertig.
+        let foreign = Data("<movie><title>Fremde neue Fassung</title></movie>".utf8)
+        try foreign.write(to: nfoURL)
+        do {
+            try AppFileIO.writeAudioSidecars(audio, for: media)
+            Issue.record("NFO-Konflikt fehlt")
+        } catch let error as PartialSaveError {
+            #expect(error.completed == ["video.lrc"])
+            #expect(error.underlying as? TagError == .fileChangedOnDisk(path: nfoURL.path))
+        }
+        #expect(try LRC.loadSidecar(for: media) == lines)
+        #expect(try Data(contentsOf: nfoURL) == foreign)
+    }
+
+    @Test("MP4: ungültige NFO verhindert auch das Schreiben geänderter Lyrics",
+          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"),
+          arguments: [false, true])
+    func sidecarValidationPrecedesAnyWrite(mediaChanged: Bool) async throws {
+        let url = try MediaTestFixtures.workingCopy("sample.mp4")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let nfoURL = url.deletingPathExtension().appendingPathExtension("nfo")
+        let nfoBytes = Data("<movie><title>Original</title><year>2020</year></movie>".utf8)
+        try nfoBytes.write(to: nfoURL)
+        let mediaBytes = try Data(contentsOf: url)
+        let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
+        let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
+        entry.syncedLyrics = lines
+        entry.videoNFOFields.year = "ungültig"
+        if mediaChanged { entry.setSingleValue("TITLE", "Neue Tags") }
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == false)
+        #expect(entry.lastError?.contains("year") == true)
+        #expect(try LRC.loadSidecar(for: url) == nil)
+        #expect(try Data(contentsOf: nfoURL) == nfoBytes)
+        #expect(try Data(contentsOf: url) == mediaBytes)
+        #expect(entry.isDirty)
+
+        entry.videoNFOFields.year = "2021"
+        #expect(await model.save(entry: entry))
+        #expect(try LRC.loadSidecar(for: url) == lines)
+        #expect(try KodiNFOFile.read(url: nfoURL).fields.year == "2021")
+        #expect(!entry.isDirty)
+    }
+
     @Test("FLAC: eine fremd geänderte Sidecar wird beim Speichern erkannt, nicht überschrieben",
           .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"),
           arguments: [false, true], [false, true])

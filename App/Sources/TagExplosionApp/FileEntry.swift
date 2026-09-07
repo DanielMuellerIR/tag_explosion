@@ -157,6 +157,11 @@ final class FileEntry: Identifiable {
         /// nil = NFO unverändert oder keine vorhanden.
         var nfo: NFOSnapshot? = nil
 
+        /// Geänderte Lyrics außerhalb des Containers; ID3v2 speichert sie eingebettet.
+        var sidecarLyrics: [SyncedLyricLine]? {
+            original.supportsSyncedLyrics ? nil : syncedLyrics
+        }
+
         /// Ob in der Mediendatei selbst etwas zu schreiben ist. Sidecars
         /// (LRC bei Formaten ohne SYLT, NFO) zählen nicht dazu.
         var mediaChanged: Bool {

@@ -93,9 +93,9 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   braucht einen eigenen Vertrag für diese Dateisysteme.
 
 - **Sidecars haben eigene Stempel, und ein Save mit zwei Zieldateien ist
-  zweiphasig.** Der App-Audio-Schreibweg (`AppModel.write`) schreibt bei
+  zweiphasig.** Der App-Audio-Schreibweg (`AppFileIO.write`) schreibt bei
   Formaten ohne SYLT die `.lrc` und bei Videos die `.nfo` zusätzlich zum
-  Container. Beide bekommen beim Lesen einen eigenen `FileStamp`
+  Container. Beide behalten beim Lesen ihren eigenen Zustand
   (`AudioSidecars`), der vor dem Austausch geprüft wird — sonst
   überschriebe die App eine zwischenzeitlich fremd geänderte Sidecar ohne
   Konfliktdialog. Reihenfolge: erst alles, was an den Sidecars scheitern
@@ -144,3 +144,13 @@ reinen Lyrics-Änderungen bzw. zusätzlichen Medien-Tags. Vor der Korrektur
 im zweiten Fall waren auch die Medien-Tags bereits geändert. Die Core-Tests
 prüfen zusätzlich, dass bekannte Abwesenheit nicht zum Löschen fremder
 Dateien führt und ein fremd gelöschter bekannter Stand nicht neu entsteht.
+
+`AppFileIO.prepareAudioSidecars` und `writeAudioSidecars` gelten für beide
+Audio-Speicherzweige. Früher schrieb der reine Sidecar-Zweig die LRC schon
+vor der NFO-Feldprüfung; ein ungültiges Jahr verhinderte nur noch die zweite
+Datei. Der unverändert gebliebene Editorstand erkannte beim nächsten Versuch
+seine eigene neue LRC als fremd. Die MP4-Regressionsprüfung deckt diesen
+Ablauf samt erfolgreicher Wiederholung nach Feldkorrektur ab. Ein weiterer
+Test verändert die NFO gezielt nach der gemeinsamen Vorbereitung: Der
+Schreibweg erhält den fremden Inhalt und meldet die schon fertige LRC über
+`PartialSaveError`. Mehrere Dateiaustausche bilden keine atomare Transaktion.
