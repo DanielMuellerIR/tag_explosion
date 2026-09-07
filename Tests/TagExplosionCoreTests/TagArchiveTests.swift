@@ -3,6 +3,7 @@
 // (PropertyMap + Cover), Bild (Kernfelder) und EPUB ab, dazu die Meldungen
 // für fehlende/zusätzliche Dateien und --dry-run.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 

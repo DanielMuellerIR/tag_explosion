@@ -43,3 +43,9 @@ funktioniert auch mit einem PATH ohne ffmpeg (separat ausgeführt).
 
 Die Sperre liegt im Swift-Testhelfer. Direkte manuelle Aufrufe des Shell-
 Generators dürfen nicht gleichzeitig in denselben Ausgabeordner schreiben.
+
+`Tests/Support/TestFiles.swift` enthält auch die gemeinsame Simulation eines
+fremden atomaren Dateiaustauschs: Foundation unter macOS, `rename(2)` unter
+Linux. Die bisherigen Core- und CLI-Konflikttests prüfen diesen Helfer über
+die tatsächlich geänderte Dateiidentität. Die Fixture-Sperre verwendet
+`O_CLOEXEC`, damit gestartete Werkzeuge ihren Deskriptor nicht erben.

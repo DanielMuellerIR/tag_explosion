@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.8 — 2026-09-08
+
+- Core- und CLI-Konflikttests verwenden dieselbe Hilfe für den atomaren
+  Dateiaustausch. Die Fixture-Sperre wird nicht an gestartete Werkzeuge vererbt.
+
 ## 0.46.7 — 2026-09-08
 
 - Lyrics, deren Sprache und Video-NFO-Felder behalten Eingaben, die erst

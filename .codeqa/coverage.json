@@ -102,34 +102,18 @@
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:14:39+02:00",
-        "observed_head": "e57761cfcbfb1701c1459ad3efe642f729e22540",
-        "content_sha256": "cff852eaa9f8ce6711e89efb1c56623cbb3a54d680093b816c5161151111a688",
-        "file_count": 2,
-        "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Delta seit der letzten Abdeckung samt Cover-No-op nach Read-back, konsistentem Datei-/Stempel-Schnappschuss, Save-Wartezustand, synchron beanspruchten Konfliktentscheidungen und neuen Fenstergrenzen geprüft; keine belastbar bessere kleine Änderung gefunden.",
-        "tests": [
-          "swift test --package-path App --filter AppModel|Lesepfad: 23 Tests in 2 Suites bestanden"
-        ]
-      },
-      "pending_paths": [
-        "App/Sources/TagExplosionApp/AppFileIO.swift",
-        "App/Sources/TagExplosionApp/BatchSaveResults.swift",
-        "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
-      ],
-      "active_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:02:09+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "App/Sources/TagExplosionApp/AppFileIO.swift",
-          "App/Sources/TagExplosionApp/BatchSaveResults.swift",
-          "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
+        "completed_at": "2026-09-08T01:05:58+02:00",
+        "observed_head": "f87f6fd3f198fbc4c1210abfed2f0ed48f6500ff",
+        "content_sha256": "448c8fe09aaa08f815e10c4ad609f5c29498e61ae7038643948b08d583787075",
+        "file_count": 5,
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "AppModel, AppFileIO, Batch-Ergebnisse und zugehörige Tests geprüft. FileEntry-Grenze: späte Lyrics-/Sprach-/NFO-Eingaben gehen bei nil-Änderungssnapshot nicht mehr verloren. Testduplikate konsolidiert, Read-back-Inhalt geprüft. Sidecar-Abwesenheit und gemeinsame Sidecar-Vorbereitung als offene Querschnittsthemen erfasst. Commit 0.46.7.",
+        "tests": [
+          "Repro vor Fix: vier Fehler in einer von vier Parameterkombinationen; danach alle Kombinationen bestanden. Vollständiges App-Paket: 111 Tests in 21 Suiten, 0.678 s."
         ]
       }
     },
@@ -145,12 +129,23 @@
       "risk": "high",
       "priority": 2,
       "reason": "Gemeinsame Testdateien und Fixture-Erzeugung: Race-Freiheit, Fehlertransparenz und Laufzeit.",
-      "state": "pending",
+      "state": "in_progress",
       "pending_paths": [
         "Tests/Support",
         "Tests/TagxTests/ProcessSupportTests.swift",
         "Tests/TagxTests/FixtureSupportTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:06:08+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": [
+          "Tests/Support",
+          "Tests/TagxTests/ProcessSupportTests.swift",
+          "Tests/TagxTests/FixtureSupportTests.swift"
+        ]
+      }
     },
     {
       "id": "app-entry-state",

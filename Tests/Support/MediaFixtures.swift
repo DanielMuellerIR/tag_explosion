@@ -20,7 +20,7 @@ public enum MediaTestFixtures {
     /// kontrollierten Generator statt eines zweiten vollständigen Mediensatzes.
     static func prepare(directory folder: URL, generator: URL) throws -> URL {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let descriptor = open(folder.appendingPathComponent(".generation.lock").path, O_CREAT | O_RDWR, 0o600)
+        let descriptor = open(folder.appendingPathComponent(".generation.lock").path, O_CREAT | O_RDWR | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else { throw FixtureError.lockUnavailable }
         defer { close(descriptor) }
         guard flock(descriptor, LOCK_EX) == 0 else { throw FixtureError.lockUnavailable }

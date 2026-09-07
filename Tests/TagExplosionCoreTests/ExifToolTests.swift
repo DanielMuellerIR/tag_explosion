@@ -1,5 +1,6 @@
 // Roundtrip-Tests für Bild-Metadaten über exiftool (MWG-Tags).
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 

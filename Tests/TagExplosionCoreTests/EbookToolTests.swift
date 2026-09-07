@@ -1,6 +1,7 @@
 // E-Book-Metadaten: Lesen/Roundtrip für EPUB 2, EPUB 3, PDF (exiftool) und —
 // falls Calibre installiert ist — azw3 via ebook-meta.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 #if canImport(FoundationXML)
 // Linux-Foundation liefert XMLDocument in einem eigenen Modul.
