@@ -195,47 +195,17 @@ final class FileEntry: Identifiable {
     /// Vergleichsbasis für die Konfliktprüfung beim Speichern.
     init(url: URL, loaded: LoadedData, stamp: FileStamp?) {
         self.url = url
-        self.diskStamp = stamp
-        switch loaded {
-        case .audio(let data, let sidecars):
-            self.kind = .audio
-            self.original = data
-            self.properties = data.properties
-            self.artworks = data.artworks
-            self.chapters = data.chapters
-            self.lyricsLanguage = data.lyricsLanguage
-            self.syncedLyrics = data.syncedLyrics
-            self.audioSidecars = sidecars
-            self.videoNFOOriginal = sidecars.nfoFields
-            self.videoNFOFields = sidecars.nfoFields
-        case .image(let reading):
-            self.kind = .image
-            self.imageReading = reading
-            self.imageOriginal = reading.fields
-            self.imageFields = reading.fields
-        case .ebook(let fields, let cover):
-            self.kind = .ebook
-            self.ebookOriginal = fields
-            self.ebookFields = fields
-            self.ebookOriginalCover = cover
-        case .invoice(let document):
-            self.kind = .invoice
-            self.invoiceDocument = document
-        case .document(let fields, let cover, let info):
-            self.kind = .document
-            self.documentOriginal = fields
-            self.documentFields = fields
-            self.documentCover = cover
-            self.documentInfo = info
-        case .sidecar(let contents):
-            self.kind = .sidecar
-            self.acceptNewSidecarOriginal(contents)
-        case .playlist(let contents):
-            self.kind = .playlist
-            self.playlistContents = contents
-            self.playlistOriginal = contents.fields
-            self.playlistFields = contents.fields
+        self.kind = switch loaded {
+        case .audio: .audio
+        case .image: .image
+        case .ebook: .ebook
+        case .invoice: .invoice
+        case .document: .document
+        case .sidecar: .sidecar
+        case .playlist: .playlist
         }
+        // Initiales Öffnen und späteres Neuladen pflegen dieselben Felder.
+        acceptNew(loaded, stamp: stamp)
     }
 
     /// Bequemer Weg für Tests: Stempel getrennt vom Inhalt erheben. Der
@@ -269,6 +239,9 @@ final class FileEntry: Identifiable {
         self.init(url: url, loaded: loaded, stamp: other.diskStamp)
         properties = other.properties
         artworks = other.artworks
+        chapters = other.chapters
+        syncedLyrics = other.syncedLyrics
+        lyricsLanguage = other.lyricsLanguage
         videoNFOFields = other.videoNFOFields
         imageFields = other.imageFields
         ebookFields = other.ebookFields

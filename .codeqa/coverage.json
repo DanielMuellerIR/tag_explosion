@@ -162,7 +162,14 @@
       "risk": "critical",
       "priority": 3,
       "reason": "Zentrale Editierpuffer, Dirty-Vergleich und Read-back müssen neue Medienfelder verlustfrei erhalten.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:15:19+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "archive-import",
@@ -953,14 +960,18 @@
         "App/Tests/TagExplosionAppTests/LyricsEntryTests.swift"
       ],
       "priority": 3,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T01:05:42+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T01:11:48+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:11:48+02:00",
-        "observed_head": "8ba0369740d9c69c7a8857bae3e851180a5b4944"
+        "completed_at": "2026-09-08T01:15:07+02:00",
+        "observed_head": "f051b435e8a4da0eb6897e0b3587ed14796ca7e4",
+        "summary": "Gemeinsame Sidecar-Vorprüfung, Backup und Schreiben für beide App-Audiozweige. NFO-Validierung vor erster Mutation; späte Konflikte melden bereits geschriebene LRC. Commit 0.46.10.",
+        "tests": [
+          "Vorher MP4-Repro vier Fehler im reinen Sidecar-Zweig; danach beide Varianten inklusive korrigierter Wiederholung bestanden. Später NFO-Konflikt nach Vorbereitung kontrolliert geprüft. App vollständig: 113 Tests/21 Suiten, 0.394 s."
+        ]
       }
     }
   ]

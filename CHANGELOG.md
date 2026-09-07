@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.11 — 2026-09-08
+
+- FileEntry nutzt beim Öffnen und Neuladen denselben Weg zum Übernehmen
+  der Daten. Neue Felder müssen dadurch an weniger Stellen ergänzt werden.
+- Beim Übertragen eines Eintrags auf einen neuen Pfad bleiben nun auch
+  bearbeitete Kapitel, synchronisierte Lyrics und deren Sprache erhalten.
+
 ## 0.46.10 — 2026-09-08
 
 - LRC und Video-NFO werden auch bei reinen Sidecar-Änderungen gemeinsam

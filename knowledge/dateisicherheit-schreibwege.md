@@ -154,3 +154,10 @@ Ablauf samt erfolgreicher Wiederholung nach Feldkorrektur ab. Ein weiterer
 Test verändert die NFO gezielt nach der gemeinsamen Vorbereitung: Der
 Schreibweg erhält den fremden Inhalt und meldet die schon fertige LRC über
 `PartialSaveError`. Mehrere Dateiaustausche bilden keine atomare Transaktion.
+
+`FileEntry.init` und `acceptNew` teilen seit 0.46.11 die Übernahme gelesener
+Daten. Die Relokation auf einen neuen Pfad kopiert zusätzlich sämtliche
+Audio-Puffer. Der normale App-Umbenennungsdialog verlangt zuvor Speichern
+oder Verwerfen; der separate Konstruktor erfüllt nun ebenfalls seinen
+Vertrag für noch bearbeitete Kapitel, Lyrics und Sprache. Der Regressionstest
+prüft Originalerhalt, eigenständiges Verwerfen und den unveränderten Quellpuffer.

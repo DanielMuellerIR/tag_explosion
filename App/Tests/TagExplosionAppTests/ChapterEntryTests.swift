@@ -30,6 +30,28 @@ struct ChapterEntryTests {
         #expect(!entry.isDirty)
     }
 
+    @Test("Neuer Eintragspfad erhält Kapitel- und Lyrics-Puffer samt Original")
+    func relocatingPreservesAudioEdits() throws {
+        let original = TagData(properties: [], artworks: [], audio: nil,
+            chapters: sample, supportsChapters: true,
+            lyricsLanguage: "deu", supportsSyncedLyrics: true)
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/alt.mp3"),
+                              loaded: .audio(original), stamp: nil)
+        entry.chapters[1].title = "Neuer Kapitelname"
+        entry.syncedLyrics = [SyncedLyricLine(milliseconds: 0, text: "Neue Zeile")]
+        entry.lyricsLanguage = "eng"
+        let relocated = try #require(FileEntry(relocating: entry,
+            to: URL(fileURLWithPath: "/tmp/neu.mp3")))
+        #expect(relocated.original == original)
+        #expect(relocated.chapters == entry.chapters)
+        #expect(relocated.syncedLyrics == entry.syncedLyrics)
+        #expect(relocated.lyricsLanguage == entry.lyricsLanguage)
+        #expect(relocated.isDirty)
+        relocated.revert()
+        #expect(!relocated.isDirty)
+        #expect(entry.isDirty)
+    }
+
     @Test("Snapshot trägt Kapitel nur bei Formaten mit Kapiteln")
     func snapshotCarriesChaptersOnlyWhenSupported() {
         let supported = FileEntry(
