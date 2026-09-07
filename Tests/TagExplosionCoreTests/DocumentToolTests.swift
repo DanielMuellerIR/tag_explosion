@@ -29,6 +29,38 @@ struct DocumentToolTests {
         }
     }
 
+    #if canImport(Darwin)
+    @Test("ZIP-Dokumente behalten Außenrechte, ACL und xattr", arguments: ["doc.docx", "doc.odt", "comic.cbz"])
+    func zipPreservesExternalMetadata(fixture: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
+        func command(_ executable: String, _ arguments: [String]) throws -> String {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: executable)
+            process.arguments = arguments
+            let output = Pipe()
+            process.standardOutput = output
+            try process.run()
+            let data = output.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            #expect(process.terminationStatus == 0)
+            return String(decoding: data, as: UTF8.self)
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        _ = try command("/usr/bin/xattr", ["-w", "com.test.tagx", "synthetic metadata", url.path])
+        _ = try command("/bin/chmod", ["+a", "everyone deny execute", url.path])
+        let beforeACL = try command("/bin/ls", ["-le", url.path]).split(separator: "\n").dropFirst()
+        let original = try DocumentTool.readCoreFields(url: url)
+        var edited = original
+        edited.title = "Private document updated"
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        #expect(try DocumentTool.readCoreFields(url: url) == edited)
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        #expect((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600)
+        #expect(try command("/usr/bin/xattr", ["-p", "com.test.tagx", url.path]) == "synthetic metadata\n")
+        #expect(try command("/bin/ls", ["-le", url.path]).split(separator: "\n").dropFirst() == beforeACL)
+    }
+    #endif
+
     // MARK: - OOXML (docx)
 
     @Test("docx: core.xml und app.xml lesen")

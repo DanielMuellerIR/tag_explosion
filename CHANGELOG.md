@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.3 — 2026-09-07
+
+- ZIP-Dokumente behalten beim Speichern ihre äußeren Dateirechte, ACLs und
+  erweiterten Attribute. Temporäre ZIP-Inhalte entstehen in einem privaten
+  Verzeichnis und werden erst nach erfolgreichem Schreiben ausgetauscht.
+
 ## 0.46.2 — 2026-09-05
 
 - Der MediaInfo-Abbruchtest lässt seinem gesteuerten Leser unter paralleler

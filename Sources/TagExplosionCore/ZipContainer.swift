@@ -71,16 +71,41 @@ enum ZipContainer {
     /// Speicher geladen (nacheinander, nicht alle zugleich). Erweiterungsfelder
     /// der Einträge (z.B. Zeitstempel mit Zeitzone) gehen dabei verloren.
     static func rewrite(url: URL, replacing replacements: [String: Data]) throws {
-        let rebuilt = url.deletingLastPathComponent().appendingPathComponent(
+        let workspace = url.deletingLastPathComponent().appendingPathComponent(
             ".\(url.lastPathComponent).zip-rebuild-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: rebuilt) }
-        try build(from: url, to: rebuilt, replacing: replacements)
+        // Das neue ZIP enthält schon vor der Metadatenübernahme private Daten.
+        // Ein exklusiver Ordner schützt deshalb auch den gesamten Zwischenstand.
+        guard mkdir(workspace.path, 0o700) == 0 else {
+            throw TagError.saveFailed(path: url.path)
+        }
+        defer { try? FileManager.default.removeItem(at: workspace) }
+        let content = workspace.appendingPathComponent("content.zip")
+        let rebuilt = workspace.appendingPathComponent("replacement.zip")
+        try build(from: url, to: content, replacing: replacements)
+        // copyItem übernimmt wie AtomicFileRewrite die Außenrechte, ACLs und
+        // erweiterten Attribute. Danach ändern wir nur die Bytes dieser Kopie;
+        // eine neue Inode an ihrer Stelle würde die Metadaten wieder verlieren.
+        try FileManager.default.copyItem(at: url, to: rebuilt)
+        try replaceContents(of: rebuilt, from: content)
         // rename ist auf demselben Datenträger atomar; der alte Stand der
         // Kopie ist danach weg, das Original bleibt bis zum Ende von
         // AtomicFileRewrite unangetastet.
         guard rename(rebuilt.path, url.path) == 0 else {
             throw TagError.saveFailed(path: url.path)
         }
+    }
+
+    private static func replaceContents(of target: URL, from source: URL) throws {
+        let input = try FileHandle(forReadingFrom: source)
+        defer { try? input.close() }
+        let output = try FileHandle(forWritingTo: target)
+        defer { try? output.close() }
+        try output.truncate(atOffset: 0)
+        while let chunk = try input.read(upToCount: 1024 * 1024), !chunk.isEmpty {
+            try output.write(contentsOf: chunk)
+        }
+        try output.synchronize()
+        try output.close()
     }
 
     /// Eigene Funktion, damit das Zielarchiv (Dateihandle) sicher geschlossen
