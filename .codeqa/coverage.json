@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 473412
+    "tokens_spent": 1103304
   },
   "campaign_history": [
     {
@@ -74,27 +74,20 @@
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "pending",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T00:40:26+02:00",
-        "observed_head": "e9f4fe56d9ac599c2a96921bacc778cfdcae5e0b",
-        "content_sha256": "07ee1be6fcba6a6c12bf4790acb9a2ba668dc3ba0744de255a6180c1d9665f8c",
-        "file_count": 7,
+        "completed_at": "2026-09-08T01:40:52+02:00",
+        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
+        "content_sha256": "2211cad43b49477661fe1100237f35c4a536ddff98ca700501645220edec6f76",
+        "file_count": 8,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "XDG-Verzeichnisse gegen Symlinks, fremde Besitzer und fremde Schreibrechte geschützt; Datenträgerwahl folgt dem Ziel, relative Datenpfade werden ignoriert. Sicherungen prüfen Quellstempel vor und nach der Kopie. Überlappende Sicherungstests zusammengeführt und Quellordner aufgeräumt. Exklusive Dateineuanlage direkt geprüft; exFAT-Unterstützung bleibt mangels link/RENAME_EXCL als dokumentierte Dateisystemgrenze offen.",
+        "outcome": "reviewed-clean",
+        "summary": "FileState und SidecarState-Alias samt Restore-/LRC-Grenzen nachgeprüft. Bekannte Abwesenheit bleibt getrennt von unbekannt; exklusive Anlage und Stempelprüfung bis zum Austausch. Vorige Safety-Implementierung unverändert. Tokenbuchung: gemeldete Root-Zähler seit nativem Pausenstand, ungecachte Eingabe plus Ausgabe; Basis danach 772916.",
         "tests": [
-          "Vorzustand: XDG-Symlink-/Rechte-/Datenträgerfälle 14 Abweichungen; kontrollierte Quelländerung 3 Abweichungen",
-          "swift test: 469 Tests in 49 Suites bestanden, 9.666 s; App: 111 Tests in 21 Suites bestanden, 0.667 s",
-          "ExFAT-Probe: link und renamex_np(RENAME_EXCL) liefern beide ENOTSUP; unsicheren Fallback verworfen",
-          "Diff geprüft; abschließender XDG-Cleanup-Test bestanden; native Linux-Ausführung steht noch aus"
+          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
         ]
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/SidecarState.swift",
-        "Sources/TagExplosionCore/FileState.swift"
-      ]
+      }
     },
     {
       "id": "app-save-coordination",
@@ -111,15 +104,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:05:58+02:00",
-        "observed_head": "f87f6fd3f198fbc4c1210abfed2f0ed48f6500ff",
-        "content_sha256": "448c8fe09aaa08f815e10c4ad609f5c29498e61ae7038643948b08d583787075",
+        "completed_at": "2026-09-08T01:40:52+02:00",
+        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
+        "content_sha256": "2645f55fb709313a9ffecf9e87f16fbd7150a13d939573f3b04322380ee5dea8",
         "file_count": 5,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "AppModel, AppFileIO, Batch-Ergebnisse und zugehörige Tests geprüft. FileEntry-Grenze: späte Lyrics-/Sprach-/NFO-Eingaben gehen bei nil-Änderungssnapshot nicht mehr verloren. Testduplikate konsolidiert, Read-back-Inhalt geprüft. Sidecar-Abwesenheit und gemeinsame Sidecar-Vorbereitung als offene Querschnittsthemen erfasst. Commit 0.46.7.",
+        "outcome": "reviewed-clean",
+        "summary": "Seit Bereichsabschluss nur die geprüften Audio-Sidecar-Themen: gemeinsame Vorprüfung, Sicherung, Schreiben und Teilerfolgsmeldung; beide Speicherzweige und Konfliktweitergabe geprüft.",
         "tests": [
-          "Repro vor Fix: vier Fehler in einer von vier Parameterkombinationen; danach alle Kombinationen bestanden. Vollständiges App-Paket: 111 Tests in 21 Suiten, 0.678 s."
+          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
         ]
       }
     },
@@ -167,15 +160,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:17:12+02:00",
-        "observed_head": "dcccb67819fe6763279bfd8d69bcb18b71a5aa8a",
-        "content_sha256": "96db867713fd8108573fa4d08fdcf170a38d162fe2a28f0f7b3652c46307e4dd",
+        "completed_at": "2026-09-08T01:40:53+02:00",
+        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
+        "content_sha256": "2d85f6d2fd63cffda0a7ecac009d96b5a70f7a8b9690af5815626fd2aa43ddfe",
         "file_count": 7,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "FileEntry, LoadedData und alle zugeordneten Lifecycle-Tests vollständig geprüft. Initialisierung verwendet acceptNew statt paralleler Feldzuweisungen. Relokation erhält bisher ausgelassene Kapitel-/Lyrics-/Sprachpuffer; normaler Rename-Dialog bereits geschützt. Vorige Querschnittsfixes in Zustandsmodell integriert. Commit 0.46.11.",
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Delta nach Abschluss: nicht gelesene LRC-Zustände sind unbekannt. FileState ist zum bisherigen SidecarState quellkompatibel; gelesene Abwesenheit bleibt explizit. Neue Restore-Grenze geprüft.",
         "tests": [
-          "Relokations-Repro vor Fix vier Fehler; danach bestanden. Vollständiges App-Paket: 114 Tests in 21 Suiten bestanden."
+          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
         ]
       }
     },
@@ -222,23 +215,20 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Wiederherstellung verändert Nutzdateien; Journal, Dateizuweisung und Hash-Prüfung bilden einen Vertrag.",
-      "state": "pending",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:23:27+02:00",
-        "observed_head": "ee1942ea33d3cad9ed7ed9fbf50dd01d98220f97",
-        "content_sha256": "52d9a8406d545e95085c80fed759000e71e04c08655667620f11c81fbaaff72e",
-        "file_count": 8,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Core-Historie/Journal/SHA, CLI-Historie, App-Historienmodell und View sowie Tests geprüft. Unbekannte Formate erhalten, Diagnosekopien nicht mehr gelöscht; tatsächliches Sidecar-Restore-Ziel im CLI geprüft. Redundanten Nichtnachweis entfernt, Restore-Tests für Linux aktiviert und Cleanup ergänzt. App-Sidecar-Lesestand separat als Querschnitt notiert. Commit 0.46.12.",
+        "completed_at": "2026-09-08T01:40:53+02:00",
+        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
+        "content_sha256": "c8ba6c5bcdc0ed1fe9c55e82f3aa83817e254394500173d48658a6e1a0b2e6f0",
+        "file_count": 9,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Delta nach Abschluss: Core-/CLI-/App-Restore mit FileState, sechs App-Sidecar-Regressionsfälle sowie bekannte Ziel-Existenz/Abwesenheit geprüft; alte Stempel-Aufrufe bleiben kompatibel.",
         "tests": [
-          "Drei Repros vor Fix neun Fehler; danach bestanden. Root-Vollprüfung 475 Tests/51 Suiten, 7.255 s. Finale Einpass-Decoder-Prüfung 10 Historien-Tests bestanden, 0.052 s. Linux-Vollprüfung folgt separat."
+          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
         ]
-      },
-      "pending_paths": [
-        "App/Tests/TagExplosionAppTests/VersionHistoryTests.swift"
-      ]
+      }
     },
     {
       "id": "taglib-io",
@@ -266,7 +256,7 @@
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:34:48+02:00",
@@ -294,7 +284,27 @@
         "Tests/TagxTests/ChaptersCommandTests.swift",
         "Tests/TagxTests/LayersCommandTests.swift",
         "Tests/TagxTests/LyricsCommandTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:41:26+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "Sources/TagExplosionCore/ChapterFormats.swift",
+          "Sources/TagExplosionCore/FixedFields.swift",
+          "Sources/TagExplosionCore/LyricsFormats.swift",
+          "Sources/tagx/ChaptersCommand.swift",
+          "Sources/tagx/LayersCommand.swift",
+          "Sources/tagx/LyricsCommand.swift",
+          "Tests/TagExplosionCoreTests/ChapterTests.swift",
+          "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+          "Tests/TagExplosionCoreTests/TagLayerTests.swift",
+          "Tests/TagxTests/ChaptersCommandTests.swift",
+          "Tests/TagxTests/LayersCommandTests.swift",
+          "Tests/TagxTests/LyricsCommandTests.swift"
+        ]
+      }
     },
     {
       "id": "distribution-install",
@@ -1002,14 +1012,18 @@
         "Sources/TagExplosionCore/BackupHistory.swift"
       ],
       "priority": 4,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T01:22:19+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T01:33:37+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:33:37+02:00",
-        "observed_head": "f984672f4505373460170980041833b0bbaf945a"
+        "completed_at": "2026-09-08T01:39:15+02:00",
+        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
+        "summary": "FileState verallgemeinert bekannten Lesestand (SidecarState bleibt Alias). Restore schützt Anlegen/Löschen/Ändern; App ordnet Original-/Sidecar-Versionen ihren gelesenen Zuständen zu. Alte FileStamp-Aufrufe kompatibel, nicht gelesene Sidecars unbekannt. Commit 0.46.15.",
+        "tests": [
+          "App-Repro vor Fix acht Fehler in sechs Kombinationen, danach bestanden. Root 476 Tests/51 Suiten, 7.494 s; App 115 Tests/22 Suiten, 0.528 s. Finale Core-/CLI-Historienprüfung nach vorgezogener Zustandsprüfung bestanden."
+        ]
       }
     }
   ]

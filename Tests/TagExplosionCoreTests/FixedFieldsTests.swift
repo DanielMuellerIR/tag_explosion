@@ -339,13 +339,14 @@ struct FixedFieldsTests {
         #expect(LRC.plainText(doc.lines).hasPrefix("Erste Zeile mit Wortmarken\nOhne Hundertstel"))
     }
 
-    @Test("LRC: Rendern und Wiedereinlesen ist verlustfrei (auf Hundertstel)")
+    @Test("LRC: Rendern und Wiedereinlesen ist verlustfrei einschließlich Millisekunden")
     func lrcRender() throws {
         let lines = [SyncedLyricLine(milliseconds: 0, text: "A"),
                      SyncedLyricLine(milliseconds: 61_250, text: "B — Ümläute"),
+                     SyncedLyricLine(milliseconds: 61_251, text: "C"),
                      SyncedLyricLine(milliseconds: 3_600_000, text: "")]
         let rendered = LRC.render(lines, metadata: [(key: "ti", value: "Titel")])
-        #expect(rendered == "[ti:Titel]\n[00:00.00]A\n[01:01.25]B — Ümläute\n[60:00.00]\n")
+        #expect(rendered == "[ti:Titel]\n[00:00.00]A\n[01:01.25]B — Ümläute\n[01:01.251]C\n[60:00.00]\n")
         #expect(try LRC.parse(rendered).lines == lines)
         #expect(LRC.render([]) == "")
     }
@@ -360,10 +361,10 @@ struct FixedFieldsTests {
         let sidecar = LRC.sidecarURL(for: media)
         #expect(sidecar.lastPathComponent == "sample.lrc")
         #expect(try LRC.loadSidecar(for: media) == nil)
-        let lines = [SyncedLyricLine(milliseconds: 1000, text: "Eins"), SyncedLyricLine(milliseconds: 2000, text: "Zwei")]
+        let lines = [SyncedLyricLine(milliseconds: 1000, text: "Eins"), SyncedLyricLine(milliseconds: 2001, text: "Zwei")]
         try LRC.writeSidecar(lines, for: media)
         #expect(try LRC.loadSidecar(for: media) == lines)
-        #expect(try String(contentsOf: sidecar, encoding: .utf8) == "[00:01.00]Eins\n[00:02.00]Zwei\n")
+        #expect(try String(contentsOf: sidecar, encoding: .utf8) == "[00:01.00]Eins\n[00:02.001]Zwei\n")
         try LRC.writeSidecar([SyncedLyricLine(milliseconds: 0, text: "Neu")], for: media)
         #expect(try LRC.loadSidecar(for: media)?.map(\.text) == ["Neu"])
         try LRC.writeSidecar([], for: media)

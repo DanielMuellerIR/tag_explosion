@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.16 — 2026-09-08
+
+- LRC-Export und Sidecar-Speicherung erhalten Millisekunden statt auf
+  Hundertstelsekunden zu kürzen.
+- Überlange Kapitel- und LRC-Zeitstempel werden ohne Ganzzahlüberlauf
+  abgelehnt; große gültige Zeiten bleiben beim Text-Rundlauf erhalten.
+
 ## 0.46.15 — 2026-09-08
 
 - Die App berücksichtigt beim Wiederherstellen von LRC-, NFO- und XMP-

@@ -50,7 +50,7 @@ public enum ChapterList {
         let seconds = (total / 1000) % 60
         let minutes = (total / 60_000) % 60
         let hours = total / 3_600_000
-        return String(format: "%02d:%02d:%02d.%03d", hours, minutes, seconds, ms)
+        return String(format: "%02lld:%02d:%02d.%03d", Int64(hours), minutes, seconds, ms)
     }
 
     /// Liest `HH:MM:SS.mmm`, aber auch verkürzte Formen (`MM:SS`, `SS.mmm`,
@@ -78,11 +78,19 @@ public enum ChapterList {
             guard !part.isEmpty, part.allSatisfy(\.isNumber), let value = Int(part) else { return nil }
             numbers.append(value)
         }
-        // Von hinten auffüllen: Sekunden, Minuten, Stunden.
-        let seconds = numbers[numbers.count - 1]
-        let minutes = numbers.count >= 2 ? numbers[numbers.count - 2] : 0
-        let hours = numbers.count == 3 ? numbers[0] : 0
-        return ((hours * 60 + minutes) * 60 + seconds) * 1000 + fractionMs
+        // Stunden/Minuten/Sekunden schrittweise zusammenführen. Auch eine
+        // einzeln gültige Ganzzahl kann beim Umrechnen zu groß werden.
+        var totalSeconds = 0
+        for number in numbers {
+            let product = totalSeconds.multipliedReportingOverflow(by: 60)
+            let sum = product.partialValue.addingReportingOverflow(number)
+            guard !product.overflow, !sum.overflow else { return nil }
+            totalSeconds = sum.partialValue
+        }
+        let product = totalSeconds.multipliedReportingOverflow(by: 1000)
+        let sum = product.partialValue.addingReportingOverflow(fractionMs)
+        guard !product.overflow, !sum.overflow else { return nil }
+        return sum.partialValue
     }
 
     // MARK: - Fehlende Enden ergänzen

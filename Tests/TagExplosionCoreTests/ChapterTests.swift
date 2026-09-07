@@ -202,6 +202,11 @@ struct ChapterTests {
         #expect(ChapterList.parseTimestamp("abc") == nil)
         #expect(ChapterList.parseTimestamp("1:2:3:4") == nil)
         #expect(ChapterList.parseTimestamp("") == nil)
+        for text in ["\(Int.max)", "\(Int.max):00", "\(Int.max):00:00", "9223372036854775.808"] {
+            #expect(ChapterList.parseTimestamp(text) == nil)
+        }
+        #expect(ChapterList.parseTimestamp(ChapterList.formatTimestamp(Int.max)) == Int.max)
+        #expect(LRC.parseTimestamp(LRC.formatTimestamp(Int.max)) == Int.max)
     }
 
     @Test("Textformat: eine Zeile pro Kapitel, Enden aus dem nächsten Beginn")

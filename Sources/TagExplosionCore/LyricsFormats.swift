@@ -36,14 +36,18 @@ public enum LRC {
 
     // MARK: - Zeitstempel
 
-    /// `mm:ss.xx` mit Hundertstelsekunden — die verbreitete LRC-Form. Minuten
-    /// laufen über 59 hinaus (LRC kennt keine Stunden).
+    /// `mm:ss.xx`, bei Bedarf mit drei Nachkommastellen: Millisekunden
+    /// bleiben beim Export erhalten. Minuten laufen über 59 hinaus.
     public static func formatTimestamp(_ milliseconds: Int) -> String {
         let total = max(0, milliseconds)
         let hundredths = (total % 1000) / 10
         let seconds = (total / 1000) % 60
         let minutes = total / 60_000
-        return String(format: "%02d:%02d.%02d", minutes, seconds, hundredths)
+        let prefix = String(format: "%02lld:%02d", Int64(minutes), seconds)
+        let fraction = total % 10 == 0
+            ? String(format: "%02d", hundredths)
+            : String(format: "%03d", total % 1000)
+        return "\(prefix).\(fraction)"
     }
 
     /// Liest `mm:ss.xx`, `mm:ss`, `mm:ss.xxx` und `h:mm:ss.xx`; nil, wenn

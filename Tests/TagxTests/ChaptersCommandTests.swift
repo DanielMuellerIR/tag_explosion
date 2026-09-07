@@ -112,9 +112,11 @@ struct ChaptersCommandTests {
         #expect(result.stderr.contains("Invalid chapter list"))
 
         let garbage = directory.appendingPathComponent("kaputt.txt")
-        try Data("Intro ohne Zeit\n".utf8).write(to: garbage)
-        let garbageResult = try runTagx(arguments: ["chapters", "set", file.path, "--from", garbage.path, "--no-backup"])
-        #expect(garbageResult.status == 64)
+        for text in ["Intro ohne Zeit\n", "9223372036854775807:00 Kapitel\n"] {
+            try Data(text.utf8).write(to: garbage)
+            let garbageResult = try runTagx(arguments: ["chapters", "set", file.path, "--from", garbage.path, "--no-backup"])
+            #expect(garbageResult.status == 64)
+        }
         #expect(try Data(contentsOf: file) == before)
     }
 
