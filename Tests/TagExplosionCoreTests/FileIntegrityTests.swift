@@ -132,6 +132,54 @@ struct FileIntegrityTests {
         #expect(try Data(contentsOf: url) == before)
     }
 
+    @Test("Atomare Neuanlage erhält fremde Ziele und räumt jeden Zwischenstand auf",
+          arguments: ["success", "dry-run", "mutation", "validation", "hook", "collision", "symlink"])
+    func createPublishesOnlyValidatedNewFiles(scenario: String) throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-create-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appendingPathComponent("neu.txt")
+        let foreign = directory.appendingPathComponent("fremd.txt")
+        let bytes = Data("neuer Stand".utf8)
+        let foreignBytes = Data("fremder Stand".utf8)
+        var hookCalled = false
+        do {
+            try AtomicFileRewrite.create(url: target, replacingOriginal: scenario != "dry-run") {
+                hookCalled = true
+                if scenario == "hook" { throw TagError.saveFailed(path: target.path) }
+                if scenario == "collision" { try foreignBytes.write(to: target) }
+                if scenario == "symlink" {
+                    try foreignBytes.write(to: foreign)
+                    try FileManager.default.createSymbolicLink(at: target, withDestinationURL: foreign)
+                }
+            } mutate: {
+                try bytes.write(to: $0)
+                if scenario == "mutation" { throw TagError.saveFailed(path: target.path) }
+            } validate: {
+                let actual = try Data(contentsOf: $0)
+                #expect(actual == bytes)
+                if scenario == "validation" { throw TagError.saveFailed(path: target.path) }
+            }
+            #expect(scenario == "success" || scenario == "dry-run")
+        } catch let error as TagError {
+            let expected: TagError = ["collision", "symlink"].contains(scenario)
+                ? .fileChangedOnDisk(path: target.path) : .saveFailed(path: target.path)
+            #expect(error == expected)
+            #expect(scenario != "success" && scenario != "dry-run")
+        }
+        #expect(hookCalled == ["success", "hook", "collision", "symlink"].contains(scenario))
+        if scenario == "success" {
+            #expect(try Data(contentsOf: target) == bytes)
+        } else if ["collision", "symlink"].contains(scenario) {
+            #expect(try Data(contentsOf: target) == foreignBytes)
+        } else {
+            #expect(!FileManager.default.fileExists(atPath: target.path))
+        }
+        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        #expect(!names.contains { $0.contains(".tagx-") })
+    }
+
     // MARK: - Kaputte und feindselige Eingaben
 
     @Test("Unbrauchbare Dateien werfen einen Fehler, statt zu beschädigen",

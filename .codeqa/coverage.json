@@ -2,12 +2,10 @@
   "schema_version": 2,
   "project": "tag_explosion",
   "campaign": {
-    "id": "20260830T093346620969+0200",
-    "token_budget": 3000000,
-    "status": "complete",
-    "started_at": "2026-08-30T09:33:46+02:00",
-    "finished_at": "2026-08-30T09:36:28+02:00",
-    "finish_reason": "all-current"
+    "id": "20260908T002532864338+0200",
+    "token_budget": 8000000,
+    "status": "active",
+    "started_at": "2026-09-08T00:25:32+02:00"
   },
   "campaign_history": [
     {
@@ -26,6 +24,14 @@
       "started_at": "2026-08-29T19:11:21+02:00",
       "tokens_spent": 870347,
       "finished_at": "2026-08-29T19:55:26+02:00",
+      "finish_reason": "all-current"
+    },
+    {
+      "id": "20260830T093346620969+0200",
+      "token_budget": 3000000,
+      "status": "complete",
+      "started_at": "2026-08-30T09:33:46+02:00",
+      "finished_at": "2026-08-30T09:36:28+02:00",
       "finish_reason": "all-current"
     }
   ],
@@ -58,12 +64,14 @@
         "Sources/TagExplosionCore/TrashBackup.swift",
         "Sources/TagExplosionCore/FileStamp.swift",
         "Tests/TagExplosionCoreTests/FileIntegrityTests.swift",
-        "Tests/TagExplosionCoreTests/TrashBackupTests.swift"
+        "Tests/TagExplosionCoreTests/TrashBackupTests.swift",
+        "Sources/TagExplosionCore/XDGTrash.swift",
+        "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
       ],
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:34:20+02:00",
@@ -77,18 +85,35 @@
           "swift test: 176 Tests in 14 Suites bestanden; TagArchive-Normalisierungsregression belegt Dry-run ohne Austausch und ohne Sicherung",
           "swift test --package-path App: 65 Tests in 8 Suites bestanden"
         ]
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/XDGTrash.swift",
+        "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T00:27:32+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "Sources/TagExplosionCore/XDGTrash.swift",
+          "Tests/TagExplosionCoreTests/XDGTrashTests.swift"
+        ]
       }
     },
     {
       "id": "app-save-coordination",
       "paths": [
         "App/Sources/TagExplosionApp/AppModel.swift",
-        "App/Tests/TagExplosionAppTests/AppModelSaveTests.swift"
+        "App/Tests/TagExplosionAppTests/AppModelSaveTests.swift",
+        "App/Sources/TagExplosionApp/AppFileIO.swift",
+        "App/Sources/TagExplosionApp/BatchSaveResults.swift",
+        "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
       ],
       "risk": "critical",
       "priority": 2,
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:14:39+02:00",
@@ -101,7 +126,39 @@
         "tests": [
           "swift test --package-path App --filter AppModel|Lesepfad: 23 Tests in 2 Suites bestanden"
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Sources/TagExplosionApp/AppFileIO.swift",
+        "App/Sources/TagExplosionApp/BatchSaveResults.swift",
+        "App/Tests/TagExplosionAppTests/BatchSaveTests.swift"
+      ]
+    },
+    {
+      "id": "test-support",
+      "paths": [
+        "Tests/TagExplosionCoreTests/TestFiles.swift",
+        "App/Tests/TagExplosionAppTests/FixtureSupport.swift"
+      ],
+      "risk": "high",
+      "priority": 2,
+      "reason": "Gemeinsame Testdateien und Fixture-Erzeugung: Race-Freiheit, Fehlertransparenz und Laufzeit.",
+      "state": "pending"
+    },
+    {
+      "id": "app-entry-state",
+      "paths": [
+        "App/Sources/TagExplosionApp/FileEntry.swift",
+        "App/Sources/TagExplosionApp/LoadedData.swift",
+        "App/Tests/TagExplosionAppTests/ChapterEntryTests.swift",
+        "App/Tests/TagExplosionAppTests/LyricsEntryTests.swift",
+        "App/Tests/TagExplosionAppTests/PlaylistEntryTests.swift",
+        "App/Tests/TagExplosionAppTests/SidecarEntryTests.swift",
+        "App/Tests/TagExplosionAppTests/TagLayerEntryTests.swift"
+      ],
+      "risk": "critical",
+      "priority": 3,
+      "reason": "Zentrale Editierpuffer, Dirty-Vergleich und Read-back müssen neue Medienfelder verlustfrei erhalten.",
+      "state": "pending"
     },
     {
       "id": "archive-import",
@@ -132,6 +189,23 @@
       }
     },
     {
+      "id": "backup-history",
+      "paths": [
+        "Sources/TagExplosionCore/BackupHistory.swift",
+        "Sources/TagExplosionCore/BackupJournal.swift",
+        "Sources/TagExplosionCore/PortableSHA256.swift",
+        "Sources/tagx/HistoryCommand.swift",
+        "Tests/TagExplosionCoreTests/BackupHistoryTests.swift",
+        "Tests/TagxTests/HistoryCommandTests.swift",
+        "App/Sources/TagExplosionApp/AppModel+VersionHistory.swift",
+        "App/Sources/TagExplosionApp/VersionHistoryView.swift"
+      ],
+      "risk": "critical",
+      "priority": 4,
+      "reason": "Wiederherstellung verändert Nutzdateien; Journal, Dateizuweisung und Hash-Prüfung bilden einen Vertrag.",
+      "state": "pending"
+    },
+    {
       "id": "taglib-io",
       "paths": [
         "Sources/CTagLib",
@@ -140,12 +214,24 @@
         "Sources/TagExplosionCore/TagFile.swift",
         "Tests/TagExplosionCoreTests/RoundtripTests.swift",
         "scripts/taglib-refs.sh",
-        "Tests/taglib-refs-tests.sh"
+        "Tests/taglib-refs-tests.sh",
+        "Sources/TagExplosionCore/ChapterFormats.swift",
+        "Sources/TagExplosionCore/FixedFields.swift",
+        "Sources/TagExplosionCore/LyricsFormats.swift",
+        "Sources/tagx/ChaptersCommand.swift",
+        "Sources/tagx/LayersCommand.swift",
+        "Sources/tagx/LyricsCommand.swift",
+        "Tests/TagExplosionCoreTests/ChapterTests.swift",
+        "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+        "Tests/TagExplosionCoreTests/TagLayerTests.swift",
+        "Tests/TagxTests/ChaptersCommandTests.swift",
+        "Tests/TagxTests/LayersCommandTests.swift",
+        "Tests/TagxTests/LyricsCommandTests.swift"
       ],
       "risk": "critical",
       "priority": 4,
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:34:48+02:00",
@@ -159,7 +245,21 @@
           "swift test: 176 Tests in 14 Suites bestanden, einschließlich 13 Roundtrip-/Tag-Roundtrip-Tests im vollständigen Lauf",
           "Tests/taglib-refs-tests.sh war im unmittelbar vorangegangenen vollständigen CodeQA-Stand grün; der aktuelle Delta berührt weder Skript noch Ladepfad"
         ]
-      }
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/ChapterFormats.swift",
+        "Sources/TagExplosionCore/FixedFields.swift",
+        "Sources/TagExplosionCore/LyricsFormats.swift",
+        "Sources/tagx/ChaptersCommand.swift",
+        "Sources/tagx/LayersCommand.swift",
+        "Sources/tagx/LyricsCommand.swift",
+        "Tests/TagExplosionCoreTests/ChapterTests.swift",
+        "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+        "Tests/TagExplosionCoreTests/TagLayerTests.swift",
+        "Tests/TagxTests/ChaptersCommandTests.swift",
+        "Tests/TagxTests/LayersCommandTests.swift",
+        "Tests/TagxTests/LyricsCommandTests.swift"
+      ]
     },
     {
       "id": "distribution-install",
@@ -178,12 +278,13 @@
         ".github/workflows",
         "Tests/build-plist-tests.sh",
         "Tests/shell-test-support.sh",
-        "Tests/shell-test-support-tests.sh"
+        "Tests/shell-test-support-tests.sh",
+        "scripts/linux-deps.sh"
       ],
       "risk": "critical",
       "priority": 5,
       "reason": "Build, Signatur, Notarisierung, Installation und Update-Veröffentlichung haben System- und Lieferkettenwirkung.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:00+02:00",
@@ -197,7 +298,29 @@
           "Tests/install-verified-app-tests.sh: Installer-Rollback-Tests OK, einschließlich neuer Prozessbesitz-Gegenproben",
           "bash -n Tests/install-verified-app-tests.sh: bestanden"
         ]
-      }
+      },
+      "pending_paths": [
+        "scripts/linux-deps.sh"
+      ]
+    },
+    {
+      "id": "document-writing",
+      "paths": [
+        "Sources/TagExplosionCore/ComicArchiveFile.swift",
+        "Sources/TagExplosionCore/DocumentTool.swift",
+        "Sources/TagExplosionCore/MarkdownDocumentFile.swift",
+        "Sources/TagExplosionCore/MarkdownFrontmatter.swift",
+        "Sources/TagExplosionCore/OfficeDocumentFile.swift",
+        "Sources/TagExplosionCore/OpenDocumentFile.swift",
+        "Sources/TagExplosionCore/ZipContainer.swift",
+        "Sources/tagx/DocCommand.swift",
+        "Tests/TagExplosionCoreTests/DocumentToolTests.swift",
+        "Tests/TagxTests/DocCommandTests.swift"
+      ],
+      "risk": "high",
+      "priority": 6,
+      "reason": "ZIP-Dokumente und Markdown erhalten fremde Inhalte sowie Dateiattribute beim Metadaten-Schreiben.",
+      "state": "pending"
     },
     {
       "id": "ebook-writing",
@@ -227,6 +350,23 @@
       }
     },
     {
+      "id": "file-renaming",
+      "paths": [
+        "Sources/TagExplosionCore/FileRenamer.swift",
+        "Sources/TagExplosionCore/FilenamePattern.swift",
+        "Sources/tagx/RenameCommands.swift",
+        "Tests/TagExplosionCoreTests/FilenamePatternTests.swift",
+        "Tests/TagxTests/RenameCommandTests.swift",
+        "App/Sources/TagExplosionApp/FilenameActions.swift",
+        "App/Sources/TagExplosionApp/FilenamePatternSheets.swift",
+        "App/Tests/TagExplosionAppTests/AppModelRenameTests.swift"
+      ],
+      "risk": "high",
+      "priority": 7,
+      "reason": "Umbenennungen mit Sidecars, Kollisionen und Rollback; gemeinsame Muster zwischen App und CLI.",
+      "state": "pending"
+    },
+    {
       "id": "image-writing",
       "paths": [
         "Sources/TagExplosionCore/ExifTool.swift",
@@ -254,16 +394,33 @@
       }
     },
     {
+      "id": "batch-rules",
+      "paths": [
+        "Sources/TagExplosionCore/TagRules.swift",
+        "Sources/tagx/ApplyCommand.swift",
+        "Tests/TagExplosionCoreTests/TagRulesTests.swift",
+        "Tests/TagxTests/ApplyCommandTests.swift",
+        "App/Sources/TagExplosionApp/TagRulesActions.swift",
+        "App/Sources/TagExplosionApp/TagRulesSheet.swift",
+        "App/Tests/TagExplosionAppTests/AppModelRulesTests.swift"
+      ],
+      "risk": "high",
+      "priority": 8,
+      "reason": "Regelplanung und Werteprüfung vor Batch-Mutation; Änderbarkeit von Regeltypen und Eingaben.",
+      "state": "pending"
+    },
+    {
       "id": "cli-tag-commands",
       "paths": [
         "Sources/tagx/Tagx.swift",
         "Tests/TagxTests/SetCommandTests.swift",
-        "Tests/TagxTests/TestFixtures.swift"
+        "Tests/TagxTests/TestFixtures.swift",
+        "Tests/TagxTests/ReplaceAtomically.swift"
       ],
       "risk": "high",
       "priority": 8,
       "reason": "Maschinenlesbare CLI, Exit-Codes und Mutationsoptionen sind die headless Bediengrenze aller Hauptfunktionen.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:56+02:00",
@@ -277,7 +434,10 @@
           "git ls-files --error-unmatch für die Bild-Fixture: bestanden",
           "swift test: 176 Tests in 14 Suites bestanden; echter Exif-CLI-Test wurde ausgeführt und bestand"
         ]
-      }
+      },
+      "pending_paths": [
+        "Tests/TagxTests/ReplaceAtomically.swift"
+      ]
     },
     {
       "id": "media-discovery",
@@ -305,16 +465,81 @@
       }
     },
     {
+      "id": "playlist-writing",
+      "paths": [
+        "Sources/TagExplosionCore/CueApply.swift",
+        "Sources/TagExplosionCore/CueSheetFile.swift",
+        "Sources/TagExplosionCore/M3UPlaylistFile.swift",
+        "Sources/TagExplosionCore/PLSPlaylistFile.swift",
+        "Sources/TagExplosionCore/PlaylistExporter.swift",
+        "Sources/TagExplosionCore/PlaylistTextFile.swift",
+        "Sources/TagExplosionCore/PlaylistTool.swift",
+        "Sources/TagExplosionCore/XSPFPlaylistFile.swift",
+        "Sources/tagx/PlaylistCommand.swift",
+        "Tests/TagExplosionCoreTests/PlaylistTests.swift",
+        "Tests/TagxTests/PlaylistCommandTests.swift"
+      ],
+      "risk": "high",
+      "priority": 9,
+      "reason": "Playlist-Parser, Cue-Anwendung und Export müssen Texte, Verweise und Fremdinhalte erhalten.",
+      "state": "pending"
+    },
+    {
+      "id": "sidecar-writing",
+      "paths": [
+        "Sources/TagExplosionCore/KodiNFOFile.swift",
+        "Sources/TagExplosionCore/SidecarTool.swift",
+        "Sources/TagExplosionCore/SubtitleFile.swift",
+        "Sources/tagx/NfoCommand.swift",
+        "Sources/tagx/SubtitleCommand.swift",
+        "Tests/TagExplosionCoreTests/SidecarTests.swift",
+        "Tests/TagxTests/SidecarCommandTests.swift"
+      ],
+      "risk": "high",
+      "priority": 9,
+      "reason": "NFO und Untertitel: Erhalt unbekannter Inhalte, Zeitverschiebung und gemeinsame Validierung.",
+      "state": "pending"
+    },
+    {
+      "id": "app-loading",
+      "paths": [
+        "App/Sources/TagExplosionApp/AppModel+Loading.swift",
+        "App/Sources/TagExplosionApp/FileList.swift",
+        "App/Tests/TagExplosionAppTests/FileListTests.swift",
+        "App/Tests/TagExplosionAppTests/LoadingTests.swift"
+      ],
+      "risk": "high",
+      "priority": 10,
+      "reason": "Abbrechbares Laden, Dateiidentität und Listenansicht sollen bei großen Sammlungen skalieren.",
+      "state": "pending"
+    },
+    {
+      "id": "format-utilities",
+      "paths": [
+        "Sources/TagExplosionCore/ISODate.swift",
+        "Sources/TagExplosionCore/TextEncoding.swift",
+        "Sources/TagExplosionCore/XMLTools.swift"
+      ],
+      "risk": "medium",
+      "priority": 10,
+      "reason": "Gemeinsame Text-, Datums- und XML-Hilfen sind Grenzen zahlreicher Dateiformate.",
+      "state": "pending"
+    },
+    {
       "id": "process-reporting",
       "paths": [
         "Sources/TagExplosionCore/MediaInfoReader.swift",
         "Tests/TagExplosionCoreTests/MediaInfoReaderProcessTests.swift",
-        "App/Sources/TagExplosionApp/MediaInfoTab.swift"
+        "App/Sources/TagExplosionApp/MediaInfoTab.swift",
+        "Sources/TagExplosionCore/ExternalToolRunner.swift",
+        "Sources/TagExplosionCore/ExternalToolText.swift",
+        "Sources/TagExplosionCore/MediaInfoCache.swift",
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
       ],
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:36:20+02:00",
@@ -328,7 +553,29 @@
           "swift test: 176 Tests in 14 Suites bestanden; MediaInfoReader-Prozesssuite einschließlich 1-MiB-Pipe- und echter stderr-Regression grün",
           "swift test --package-path App: 65 Tests in 8 Suites bestanden"
         ]
-      }
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/ExternalToolRunner.swift",
+        "Sources/TagExplosionCore/ExternalToolText.swift",
+        "Sources/TagExplosionCore/MediaInfoCache.swift",
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+      ]
+    },
+    {
+      "id": "cover-tools",
+      "paths": [
+        "Sources/TagExplosionCore/CoverTools.swift",
+        "Sources/TagExplosionCore/ImagePixelSize.swift",
+        "Sources/tagx/CoverToolCommands.swift",
+        "Tests/TagExplosionCoreTests/CoverToolsTests.swift",
+        "Tests/TagxTests/CoverToolCommandTests.swift",
+        "App/Sources/TagExplosionApp/CoverToolsMenu.swift",
+        "App/Tests/TagExplosionAppTests/CoverToolActionsTests.swift"
+      ],
+      "risk": "high",
+      "priority": 11,
+      "reason": "Bildparser, verlustfreie Metadatenentfernung und Export; ungültige und versetzte Data-Eingaben.",
+      "state": "pending"
     },
     {
       "id": "einvoice-reading",
@@ -391,6 +638,22 @@
       }
     },
     {
+      "id": "online-lookup",
+      "paths": [
+        "Sources/TagExplosionCore/OnlineLookup",
+        "Sources/tagx/LookupCommand.swift",
+        "Tests/TagExplosionCoreTests/OnlineLookupTests.swift",
+        "Tests/TagxTests/LookupCommandTests.swift",
+        "App/Sources/TagExplosionApp/OnlineLookupSettings.swift",
+        "App/Sources/TagExplosionApp/OnlineLookupSheet.swift",
+        "App/Tests/TagExplosionAppTests/OnlineLookupAccessTests.swift"
+      ],
+      "risk": "high",
+      "priority": 12,
+      "reason": "Nur ausdrücklich freigegebene Netzwerkzugriffe; fremde Antworten, Zahlenwerte und Tag-Zuordnung.",
+      "state": "pending"
+    },
+    {
       "id": "app-editors",
       "paths": [
         "App/Sources/TagExplosionApp/EditorView.swift",
@@ -404,12 +667,21 @@
         "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings",
         "App/Tests/TagExplosionAppTests/CoverDropTests.swift",
         "App/Sources/TagExplosionApp/RatingPicker.swift",
-        "App/Tests/TagExplosionAppTests/RatingPickerTests.swift"
+        "App/Tests/TagExplosionAppTests/RatingPickerTests.swift",
+        "App/Sources/TagExplosionApp/ChapterSection.swift",
+        "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
+        "App/Sources/TagExplosionApp/DocumentEditorView.swift",
+        "App/Sources/TagExplosionApp/FixedFieldSections.swift",
+        "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
+        "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
+        "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
+        "App/Sources/TagExplosionApp/SidecarEditorView.swift",
+        "App/Sources/TagExplosionApp/TagLayerSection.swift"
       ],
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:46:17+02:00",
@@ -422,7 +694,34 @@
         "tests": [
           "swift test --package-path App --filter RatingPickerTests\\|CoverDropTests\\|AppModelSaveTests: 34 Tests in 4 Suites bestanden; xcstringstool compile und JSON-Prüfung des deutschen/englischen String-Katalogs bestanden"
         ]
-      }
+      },
+      "pending_paths": [
+        "App/Sources/TagExplosionApp/ChapterSection.swift",
+        "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
+        "App/Sources/TagExplosionApp/DocumentEditorView.swift",
+        "App/Sources/TagExplosionApp/FixedFieldSections.swift",
+        "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
+        "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
+        "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
+        "App/Sources/TagExplosionApp/SidecarEditorView.swift",
+        "App/Sources/TagExplosionApp/TagLayerSection.swift"
+      ]
+    },
+    {
+      "id": "library-check",
+      "paths": [
+        "Sources/TagExplosionCore/LibraryCheck.swift",
+        "Sources/tagx/CheckCommand.swift",
+        "Tests/TagExplosionCoreTests/LibraryCheckTests.swift",
+        "Tests/TagxTests/CheckCommandTests.swift",
+        "App/Sources/TagExplosionApp/LibraryCheckSheet.swift",
+        "App/Sources/TagExplosionApp/LibraryCheckState.swift",
+        "App/Tests/TagExplosionAppTests/LibraryCheckEntryTests.swift"
+      ],
+      "risk": "medium",
+      "priority": 13,
+      "reason": "Dateigruppierung, Track-Vergleich und wiederholte Berechnungen in der Konsistenzprüfung.",
+      "state": "pending"
     },
     {
       "id": "developer-tools",
@@ -458,13 +757,13 @@
     }
   ],
   "architecture": {
-    "campaign_id": "20260830T093346620969+0200",
-    "recorded_at": "2026-08-30T09:34:02+02:00",
-    "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-    "summary": "Core-Dienste bleiben von SwiftUI/AppKit getrennt; CLI und App nutzen dieselben Core-Modelle. WindowSessions bündelt appweite Fenster-, Öffnen- und Beenden-Koordination; AppModel.swift bleibt die zentrale, große per-Fenster-Zustandsschicht.",
-    "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell (MVVM-artig), Fensterkoordinator und CLI-Adaptern",
+    "campaign_id": "20260908T002532864338+0200",
+    "recorded_at": "2026-09-08T00:27:32+02:00",
+    "observed_head": "2d6e47dc63ff69dcf043f91ad5fb28002d4a33cd",
+    "summary": "AppModel koordiniert Fensteraktionen, FileEntry hält Editierpuffer und unveränderliche Speicheraufträge, AppFileIO kapselt Core-Aufrufe; CLI und App teilen die portablen Formatdienste. Neue Felder müssen in mehreren FileEntry-Übergängen konsistent mitgeführt werden. Die Tests besitzen mehrfach implementierte Fixture- und CLI-Ausführung.",
+    "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell pro Fenster, Fensterkoordinator und CLI-Adaptern",
     "fit": "gespannt",
-    "recommendation": "Paradigma beibehalten. AppModel-Verantwortungen nur an belegten Bereichsgrenzen weiter entkoppeln; ein Paradigmenwechsel rechtfertigt Migrations- und Regressionstestaufwand nicht."
+    "recommendation": "Paradigma beibehalten; FileEntry-Übergänge und gemeinsame Testmechanik zuerst absichern und vereinfachen. Fachliche AppModel-Abläufe nur an belegten Grenzen ausgliedern. Bestehende Formbausteine für spätere Oberflächenänderungen nutzen; kein spekulatives Designsystem oder Paradigmenwechsel."
   },
   "themes": [
     {
@@ -568,6 +867,46 @@
           "swift test: 132 Tests in 13 Suites; App: 27 Tests in 3 Suites bestanden"
         ]
       }
+    },
+    {
+      "id": "cli-test-runner",
+      "summary": "16 CLI-Suites besitzen nahezu gleiche runTagx-Helfer und lösen das Binary bei 165 syntaktischen Aufrufstellen erneut über SwiftPM auf. Gemeinsame einmalige Auflösung, Prozessdiagnose und Frist prüfen; Verhaltenstests erhalten.",
+      "evidence": [
+        "Tests/TagxTests",
+        "Tests/TagExplosionCoreTests/TagRulesTests.swift",
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+      ],
+      "priority": 2,
+      "state": "pending",
+      "noted_at": "2026-09-08T00:27:32+02:00",
+      "campaign_id": "20260908T002532864338+0200"
+    },
+    {
+      "id": "fixture-infrastructure",
+      "summary": "Sechs unabhängige Fixture-Einstiege starten denselben Generator; gemeinsame Ziele und temporäre EPUB-Ordner sind ungeschützt. Verfügbarkeit wird teils nur an einer Audiodatei erkannt. Einheitliche paketübergreifende Erzeugung und klare Fehlerdiagnose prüfen.",
+      "evidence": [
+        "Tests/TagExplosionCoreTests/RoundtripTests.swift",
+        "Tests/TagxTests/TestFixtures.swift",
+        "App/Tests/TagExplosionAppTests",
+        "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh"
+      ],
+      "priority": 2,
+      "state": "pending",
+      "noted_at": "2026-09-08T00:27:32+02:00",
+      "campaign_id": "20260908T002532864338+0200"
+    },
+    {
+      "id": "absent-sidecar-state",
+      "summary": "Eine beim App-Lesen fehlende LRC-Sidecar wird mit expecting:nil weitergereicht. Entsteht vor dem Speichern eine fremde LRC, behandelt writeSidecar nil als fehlende Stempelprüfung und ersetzt sie. Abwesend und ungeprüft müssen wie bei ExifTool getrennte Zustände sein.",
+      "evidence": [
+        "Sources/TagExplosionCore/LyricsFormats.swift",
+        "App/Sources/TagExplosionApp/AppFileIO.swift",
+        "Sources/TagExplosionCore/ExifTool.swift"
+      ],
+      "priority": 3,
+      "state": "pending",
+      "noted_at": "2026-09-08T00:30:48+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

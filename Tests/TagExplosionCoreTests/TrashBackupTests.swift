@@ -11,7 +11,14 @@ struct TrashBackupTests {
 
     /// Legt eine Sicherung an und entfernt den erzeugten Ordner danach wieder.
     private func withBackup(_ body: (TrashBackup) throws -> Void) throws {
+        let testTrash = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-test-trash-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: testTrash) }
+        #if os(macOS)
         let backup = TrashBackup()
+        #else
+        let backup = TrashBackup(xdgTrash: XDGTrash(dataHome: testTrash))
+        #endif
         backup.isEnabled = true
         backup.folderLabel = "Tag Explosion Testsicherung"
         defer {
@@ -26,6 +33,7 @@ struct TrashBackupTests {
     func backupHoldsStateBeforeChange() throws {
         try withBackup { backup in
             let url = try Fixtures.workingCopy("sample.mp3")
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
             let before = try Data(contentsOf: url)
 
             try backup.backUp(url)
@@ -45,7 +53,9 @@ struct TrashBackupTests {
     func oneFolderPerSession() throws {
         try withBackup { backup in
             let first = try Fixtures.workingCopy("sample.mp3")
+            defer { try? FileManager.default.removeItem(at: first.deletingLastPathComponent()) }
             let second = try Fixtures.workingCopy("sample.flac")
+            defer { try? FileManager.default.removeItem(at: second.deletingLastPathComponent()) }
             try backup.backUp([first, second])
             #expect(backup.currentFolders.count == 1)
 
@@ -57,41 +67,32 @@ struct TrashBackupTests {
         }
     }
 
-    @Test("Ein unveränderter Stand wird nicht doppelt gesichert")
-    func unchangedFileIsNotCopiedTwice() throws {
+    @Test("Je Dateistand entsteht genau eine Kopie; ältere Stände bleiben erhalten")
+    func repeatedBackupsKeepDistinctVersions() throws {
         try withBackup { backup in
             let url = try Fixtures.workingCopy("sample.mp3")
-            try backup.backUp(url)
-            let afterFirst = backup.backedUpBytes
-            try backup.backUp(url)
-            #expect(backup.backedUpBytes == afterFirst)
-
-            // Nach einer echten Änderung sichert der nächste Aufruf wieder.
-            try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Neu")], to: url)
-            try backup.backUp(url)
-            #expect(backup.backedUpBytes > afterFirst)
-        }
-    }
-
-    @Test("Mehrere Sicherungen derselben Datei überschreiben sich nicht")
-    func repeatedBackupsKeepBothVersions() throws {
-        try withBackup { backup in
-            let url = try Fixtures.workingCopy("sample.mp3")
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
             let first = try Data(contentsOf: url)
             try backup.backUp(url)
-            try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Zweiter Stand")], to: url)
-            let second = try Data(contentsOf: url)
             try backup.backUp(url)
-
             let folder = try #require(backup.currentFolders.first)
             let subfolder = folder.appendingPathComponent(
                 url.deletingLastPathComponent().lastPathComponent)
+            #expect(try FileManager.default.contentsOfDirectory(atPath: subfolder.path).count == 1)
+            #expect(backup.backedUpBytes == Int64(first.count))
+
+            // Die Sicherung ist formatunabhängig; für einen zweiten Stand
+            // genügt eine Byte-Änderung statt eines weiteren TagLib-Roundtrips.
+            let second = Data("Zweiter Dateistand".utf8)
+            try second.write(to: url)
+            try backup.backUp(url)
             let copies = try FileManager.default.contentsOfDirectory(
                 at: subfolder, includingPropertiesForKeys: nil)
             #expect(copies.count == 2)
             let contents = try copies.map { try Data(contentsOf: $0) }
             #expect(contents.contains(first))
             #expect(contents.contains(second))
+            #expect(backup.backedUpBytes == Int64(first.count + second.count))
         }
     }
 
@@ -102,6 +103,7 @@ struct TrashBackupTests {
         // erneuter Schreibversuch wieder eine Sicherung bekommen.
         try withBackup { backup in
             let url = try Fixtures.workingCopy("sample.mp3")
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
             try backup.backUp(url)
             let folder = try #require(backup.currentFolders.first)
             let copy = folder.appendingPathComponent(
@@ -123,7 +125,14 @@ struct TrashBackupTests {
         // Ordner-Suche/-Anlage und Zielnamen-Wahl liefen früher als getrennte,
         // nicht atomare Schritte — zwei parallele erste Sicherungen konnten
         // doppelte Sitzungsordner anlegen oder denselben freien Namen wählen.
+        let testTrash = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-test-trash-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: testTrash) }
+        #if os(macOS)
         let backup = TrashBackup()
+        #else
+        let backup = TrashBackup(xdgTrash: XDGTrash(dataHome: testTrash))
+        #endif
         backup.isEnabled = true
         backup.folderLabel = "Tag Explosion Testsicherung"
         defer {
@@ -134,6 +143,7 @@ struct TrashBackupTests {
         // Alle Quelldateien liegen im SELBEN Ordner, damit sich die parallelen
         // Aufrufe wirklich um denselben Unterordner und freie Namen bewerben.
         let first = try Fixtures.workingCopy("sample.mp3")
+        defer { try? FileManager.default.removeItem(at: first.deletingLastPathComponent()) }
         let directory = first.deletingLastPathComponent()
         var urls = [first]
         for index in 2...6 {
@@ -220,6 +230,7 @@ struct TrashBackupTests {
         let backup = TrashBackup()
         backup.isEnabled = false
         let url = try Fixtures.workingCopy("sample.mp3")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try backup.backUp(url)
         #expect(backup.currentFolders.isEmpty)
         #expect(backup.backedUpBytes == 0)
@@ -230,5 +241,31 @@ struct TrashBackupTests {
         // Verhindert, dass ein Testlauf oder ein fremdes Programm, das den Core
         // einbindet, ungefragt in den Papierkorb schreibt.
         #expect(TrashBackup.shared.isEnabled == false)
+    }
+
+    @Test("Fremde Änderung während der Kopie wird nicht als gesicherter Stand verbucht")
+    func changedSourceIsNotRecorded() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-backup-race-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("quelle.txt")
+        try Data("alt".utf8).write(to: source)
+        let foreign = Data("fremder neuer Inhalt".utf8)
+        let journal = BackupJournal(url: root.appendingPathComponent("journal.json"))
+        let backup = TrashBackup(journal: journal,
+            xdgTrash: XDGTrash(dataHome: root.appendingPathComponent("share"))) { source, target in
+                // Genau zwischen Stempelerhebung und Kopie schreibt ein anderer
+                // Prozess. Kein Zeitfenster oder großes Testmedium nötig.
+                try foreign.write(to: source)
+                try FileManager.default.copyItem(at: source, to: target)
+            }
+        backup.isEnabled = true
+        #expect(throws: TagError.fileChangedOnDisk(path: MediaFormats.canonicalFileURL(source).path)) {
+            try backup.backUp(source)
+        }
+        #expect(backup.backedUpBytes == 0)
+        #expect(journal.rawEntries().isEmpty)
+        #expect(try Data(contentsOf: source) == foreign)
     }
 }

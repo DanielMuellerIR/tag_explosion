@@ -39,8 +39,16 @@ public final class TrashBackup: @unchecked Sendable {
     /// wird bei nil automatisch mit den Standardpfaden benutzt; unter macOS
     /// dient der Parameter den Tests, die den Linux-Weg mit einem
     /// Temp-Verzeichnis als Datenverzeichnis durchspielen.
-    public init(journal: BackupJournal? = nil, xdgTrash: XDGTrash? = nil) {
+    public convenience init(journal: BackupJournal? = nil, xdgTrash: XDGTrash? = nil) {
+        self.init(journal: journal, xdgTrash: xdgTrash, copyFile: Self.clone)
+    }
+
+    /// Austauschbarer Kopierer für deterministische Tests fremder Änderungen
+    /// während einer Sicherung. Der öffentliche Weg verwendet immer clone.
+    init(journal: BackupJournal?, xdgTrash: XDGTrash?,
+         copyFile: @escaping (URL, URL) throws -> Void) {
         self.journal = journal
+        self.copyFile = copyFile
         #if os(macOS)
         self.xdgTrash = xdgTrash
         #else
@@ -54,6 +62,7 @@ public final class TrashBackup: @unchecked Sendable {
 
     /// Papierkorb nach freedesktop-Konvention; nil = System-Papierkorb (macOS).
     public let xdgTrash: XDGTrash?
+    private let copyFile: (URL, URL) throws -> Void
 
     private let lock = NSLock()
     /// Serialisiert komplette Sicherungsvorgänge: Zwei parallele `backUp`-
@@ -168,7 +177,12 @@ public final class TrashBackup: @unchecked Sendable {
         for (url, state) in pending {
             do {
                 let target = try destination(for: url)
-                try clone(url, to: target)
+                try FileStamp.requireUnchanged(state, at: url)
+                try copyFile(url, target)
+                // Größe und Journal müssen dieselbe Fassung wie die Kopie
+                // beschreiben. Fremde Änderungen während des Kopierens dürfen
+                // weder als Erfolg noch für die Deduplizierung verbucht werden.
+                try FileStamp.requireUnchanged(state, at: url)
                 lock.withLock {
                     savedStates[url.path] = SavedState(stamp: state, backupCopy: target)
                     bytesWritten += state.size
@@ -314,7 +328,7 @@ public final class TrashBackup: @unchecked Sendable {
 
     /// Kopiert die Datei — auf APFS als Klon, der zunächst keine zusätzlichen
     /// Blöcke belegt und erst beim Ändern des Originals real wird.
-    private func clone(_ source: URL, to target: URL) throws {
+    private static func clone(_ source: URL, to target: URL) throws {
         #if canImport(Darwin)
         if clonefile(source.path, target.path, 0) == 0 { return }
         #endif

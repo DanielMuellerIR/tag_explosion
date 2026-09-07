@@ -16,7 +16,7 @@ struct XDGTrashTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let dataHome = root.appendingPathComponent("share", isDirectory: true)
-        try body(root, XDGTrash(dataHome: dataHome, uid: 1000))
+        try body(root, XDGTrash(dataHome: dataHome))
     }
 
     @Test("Home-Papierkorb: Ordner unter files/, Herkunft und Zeit in info/")
@@ -66,6 +66,17 @@ struct XDGTrashTests {
         }
     }
 
+    @Test("XDG-Datenpfade müssen absolut sein")
+    func configuredDataHome() {
+        let fallback = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local/share", isDirectory: true)
+        for environment in [[:], ["XDG_DATA_HOME": ""], ["XDG_DATA_HOME": "share"]] {
+            #expect(XDGTrash.defaultDataHome(environment: environment) == fallback)
+        }
+        #expect(XDGTrash.defaultDataHome(environment: ["XDG_DATA_HOME": "/tmp/tagx-share"])
+            == URL(fileURLWithPath: "/tmp/tagx-share", isDirectory: true))
+    }
+
     @Test("Die Sicherung läuft über den XDG-Papierkorb, wenn er gesetzt ist")
     func trashBackupUsesXDGTrash() throws {
         try withSandbox { _, trash in
@@ -74,6 +85,7 @@ struct XDGTrashTests {
             backup.folderLabel = "Tag Explosion Testsicherung"
 
             let url = try Fixtures.workingCopy("sample.mp3")
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
             let before = try Data(contentsOf: url)
             try backup.backUp(url)
             try TagFile.write(properties: [TagProperty(key: "ARTIST", value: "Neu")], to: url)
@@ -113,7 +125,7 @@ struct XDGTrashTests {
 
             let location = try trash.location(for: album)
             #expect(location.topDirectory?.standardizedFileURL == volume.mountPoint.standardizedFileURL)
-            #expect(location.trashDirectory.lastPathComponent == ".Trash-1000")
+            #expect(location.trashDirectory.lastPathComponent == ".Trash-\(trash.uid)")
 
             let folder = try trash.createTrashedFolder(named: "Sicherung", originalParent: album)
             #expect(folder.path.hasPrefix(volume.mountPoint.path))
@@ -137,7 +149,60 @@ struct XDGTrashTests {
 
             let location = try trash.location(for: album)
             #expect(location.trashDirectory.standardizedFileURL
-                    == shared.appendingPathComponent("1000", isDirectory: true).standardizedFileURL)
+                    == shared.appendingPathComponent(String(trash.uid), isDirectory: true).standardizedFileURL)
+        }
+    }
+
+    @Test("Persönliche Papierkorb-Verzeichnisse dürfen keine Verknüpfungen sein",
+          arguments: ["", "files", "info"])
+    func rejectsLinkedTrashDirectories(component: String) throws {
+        try withSandbox { root, trash in
+            let foreign = root.appendingPathComponent("anderes-ziel", isDirectory: true)
+            try FileManager.default.createDirectory(at: foreign, withIntermediateDirectories: true)
+            let linked = component.isEmpty ? trash.homeTrash
+                : trash.homeTrash.appendingPathComponent(component, isDirectory: true)
+            try FileManager.default.createDirectory(at: linked.deletingLastPathComponent(),
+                withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: foreign)
+
+            #expect(throws: TagError.self) {
+                try trash.createTrashedFolder(named: "Sicherung", originalParent: root)
+            }
+            #expect(try FileManager.default.contentsOfDirectory(atPath: foreign.path).isEmpty)
+            #expect(try FileManager.default.destinationOfSymbolicLink(atPath: linked.path) == foreign.path)
+        }
+    }
+
+    @Test("Fremd beschreibbare Papierkorb-Verzeichnisse werden nicht übernommen",
+          arguments: ["", "files", "info"])
+    func rejectsWritableTrashDirectories(component: String) throws {
+        try withSandbox { root, trash in
+            _ = try trash.location(for: root)
+            let directory = component.isEmpty ? trash.homeTrash
+                : trash.homeTrash.appendingPathComponent(component, isDirectory: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: directory.path)
+            #expect(throws: TagError.self) {
+                try trash.createTrashedFolder(named: "Sicherung", originalParent: root)
+            }
+            #expect(!FileManager.default.fileExists(atPath:
+                trash.homeTrash.appendingPathComponent("info/Sicherung.trashinfo").path))
+        }
+    }
+
+    @Test("Ein verknüpftes Datenverzeichnis wird nach seinem Zieldatenträger zugeordnet",
+          .enabled(if: TestVolume.isSupported, "hdiutil nicht verfügbar"))
+    func linkedDataHomeUsesTargetDevice() throws {
+        let volume = try TestVolume(megabytes: 20)
+        defer { volume.detach() }
+        try withSandbox { root, _ in
+            let realHome = volume.mountPoint.appendingPathComponent("share", isDirectory: true)
+            try FileManager.default.createDirectory(at: realHome, withIntermediateDirectories: true)
+            let linkedHome = root.appendingPathComponent("share-link", isDirectory: true)
+            try FileManager.default.createSymbolicLink(at: linkedHome, withDestinationURL: realHome)
+            let trash = XDGTrash(dataHome: linkedHome)
+            let location = try trash.location(for: volume.mountPoint)
+            #expect(location.topDirectory == nil)
+            #expect(location.trashDirectory == trash.homeTrash)
         }
     }
 }

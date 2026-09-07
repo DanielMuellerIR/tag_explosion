@@ -24,6 +24,17 @@ Konvention, die Nautilus, Nemo, Dolphin, Thunar und `gio trash` teilen
   Papierkorb erlaubt: Das kopierte quer über Datenträger und könnte die
   Systemplatte unbemerkt füllen — derselbe Grundsatz wie beim macOS-Weg.
   Dann wirft `backUp`, und der Nutzer entscheidet (`--no-backup`).
+- **Persönliche Papierkorb-Verzeichnisse prüfen:** Wurzel, `files` und `info`
+  müssen echte Verzeichnisse des Benutzers sein und dürfen keine Schreibrechte
+  für Gruppe oder andere Benutzer haben. Vorhandene Symlinks oder unsichere
+  Verzeichnisse werden abgelehnt, nicht umgebogen oder umberechtigt. Neue
+  Verzeichnisse entstehen mit 0700. Diese zusätzliche Schutzregel kann einen
+  XDG-Papierkorb auf Dateisystemen ohne passende Rechteverwaltung ablehnen.
+- **Verknüpftes Datenverzeichnis:** Die Datenträgerwahl prüft das aufgelöste
+  Ziel von `XDG_DATA_HOME`, nicht die Gerätenummer des Symlinks. Relative
+  Umgebungswerte werden gemäß der
+  [Basisverzeichnisspezifikation](https://specifications.freedesktop.org/basedir/0.8/)
+  ignoriert; sie dürfen keinen Papierkorb im Arbeitsverzeichnis erzeugen.
 - **`.trashinfo`**: `Path=` prozent-kodiert (nur ASCII-Buchstaben, Ziffern,
   `-._~/` bleiben roh; Leerzeichen, Klammern, Umlaute werden UTF-8-byteweise
   kodiert), beim Datenträger-Papierkorb **relativ zum Einhängepunkt**;

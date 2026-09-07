@@ -36,18 +36,18 @@ public struct XDGTrash: Sendable {
     public let uid: UInt32
 
     public init(dataHome: URL? = nil, uid: UInt32 = UInt32(getuid())) {
-        if let dataHome {
-            self.dataHome = dataHome
-        } else {
-            let environment = ProcessInfo.processInfo.environment
-            if let xdg = environment["XDG_DATA_HOME"], !xdg.isEmpty {
-                self.dataHome = URL(fileURLWithPath: xdg, isDirectory: true)
-            } else {
-                self.dataHome = FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent(".local/share", isDirectory: true)
-            }
-        }
+        self.dataHome = dataHome ?? Self.defaultDataHome(environment: ProcessInfo.processInfo.environment)
         self.uid = uid
+    }
+
+    /// Relative XDG-Werte sind laut Basisverzeichnisspezifikation ungültig;
+    /// der Papierkorb darf dadurch nicht im aktuellen Arbeitsordner entstehen.
+    static func defaultDataHome(environment: [String: String]) -> URL {
+        if let xdg = environment["XDG_DATA_HOME"], xdg.hasPrefix("/") {
+            return URL(fileURLWithPath: xdg, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local/share", isDirectory: true)
     }
 
     /// Der Papierkorb des Benutzers für den Datenträger, auf dem sein
@@ -104,20 +104,36 @@ public struct XDGTrash: Sendable {
         return Location(trashDirectory: own, topDirectory: top)
     }
 
-    /// Legt `files/` und `info/` an (nur für den Benutzer lesbar, wie es
-    /// Dateimanager auch tun).
+    /// Neue Verzeichnisse erhalten 0700. Vorhandene müssen echte eigene
+    /// Verzeichnisse sein, die kein anderer Benutzer beschreiben kann.
     private func prepare(trashDirectory: URL, for url: URL) throws {
         let fileManager = FileManager.default
-        for name in ["files", "info"] {
-            let directory = trashDirectory.appendingPathComponent(name, isDirectory: true)
-            do {
-                try fileManager.createDirectory(at: directory, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
-            } catch {
-                throw TagError.backupFailed(
-                    path: url.path,
-                    reason: "trash directory \(trashDirectory.path) is not writable: \(error.localizedDescription)")
+        do {
+            try fileManager.createDirectory(at: trashDirectory.deletingLastPathComponent(),
+                withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            for directory in [trashDirectory,
+                              trashDirectory.appendingPathComponent("files", isDirectory: true),
+                              trashDirectory.appendingPathComponent("info", isDirectory: true)] {
+                // mkdir übernimmt einen vorhandenen Symlink nicht. Erst nach
+                // der Prüfung der Wurzel werden deren Kinder angefasst.
+                guard mkdir(directory.path, 0o700) == 0 || errno == EEXIST else {
+                    throw TagError.backupFailed(path: url.path,
+                        reason: "cannot create trash directory \(directory.path)")
+                }
+                let attributes = try fileManager.attributesOfItem(atPath: directory.path)
+                guard attributes[.type] as? FileAttributeType == .typeDirectory,
+                      (attributes[.ownerAccountID] as? NSNumber)?.uint32Value == uid,
+                      let mode = (attributes[.posixPermissions] as? NSNumber)?.intValue,
+                      mode & 0o022 == 0 else {
+                    throw TagError.backupFailed(path: url.path,
+                        reason: "trash directory \(directory.path) must be owned by this user, not linked, and not writable by others")
+                }
             }
+        } catch let error as TagError {
+            throw error
+        } catch {
+            throw TagError.backupFailed(path: url.path,
+                reason: "trash directory \(trashDirectory.path) is not writable: \(error.localizedDescription)")
         }
     }
 
@@ -227,7 +243,9 @@ public struct XDGTrash: Sendable {
     /// Vorfahr (das Datenverzeichnis existiert vor der ersten Sicherung oft
     /// noch nicht).
     private static func existingAncestor(of url: URL) -> URL {
-        var current = url.standardizedFileURL
+        // Die Gerätenummer muss zum Ziel gehören, auch wenn beispielsweise
+        // XDG_DATA_HOME als Verknüpfung auf einer anderen Platte liegt.
+        var current = url.resolvingSymlinksInPath().standardizedFileURL
         while !FileManager.default.fileExists(atPath: current.path), current.path != "/" {
             current = current.deletingLastPathComponent()
         }

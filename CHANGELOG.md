@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.4 — 2026-09-08
+
+- Sicherungen erkennen fremde Änderungen während der Kopie, bevor Größe und
+  Prüfsumme als gesicherte Version im Journal landen.
+- Der XDG-Papierkorb lehnt umgebogene oder fremd beschreibbare Verzeichnisse ab,
+  ordnet verknüpfte Datenverzeichnisse dem richtigen Datenträger zu und ignoriert
+  relative XDG-Datenpfade.
+- Überlappende Sicherungstests zusammengeführt, temporäre Quellen aufgeräumt
+  und die exklusive Dateineuanlage einschließlich Konflikten direkt geprüft.
+
 ## 0.46.3 — 2026-09-07
 
 - ZIP-Dokumente behalten beim Speichern ihre äußeren Dateirechte, ACLs und

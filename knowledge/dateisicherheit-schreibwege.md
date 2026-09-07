@@ -78,6 +78,19 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   Restore ist selbst ein Schreibweg (Sicherung des jetzigen Stands mit
   Auslöser `restore`, dann `AtomicFileRewrite`). Details und Fallen:
   [undo-historie-journal.md](undo-historie-journal.md).
+- **Die Sicherung muss einen konsistenten Dateistand abbilden.** `TrashBackup`
+  prüft den Quellstempel unmittelbar vor und nach der Kopie. Ändert ein anderer
+  Prozess die Quelle währenddessen, wird die Kopie weder als gesicherter Stand
+  noch mit einer falschen Größe im Journal verbucht. Bereits entstandene
+  Sicherungskopien bleiben erhalten.
+- **Neue Dateien auf Dateisystemen ohne Hardlinks:** `AtomicFileRewrite.create`
+  braucht für die atomare, exklusive Veröffentlichung `link`. Unter macOS
+  liefert exFAT sowohl dafür als auch für `renamex_np(RENAME_EXCL)` `ENOTSUP`
+  (auf einem eigenen 64-MiB-Testvolume geprüft, 2026-09-08). Erste Sidecars,
+  Cover und Playlist-Exporte werden dort deshalb derzeit abgelehnt; vorhandene
+  Dateien können weiterhin über `run` ersetzt werden. Ein gewöhnliches
+  `rename` nach Existenzprüfung wäre kein sicherer Ersatz. Eine Erweiterung
+  braucht einen eigenen Vertrag für diese Dateisysteme.
 
 - **Sidecars haben eigene Stempel, und ein Save mit zwei Zieldateien ist
   zweiphasig.** Der App-Audio-Schreibweg (`AppModel.write`) schreibt bei
