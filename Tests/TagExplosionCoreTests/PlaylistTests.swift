@@ -85,6 +85,28 @@ struct PlaylistTests {
         #expect(PlaylistTool.supportedFields(url: url) == Set(PlaylistField.allCases))
     }
 
+    @Test("CUE-Dauern finden den nächsten Track auch zwischen anderen Dateien")
+    func cueInterleavedDurations() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("interleaved.cue")
+        try write("""
+        FILE "a.flac" WAVE
+        TRACK 01 AUDIO
+        INDEX 01 00:00:00
+        FILE "b.flac" WAVE
+        TRACK 02 AUDIO
+        INDEX 01 00:10:00
+        FILE "a.flac" WAVE
+        TRACK 03 AUDIO
+        INDEX 01 00:01:00
+        FILE "b.flac" WAVE
+        TRACK 04 AUDIO
+        INDEX 01 00:12:00
+        """, to: url)
+        #expect(try PlaylistTool.read(url: url).entries.map(\.durationMilliseconds) == [1000, 2000, nil, nil])
+    }
+
     @Test("cue: Roundtrip ändert nur Metadatenzeilen; CRLF, Einrückung und fremde Zeilen bleiben")
     func cueRoundtripPreservesRest() throws {
         let dir = try makeDirectory()

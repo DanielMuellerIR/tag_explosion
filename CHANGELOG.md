@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.41 — 2026-09-08
+
+- Die CUE-Dauerberechnung findet folgende Tracks mit einem Durchlauf durch
+  die Liste. Bei 10.000 Einträgen sank die gemessene JSON-Anzeige von 6,19
+  auf 0,18 Sekunden bei unverändertem Ergebnis.
+
 ## 0.46.40 — 2026-09-08
 
 - `cue apply` erkennt Symlinks und Hardlinks auf dieselbe Audiodatei als

@@ -181,11 +181,12 @@ enum CueSheetFile: PlaylistBackend {
     /// die Datei existiert und lesbar ist).
     private static func fillDurations(_ entries: inout [PlaylistEntry]) {
         var fileLengths: [String: Int?] = [:]
-        for index in entries.indices {
+        var nextByPath: [String?: Int] = [:]
+        // Rückwärts genügt ein gemerkter nächster Track je Datei. Vorwärts
+        // müsste jeder Eintrag den verbleibenden Rest der Liste durchsuchen.
+        for index in entries.indices.reversed() {
+            let next = nextByPath.updateValue(index, forKey: entries[index].resolvedPath)
             guard let start = entries[index].startMilliseconds else { continue }
-            let next = entries.indices.dropFirst(index + 1).first {
-                entries[$0].resolvedPath == entries[index].resolvedPath
-            }
             if let next, let nextStart = entries[next].startMilliseconds, nextStart >= start {
                 entries[index].durationMilliseconds = nextStart - start
                 continue

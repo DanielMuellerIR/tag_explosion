@@ -137,3 +137,10 @@ Beim Überschreiben eines Playlist-Exports wird der Dateistempel vor der
 Papierkorb-Sicherung aufgenommen und an `AtomicFileRewrite` weitergereicht.
 Eine fremde Änderung während der Sicherung wird so nicht zum neuen,
 ungesehenen Ausgangsstand des atomaren Schreibens.
+
+
+Die CUE-Dauerberechnung merkt sich bei einem Rückwärtsdurchlauf den nächsten
+Track je Dateipfad. Sie durchsucht dadurch nicht mehr für jeden Track den
+Rest der Liste. Bei 10.000 Einträgen sank `playlist show --json` am
+2026-09-08 von 6,191 auf 0,177 Sekunden; die JSON-Ausgabe blieb bytegleich.
+Ein zusätzlicher Verhaltenstest prüft verschachtelte Dateifolgen A–B–A–B.
