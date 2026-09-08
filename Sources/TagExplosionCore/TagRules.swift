@@ -1120,10 +1120,9 @@ public enum TagRuleTemplate: String, CaseIterable, Sendable {
 
 /// Audio-Regelfelder sind unabhängig von den einwertigen Dateinamenmustern.
 public enum TagRuleFields {
+    /// Bestehender Regel-Adapter; die allgemeine Gruppierung liegt im Modell.
     public static func values(from properties: [TagProperty]) -> [String: [String]] {
-        var result: [String: [String]] = [:]
-        for property in properties { result[property.key, default: []].append(property.value) }
-        return result
+        TagProperty.valuesByKey(properties)
     }
 
     public static func apply(_ values: [String: [String]], to properties: inout [TagProperty]) {

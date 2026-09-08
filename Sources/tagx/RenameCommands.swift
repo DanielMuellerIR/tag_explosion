@@ -264,8 +264,8 @@ struct Parse: ParsableCommand {
             if let expecting { try FileStamp.requireUnchanged(expecting, at: url) }
             if let ruleValues { TagRuleFields.apply(ruleValues, to: &properties) }
             else { PatternFields.apply(parsed, to: &properties) }
-            let before = valueMap(snapshot.value.properties)
-            let after = valueMap(properties)
+            let before = TagProperty.valuesByKey(snapshot.value.properties)
+            let after = TagProperty.valuesByKey(properties)
             let changed = Swift.Set(before.keys).union(after.keys)
                 .filter { (before[$0] ?? []) != (after[$0] ?? []) }
             guard !changed.isEmpty else {
@@ -390,12 +390,5 @@ struct Parse: ParsableCommand {
         case .invoice, .playlist, nil:
             throw ValidationError("Not a taggable media file: \(url.path)")
         }
-    }
-
-    /// Schlüssel → alle Werte, reihenfolgeunabhängig vergleichbar.
-    private static func valueMap(_ properties: [TagProperty]) -> [String: [String]] {
-        var map: [String: [String]] = [:]
-        for property in properties { map[property.key, default: []].append(property.value) }
-        return map
     }
 }

@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.34 — 2026-09-08
+
+- CLI, Archiv und Batch-Regeln gruppieren Tagwerte über eine gemeinsame
+  Funktion im Datenmodell. Vier gleiche Schleifen entfallen; Reihenfolge,
+  Duplikate und leere Werte bleiben erhalten. Der bestehende öffentliche
+  Regel-Adapter bleibt kompatibel.
+
 ## 0.46.33 — 2026-09-08
 
 - `tagx set --id3v23` berücksichtigt die ausdrücklich verlangte

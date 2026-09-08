@@ -106,7 +106,7 @@ struct Apply: ParsableCommand {
             let kind = MediaFormats.kind(of: url) ?? .audio
             do {
                 let snapshot = try FileSnapshot.capture(at: url) {
-                    if kind == .audio { return TagRuleFields.values(from: try TagFile.read(at: url).properties) }
+                    if kind == .audio { return TagProperty.valuesByKey(try TagFile.read(at: url).properties) }
                     return try readPatternFields(at: url).mapValues { [$0] }
                 }
                 stamps[url] = snapshot.stamp

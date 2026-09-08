@@ -251,15 +251,8 @@ struct Set: ParsableCommand {
         // semantischer No-op (alle Sollwerte entsprechen dem Dateizustand)
         // darf weder Dateiidentität/Zeitstempel anfassen noch eine Sicherung
         // erzeugen — und die Meldung soll die echte Änderungszahl nennen.
-        func valueMap(_ properties: [TagProperty]) -> [String: [String]] {
-            var map: [String: [String]] = [:]
-            for property in properties {
-                map[property.key, default: []].append(property.value)
-            }
-            return map
-        }
-        let before = valueMap(existing.properties)
-        let after = valueMap(properties)
+        let before = TagProperty.valuesByKey(existing.properties)
+        let after = TagProperty.valuesByKey(properties)
         // Swift.Set: "Set" ist in dieser Datei der Name des CLI-Befehls.
         let changedKeys = Swift.Set(before.keys).union(after.keys)
             .filter { (before[$0] ?? []) != (after[$0] ?? []) }

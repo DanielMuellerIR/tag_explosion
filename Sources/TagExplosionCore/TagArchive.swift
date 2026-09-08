@@ -160,7 +160,7 @@ public enum TagArchiveIO {
                     let data = try FileSnapshot.capture(at: url) {
                         try TagFile.read(at: url)
                     }.value
-                    entry.properties = propertyMap(data.properties)
+                    entry.properties = TagProperty.valuesByKey(data.properties)
                     // [] bedeutet bewusst: Es wurde nach Covern gesucht, aber
                     // keines gefunden. nil bleibt für --without-covers reserviert.
                     entry.artworks = data.artworks
@@ -170,7 +170,7 @@ public enum TagArchiveIO {
                     entry.properties = try FileSnapshot.capture(at: url) {
                         let file = try TagFile(url: url)
                         defer { file.close() }
-                        return propertyMap(try file.properties())
+                        return TagProperty.valuesByKey(try file.properties())
                     }.value
                 }
             case .image:
@@ -444,7 +444,7 @@ public enum TagArchiveIO {
                     path: entry.path, kind: entry.kind, missing: "properties")
             }
             let targetArtworks = entry.artworks
-            let propertiesDiffer = propertyMap(current.properties) != targetProperties
+            let propertiesDiffer = TagProperty.valuesByKey(current.properties) != targetProperties
             // Ohne Cover im Archiv (--without-covers) bleiben Cover unangetastet.
             let artworksDiffer = targetArtworks.map { $0 != current.artworks } ?? false
             guard propertiesDiffer || artworksDiffer else {
@@ -850,16 +850,6 @@ public enum TagArchiveIO {
             guard let stamp, let otherStamp = other.stamp else { return false }
             return stamp.hasSameFileIdentity(as: otherStamp)
         }
-    }
-
-    /// [TagProperty] → PropertyMap-Wörterbuch (mehrwertig, Reihenfolge je
-    /// Schlüssel bleibt erhalten).
-    static func propertyMap(_ properties: [TagProperty]) -> [String: [String]] {
-        var map: [String: [String]] = [:]
-        for property in properties {
-            map[property.key, default: []].append(property.value)
-        }
-        return map
     }
 
     /// PropertyMap-Wörterbuch → [TagProperty] (Schlüssel sortiert, damit das

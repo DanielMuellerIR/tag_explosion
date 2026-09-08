@@ -13,6 +13,14 @@ public struct TagProperty: Sendable, Codable, Equatable, Hashable {
         self.key = key
         self.value = value
     }
+
+    /// Gruppiert Tags nach Schlüssel. Reihenfolge, Duplikate und leere Werte
+    /// innerhalb eines Feldes bleiben erhalten, auch außerhalb der Regel-Engine.
+    public static func valuesByKey(_ properties: [TagProperty]) -> [String: [String]] {
+        var values: [String: [String]] = [:]
+        for property in properties { values[property.key, default: []].append(property.value) }
+        return values
+    }
 }
 
 /// Ein eingebettetes Bild (Cover, Booklet …).

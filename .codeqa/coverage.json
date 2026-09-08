@@ -77,15 +77,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:54:15+02:00",
-        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
-        "content_sha256": "eab47ab1e155720d58f54b2b7db8c3a4305c9f21410c210530c5a169b422c91c",
+        "completed_at": "2026-09-08T03:09:15+02:00",
+        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e",
+        "content_sha256": "2477a5b0e8057857bfbb80f1c20e614e1cf643fc5054800dbdad1ffa811feed5",
         "file_count": 8,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "FileIntegrityTests nutzt gemeinsamen befristeten Prozessstarter; installiertes defektes ffmpeg überspringt keine Integritätsprüfung mehr.",
+        "summary": "Seit letztem gebuchten Stand nur FileIntegrityTests.sameSizeSameMtimeReplacementIsDetected geändert: einfache eigene Daten statt Audio-Fixture, atomarer Ersatz über gemeinsamen TestFiles-Helfer, FileSnapshot.capture/requireCurrent statt isoliertem FileStamp-Vergleich. Der nun redundante CLI-Test wurde entfernt. Gleichheit von Größe und mtime bleibt geprüft. Keine Änderung an produktiven Schreibwegen. Commit b02a778.",
         "tests": [
-          "swift test: 477 Tests grün; kontrollierte Gegenprobe fünf Fehler statt Skip."
+          "swift test: 490 Tests in 6.587 s"
         ]
       }
     },
@@ -464,31 +464,18 @@
       "risk": "high",
       "priority": 8,
       "reason": "Maschinenlesbare CLI, Exit-Codes und Mutationsoptionen sind die headless Bediengrenze aller Hauptfunktionen.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:35:56+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "9141d5aea9f8b5e13aed46854c93b0ce901967c08debdafd4ecb31a5b4a07150",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T03:08:50+02:00",
+        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e",
+        "content_sha256": "96effb5a3e1f1ed945ab37426db60cd637ede71b92f7d216a7a3e884500686e9",
         "file_count": 3,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der gemeinsame CLI-Fixture-Helfer stellt die getrackte Bilddatei unabhängig von der per ffmpeg erzeugten Audio-Fixture bereit. Audio-, Set-, Cover- und Prozesshelfer bleiben unverändert; die einzige neue Oberfläche ist ein dateispezifischer Bildpfad mit Existenzprüfung.",
+        "summary": "Drei aktuelle Dateien gegen 269f0150 plus Set-/Cover-/Show-/Info-Grenzen geprüft. Async-Wurzel und neue Unterbefehle sind passend angebunden. Explizites id3v23 wurde bei identischen Feldern ignoriert, reproduziert und korrigiert; wiederholte v2.3 bleibt No-op. Generischen CLI-Schnappschusstest mit stärkerer Core-Inode-Prüfung konsolidiert, ohne Audio-Fixture. Historischer ReplaceAtomically.swift ist bewusst durch TestFiles aus Test-Support ersetzt, keine offene Datei. Vier Gruppierungsduplikate als Querschnittsthema erfasst. Commit 2c61c25 nicht erneut geprüft; Abschlussstand siehe aktueller HEAD.",
         "tests": [
-          "git ls-files --error-unmatch für die Bild-Fixture: bestanden",
-          "swift test: 176 Tests in 14 Suites bestanden; echter Exif-CLI-Test wurde ausgeführt und bestand"
-        ]
-      },
-      "pending_paths": [
-        "Tests/TagxTests/ReplaceAtomically.swift"
-      ],
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:04:04+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "Tests/TagxTests/ReplaceAtomically.swift"
+          "swift test: 490 Tests, 6.587 s; ID3-No-op-Test vor Korrektur fehlgeschlagen, nachher Versionswechsel und stabiler zweiter Aufruf bestätigt"
         ]
       }
     },
@@ -1185,9 +1172,15 @@
         "Sources/TagExplosionCore/TagArchive.swift"
       ],
       "priority": 8,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T03:05:26+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T03:09:16+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:09:16+02:00",
+        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e"
+      }
     }
   ]
 }

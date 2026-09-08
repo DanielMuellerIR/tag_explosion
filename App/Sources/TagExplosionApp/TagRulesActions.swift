@@ -44,7 +44,7 @@ extension AppModel {
     /// ungültigen Regel (`TagRulesError`).
     func rulePlan(for targets: [FileEntry], document: TagRuleDocument) throws -> [TagRulePlan] {
         let inputs = targets.filter(\.supportsFilenamePatterns).map {
-            TagRuleInput(url: $0.url, kind: $0.kind, values: $0.kind == .audio ? TagRuleFields.values(from: $0.properties) : $0.patternFields.mapValues { [$0] })
+            TagRuleInput(url: $0.url, kind: $0.kind, values: $0.kind == .audio ? TagProperty.valuesByKey($0.properties) : $0.patternFields.mapValues { [$0] })
         }
         return try TagRuleEngine.plan(document, inputs: inputs).filter { !$0.changes.isEmpty }
     }
