@@ -158,20 +158,21 @@ struct MediaInfoCacheTests {
                 os.close(1)
                 os.close(2)
             with open(sys.argv[1], 'w') as f: f.write(str(os.getpid()))
-        time.sleep(30)
+        while True: time.sleep(1)
         """.utf8).write(to: script)
         let cancellation = ExternalToolRunner.Cancellation()
         defer { cancellation.cancel() }
         let task = Task.detached {
-            try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], cancellation: cancellation)
+            try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 60, cancellation: cancellation)
         }
         let pid = try await waitForPID(at: ready)
         let start = Date()
         cancellation.cancel()
         do { _ = try await task.value; Issue.record("Abbruch blieb wirkungslos") }
         catch is CancellationError {}
-        // Der Prozess würde von selbst erst nach 30 s enden. Zehn Sekunden
-        // lassen dem Scheduler unter CI-Last Luft; eine Sekunde war zu knapp.
+        // Der Hilfsprozess wartet auf den Abbruch. Eine feste natürliche
+        // Laufzeit kann schon vor dem Fortsetzen dieser Test-Task verstreichen.
+        // Das unabhängige Prozesslimit verhindert hängende Testprozesse.
         #expect(Date().timeIntervalSince(start) < 10)
         // Nach dem Gruppen-Kill kann der System-Reaper einen kurzen Moment brauchen.
         for _ in 0..<500 {

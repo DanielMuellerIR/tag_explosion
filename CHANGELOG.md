@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.72 — 2026-09-08
+
+- Der Prozess-Abbruchtest wartet zuverlässig auf den Abbruch, statt bei hoher
+  CI-Last vorzeitig durch die natürliche Laufzeit seines Hilfsprozesses zu enden.
+  Ein unabhängiges Prozesslimit schützt weiterhin vor hängenden Tests.
+
 ## 0.46.71 — 2026-09-08
 
 - Bestätigtes Überschreiben löst auch Konflikte mit geänderten oder inzwischen
