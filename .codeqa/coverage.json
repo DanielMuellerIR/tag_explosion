@@ -744,7 +744,9 @@
         "Tests/TagxTests/LookupCommandTests.swift",
         "App/Sources/TagExplosionApp/OnlineLookupSettings.swift",
         "App/Sources/TagExplosionApp/OnlineLookupSheet.swift",
-        "App/Tests/TagExplosionAppTests/OnlineLookupAccessTests.swift"
+        "App/Tests/TagExplosionAppTests/OnlineLookupAccessTests.swift",
+        "App/Sources/TagExplosionApp/OnlineLookupDetails.swift",
+        "App/Tests/TagExplosionAppTests/OnlineLookupDetailsTests.swift"
       ],
       "risk": "high",
       "priority": 12,
@@ -756,7 +758,11 @@
         "required_review": "full",
         "status_at_start": "pending",
         "covered_pending_paths": []
-      }
+      },
+      "pending_paths": [
+        "App/Sources/TagExplosionApp/OnlineLookupDetails.swift",
+        "App/Tests/TagExplosionAppTests/OnlineLookupDetailsTests.swift"
+      ]
     },
     {
       "id": "app-editors",

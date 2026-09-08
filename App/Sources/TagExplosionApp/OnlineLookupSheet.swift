@@ -41,6 +41,11 @@ private struct AssignmentRow: Identifiable {
     }
 }
 
+private struct LookupDetailsRequest: Equatable {
+    let candidateID: String?
+    let includeCover: Bool
+}
+
 struct OnlineLookupSheet: View {
     let entries: [FileEntry]
     @Environment(\.dismiss) private var dismiss
@@ -52,19 +57,24 @@ struct OnlineLookupSheet: View {
     @State private var source: LookupSource = .musicbrainz
     @State private var candidates: [LookupCandidate] = []
     @State private var selectedCandidateID: String?
-    @State private var detailed: LookupCandidate?
+    @State private var detailsState = OnlineLookupDetails()
+    @State private var lookupService: OnlineLookupService?
+    @State private var searchTask: Task<Void, Never>?
     @State private var rows: [AssignmentRow] = []
-    @State private var coverData: Data?
     @State private var includeCover = true
     @State private var includeIdentifiers = true
     @State private var overwriteExisting = true
-    @State private var isBusy = false
+    @State private var isSearching = false
     @State private var statusMessage: String?
     @State private var errorMessage: String?
     @State private var showPrivacyNotice = false
     @State private var showBlockedNotice = false
     @State private var fpcalcOffer: BrewToolInstaller.Offer?
     @State private var installingFpcalc = false
+
+    private var detailed: LookupCandidate? { detailsState.candidate }
+    private var coverData: Data? { detailsState.coverData }
+    private var isBusy: Bool { isSearching || detailsState.isBusy }
 
     /// Dateiinfos für Matcher und Suchbegriffe, einmal aus den Puffern gelesen.
     private var fileInfos: [LookupFileInfo] {
@@ -92,6 +102,11 @@ struct OnlineLookupSheet: View {
         .padding(20)
         .frame(minWidth: 900, idealWidth: 980, minHeight: 620)
         .onAppear(perform: prefill)
+        .onDisappear {
+            searchTask?.cancel()
+            isSearching = false
+            detailsState.reset()
+        }
         .alert("Daten an Online-Dienste senden?", isPresented: $showPrivacyNotice) {
             Button("Verstanden, suchen") {
                 UserDefaults.standard.set(true, forKey: OnlineLookupAccess.privacyAcknowledgedDefaultsKey)
@@ -161,7 +176,7 @@ struct OnlineLookupSheet: View {
                 if let statusMessage {
                     Text(statusMessage).font(.caption).foregroundStyle(.secondary)
                 }
-                if let errorMessage {
+                if let errorMessage = errorMessage ?? detailsState.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .foregroundStyle(.red)
@@ -200,17 +215,18 @@ struct OnlineLookupSheet: View {
         statusMessage = nil
         candidates = []
         selectedCandidateID = nil
-        detailed = nil
+        detailsState.reset()
         rows = []
-        coverData = nil
-        isBusy = true
+        isSearching = true
         let query = LookupQuery(artist: artist, album: album, title: title,
                                 trackCount: entries.count > 1 ? entries.count : nil)
         let source = source
         let firstFile = entries.first?.url
         let service = makeService()
-        Task {
-            defer { isBusy = false }
+        lookupService = service
+        searchTask?.cancel()
+        searchTask = Task {
+            defer { if !Task.isCancelled { isSearching = false } }
             do {
                 let found: [LookupCandidate]
                 if source == .acoustid, let firstFile {
@@ -218,19 +234,23 @@ struct OnlineLookupSheet: View {
                 } else {
                     found = try await service.search(query, source: source)
                 }
+                try Task.checkCancellation()
                 candidates = found
                 statusMessage = found.isEmpty
                     ? String(localized: "Keine Treffer.")
                     : String(localized: "\(found.count) Kandidaten — einen auswählen.")
                 if let first = found.first {
                     selectedCandidateID = first.id
-                    await loadDetails(for: first, service: service)
                 }
+            } catch is CancellationError {
+                // Ein geschlossenes Sheet übernimmt keine späten Suchantworten.
             } catch TagError.toolNotFound(let name) where name == Fpcalc.toolName {
+                guard !Task.isCancelled else { return }
                 fpcalcOffer = BrewToolInstaller.offer(
                     missingTools: [Fpcalc.homebrewFormula], installDeclined: false,
                     brewExecutable: BrewToolInstaller.resolveHomebrew())
             } catch {
+                guard !Task.isCancelled else { return }
                 errorMessage = error.localizedDescription
             }
         }
@@ -270,11 +290,20 @@ struct OnlineLookupSheet: View {
                 }
                 .tag(candidate.id)
             }
-            .onChange(of: selectedCandidateID) { _, newValue in
-                guard let newValue, let candidate = candidates.first(where: { $0.id == newValue }),
-                      detailed?.id != newValue else { return }
-                let service = makeService()
-                Task { await loadDetails(for: candidate, service: service) }
+            .task(id: LookupDetailsRequest(candidateID: selectedCandidateID, includeCover: includeCover)) {
+                guard !Task.isCancelled else { return }
+                guard let id = selectedCandidateID,
+                      let candidate = candidates.first(where: { $0.id == id }) else {
+                    detailsState.reset()
+                    rows = []
+                    return
+                }
+                // Beim Cover-Umschalten ist die Trackliste bereits vorhanden.
+                if let detailed, detailed.id == id {
+                    await loadDetails(for: detailed)
+                } else {
+                    await loadDetails(for: candidate)
+                }
             }
         }
     }
@@ -290,21 +319,13 @@ struct OnlineLookupSheet: View {
     }
 
     /// Trackliste nachladen, zuordnen, Plan bauen, Cover-Vorschau holen.
-    private func loadDetails(for candidate: LookupCandidate, service: OnlineLookupService) async {
-        isBusy = true
-        defer { isBusy = false }
-        errorMessage = nil
-        do {
-            let full = try await service.details(for: candidate)
-            detailed = full
-            rebuildRows()
-            coverData = nil
-            if includeCover, full.coverURL != nil {
-                coverData = try await service.coverData(for: full)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+    private func loadDetails(for candidate: LookupCandidate) async {
+        guard !Task.isCancelled, OnlineLookupAccess.isAllowed, let service = lookupService else { return }
+        rows = []
+        await detailsState.load(candidate, includeCover: includeCover,
+                                details: { try await service.details(for: $0) },
+                                cover: { try await service.coverData(for: $0) })
+        rebuildRows()
     }
 
     private func rebuildRows() {
@@ -416,7 +437,7 @@ struct OnlineLookupSheet: View {
             Button("Abbrechen") { dismiss() }
                 .keyboardShortcut(.cancelAction)
             Button("Übernehmen") { applyPlans() }
-                .disabled(detailed == nil || rows.allSatisfy { $0.plan.changes.isEmpty && !(includeCover && coverData != nil) })
+                .disabled(isBusy || detailed?.id != selectedCandidateID || detailed == nil || rows.allSatisfy { $0.plan.changes.isEmpty && !(includeCover && coverData != nil) })
         }
     }
 

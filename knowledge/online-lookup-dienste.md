@@ -78,3 +78,13 @@ Dauern. Unbrauchbare optionale Dauern bleiben unbekannt; `Fpcalc.parse`
 meldet eine unlesbare Antwort, wenn seine Pflichtdauer nicht darstellbar ist.
 AcoustID-Bewertungen werden vor der Ganzzahlumrechnung auf 0–1 begrenzt;
 nicht endliche Werte ergeben null Punkte.
+
+## Auswahl im Sheet
+
+`OnlineLookupDetails` besitzt den asynchronen Zustand einer Auswahl. Eine
+neue Auswahl oder `reset` entwertet alte Antworten einschließlich Fehlern
+und Coverdaten. `OnlineLookupSheet` bindet den Task an Kandidaten-ID und
+Coveroption; die Suche und ihre Folgeabfragen teilen eine Serviceinstanz.
+Der erste Treffer wird ausschließlich über diesen Auswahl-Task geladen.
+Vier Headless-Tests steuern die Antwortreihenfolge über Fortsetzungen statt
+über Wartezeiten; echte Dienste und Schlüsselbund bleiben unberührt.

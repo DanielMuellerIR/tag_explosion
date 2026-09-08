@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.57 — 2026-09-08
+
+- Die Online-Auswahl verwirft verspätete Details, Cover und Fehlermeldungen.
+  Ihr Ladezustand ist unabhängig von SwiftUI auf Antwortreihenfolgen testbar.
+- Kandidaten werden einmal geladen und teilen den Ratenbegrenzer der Suche.
+  Nachträglich aktivierte Cover werden geladen; währenddessen ist die
+  Übernahme gesperrt.
+
 ## 0.46.56 — 2026-09-08
 
 - Online-Antworten vertragen doppelte Header-Schreibweisen und übergroße
