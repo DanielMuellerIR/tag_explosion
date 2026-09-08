@@ -45,7 +45,9 @@ struct ZipIntegrityTests {
         edited.title = "Darf nicht gespeichert werden"
         try corruptChecksum(path, in: url)
         let before = try Data(contentsOf: url)
-        #expect(throws: TagError.self) { try DocumentTool.write(url: url, fields: edited, original: original) }
+        #expect(throws: TagError.cannotOpen(path: url.path)) {
+            try DocumentTool.write(url: url, fields: edited, original: original)
+        }
         #expect(try Data(contentsOf: url) == before)
     }
 }

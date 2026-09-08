@@ -330,15 +330,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:14:43+02:00",
-        "observed_head": "326fba20fdb98a719a38acd97a1347077dfdc845",
-        "content_sha256": "bcc0b12b72ece5cd24354f9c48dba01bf0c3a9fa18311ecab559565a4eac2438",
+        "completed_at": "2026-09-08T02:21:51+02:00",
+        "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd",
+        "content_sha256": "42248c0ad47a6ea67c1754fca42b864b0b1fb7b5c6991de1eb5ec12937d0d07a",
         "file_count": 11,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "CRC-Theme einschließlich neu zugeordnetem ZipIntegrityTests nachgeprüft: Metadaten- und Nutzdaten-Prüfsummen werden vor Übernahme kontrolliert; blockweiser Kopierpfad nutzt dieselbe Prüfung.",
+        "summary": "Kalender-Theme nachgeprüft: gemeinsame Tagesprüfung, formatspezifische Datumsform und Schutz unveränderter Altwerte bleiben erhalten.",
         "tests": [
-          "483 Core/CLI-Tests und 115 App-Tests grün; acht gezielte Prüfsummen-Gegenproben."
+          "483 Core/CLI-Tests grün; OOXML/ODF/Comic-Datumsfälle und Schalttag geprüft."
         ]
       }
     },
@@ -1081,14 +1081,18 @@
         "Sources/TagExplosionCore/ISODate.swift"
       ],
       "priority": 6,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T02:09:54+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T02:18:13+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:18:13+02:00",
-        "observed_head": "624b706dd1f07ce5e86d00acaf3eae3f567e94eb"
+        "completed_at": "2026-09-08T02:21:51+02:00",
+        "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd",
+        "summary": "Dokument-Zeitstempel und vollständige/verkürzte Comic-Daten verwenden ISODate.isCalendarDay. Bestehende Fehlerfalltests parametrisiert für OOXML/ODF und um unmögliche Tage/Monate sowie gültigen Schalttag erweitert.",
+        "tests": [
+          "Vorher DOCX/ODT/CBZ-CLI jeweils Exit 0 für 2026-02-31 und 14 Fehler in erweiterten Tests. Nachher swift test: 483 Tests grün (6.984 s); Originalbytes bei ungültigem Datum unverändert. Diff geprüft, Commit/minipc-Push."
+        ]
       }
     },
     {
@@ -1100,9 +1104,15 @@
         "Sources/TagExplosionCore/Model.swift"
       ],
       "priority": 7,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T02:17:26+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T02:21:51+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:21:51+02:00",
+        "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd"
+      }
     }
   ]
 }

@@ -295,35 +295,14 @@ public enum DocumentTool {
         try FileStamp.requireUnchanged(stamp, at: url)
         let backend = try implementation(for: url)
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 try backend.mutate(url: temp, fields: fields, original: original)
             }
         } validate: { temp in
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 try backend.validateContainer(url: temp)
                 let readBack = try backend.read(url: temp).0
                 guard readBack == fields else { throw TagError.saveFailed(path: temp.path) }
-            }
-        }
-    }
-
-    /// Fehler von der versteckten Geschwisterkopie auf die gewählte Datei
-    /// umstellen (gleiche Begründung wie in EbookTool).
-    private static func withOriginalPath(_ url: URL, _ body: () throws -> Void) throws {
-        do {
-            try body()
-        } catch let error as TagError {
-            switch error {
-            case .cannotOpen: throw TagError.cannotOpen(path: url.path)
-            case .saveFailed: throw TagError.saveFailed(path: url.path)
-            case .readOnly: throw TagError.readOnly(path: url.path)
-            case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
-            case .backupFailed(_, let reason):
-                throw TagError.backupFailed(path: url.path, reason: reason)
-            case .notEnoughSpace(_, let needBytes, let freeBytes):
-                throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
-                                              freeBytes: freeBytes)
-            default: throw error
             }
         }
     }

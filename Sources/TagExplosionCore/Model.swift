@@ -309,6 +309,39 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     /// Format kann sie nicht entfernen (z.B. `info` bei einer MP3).
     case layerUnsupported(path: String, layer: String)
 
+    /// Führt einen Schritt auf der Geschwisterkopie aus und stellt dessen
+    /// typisierte Fehler auf die Originaldatei um. Die Kopie trägt einen
+    /// versteckten Zufallsnamen und existiert nach dem Abbruch nicht mehr —
+    /// ihr Pfad in einer Meldung sagt niemandem etwas.
+    static func withOriginalPath(_ url: URL, _ body: () throws -> Void) throws {
+        do {
+            try body()
+        } catch let error as TagError {
+            switch error {
+            case .cannotOpen: throw TagError.cannotOpen(path: url.path)
+            case .saveFailed: throw TagError.saveFailed(path: url.path)
+            case .readOnly: throw TagError.readOnly(path: url.path)
+            case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
+            case .backupFailed(_, let reason):
+                throw TagError.backupFailed(path: url.path, reason: reason)
+            case .notEnoughSpace(_, let needBytes, let freeBytes):
+                throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
+                                              freeBytes: freeBytes)
+            case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
+            case .syncedLyricsUnsupported: throw TagError.syncedLyricsUnsupported(path: url.path)
+            case .layerUnsupported(_, let layer):
+                throw TagError.layerUnsupported(path: url.path, layer: layer)
+            // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
+            case .propertiesRejected, .toolNotFound, .toolFailed,
+                 .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
+                 .unsupportedDocumentField, .invalidDocumentValue,
+                 .invalidFieldValue, .invalidLyrics,
+                 .invalidSubtitleShift: throw error
+            case .urlOnlyNFO: throw TagError.urlOnlyNFO(path: url.path)
+            }
+        }
+    }
+
     // Fehlertexte englisch (Open-Source-/CLI-Konvention); die App stellt ihnen
     // deutsche Kontextzeilen voran.
     public var errorDescription: String? {

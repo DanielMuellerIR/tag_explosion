@@ -274,29 +274,13 @@ public enum PlaylistTool {
         let backend = try implementation(for: url)
         let base = url.deletingLastPathComponent()
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 try backend.mutate(url: temp, fields: fields, original: original)
             }
         } validate: { temp in
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 let readBack = try backend.read(url: temp, base: base).fields
                 guard readBack == fields else { throw TagError.saveFailed(path: temp.path) }
-            }
-        }
-    }
-
-    /// Fehler von der versteckten Geschwisterkopie auf die gewählte Datei
-    /// umstellen (gleiche Begründung wie in DocumentTool).
-    private static func withOriginalPath(_ url: URL, _ body: () throws -> Void) throws {
-        do {
-            try body()
-        } catch let error as TagError {
-            switch error {
-            case .cannotOpen: throw TagError.cannotOpen(path: url.path)
-            case .saveFailed: throw TagError.saveFailed(path: url.path)
-            case .readOnly: throw TagError.readOnly(path: url.path)
-            case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
-            default: throw error
             }
         }
     }

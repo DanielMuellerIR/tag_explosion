@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.26 — 2026-09-08
+
+- E-Book-, Dokument- und Playlist-Schreibwege ordnen Fehler temporärer
+  Kopien über eine gemeinsame Funktion der Originaldatei zu. Neue
+  Fehlerarten werden zentral beim Fehlertyp berücksichtigt.
+
 ## 0.46.25 — 2026-09-08
 
 - Dokument- und Comic-Metadaten verwenden die gemeinsame Kalenderprüfung.

@@ -202,7 +202,7 @@ public enum EbookTool {
             // Auf der Geschwisterkopie laufen nur reine Inhalts-Mutatoren.
             // Fehlerpfade zeigen dabei auf die versteckte Kopie; nach außen
             // muss die vom Menschen gewählte Datei stehen (siehe unten).
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 switch backend(for: temp) {
                 case .epub:
                     try EpubFile.mutateContents(url: temp, fields: fields,
@@ -218,7 +218,7 @@ public enum EbookTool {
                 }
             }
         } validate: { temp in
-            try withOriginalPath(url) {
+            try TagError.withOriginalPath(url) {
                 // Die EPUB-Invarianten prüfte bisher der verschachtelte
                 // Austausch in `EpubFile`; ohne ihn gehört die Prüfung hierher.
                 if backend(for: temp) == .epub { try EpubFile.validateContainer(url: temp) }
@@ -303,39 +303,6 @@ public enum EbookTool {
             || fields.seriesIndex != original.seriesIndex
         guard seriesChanged, fields.series.isEmpty, !fields.seriesIndex.isEmpty else { return }
         throw TagError.seriesIndexWithoutSeries
-    }
-
-    /// Führt einen Schritt auf der Geschwisterkopie aus und stellt dessen
-    /// typisierte Fehler auf die Originaldatei um. Die Kopie trägt einen
-    /// versteckten Zufallsnamen und existiert nach dem Abbruch nicht mehr —
-    /// ihr Pfad in einer Meldung sagt niemandem etwas.
-    private static func withOriginalPath(_ url: URL, _ body: () throws -> Void) throws {
-        do {
-            try body()
-        } catch let error as TagError {
-            switch error {
-            case .cannotOpen: throw TagError.cannotOpen(path: url.path)
-            case .saveFailed: throw TagError.saveFailed(path: url.path)
-            case .readOnly: throw TagError.readOnly(path: url.path)
-            case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
-            case .backupFailed(_, let reason):
-                throw TagError.backupFailed(path: url.path, reason: reason)
-            case .notEnoughSpace(_, let needBytes, let freeBytes):
-                throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
-                                              freeBytes: freeBytes)
-            case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
-            case .syncedLyricsUnsupported: throw TagError.syncedLyricsUnsupported(path: url.path)
-            case .layerUnsupported(_, let layer):
-                throw TagError.layerUnsupported(path: url.path, layer: layer)
-            // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
-            case .propertiesRejected, .toolNotFound, .toolFailed,
-                 .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
-                 .unsupportedDocumentField, .invalidDocumentValue,
-                 .invalidFieldValue, .invalidLyrics,
-                 .invalidSubtitleShift: throw error
-            case .urlOnlyNFO: throw TagError.urlOnlyNFO(path: url.path)
-            }
-        }
     }
 
     /// Kann dieses Format ein Cover tragen? (PDF nicht.)
