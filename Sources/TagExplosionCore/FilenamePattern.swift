@@ -214,7 +214,9 @@ public struct FilenamePattern: Sendable, Equatable {
             if let slash = value.firstIndex(of: "/") { value = String(value[..<slash]) }
             value = value.trimmingCharacters(in: .whitespaces)
         }
-        if let width = placeholder.width, placeholder.isNumeric,
+        // Auch direkt erzeugte Platzhalter (Batch-Regeln) dürfen keine
+        // unbegrenzte Auffüllung anfordern; ungültige Breiten bleiben unbenutzt.
+        if let width = placeholder.width, (1...9).contains(width), placeholder.isNumeric,
            !value.isEmpty, value.allSatisfy(\.isNumber), value.count < width {
             value = String(repeating: "0", count: width - value.count) + value
         }

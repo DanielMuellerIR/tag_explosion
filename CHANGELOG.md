@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.32 — 2026-09-08
+
+- Fehlgeschlagene Batch-Regeln speichern keine bereits vorhandenen
+  Pufferänderungen des betroffenen Eintrags. Erfolgreiche Einträge desselben
+  Laufs werden weiterhin gespeichert; der Gesamtfehler bleibt sichtbar.
+- Die gemeinsame Platzhalterformatierung verwendet nur Breiten von 1 bis 9.
+  Auch Regeltexte können dadurch keine unbegrenzt große Auffüllung anfordern;
+  ungültige Breiten bleiben ohne Auffüllung.
+
 ## 0.46.31 — 2026-09-08
 
 - Batch-Textregeln bereiten Regex und Wortmenge einmal je Regel vor.

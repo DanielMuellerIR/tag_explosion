@@ -68,7 +68,7 @@ struct AppModelRulesTests {
         ])
 
         let outcome = model.applyRulePlan(plans, to: [first, second])
-        #expect(outcome == RuleApplyOutcome(changed: 1, failed: []))
+        #expect(outcome == RuleApplyOutcome(failed: [], appliedURLs: [first.url]))
         #expect(first.isDirty)
         #expect(first.firstValue("TITLE") == "So What")
         #expect(first.firstValue("ALBUMARTIST") == "Miles")
@@ -96,7 +96,7 @@ struct AppModelRulesTests {
     }
 
     @Test("Feld ohne Speicherort in der Medienart landet in failed, Eintrag bleibt sauber")
-    func unsupportedFieldForImage() throws {
+    func unsupportedFieldForImage() async throws {
         let directory = try makeDirectory("rules-image")
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("bild.jpg")
@@ -115,6 +115,27 @@ struct AppModelRulesTests {
         #expect(outcome.failed.count == 1)
         #expect(outcome.failed[0].hasPrefix("bild.jpg"))
         #expect(!image.isDirty)
+
+        // Bereits vorhandene Pufferänderungen dürfen durch den fehlgeschlagenen
+        // Regellauf weder gespeichert noch verworfen werden.
+        image.imageFields.title = "Noch nicht gespeichert"
+        var savedURLs: [URL] = []
+        let succeeded = await model.applyRules(document, to: [image]) { selected in
+            savedURLs = selected.map(\.url)
+            return true
+        }
+        #expect(!succeeded)
+        #expect(savedURLs.isEmpty)
+        #expect(image.isDirty)
+        #expect(image.imageFields.title == "Noch nicht gespeichert")
+        let audio = try audioEntry(at: directory.appendingPathComponent("lied.mp3"), ["TITLE": "Lied"])
+        let partial = await model.applyRules(document, to: [image, audio]) { selected in
+            savedURLs = selected.map(\.url)
+            return true
+        }
+        #expect(!partial)
+        #expect(savedURLs == [audio.url])
+        #expect(image.imageFields.title == "Noch nicht gespeichert")
     }
 
     @Test("Verlauf der Regeldateien: neueste zuerst, ohne Dubletten, fehlende Dateien fallen weg")

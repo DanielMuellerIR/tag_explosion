@@ -29,9 +29,11 @@ enum RuleFileHistory {
 /// Ergebnis der Übernahme eines Regelplans in die Bearbeitungspuffer.
 struct RuleApplyOutcome: Equatable {
     /// Einträge, deren Puffer sich geändert hat.
-    var changed = 0
+    var changed: Int { appliedURLs.count }
     /// Dateiname plus Fehler — Felder, die die Medienart nicht kennt.
     var failed: [String] = []
+    /// Nur diese Einträge haben den Plan übernommen und dürfen gespeichert werden.
+    var appliedURLs: Set<URL> = []
 }
 
 extension AppModel {
@@ -64,7 +66,7 @@ extension AppModel {
                 } else {
                     try entry.applyParsedFields(plan.newValues)
                 }
-                outcome.changed += 1
+                outcome.appliedURLs.insert(entry.url)
             } catch {
                 outcome.failed.append("\(entry.url.lastPathComponent): \(error.localizedDescription)")
             }
@@ -78,6 +80,13 @@ extension AppModel {
     /// geschrieben oder mindestens eine Datei fehlgeschlagen.
     @discardableResult
     func applyRules(_ document: TagRuleDocument, to targets: [FileEntry]) async -> Bool {
+        await applyRules(document, to: targets) { await self.saveEntries($0) }
+    }
+
+    /// Der austauschbare Speicheraufruf prüft die Auswahl der Dateien,
+    /// ohne für einen abgelehnten Regelsatz echte Medien schreiben zu müssen.
+    func applyRules(_ document: TagRuleDocument, to targets: [FileEntry],
+                    save: ([FileEntry]) async -> Bool) async -> Bool {
         guard !isDestructiveActionLocked else { return false }
         let plans: [TagRulePlan]
         do {
@@ -92,10 +101,9 @@ extension AppModel {
             alertMessage = String(localized: "Nicht übernommen:") + "\n"
                 + outcome.failed.joined(separator: "\n")
         }
-        let affected = Set(plans.map(\.url))
-        let dirty = targets.filter { affected.contains($0.url) && $0.isDirty }
+        let dirty = targets.filter { outcome.appliedURLs.contains($0.url) && $0.isDirty }
         guard !dirty.isEmpty else { return outcome.failed.isEmpty }
-        let saved = await saveEntries(dirty)
+        let saved = await save(dirty)
         return saved && outcome.failed.isEmpty
     }
 }

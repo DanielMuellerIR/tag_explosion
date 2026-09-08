@@ -89,6 +89,9 @@ struct TagRulesTests {
             to: fields)
         // Kein Dateinamen-Entschärfen: der Schrägstrich bleibt.
         #expect(result["COMMENT"] == "AC/DC · 03 · 1980 · 100%")
+        // Die Breite gilt wie bei Dateinamen nur von 1 bis 9.
+        #expect(TagRuleText.expandPlaceholders("%{track:10}", fields: fields) == "3")
+        #expect(TagRuleText.expandPlaceholders("%{track:\(Int.max)}", fields: fields) == "3")
     }
 
     @Test("copy: nur wenn Ziel leer; leere Quelle lässt das Ziel in Ruhe")

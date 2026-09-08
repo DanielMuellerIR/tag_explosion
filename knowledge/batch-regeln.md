@@ -87,3 +87,13 @@ Titel-Schreibweise: 1,712 auf 0,950 Sekunden für die Planung. Die vollständig
 serialisierten Änderungspläne waren bytegleich. Der Benchmark gehört nicht
 in den normalen Testlauf; die bestehenden Mehrwert-, Bedingungs- und
 Textoperationstests prüfen das Verhalten.
+
+Die App speichert nach einer Regelübernahme ausschließlich
+`RuleApplyOutcome.appliedURLs`. Fehlgeschlagene Einträge können schon vorher
+ungespeicherte Änderungen gehabt haben; ein fehlgeschlagener Regellauf darf
+diese weder speichern noch verwerfen. `changed` leitet sich aus der Menge
+der erfolgreich übernommenen Einträge ab.
+
+Nummerierungen prüfen den gesamten Integer-Bereich vor der ersten Zuweisung.
+Eine Breite für `%{track:2}` wird zentral in `FilenamePattern.formatValue`
+auf 1 bis 9 begrenzt; außerhalb dieses Bereichs wird nicht aufgefüllt.
