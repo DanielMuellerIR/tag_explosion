@@ -69,6 +69,17 @@ struct CoverDropTests {
         #expect(await receiver.wait() == png)
     }
 
+    @Test("Fehler des gemeinsamen Exports erscheinen im App-Dialog")
+    @MainActor
+    func exportFailureIsVisible() async {
+        let model = AppModel()
+        let target = FileManager.default.temporaryDirectory
+            .appendingPathComponent("missing-export-\(UUID().uuidString)/cover.png")
+        await model.exportData(Data([1, 2, 3]), to: target)
+        #expect(model.alertMessage != nil)
+        #expect(!FileManager.default.fileExists(atPath: target.path))
+    }
+
     @Test("Cover-Export beschriftet BMP und unbekannte Daten ehrlich")
     func exportFileExtensionsMatchMimeType() {
         #expect(CoverExport.fileExtension(for: "image/jpeg") == "jpg")

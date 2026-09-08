@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 
 struct ChapterSection: View {
     @Bindable var entry: FileEntry
+    @Environment(AppModel.self) private var model
     /// Fehlermeldung des letzten Imports (nil = keiner).
     @State private var importError: String?
 
@@ -131,13 +132,14 @@ struct ChapterSection: View {
         panel.nameFieldStringValue = entry.url.deletingPathExtension().lastPathComponent + "-chapters.txt"
         panel.message = String(localized: "Kapitel exportieren (Endung .json für JSON, sonst Text)")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let data: Data?
-        if url.pathExtension.lowercased() == "json" {
-            data = try? ChapterList.renderJSON(entry.chapters)
-        } else {
-            data = Data(ChapterList.renderText(entry.chapters).utf8)
+        do {
+            let data = url.pathExtension.lowercased() == "json"
+                ? try ChapterList.renderJSON(entry.chapters)
+                : Data(ChapterList.renderText(entry.chapters).utf8)
+            Task { await model.exportData(data, to: url) }
+        } catch {
+            model.alertMessage = error.localizedDescription
         }
-        try? data?.write(to: url)
     }
 }
 

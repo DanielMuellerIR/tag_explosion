@@ -69,12 +69,14 @@
         "Sources/TagExplosionCore/XDGTrash.swift",
         "Tests/TagExplosionCoreTests/XDGTrashTests.swift",
         "Sources/TagExplosionCore/SidecarState.swift",
-        "Sources/TagExplosionCore/FileState.swift"
+        "Sources/TagExplosionCore/FileState.swift",
+        "Sources/TagExplosionCore/FileExport.swift",
+        "Tests/TagExplosionCoreTests/FileExportTests.swift"
       ],
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "completed",
+      "state": "pending",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
         "completed_at": "2026-09-08T03:09:15+02:00",
@@ -87,7 +89,11 @@
         "tests": [
           "swift test: 490 Tests in 6.587 s"
         ]
-      }
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/FileExport.swift",
+        "Tests/TagExplosionCoreTests/FileExportTests.swift"
+      ]
     },
     {
       "id": "app-save-coordination",
@@ -797,49 +803,18 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:46:17+02:00",
-        "observed_head": "26561a62dc8cc70a51a38f364d1971f6b29349b4",
-        "content_sha256": "356d3ba72ad290a10c7d164ae139ab05090ae42929484615ae4b128f5748b283",
-        "file_count": 12,
-        "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Bewertungsmodell und Picker-Grenzen für nil, abgelehnt −1, 0…5, gemischte Auswahl und tolerierte Fremdwerte geprüft. Dynamisch erzeugte Picker-Strings wurden bisher wörtlich und damit in der englischen Oberfläche deutsch angezeigt; explizite Lokalisierung und fehlende englische Katalogeinträge ergänzt.",
-        "tests": [
-          "swift test --package-path App --filter RatingPickerTests\\|CoverDropTests\\|AppModelSaveTests: 34 Tests in 4 Suites bestanden; xcstringstool compile und JSON-Prüfung des deutschen/englischen String-Katalogs bestanden"
-        ]
-      },
-      "pending_paths": [
-        "App/Sources/TagExplosionApp/ChapterSection.swift",
-        "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
-        "App/Sources/TagExplosionApp/DocumentEditorView.swift",
-        "App/Sources/TagExplosionApp/FixedFieldSections.swift",
-        "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
-        "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
-        "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
-        "App/Sources/TagExplosionApp/SidecarEditorView.swift",
-        "App/Sources/TagExplosionApp/TagLayerSection.swift",
-        "App/Sources/TagExplosionApp/ValidatedFieldDraft.swift",
-        "App/Tests/TagExplosionAppTests/ValidatedFieldDraftTests.swift",
-        "App/Tests/TagExplosionAppTests/ChapterEditorTests.swift"
-      ],
-      "active_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:30:28+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "App/Sources/TagExplosionApp/ChapterSection.swift",
-          "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
-          "App/Sources/TagExplosionApp/DocumentEditorView.swift",
-          "App/Sources/TagExplosionApp/FixedFieldSections.swift",
-          "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
-          "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
-          "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
-          "App/Sources/TagExplosionApp/SidecarEditorView.swift",
-          "App/Sources/TagExplosionApp/TagLayerSection.swift"
+        "completed_at": "2026-09-08T05:39:08+02:00",
+        "observed_head": "e249f9ffe4cd40b42b82cdf399f6522c6aacdb17",
+        "content_sha256": "958088ce2af165a5e557622c5fbda09718cb420b7482fce5a82c0bcc658b1b67",
+        "file_count": 24,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Drei während des Reviews ergänzte Dateien für Textentwurf und Editor-Bindings nachgebucht; bereits implementiert, vollständig gelesen und im App-Gesamtlauf verifiziert.",
+        "tests": [
+          "128 App-Tests in 0,409 s bestanden."
         ]
       }
     },
@@ -1361,9 +1336,15 @@
         "Sources/TagExplosionCore/AtomicFileRewrite.swift"
       ],
       "priority": 2,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T05:33:04+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T05:39:09+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:39:09+02:00",
+        "observed_head": "e249f9ffe4cd40b42b82cdf399f6522c6aacdb17"
+      }
     }
   ]
 }

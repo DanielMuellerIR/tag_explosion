@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct CoverWell: View {
     @Bindable var entry: FileEntry
+    @Environment(AppModel.self) private var model
     @State private var isTargeted = false
 
     private var artwork: Artwork? { entry.artworks.first }
@@ -107,7 +108,7 @@ struct CoverWell: View {
         panel.nameFieldStringValue = entry.url.deletingPathExtension()
             .lastPathComponent + "-cover." + ext
         if panel.runModal() == .OK, let url = panel.url {
-            try? artwork.data.write(to: url)
+            Task { await model.exportData(artwork.data, to: url) }
         }
     }
 }

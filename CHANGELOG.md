@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.64 — 2026-09-08
+
+- Cover-, Kapitel- und LRC-Export teilen einen sicheren Core-Schreibweg:
+  Bytes prüfen, vorhandenen Stand sichern, atomar ersetzen. Neue Ziele
+  werden exklusiv angelegt.
+- Exporte laufen im Hintergrund; die App zeigt Schreibfehler an.
+
 ## 0.46.63 — 2026-09-08
 
 - Bildansichten übernehmen keine Vorschauen oder Roh-Tags abgebrochener

@@ -1,6 +1,7 @@
 // Gemeinsame Formular-Bausteine der Editoren (Bild + E-Book; Audio hat für
 // Tags seine key-basierte BatchTextField-Form in BatchEditorView).
 import SwiftUI
+import TagExplosionCore
 
 /// Batch-Textfeld über get/set-Closures: zeigt den gemeinsamen Wert der
 /// Auswahl oder den Platzhalter „— verschieden —"; Eingabe setzt den Wert in
@@ -41,5 +42,19 @@ struct GridFieldLabel: View {
         Text(text)
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)
+    }
+}
+
+// Die Export-Panels bestätigen das Ziel; Dateisicherung und Austausch laufen
+// danach im Hintergrund. Fehler erscheinen im gemeinsamen App-Dialog.
+extension AppModel {
+    func exportData(_ data: Data, to url: URL) async {
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try FileExport.write(data, to: url)
+            }.value
+        } catch {
+            alertMessage = error.localizedDescription
+        }
     }
 }

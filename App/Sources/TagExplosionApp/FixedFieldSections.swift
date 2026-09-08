@@ -85,6 +85,7 @@ private func fieldBinding(_ entry: FileEntry, _ key: String) -> Binding<String> 
 
 struct LyricsSection: View {
     @Bindable var entry: FileEntry
+    @Environment(AppModel.self) private var model
     @State private var importError: String?
     @State private var languageText = ""
     @State private var languageError: String?
@@ -219,7 +220,8 @@ struct LyricsSection: View {
         panel.nameFieldStringValue = LRC.sidecarURL(for: entry.url).lastPathComponent
         panel.message = String(localized: "Synchronisierte Lyrics als LRC exportieren")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? Data(LRC.render(entry.syncedLyrics).utf8).write(to: url)
+        let data = Data(LRC.render(entry.syncedLyrics).utf8)
+        Task { await model.exportData(data, to: url) }
     }
 }
 

@@ -161,3 +161,14 @@ Audio-Puffer. Der normale App-Umbenennungsdialog verlangt zuvor Speichern
 oder Verwerfen; der separate Konstruktor erfüllt nun ebenfalls seinen
 Vertrag für noch bearbeitete Kapitel, Lyrics und Sprache. Der Regressionstest
 prüft Originalerhalt, eigenständiges Verwerfen und den unveränderten Quellpuffer.
+
+## Exporte aus dem Editor
+
+`FileExport.write` übernimmt bereits gerenderte Bytes für Cover, Kapitel und
+LRC. Es prüft die Geschwisterdatei bytegenau und verwendet
+`AtomicFileRewrite.run` beziehungsweise `create`. Vor dem Austausch liegt
+die Sicherung über `TrashBackup`; Stempelprüfungen schützen fremde Änderungen.
+Die drei Panels rufen `AppModel.exportData` auf: IO im Hintergrund, Fehler
+im App-Dialog. Ein Export darf Fehler nicht per `try?` verschlucken.
+Tests prüfen Neuanlage, erhaltenen Hardlink auf den alten Stand, Sicherung,
+Backupfehler und sichtbare Fehleranzeige ohne echte Fenster.

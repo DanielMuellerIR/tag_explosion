@@ -49,3 +49,13 @@ fremden atomaren Dateiaustauschs: Foundation unter macOS, `rename(2)` unter
 Linux. Die bisherigen Core- und CLI-Konflikttests prüfen diesen Helfer über
 die tatsächlich geänderte Dateiidentität. Die Fixture-Sperre verwendet
 `O_CLOEXEC`, damit gestartete Werkzeuge ihren Deskriptor nicht erben.
+
+## Neue Core-Dateien im App-Paket
+
+SwiftPM kann für die lokale Root-Abhängigkeit einen alten Bauplan verwenden:
+Eine neue Core-Datei baut im Root-Paket, ist im App-Paket aber noch unbekannt.
+Am 2026-09-08 half weder ein erneuter Lauf noch ein aktualisierter
+Manifest-Zeitstempel. `swift test --package-path App
+--disable-build-manifest-caching` erzeugte den Plan neu und bestand.
+Die Option gehört auf dieselbe Kommandozeile; kein Löschen der Dependencies
+oder vollständiges Bereinigen erforderlich.
