@@ -169,9 +169,9 @@ struct RenameFromTagsSheet: View {
                     Text(row.item.target.isEmpty ? "—" : row.item.target)
                         .lineLimit(1)
                         .foregroundStyle(row.item.status == .unchanged ? .secondary : .primary)
-                    // Die XMP-Sidecar eines Bildes wandert im selben Zug mit.
-                    if let sidecar = row.item.sidecarTarget {
-                        Text("+ Sidecar \(sidecar)")
+                    // Alle namensgebundenen Sidecars werden mit umbenannt.
+                    ForEach(row.item.sidecarMoves, id: \.source) { move in
+                        Text("+ Sidecar \(move.target)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)

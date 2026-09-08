@@ -57,6 +57,42 @@ struct AppModelRenameTests {
         #expect(try Data(contentsOf: renamedFirst) == Data("inhalt a.mp3".utf8))
     }
 
+    @Test("Beide Bilder eines RAW-JPEG-Paars behalten ihren gemeinsamen XMP-Pfad")
+    func sharedXMPRelocatesBothEntries() async throws {
+        let directory = try makeDirectory("shared-xmp")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let sidecar = directory.appendingPathComponent("Alt.xmp")
+        try Data("xmp".utf8).write(to: sidecar)
+        let entries = try ["nef", "jpg"].map { ext in
+            let url = directory.appendingPathComponent("Alt").appendingPathExtension(ext)
+            try Data("image".utf8).write(to: url)
+            return FileEntry(url: url, loaded: .image(ImageCoreReading(
+                fields: ImageCoreFields(title: "Neu"), sidecarURL: sidecar)))
+        }
+        let model = AppModel()
+        model.entries = entries
+        await model.renameFiles(entries, pattern: try FilenamePattern("%{title}"))
+        #expect(model.alertMessage == nil)
+        let target = directory.appendingPathComponent("Neu.xmp")
+        for entry in model.entries { #expect(entry.imageReading.sidecarURL == target) }
+        #expect(try Data(contentsOf: target) == Data("xmp".utf8))
+    }
+
+    @Test("Journalwarnung bleibt sichtbar und erfolgreiche Einträge folgen dem neuen Namen")
+    func renameWarningKeepsSuccessfulRelocation() throws {
+        let directory = try makeDirectory("warning")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let entry = try audioEntry(at: directory.appendingPathComponent("Alt.mp3"), ["TITLE": "Neu"])
+        let target = directory.appendingPathComponent("Neu.mp3")
+        try FileManager.default.moveItem(at: entry.url, to: target)
+        let model = AppModel()
+        model.entries = [entry]
+        model.applyRenameOutcomes([.init(source: entry.url.path, target: target.path,
+                                        warning: "backup history unavailable")])
+        #expect(model.entries.first?.url == target)
+        #expect(model.alertMessage?.contains("backup history unavailable") == true)
+    }
+
     @Test("Konflikt im Plan: nichts wird umbenannt, der Hinweis nennt den Grund")
     func renameRefusesConflictingPlan() async throws {
         let directory = try makeDirectory("conflict")

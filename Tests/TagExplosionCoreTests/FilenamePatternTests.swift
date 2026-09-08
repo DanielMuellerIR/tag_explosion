@@ -266,10 +266,93 @@ struct FileRenamerTests {
         let outcomes = try FileRenamer.apply(plan)
         #expect(outcomes.allSatisfy { $0.succeeded })
         #expect(outcomes[0].sidecarTarget == directory.appendingPathComponent("Strand.xmp").path)
+        #expect(outcomes[1].sidecarTarget == outcomes[0].sidecarTarget)
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.nef").path))
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Strand.xmp").path))
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("Notiz.xmp").path))
         #expect(!FileManager.default.fileExists(atPath: sidecar.path))
+    }
+
+    @Test("Ein gescheiterter XMP-Umzug blockiert auch die zweite Datei des RAW-JPEG-Paars")
+    func sharedSidecarFailureBlocksDependentRename() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let raw = directory.appendingPathComponent("IMG_1.nef")
+        let jpg = directory.appendingPathComponent("IMG_1.jpg")
+        let xmp = directory.appendingPathComponent("IMG_1.xmp")
+        for url in [raw, jpg, xmp] { try touch(url) }
+        let plan = FileRenamer.plan([raw, jpg].map { .init(url: $0, fields: ["TITLE": "Neu"]) },
+                                    pattern: try FilenamePattern("%{title}"))
+        try FileManager.default.removeItem(at: raw)
+        let outcomes = try FileRenamer.apply(plan, journal: BackupJournal(url: directory.appendingPathComponent("journal.json")))
+        #expect(outcomes.count == 2)
+        #expect(outcomes.allSatisfy { !$0.succeeded })
+        #expect(FileManager.default.fileExists(atPath: jpg.path))
+        #expect(FileManager.default.fileExists(atPath: xmp.path))
+    }
+
+    @Test("MP4 nimmt NFO und LRC mit; ein belegtes zweites Sidecar-Ziel blockiert alles")
+    func multipleSidecarsFollowRename() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let urls = ["mp4", "nfo", "lrc"].map { directory.appendingPathComponent("Alt").appendingPathExtension($0) }
+        for url in urls { try touch(url) }
+        let targetLRC = directory.appendingPathComponent("Neu.lrc")
+        try touch(targetLRC)
+        let requests = [FileRenamer.Request(url: urls[0], fields: ["TITLE": "Neu"])]
+        let pattern = try FilenamePattern("%{title}")
+        #expect(FileRenamer.plan(requests, pattern: pattern).hasConflicts)
+        try FileManager.default.removeItem(at: targetLRC)
+        let journal = BackupJournal(url: directory.appendingPathComponent("journal.json"))
+        let plan = FileRenamer.plan(requests, pattern: pattern)
+        #expect(!plan.hasConflicts)
+        #expect(plan.items[0].sidecarMoves.map(\.target) == ["Neu.nfo", "Neu.lrc"])
+        // Der Vorschauplan bleibt auch als JSON vollständig ausführbar.
+        let restored = try JSONDecoder().decode(FileRenamer.Plan.self, from: JSONEncoder().encode(plan))
+        #expect(restored == plan)
+        // Zwischen Vorschau und Ausführung verschwundene zweite Sidecar:
+        // Die Vorprüfung muss Medium UND erste Sidecar unangetastet lassen.
+        try FileManager.default.removeItem(at: urls[2])
+        let blocked = try FileRenamer.apply(restored, journal: journal)
+        #expect(blocked.first?.succeeded == false)
+        for url in urls.prefix(2) { #expect(try Data(contentsOf: url) == Data("x".utf8)) }
+        try touch(urls[2])
+        let copy = directory.appendingPathComponent("backup.bin")
+        try touch(copy)
+        for url in urls { try journal.record(original: url, backup: copy, size: 1, reason: BackupReason.tags) }
+        let outcomes = try FileRenamer.apply(restored, journal: journal)
+        #expect(outcomes[0].sidecarTargets.map { URL(fileURLWithPath: $0).lastPathComponent } == ["Neu.nfo", "Neu.lrc"])
+        #expect(journal.rawEntries().allSatisfy { URL(fileURLWithPath: $0.originalPath).deletingPathExtension().lastPathComponent == "Neu" })
+        #expect(outcomes.allSatisfy { $0.succeeded })
+        for url in urls {
+            #expect(!FileManager.default.fileExists(atPath: url.path))
+            let target = directory.appendingPathComponent("Neu").appendingPathExtension(url.pathExtension)
+            #expect(try Data(contentsOf: target) == Data("x".utf8))
+        }
+    }
+
+    @Test("Fehler beim zweiten Sidecar-Umzug stellt vorherige Dateien wieder her", arguments: [false, true])
+    func failedSecondSidecarRollsBack(rollbackFails: Bool) throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let urls = ["mp4", "nfo", "lrc"].map { directory.appendingPathComponent("Alt").appendingPathExtension($0) }
+        for url in urls { try touch(url) }
+        let plan = FileRenamer.plan([.init(url: urls[0], fields: ["TITLE": "Neu"])],
+                                    pattern: try FilenamePattern("%{title}"))
+        enum MoveError: Error { case injected }
+        let outcomes = try FileRenamer.apply(plan, journal: BackupJournal(url: directory.appendingPathComponent("journal.json"))) { source, target in
+            if source == urls[2] || (rollbackFails && source.lastPathComponent == "Neu.nfo") {
+                throw MoveError.injected
+            }
+            try FileManager.default.moveItem(at: source, to: target)
+        }
+        #expect(outcomes.first?.succeeded == false)
+        // Ein fehlgeschlagener NFO-Rückweg darf den Rückweg des Mediums nicht verhindern.
+        #expect(try Data(contentsOf: urls[0]) == Data("x".utf8))
+        #expect(try Data(contentsOf: urls[2]) == Data("x".utf8))
+        let nfo = rollbackFails ? directory.appendingPathComponent("Neu.nfo") : urls[1]
+        #expect(try Data(contentsOf: nfo) == Data("x".utf8))
+        if rollbackFails { #expect(outcomes[0].error?.contains(nfo.path) == true) }
     }
 
     @Test("Sidecar-Konflikte: belegtes Ziel, geteilte Sidecar mit zwei Namen, Zielname eines anderen Eintrags")

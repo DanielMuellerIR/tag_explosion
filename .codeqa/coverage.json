@@ -383,13 +383,19 @@
       "risk": "high",
       "priority": 7,
       "reason": "Umbenennungen mit Sidecars, Kollisionen und Rollback; gemeinsame Muster zwischen App und CLI.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:24:30+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T02:35:39+02:00",
+        "observed_head": "0df37295f9fc85e12f409f7ac32dc2173501643c",
+        "content_sha256": "ba3fa259479065f1ceeda55fd507d5549b74dcc573d6293efd72b97f89bb0312",
+        "file_count": 8,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle acht Dateien einschließlich CLI-Schreibpfaden, App-Vorschau und Tests geprüft. Musterübernahme für vier Feldmodelle bei Fehlern atomar; Punkt-Leerzeichen-Präfix korrigiert. Zwei bestehende/ergänzte Tests zeigten zuvor fünf Fehler. Mehrfach-Sidecars und abhängige Umbenennungen als Querschnittsthema erfasst; Warnungsanzeige dort mitprüfen. Bestehende CLI- und App-Tests schützen unterschiedliche Grenzen und bleiben.",
+        "tests": [
+          "swift test: 484 Tests, 6.667 s; App swift test: 115 Tests, 0.501 s; Commit 0df3729"
+        ]
       }
     },
     {
@@ -1134,9 +1140,15 @@
         "Sources/tagx/RenameCommands.swift"
       ],
       "priority": 7,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T02:35:00+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T02:35:39+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:35:39+02:00",
+        "observed_head": "0df37295f9fc85e12f409f7ac32dc2173501643c"
+      }
     }
   ]
 }

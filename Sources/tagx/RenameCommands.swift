@@ -117,13 +117,18 @@ struct Rename: ParsableCommand {
                     print("FAILED \(outcome.source): \(error)")
                 } else {
                     var line = "OK \(outcome.source) -> \(URL(fileURLWithPath: outcome.target).lastPathComponent)"
-                    if let sidecar = outcome.sidecarTarget {
+                    for sidecar in outcome.sidecarTargets {
                         line += " (+ sidecar \(URL(fileURLWithPath: sidecar).lastPathComponent))"
                     }
                     print(line)
                 }
             }
             print("Renamed \(outcomes.filter(\.succeeded).count) of \(outcomes.count) file(s)")
+        }
+        for outcome in outcomes {
+            if let warning = outcome.warning {
+                FileHandle.standardError.write(Data("WARNING \(outcome.source): \(warning)\n".utf8))
+            }
         }
         if outcomes.contains(where: { !$0.succeeded }) { throw ExitCode(1) }
     }
@@ -133,8 +138,8 @@ struct Rename: ParsableCommand {
             switch item.status {
             case .rename:
                 var line = "RENAME \(item.source) -> \(item.target)"
-                if let sidecarSource = item.sidecarSource, let sidecarTarget = item.sidecarTarget {
-                    line += " (+ sidecar \(URL(fileURLWithPath: sidecarSource).lastPathComponent) -> \(sidecarTarget))"
+                for move in item.sidecarMoves {
+                    line += " (+ sidecar \(move.sourceURL.lastPathComponent) -> \(move.target))"
                 }
                 print(line)
             case .unchanged: print("KEEP \(item.source)")

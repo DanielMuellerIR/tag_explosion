@@ -147,8 +147,18 @@ extension AppModel {
             return
         }
 
+        applyRenameOutcomes(outcomes)
+    }
+
+    /// Einträge folgen erfolgreichen Umzügen auch bei einem Journalfehler;
+    /// dessen Warnung bleibt sichtbar, damit die Historie nicht sicher erscheint.
+    func applyRenameOutcomes(_ outcomes: [FileRenamer.Outcome]) {
         var failures: [String] = []
+        var warnings: [String] = []
         for outcome in outcomes {
+            if let warning = outcome.warning {
+                warnings.append("\(URL(fileURLWithPath: outcome.source).lastPathComponent): \(warning)")
+            }
             guard outcome.succeeded else {
                 failures.append("\(URL(fileURLWithPath: outcome.source).lastPathComponent): \(outcome.error ?? "")")
                 continue
@@ -157,10 +167,12 @@ extension AppModel {
                           to: URL(fileURLWithPath: outcome.target),
                           sidecar: outcome.sidecarTarget.map { URL(fileURLWithPath: $0) })
         }
+        var messages = warnings
         if !failures.isEmpty {
-            alertMessage = String(localized: "Nicht alle Dateien konnten umbenannt werden:") + "\n"
-                + failures.joined(separator: "\n")
+            messages.insert(String(localized: "Nicht alle Dateien konnten umbenannt werden:") + "\n"
+                + failures.joined(separator: "\n"), at: 0)
         }
+        if !messages.isEmpty { alertMessage = messages.joined(separator: "\n") }
     }
 
     /// Ersetzt den Eintrag einer umbenannten Datei durch denselben Eintrag

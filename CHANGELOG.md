@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.28 — 2026-09-08
+
+- Umbenennen berücksichtigt alle namensgebundenen Sidecars, auch NFO und LRC
+  neben derselben MP4. Alle Ziele werden vorab geprüft; nach einem Fehler
+  laufen die Rückwege bereits umbenannter Dateien in umgekehrter Reihenfolge.
+- Scheitert der gemeinsame XMP-Umzug eines RAW-/JPEG-Paars, bleibt auch die
+  abhängige Datei unverändert. Nach Erfolg kennen beide App-Einträge den
+  neuen XMP-Pfad.
+- Vorschau und CLI zeigen zusätzliche Sidecars. Warnungen zur nachgeführten
+  Sicherungshistorie erscheinen in der App und auf stderr; JSON enthält
+  weiterhin die bisherigen Einzelpfade und ergänzt weitere Pfade optional.
+
 ## 0.46.27 — 2026-09-08
 
 - Dateinamen-Import übernimmt Bild-, E-Book-, Dokument- und NFO-Felder erst,

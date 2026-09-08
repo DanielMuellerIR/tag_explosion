@@ -17,6 +17,18 @@ import Foundation
 
 public enum FileRenamer {
 
+    /// Sidecar-Pfad und neuer Dateiname im selben Ordner.
+    public struct SidecarMove: Sendable, Codable, Equatable {
+        public var source: String
+        public var target: String
+        public init(source: String, target: String) {
+            self.source = source
+            self.target = target
+        }
+        public var sourceURL: URL { URL(fileURLWithPath: source) }
+        public var targetURL: URL { sourceURL.deletingLastPathComponent().appendingPathComponent(target) }
+    }
+
     /// Eine geplante Umbenennung mit Ergebnis der Prüfung.
     public struct Item: Sendable, Codable, Equatable {
         public enum Status: String, Sendable, Codable {
@@ -37,19 +49,30 @@ public enum FileRenamer {
         /// Namensgebundene Sidecar, die im selben Zug auf den neuen Stamm
         /// umbenannt wird (Pfad): `<name>.xmp` neben einem Bild, `<name>.lrc`
         /// neben Audio, `<name>.nfo` neben einem Video (siehe
-        /// `companionSidecar`). nil = keine Sidecar, Datei ist selbst eine
+        /// `companionSidecars`). nil = keine Sidecar, Datei ist selbst eine
         /// `.xmp`, oder ein früherer Eintrag des Plans nimmt dieselbe Sidecar
         /// schon mit (RAW+JPEG-Paar).
         public var sidecarSource: String?
         /// Neuer Name der Sidecar (nur Dateiname, gleicher Ordner).
         public var sidecarTarget: String?
+        /// Weitere Sidecars, etwa LRC neben einer MP4 mit NFO. Optional hält
+        /// gespeicherte Pläne ohne dieses Feld weiterhin lesbar.
+        public var additionalSidecars: [SidecarMove]?
+        public var sidecarMoves: [SidecarMove] {
+            let first = sidecarSource.flatMap { source in
+                sidecarTarget.map { SidecarMove(source: source, target: $0) }
+            }
+            return first.map { [$0] + (additionalSidecars ?? []) } ?? (additionalSidecars ?? [])
+        }
 
         public init(source: String, target: String, status: Status, reason: String? = nil,
-                    sidecarSource: String? = nil, sidecarTarget: String? = nil) {
+                    sidecarSource: String? = nil, sidecarTarget: String? = nil,
+                    additionalSidecars: [SidecarMove]? = nil) {
             self.source = source
             self.target = target
             self.status = status
             self.reason = reason
+            self.additionalSidecars = additionalSidecars
             self.sidecarSource = sidecarSource
             self.sidecarTarget = sidecarTarget
         }
@@ -95,14 +118,19 @@ public enum FileRenamer {
         /// Umbenannt, aber ein Nebenweg (Sicherungs-Journal) scheiterte;
         /// nil = alles in Ordnung.
         public var warning: String?
+        public var additionalSidecarTargets: [String]?
+        public var sidecarTargets: [String] {
+            (sidecarTarget.map { [$0] } ?? []) + (additionalSidecarTargets ?? [])
+        }
 
         public init(source: String, target: String, error: String? = nil, sidecarTarget: String? = nil,
-                    warning: String? = nil) {
+                    warning: String? = nil, additionalSidecarTargets: [String]? = nil) {
             self.source = source
             self.target = target
             self.error = error
             self.sidecarTarget = sidecarTarget
             self.warning = warning
+            self.additionalSidecarTargets = additionalSidecarTargets
         }
 
         public var succeeded: Bool { error == nil }
@@ -177,8 +205,8 @@ public enum FileRenamer {
 
             // Namensgebundene Sidecar (XMP/LRC/NFO): gleicher Stamm wie das
             // neue Ziel, sonst fände die Mediendatei ihre Werte nicht mehr.
-            if item.status == .rename, let sidecar = companionSidecar(of: source) {
-                do {
+            if item.status == .rename {
+                for sidecar in companionSidecars(of: source) {
                     let sidecarTarget = item.targetURL.deletingPathExtension()
                         .appendingPathExtension(sidecar.pathExtension).lastPathComponent
                     if let earlier = sidecarMoves[sidecar.path] {
@@ -196,8 +224,13 @@ public enum FileRenamer {
                         item.status = .conflict
                         item.reason = "A file named \(sidecarTarget) already exists (sidecar target)"
                     } else {
-                        item.sidecarSource = sidecar.path
-                        item.sidecarTarget = sidecarTarget
+                        if item.sidecarSource == nil {
+                            item.sidecarSource = sidecar.path
+                            item.sidecarTarget = sidecarTarget
+                        } else {
+                            item.additionalSidecars = (item.additionalSidecars ?? [])
+                                + [SidecarMove(source: sidecar.path, target: sidecarTarget)]
+                        }
                     }
                 }
             }
@@ -207,9 +240,9 @@ public enum FileRenamer {
             // unverändert bleibt.
             if item.status != .conflict {
                 claimed[directory, default: [:]][comparable(target)] = source.lastPathComponent
-                if let sidecarSource = item.sidecarSource, let sidecarTarget = item.sidecarTarget {
-                    claimed[directory, default: [:]][comparable(sidecarTarget)] = sidecarSource
-                    sidecarMoves[sidecarSource] = sidecarTarget
+                for move in item.sidecarMoves {
+                    claimed[directory, default: [:]][comparable(move.target)] = move.source
+                    sidecarMoves[move.source] = move.target
                 }
             }
             items.append(item)
@@ -217,25 +250,25 @@ public enum FileRenamer {
         return Plan(items: items)
     }
 
-    /// Namensgebundene Sidecar einer Mediendatei, sofern sie daneben liegt:
-    /// `<name>.xmp` bei Bildern (eine `.xmp` selbst hat keine — sie IST
-    /// eine), `<name>.nfo` bei Videos, `<name>.lrc` bei Audio. Sidecars mit
-    /// eigenem Sprachsuffix (`film.de.srt`) sind bewusst nicht dabei — ihre
-    /// Zuordnung ist nicht eindeutig.
-    static func companionSidecar(of source: URL) -> URL? {
+    /// Namensgebundene Sidecars. Sprachsuffixe wie `film.de.srt` bleiben
+    /// ausgenommen, weil ihre Zuordnung nicht eindeutig ist.
+    static func companionSidecars(of source: URL) -> [URL] {
+        sidecarCandidates(of: source).filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    /// Auch nach einem fehlgeschlagenen Umzug muss eine inzwischen fehlende
+    /// Sidecar als Abhängigkeit des Plans erkennbar bleiben.
+    private static func sidecarCandidates(of source: URL) -> [URL] {
         let ext = source.pathExtension.lowercased()
-        let candidate: URL
         if MediaFormats.image.contains(ext) {
-            guard !MediaFormats.isXMPSidecar(source) else { return nil }
-            candidate = MediaFormats.sidecarURL(for: source)
-        } else if MediaFormats.nfoVideo.contains(ext) {
-            candidate = source.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension)
-        } else if MediaFormats.audio.contains(ext) {
-            candidate = LRC.sidecarURL(for: source)
-        } else {
-            return nil
+            return MediaFormats.isXMPSidecar(source) ? [] : [MediaFormats.sidecarURL(for: source)]
         }
-        return FileManager.default.fileExists(atPath: candidate.path) ? candidate : nil
+        var candidates: [URL] = []
+        if MediaFormats.nfoVideo.contains(ext) {
+            candidates.append(source.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension))
+        }
+        if MediaFormats.audio.contains(ext) { candidates.append(LRC.sidecarURL(for: source)) }
+        return candidates
     }
 
     /// Führt die Umbenennungen des Plans aus — nur die Einträge mit Status
@@ -252,50 +285,78 @@ public enum FileRenamer {
     /// `journal` auf den neuen Pfad — sonst fände „Letzte Änderung
     /// rückgängig“ die Versionen von vor der Umbenennung nicht mehr.
     public static func apply(_ plan: Plan, journal: BackupJournal = .standard) throws -> [Outcome] {
+        try apply(plan, journal: journal) { source, target in
+            try FileManager.default.moveItem(at: source, to: target)
+        }
+    }
+
+    /// Austauschbarer Dateiumzug für deterministische Fehlerprüfungen:
+    /// Tests bewegen echte Dateien und können genau einen Umzug ablehnen.
+    static func apply(_ plan: Plan, journal: BackupJournal,
+                      moveItem: (URL, URL) throws -> Void) throws -> [Outcome] {
         guard !plan.hasConflicts else { throw RenameError.planHasConflicts }
-        let fm = FileManager.default
+        let renames = plan.renames
+        // Nur der erste Eintrag bewegt eine geteilte Sidecar. Weitere
+        // Einträge dürfen erst folgen, wenn dieser Umzug gelungen ist.
+        var owners: [String: String] = [:]
+        for item in renames {
+            for move in item.sidecarMoves where owners[move.source] == nil {
+                owners[move.source] = item.source
+            }
+        }
+        var movedSidecars: [String: String] = [:]
         var outcomes: [Outcome] = []
-        for item in plan.renames {
+        for item in renames {
             let sourceURL = item.sourceURL
             let targetURL = item.targetURL
             var outcome = Outcome(source: item.source, target: targetURL.path, error: nil)
             do {
-                try requireMovable(from: sourceURL, to: targetURL)
-                if let sidecarSource = item.sidecarSourceURL, let sidecarTarget = item.sidecarTargetURL {
-                    // Beide Ziele vorher prüfen, dann Medium und Sidecar bewegen.
-                    // Scheitert die Sidecar, geht das Medium zurück — beide
-                    // sollen nie unter verschiedenen Namen liegen.
-                    try requireMovable(from: sidecarSource, to: sidecarTarget)
-                    try fm.moveItem(at: sourceURL, to: targetURL)
-                    do {
-                        try fm.moveItem(at: sidecarSource, to: sidecarTarget)
-                        outcome.sidecarTarget = sidecarTarget.path
-                    } catch {
-                        // Der Rückweg kann selbst scheitern (Quellname inzwischen
-                        // belegt, Rechte geändert). Dann liegen Medium und
-                        // Sidecar getrennt — das muss der Fehler klar sagen,
-                        // statt so zu tun, als sei nichts passiert.
-                        do {
-                            try fm.moveItem(at: targetURL, to: sourceURL)
-                        } catch let rollback {
-                            throw RenameError.sidecarRollbackFailed(
-                                file: targetURL.path, sidecar: sidecarSource.path,
-                                reason: "\(error.localizedDescription); moving the file back failed: \(rollback.localizedDescription)")
+                var sharedTargets: [String] = []
+                for candidate in sidecarCandidates(of: sourceURL) {
+                    if let owner = owners[candidate.path], owner != item.source {
+                        guard let target = movedSidecars[candidate.path] else {
+                            throw RenameError.sharedSidecarNotRenamed(path: candidate.path)
                         }
-                        throw error
+                        sharedTargets.append(target)
                     }
-                } else {
-                    try fm.moveItem(at: sourceURL, to: targetURL)
                 }
-                // Historie nachziehen. Die Umbenennung selbst ist gelungen;
-                // ein Journalfehler wird gemeldet, macht sie aber nicht rückgängig.
+                let moves = [(sourceURL, targetURL)] + item.sidecarMoves.map { ($0.sourceURL, $0.targetURL) }
+                for (source, target) in moves { try requireMovable(from: source, to: target) }
+                var completed: [(URL, URL)] = []
                 do {
-                    try journal.relocate(from: sourceURL, to: targetURL)
-                    if let sidecarSource = item.sidecarSourceURL, let sidecarTarget = item.sidecarTargetURL {
-                        try journal.relocate(from: sidecarSource, to: sidecarTarget)
+                    for (source, target) in moves {
+                        try moveItem(source, target)
+                        completed.append((source, target))
                     }
                 } catch {
-                    outcome.warning = "renamed, but the backup history could not be updated: \(error.localizedDescription)"
+                    // In umgekehrter Reihenfolge zurück; auch nach einem
+                    // Rückwegfehler die übrigen Dateien wiederherstellen.
+                    var rollbackErrors: [String] = []
+                    for (source, target) in completed.reversed() {
+                        do { try moveItem(target, source) }
+                        catch { rollbackErrors.append("\(target.path): \(error.localizedDescription)") }
+                    }
+                    if !rollbackErrors.isEmpty {
+                        throw RenameError.sidecarRollbackFailed(
+                            file: targetURL.path,
+                            sidecar: item.sidecarMoves.map(\.source).joined(separator: ", "),
+                            reason: "\(error.localizedDescription); moving back failed: \(rollbackErrors.joined(separator: "; "))")
+                    }
+                    throw error
+                }
+                for move in item.sidecarMoves { movedSidecars[move.source] = move.targetURL.path }
+                let targets = item.sidecarMoves.map { $0.targetURL.path } + sharedTargets
+                outcome.sidecarTarget = targets.first
+                outcome.additionalSidecarTargets = targets.count > 1 ? Array(targets.dropFirst()) : nil
+                // Jeden Journalpfad nachziehen, auch wenn ein anderer scheitert.
+                var warnings: [String] = []
+                for (source, target) in moves {
+                    do { try journal.relocate(from: source, to: target) }
+                    catch { warnings.append(error.localizedDescription) }
+                }
+                if !warnings.isEmpty {
+                    outcome.warning = "renamed, but the backup history could not be updated: "
+                        + warnings.joined(separator: "; ")
                 }
             } catch {
                 outcome.error = error.localizedDescription
@@ -322,21 +383,24 @@ public enum FileRenamer {
     public enum RenameError: Error, LocalizedError, Equatable, Sendable {
         case planHasConflicts
         case sourceMissing(path: String)
+        case sharedSidecarNotRenamed(path: String)
         case targetExists(path: String)
-        /// Medium umbenannt, Sidecar nicht — und der Rückweg des Mediums
-        /// scheiterte ebenfalls. Beide liegen jetzt unter verschiedenen Namen.
+        /// Mindestens ein Rückweg ist gescheitert. `reason` nennt die
+        /// tatsächlich verbliebenen Zielpfade; andere Dateien können bereits zurück sein.
         case sidecarRollbackFailed(file: String, sidecar: String, reason: String)
 
         public var errorDescription: String? {
             switch self {
             case .planHasConflicts:
                 return "The rename plan has conflicts; nothing was renamed"
+            case .sharedSidecarNotRenamed(let path):
+                return "Shared sidecar was not renamed; dependent file stays unchanged: \(path)"
             case .sourceMissing(let path):
                 return "File disappeared before renaming: \(path)"
             case .targetExists(let path):
                 return "A file with this name appeared in the meantime: \(path)"
             case .sidecarRollbackFailed(let file, let sidecar, let reason):
-                return "Renamed \(file) but its sidecar \(sidecar) could not follow and the file could not be moved back — they now have different names: \(reason)"
+                return "Could not fully restore the rename group for \(file) and sidecars \(sidecar): \(reason)"
             }
         }
     }
