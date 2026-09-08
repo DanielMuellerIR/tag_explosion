@@ -32,7 +32,11 @@ public struct LookupHTTPResponse: Sendable, Equatable {
 
     public init(statusCode: Int, headers: [String: String] = [:], body: Data = Data()) {
         self.statusCode = statusCode
-        self.headers = Dictionary(uniqueKeysWithValues: headers.map { ($0.key.lowercased(), $0.value) })
+        self.headers = [:]
+        // Bei mehrfacher Schreibweise gewinnt deterministisch der kleingeschriebene Name.
+        for (name, value) in headers.sorted(by: { $0.key < $1.key }) {
+            self.headers[name.lowercased()] = value
+        }
         self.body = body
     }
 }

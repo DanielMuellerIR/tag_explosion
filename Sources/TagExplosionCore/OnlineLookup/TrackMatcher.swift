@@ -59,7 +59,8 @@ public enum TrackMatcher {
                 let similarity = titleSimilarity(file.title, track.title)
                 let durationMatches: Bool
                 if let fileDuration = file.durationMilliseconds, let trackDuration = track.durationMilliseconds {
-                    durationMatches = abs(fileDuration - trackDuration) <= durationToleranceMilliseconds
+                    let (difference, overflow) = fileDuration.subtractingReportingOverflow(trackDuration)
+                    durationMatches = !overflow && (-durationToleranceMilliseconds...durationToleranceMilliseconds).contains(difference)
                 } else {
                     durationMatches = false
                 }

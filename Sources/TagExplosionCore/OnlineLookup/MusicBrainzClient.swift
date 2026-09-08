@@ -130,9 +130,10 @@ struct MusicBrainzClient: Sendable {
         let catalog = labelInfo.map { LookupJSON.string($0["catalog-number"]) } ?? ""
         let group = release["release-group"] as? [String: Any]
 
+        let media = LookupJSON.array(release["media"])
         var tracks: [LookupTrack] = []
         var hasFull = false
-        for medium in LookupJSON.array(release["media"]) {
+        for medium in media {
             let disc = LookupJSON.int(medium["position"]) ?? 1
             let list = LookupJSON.array(medium["tracks"])
             if !list.isEmpty { hasFull = true }
@@ -152,8 +153,12 @@ struct MusicBrainzClient: Sendable {
             }
         }
         // Gesamtzahl: aus "track-count" (Suche) oder der Summe der Medien.
-        let trackCount = LookupJSON.int(release["track-count"])
-            ?? LookupJSON.array(release["media"]).compactMap { LookupJSON.int($0["track-count"]) }.reduce(0, +)
+        let trackCount = LookupJSON.int(release["track-count"]) ?? media.reduce(Optional(0)) { total, medium in
+            guard let total else { return nil }
+            let count = LookupJSON.int(medium["track-count"]) ?? 0
+            let (sum, overflow) = total.addingReportingOverflow(count)
+            return count >= 0 && !overflow ? sum : nil
+        }
 
         return LookupCandidate(
             source: .musicbrainz,

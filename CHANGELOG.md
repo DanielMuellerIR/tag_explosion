@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.56 — 2026-09-08
+
+- Online-Antworten vertragen doppelte Header-Schreibweisen und übergroße
+  Trackanzahlen. Der Dauervergleich prüft die Differenz ohne Überlauf.
+
 ## 0.46.55 — 2026-09-08
 
 - Online-Parser prüfen Dauern vor der Umrechnung und behandeln übergroße

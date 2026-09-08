@@ -111,6 +111,12 @@ private let caa = URL(string: "https://coverartarchive.org")!
 
 @Suite("Online-Lookup: Freigabe und Ratenbegrenzer")
 struct OnlineLookupPolicyTests {
+    @Test("HTTP-Header vertragen unterschiedliche Schreibweisen desselben Namens")
+    func headerNormalization() {
+        let response = LookupHTTPResponse(statusCode: 503, headers: ["Retry-After": "2", "retry-after": "3"])
+        #expect(response.headers == ["retry-after": "3"])
+    }
+
     @Test("User-Agent trägt Version und Kontaktadresse")
     func userAgent() {
         #expect(OnlineLookupConsent.userAgent(version: "0.34.0")
@@ -228,6 +234,8 @@ struct OnlineLookupParserTests {
         #expect(c.tracks[0].recordingID == "rrrrrrrr-0000-0000-0000-000000000001")
         #expect(c.tracks[0].artist == nil, "Album-Interpret wird nicht je Titel wiederholt")
         #expect(c.tracks[1].artist == "Gast")
+        let oversized: [String: Any] = ["id": "r", "media": [["track-count": Int.max], ["track-count": 1]]]
+        #expect(try MusicBrainzClient.parseRelease(oversized, score: 0, coverArtBaseURL: caa).trackCount == nil)
     }
 
     @Test("MusicBrainz-Recording-Suche: ein Kandidat je Release mit dem einen Titel")
@@ -356,6 +364,9 @@ struct OnlineLookupMatchingTests {
         #expect(result[1].track?.number == 1 && result[1].reason == .durationAndTitle)
         #expect(result[2].track == nil && result[2].reason == .none)
         #expect(result[3].track?.number == 3 && result[3].reason == .titleOnly)
+        let extremes = TrackMatcher.assign(files: [file("extreme.mp3", duration: Int.min, title: "Morgenlied")],
+            tracks: [LookupTrack(number: 1, title: "Morgenlied", durationMilliseconds: Int.max)])
+        #expect(extremes[0].reason == .titleOnly)
     }
 
     @Test("Jeder Titel nur einmal; eine doppelte Tracknummer entscheidet nicht")
