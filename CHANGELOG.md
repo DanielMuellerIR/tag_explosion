@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.70 — 2026-09-08
+
+- Code-QA mit 27 geprüften Bereichen und 20 abgeschlossenen Querschnittsfunden
+  dokumentiert. Architekturbeurteilung, Teständerungen, Vergleichsmessungen
+  und Abschlussprüfung stehen in `docs/CODEQA-2026-09-08.md`.
+- Abschlussprüfung: 508 Core-/CLI- und 129 App-Tests unter macOS, 502 Tests
+  unter Linux sowie headless Prüfungen der Icon-Generatoren bestanden.
+
 ## 0.46.69 — 2026-09-08
 
 - Textbericht und App gruppieren Bibliotheksbefunde einmal, statt sie je

@@ -4,9 +4,11 @@
   "campaign": {
     "id": "20260908T002532864338+0200",
     "token_budget": 8000000,
-    "status": "active",
+    "status": "complete",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 2783511
+    "tokens_spent": 3004295,
+    "finished_at": "2026-09-08T06:04:30+02:00",
+    "finish_reason": "all-current"
   },
   "campaign_history": [
     {
@@ -828,13 +830,19 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Dateigruppierung, Track-Vergleich und wiederholte Berechnungen in der Konsistenzprüfung.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:46:49+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T05:57:42+02:00",
+        "observed_head": "acbc1587350568e626909143536ca0d9c040cd00",
+        "content_sha256": "273381fea0c7fdb7c6997ca9c107240fcf96c5350da851aaa018695bdd5bd4b2",
+        "file_count": 7,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle sieben Dateien plus Bildgrößen-/FileEntry-Grenzen geprüft. Begrenzte gemeinsame Lückenberechnung, eindeutige Gruppenschlüssel/-Labels, unlesbare Dateien in JSON-Liste und Filter, überlaufsichere Dublettendauer. Einmalige Befundgruppierung verkürzt Bericht 3000 Gruppen 1,69 s auf 24 ms bytegleich. Neun CLI-Setupstarts entfernt, unabhängige Suites parallel.",
+        "tests": [
+          "508 Core-/CLI-Tests in 7,247 s und 129 App-Tests in 0,484 s; 25 Bereichstests in 0,100 s. Große Lücken zuvor zwei Meldungen mit je 7,9 Mio Zeichen; Gruppen-/Dateiliste neun Fehler; Extremdauer Prozessabbruch."
+        ]
       }
     },
     {
@@ -856,28 +864,29 @@
       "reason": "Eigene Entwicklungs-, Screenshot-, Asset- und Fixture-Werkzeuge ohne Produkt-Laufzeitwirkung.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:51:50+02:00",
-        "observed_head": "85598492633f8e2f2df98e7ce44bcd68eea4fa6c",
-        "content_sha256": "405d06597caf95ee445345d4ee47042227464a4385a69470490ee436d3b07389",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T06:03:06+02:00",
+        "observed_head": "acbc1587350568e626909143536ca0d9c040cd00",
+        "content_sha256": "67309f8995f4bd964cf247aa37c89a2ff637bf575a793836d9d57ee3031cfc93",
         "file_count": 10,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "GUI-Testkit, Prozessbesitz, Start-/Abbruchfristen, Screenshot-Nachweis, Accessibility-Ablauf, Icon-Generatoren sowie unveränderte Asset-/Fixture-Grenzen geprüft. Menütests suchten nur deutsche Titel und der Fenstertest belegte ⌘N nicht; deutsche/englische Suche sowie exakte AX-Tastatur- und Modifierprüfung ergänzt.",
+        "outcome": "reviewed-clean",
+        "summary": "Fixture-Generator vollständig gegen 8559849 geprüft: zusätzliche Audio-/Kapitel-/Tracker-/Bild- und Dokument-Fixtures, unabhängige Reparatur fehlender Archivvarianten und Aufrufgrenze zur gemeinsamen prozessübergreifenden Fixture-Sperre. Neun unveränderte Entwicklerwerkzeuge behalten ihren früheren Review-Nachweis; Shell-/Python-Syntax und echte headless Icon-Generatoren erneut geprüft. Kein weiterer lohnender Umbau.",
         "tests": [
-          "Alle drei aus Testkit und Skriptrumpf zusammengesetzten Swift-GUI-Programme typgeprüft; sh -n für GUI-, Icon- und Fixture-Skripte; Swift-Generatoren typgeprüft; Python-Generator kompiliert; Tests/icon-generator-tests.sh bestanden. Sichtbarer GUI-Lauf gemäß Fokusregel nicht gestartet."
+          "Shell-Syntax aller fünf Skripte und Python-AST: bestanden; Tests/icon-generator-tests.sh: parallele Ausgabe und Fehler-Exit-Codes bestanden.",
+          "Aktueller Stand acbc158: macOS 508 Core-/CLI-Tests und 129 App-Tests; Linux Swift 6.0: 502 Tests, 33.379 s, Exit 0. Plattformabhängige Tests begründet übersprungen."
         ]
       }
     }
   ],
   "architecture": {
     "campaign_id": "20260908T002532864338+0200",
-    "recorded_at": "2026-09-08T00:27:32+02:00",
-    "observed_head": "2d6e47dc63ff69dcf043f91ad5fb28002d4a33cd",
-    "summary": "AppModel koordiniert Fensteraktionen, FileEntry hält Editierpuffer und unveränderliche Speicheraufträge, AppFileIO kapselt Core-Aufrufe; CLI und App teilen die portablen Formatdienste. Neue Felder müssen in mehreren FileEntry-Übergängen konsistent mitgeführt werden. Die Tests besitzen mehrfach implementierte Fixture- und CLI-Ausführung.",
+    "recorded_at": "2026-09-08T06:03:06+02:00",
+    "observed_head": "acbc1587350568e626909143536ca0d9c040cd00",
+    "summary": "AppModel koordiniert Fensteraktionen, FileEntry hält Editierpuffer und unveränderliche Speicheraufträge, AppFileIO kapselt Core-Aufrufe; CLI und App teilen portable Formatdienste. FileEntry übernimmt gelesene Metadaten zentral. Gemeinsame Fixture- und Prozesshilfen ersetzen doppelte Testmechanik. Validierte Formulareingaben und Online-Detailanfragen besitzen getrennt testbare Zustände; sichere Exporte teilen einen Core-Schreibweg.",
     "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell pro Fenster, Fensterkoordinator und CLI-Adaptern",
-    "fit": "gespannt",
-    "recommendation": "Paradigma beibehalten; FileEntry-Übergänge und gemeinsame Testmechanik zuerst absichern und vereinfachen. Fachliche AppModel-Abläufe nur an belegten Grenzen ausgliedern. Bestehende Formbausteine für spätere Oberflächenänderungen nutzen; kein spekulatives Designsystem oder Paradigmenwechsel."
+    "fit": "passt",
+    "recommendation": "Schichtenmodell beibehalten. Neue Formatfelder mit Lese-, Bearbeitungs-, Speicher- und Fehlerfällen durch alle bestehenden Grenzen führen; vorhandene Formbausteine bei optischen Änderungen nutzen. Weitere AppModel-Ausgliederungen nur anhand zusammenhängender neuer Funktionen vornehmen. Ein vollständiger Architekturwechsel würde breite Migration und neue Fehlerrisiken verursachen, ohne einen in dieser Prüfung belegten Zusatznutzen."
   },
   "themes": [
     {
