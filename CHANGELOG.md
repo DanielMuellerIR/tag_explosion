@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.62 — 2026-09-08
+
+- Kapitel-Felder teilen einen geprüften Array-Zugriff. Bindings einer gerade
+  entfernten Zeile lesen Ersatzwerte und schreiben nichts, statt abzustürzen.
+
 ## 0.46.61 — 2026-09-08
 
 - Geprüfte Textfelder übertragen nur tatsächliche Eingaben. Fokusverlust

@@ -69,20 +69,13 @@ struct ChapterSection: View {
                 .foregroundStyle(.secondary)
                 .font(.body.monospacedDigit())
                 .gridColumnAlignment(.trailing)
-            TextField(String(localized: "Kapiteltitel"), text: Binding(
-                get: { entry.chapters[index].title },
-                set: { entry.chapters[index].title = $0 }
-            ))
+            TextField(String(localized: "Kapiteltitel"),
+                      text: Self.binding(entry, index: index, keyPath: \.title, fallback: ""))
             .textFieldStyle(.roundedBorder)
-            TimestampField(milliseconds: Binding(
-                get: { entry.chapters[index].startMilliseconds },
-                set: { entry.chapters[index].startMilliseconds = $0 }
-            ))
-            TimestampField(milliseconds: Binding(
-                get: { entry.chapters[index].endMilliseconds },
-                set: { entry.chapters[index].endMilliseconds = $0 }
-            ))
+            TimestampField(milliseconds: Self.binding(entry, index: index, keyPath: \.startMilliseconds, fallback: 0))
+            TimestampField(milliseconds: Self.binding(entry, index: index, keyPath: \.endMilliseconds, fallback: 0))
             Button {
+                guard entry.chapters.indices.contains(index) else { return }
                 entry.chapters.remove(at: index)
             } label: {
                 Image(systemName: "minus.circle.fill")
@@ -91,6 +84,20 @@ struct ChapterSection: View {
             .buttonStyle(.plain)
             .help("Kapitel entfernen")
         }
+    }
+
+    /// SwiftUI kann beim Entfernen einer Zeile kurz deren bisheriges Binding lesen.
+    static func binding<Value>(_ entry: FileEntry, index: Int,
+                               keyPath: WritableKeyPath<Chapter, Value>, fallback: Value) -> Binding<Value> {
+        Binding(
+            get: {
+                guard entry.chapters.indices.contains(index) else { return fallback }
+                return entry.chapters[index][keyPath: keyPath]
+            },
+            set: {
+                guard entry.chapters.indices.contains(index) else { return }
+                entry.chapters[index][keyPath: keyPath] = $0
+            })
     }
 
     /// Neues Kapitel beginnt, wo das letzte endet, und reicht bis zum
