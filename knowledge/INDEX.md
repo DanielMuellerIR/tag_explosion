@@ -19,6 +19,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Umlauten in Reports oder exiftool-Schreibfehlern: Surrogate-Escapes, MWG-Modul.
 - [gui-selbsttests.md](gui-selbsttests.md) — Bei GUI-/AX-Tests der App:
   was funktioniert (Maus, AX-Setzen), was nicht (synthetische Tastatur).
+- [ladeauftraege.md](ladeauftraege.md) — Bei Öffnen, Abbrechen und erneutem
+  Laden: Reservierungen, Fortschritt, Fehler und Reihenfolge je Ladevorgang.
 - [dateiliste-filter.md](dateiliste-filter.md) — Bei Suche, Sortierung und
   Auswahl der Dateiliste: aktuelle Metadaten, stabile Reihenfolge und Kosten.
 - [fenster-und-layout.md](fenster-und-layout.md) — Bei Arbeit an Fenstern,

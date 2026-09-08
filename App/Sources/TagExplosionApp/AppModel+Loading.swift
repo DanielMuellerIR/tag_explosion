@@ -10,12 +10,17 @@ final class FileLoadingState {
     var generation = 0
     var completed = 0
     var total = 0
-    var urls: Set<URL> = []
+    // Jede Reservierung gehört zu der Generation, die sie angelegt hat.
+    var urls: [URL: Int] = [:]
 }
 
 extension AppModel {
     /// Laufende Leser dürfen fertig werden; weitere Starts und Übernahmen enden.
-    func cancelLoading() { loading.generation += 1 }
+    func cancelLoading() {
+        loading.generation += 1
+        loading.completed = 0
+        loading.total = 0
+    }
 
     // MARK: - Öffnen
 
@@ -57,11 +62,19 @@ extension AppModel {
         // vergleichen und reservieren. Zwischen Prüfung und Eintragen kann kein
         // zweiter `open`-Aufruf dazwischenfunken.
         let existing = Set(entries.map { MediaFormats.canonicalFileURL($0.url) })
-        let newFiles = candidates.filter {
-            !existing.contains($0) && loading.urls.insert($0).inserted
+        let newFiles = candidates.filter { url in
+            guard !existing.contains(url), loading.urls[url] != generation else { return false }
+            loading.urls[url] = generation
+            return true
         }
         guard !newFiles.isEmpty else { return }
-        defer { loading.urls.subtract(newFiles) }
+        defer {
+            // Ein abgebrochener Leser darf inzwischen erneuerte Reservierungen
+            // nicht freigeben, während deren neuer Auftrag noch läuft.
+            for url in newFiles where loading.urls[url] == generation {
+                loading.urls.removeValue(forKey: url)
+            }
+        }
 
         loading.total += newFiles.count
         var failures: [String] = []
@@ -109,7 +122,7 @@ extension AppModel {
                 addNext()
             }
         }
-        if !failures.isEmpty {
+        if generation == loading.generation, !Task.isCancelled, !failures.isEmpty {
             alertMessage = String(localized: "Nicht lesbar (Format unbekannt?):") + "\n" + failures.joined(separator: "\n")
         }
     }

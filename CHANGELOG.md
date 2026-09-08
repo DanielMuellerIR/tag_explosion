@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.48 — 2026-09-08
+
+- Nach dem Abbrechen lassen sich dieselben Dateien sofort erneut öffnen.
+  Alte Leser geben keine neuen Reservierungen frei und überschreiben keine
+  aktuellen Hinweise. Der Fortschritt gehört zum neuen Ladevorgang.
+- Ladetests prüfen zusätzlich die Reihenfolge vorzeitig fertiger Dateien
+  und erhaltene Bearbeitungspuffer; unabhängige Tests laufen parallel.
+
 ## 0.46.47 — 2026-09-08
 
 - Die Dateiliste findet bearbeitete Playlist-/VTT-Titel und Playlist-

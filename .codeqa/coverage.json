@@ -160,15 +160,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:40:53+02:00",
-        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
-        "content_sha256": "2d85f6d2fd63cffda0a7ecac009d96b5a70f7a8b9690af5815626fd2aa43ddfe",
+        "completed_at": "2026-09-08T04:28:07+02:00",
+        "observed_head": "8f1f5bdfb144a86a208f36291bc6571afcf433eb",
+        "content_sha256": "32ef35e8868c68f492aae11416c1872379bbe4cfc1774183de016c39799c3c0a",
         "file_count": 7,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "Delta nach Abschluss: nicht gelesene LRC-Zustände sind unbekannt. FileState ist zum bisherigen SidecarState quellkompatibel; gelesene Abwesenheit bleibt explizit. Neue Restore-Grenze geprüft.",
+        "summary": "metadataTitle aus bestehender displayTitle-Auswahl extrahiert, Dateiname weiterhin nur Anzeigeersatz. SidecarEntry-Test prüft bearbeiteten VTT-Titel im Muster. Speicher-/Relokationsübergänge bleiben konsistent; neue Verbraucher in FileList geprüft.",
         "tests": [
-          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
+          "118 App-Tests 0.518 s Exit 0; Regression für bearbeiteten VTT-Titel"
         ]
       }
     },
@@ -386,15 +386,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:12:06+02:00",
-        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
-        "content_sha256": "cd38decc7a26726b46742dc27e5eadf3354a891b5edbcad2fe6475168ceb7081",
+        "completed_at": "2026-09-08T04:28:07+02:00",
+        "observed_head": "8f1f5bdfb144a86a208f36291bc6571afcf433eb",
+        "content_sha256": "9d525f68a81625252b06901d38dbbf99fccbf721acdd56cb87bcdff9fa680d32",
         "file_count": 8,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "Parse.write verwendet TagProperty.valuesByKey für den Vorher-/Nachher-Vergleich; die private identische Schleife entfällt. Keine Änderung an Feldanwendung oder Umbenennungsplan. Gegen Commit 09293aa geprüft.",
+        "summary": "FilenameActions baut SubtitleContents für Muster aus dem aktuellen Titelpuffer; Sprache/Flags stammen weiterhin aus dem tatsächlichen Dateinamen. Gemeinsame PatternFields-Grenze und SidecarEntry-Test geprüft.",
         "tests": [
-          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
+          "118 App-Tests 0.518 s Exit 0; TITLE-Puffer und unveränderte LANG-/FLAGS-Semantik geprüft"
         ]
       }
     },
@@ -577,7 +577,14 @@
       "risk": "high",
       "priority": 10,
       "reason": "Abbrechbares Laden, Dateiidentität und Listenansicht sollen bei großen Sammlungen skalieren.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T04:28:07+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "format-utilities",
@@ -1246,14 +1253,18 @@
         "App/Tests/TagExplosionAppTests/SidecarEntryTests.swift"
       ],
       "priority": 10,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T04:22:27+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T04:24:13+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T04:24:13+02:00",
-        "observed_head": "bc4198af4f654832eb60f9ce5dbf490c565f078c"
+        "completed_at": "2026-09-08T04:28:07+02:00",
+        "observed_head": "8f1f5bdfb144a86a208f36291bc6571afcf433eb",
+        "summary": "FileEntry liefert den eigentlichen Titel gemeinsam für Anzeige und Liste. Listenwerte stammen aus aktuellen Puffern; VTT-Muster ebenfalls. Filtern und Sortieren getrennt, Schlüssel einmal je Treffer, Auswahl ohne Sortierung, kein dauerhafter Cache. Vorher fünf reproduzierte Abweichungen; Audioreihenfolgen unverändert.",
+        "tests": [
+          "118 App-Tests 0.518 s Exit 0; 10.000 Audioeinträge: input 57.6→0.05 ms, Titel 118.4→10.3 ms, Suchvarianten 77.6→41.2 und 86.0→40.3 ms; Ergebnis-JSON bytegleich"
+        ]
       }
     }
   ]
