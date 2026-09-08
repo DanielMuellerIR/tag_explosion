@@ -99,6 +99,7 @@ struct Apply: ParsableCommand {
         var seen = Swift.Set<URL>()
         files = files.filter { seen.insert($0).inserted }
         var stamps: [URL: FileStamp] = [:]
+        var imageReadings: [URL: ImageCoreReading] = [:]
         var items: [Item] = []
         var inputs: [TagRuleInput] = []
         var readErrors: [String: String] = [:]
@@ -107,6 +108,11 @@ struct Apply: ParsableCommand {
             do {
                 let snapshot = try FileSnapshot.capture(at: url) {
                     if kind == .audio { return TagProperty.valuesByKey(try TagFile.read(at: url).properties) }
+                    if kind == .image {
+                        let image = try ExifTool.readCoreFieldsSnapshot(url: url)
+                        imageReadings[url] = image.value
+                        return PatternFields.fields(from: image.value.fields).mapValues { [$0] }
+                    }
                     return try readPatternFields(at: url).mapValues { [$0] }
                 }
                 stamps[url] = snapshot.stamp
@@ -152,7 +158,7 @@ struct Apply: ParsableCommand {
             do {
                 if let stamp = stamps[url] { try FileStamp.requireUnchanged(stamp, at: url) }
                 let values = Dictionary(uniqueKeysWithValues: items[index].changes.map { ($0.field, $0.allNewValues) })
-                items[index].changed = try Parse.write(fields: newValues, to: url, ruleValues: values, expecting: stamps[url])
+                items[index].changed = try Parse.write(fields: newValues, to: url, ruleValues: values, expecting: stamps[url], imageReading: imageReadings[url])
             } catch {
                 items[index].error = Self.describe(error)
                 failed = true

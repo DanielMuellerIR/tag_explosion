@@ -5,9 +5,44 @@ import Foundation
 import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
+@testable import tagx
 
 @Suite("tagx apply", .serialized)
 struct ApplyCommandTests {
+
+    @Test("Regelplan bewahrt den XMP-Lesestand bis zum Schreiben",
+          .enabled(if: TagxFixtures.isAvailable && (try? ExifTool.locateExecutable()) != nil,
+                   "Bild-Fixture oder exiftool fehlt"), arguments: [false, true])
+    func plannedImageRejectsChangedSidecar(existing: Bool) throws {
+        let copy = try MediaTestFixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+        let sidecar = MediaFormats.sidecarURL(for: copy)
+        func writeSidecar(_ title: String) throws {
+            try Data("""
+            <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+            <rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" dc:title="\(title)"/>
+            </rdf:RDF></x:xmpmeta>
+            """.utf8).write(to: sidecar)
+        }
+        if existing { try writeSidecar(" Alter Titel ") }
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: copy)
+        try writeSidecar("Fremder Titel")
+        let foreign = try Data(contentsOf: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try Parse.write(fields: ["TITLE": "Alter Titel"], to: copy,
+                            expecting: snapshot.stamp, imageReading: snapshot.value)
+        }
+        #expect(try Data(contentsOf: sidecar) == foreign)
+
+        // Ein neuer CLI-Lauf plant aus dem fremden Stand und darf diesen
+        // anschließend ändern; die Konfliktprüfung blockiert keine frische Planung.
+        let rules = copy.deletingLastPathComponent().appendingPathComponent("rules.json")
+        try Data(#"{"version":1,"rules":[{"action":"case","field":"title","mode":"upper"}]}"#.utf8)
+            .write(to: rules)
+        let result = try runTagx(arguments: ["apply", rules.path, copy.path, "--apply", "--no-backup"])
+        #expect(result.status == 0, Comment(rawValue: result.stderr))
+        #expect(try ExifTool.readCoreFields(url: copy).title == "FREMDER TITEL")
+    }
 
     private func makeDirectory(_ label: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory

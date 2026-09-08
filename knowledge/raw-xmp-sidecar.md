@@ -69,3 +69,22 @@ Die ExifTool-Tests benutzen ausschließlich eigene Arbeitskopien und entfernen
 deren Ordner. Sie benötigen keine serielle Suite: Der gezielte Lauf mit
 20 Tests sank lokal von 3,816 auf 0,670 Sekunden (2026-09-08); die konkreten
 Werkzeugaufrufe und Prüfungen der geschriebenen Dateien bleiben erhalten.
+
+## Konfliktentscheidung und Regelplanung (2026-09-08)
+
+`AppModel.save(entry:ignoringDiskChange:)` erfasst nach bestätigtem
+Überschreiben den aktuellen XMP-Stempel vor dem Hintergrund-Schreibweg.
+Der alte Lesestand blockiert damit keinen zweiten Versuch; Änderungen ab
+Beginn dieses Versuchs prüft der Core weiterhin bis zum atomaren Austausch.
+Die bestehende Sicherung erfasst die zu ersetzende Sidecar.
+
+`tagx apply` bewahrt die vollständige `ImageCoreReading` der Planung auf.
+`Parse.write` prüft diesen Lesestand einschließlich fehlender Sidecar, statt
+alte Planwerte mit frisch gelesenen Stempeln zu verbinden. Das betrifft auch
+Sidecars, die erst während der Planung weiterer Stapeldateien entstehen.
+
+Regressionen benutzen echte JPEG-/XMP-Arbeitskopien: fremde Sidecar neu
+angelegt oder geändert, normaler App-Speicherversuch abgelehnt, bestätigter
+Versuch erfolgreich, alter CLI-Plan abgelehnt und frischer CLI-Plan erfolgreich.
+Vor der Korrektur scheiterten sechs App- und vier CLI-Assertions. Danach
+bestehen 509 Core-/CLI-Tests und 130 App-Tests (headless, macOS).

@@ -11,6 +11,37 @@ import TagExplosionCore
 @MainActor
 struct AppModelSaveTests {
 
+    @Test("Bestätigtes Überschreiben erfasst den aktuellen XMP-Stand",
+          .enabled(if: MediaTestFixtures.isAvailable && (try? ExifTool.locateExecutable()) != nil,
+                   "Bild-Fixture oder exiftool fehlt"), arguments: [false, true])
+    func confirmedImageSidecarOverwrite(existing: Bool) async throws {
+        let copy = try MediaTestFixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+        let sidecar = MediaFormats.sidecarURL(for: copy)
+        func writeSidecar(_ title: String) throws {
+            try Data("""
+            <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+            <rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" dc:title="\(title)" dc:creator="Fremder Autor"/>
+            </rdf:RDF></x:xmpmeta>
+            """.utf8).write(to: sidecar)
+        }
+        if existing { try writeSidecar("Alter Titel") }
+        let (loaded, stamp) = try AppModel.readStamped(url: copy, kind: .image)
+        let entry = FileEntry(url: copy, loaded: loaded, stamp: stamp)
+        entry.imageFields.title = "Eigener Titel"
+        try writeSidecar("Fremder neuer Titel")
+        let foreign = try Data(contentsOf: sidecar)
+        let model = AppModel()
+        #expect(await model.save(entry: entry) == false)
+        #expect(try Data(contentsOf: sidecar) == foreign)
+        #expect(entry.isDirty)
+        #expect(await model.save(entry: entry, ignoringDiskChange: true))
+        #expect(!entry.isDirty)
+        let saved = try ExifTool.readCoreFields(url: copy)
+        #expect(saved.title == "Eigener Titel")
+        #expect(saved.creator == "Fremder Autor")
+    }
+
     @Test("Synchron geclaimte Entscheidung gewinnt gegen sofortiges Dialog-Dismiss")
     func claimedDecisionCannotBeReplacedByDismiss() async {
         let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],

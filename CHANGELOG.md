@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.71 — 2026-09-08
+
+- Bestätigtes Überschreiben löst auch Konflikte mit geänderten oder inzwischen
+  angelegten XMP-Sidecars. Weitere Änderungen während des Schreibens bleiben
+  geschützt.
+- CLI-Regeln bewahren den XMP-Lesestand von der Planung bis zum Schreiben;
+  fremde Sidecar-Änderungen werden als Konflikt erkannt.
+- Regressionen mit echten Bild-/XMP-Kopien ergänzt: 509 Core-/CLI- und
+  130 App-Tests bestehen unter macOS.
+
 ## 0.46.70 — 2026-09-08
 
 - Code-QA mit 27 geprüften Bereichen und 20 abgeschlossenen Querschnittsfunden

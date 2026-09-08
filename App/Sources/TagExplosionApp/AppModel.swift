@@ -803,15 +803,19 @@ final class AppModel {
         let kind = entry.kind
         let stamp = ignoringDiskChange ? nil : entry.diskStamp
         return await save(entry: entry, staleCandidate: ignoringDiskChange ? nil : entry) { snapshot in
-            // Bewusstes Überschreiben gilt auch für die Sidecars (.lrc, NFO):
-            // deren Stempel fallen ebenso weg wie der des Mediums.
-            var snapshot = snapshot
-            if ignoringDiskChange, case .audio(let audio) = snapshot {
-                snapshot = .audio(audio.ignoringSidecarStamps())
-            }
-            let prepared = snapshot
             return try await Task.detached(priority: .userInitiated) {
-                try Self.write(snapshot: prepared, to: url, kind: kind, expecting: stamp)
+                var prepared = snapshot
+                // Die Bestätigung gilt auch für die Audio-Sidecars (.lrc, NFO).
+                if ignoringDiskChange, case .audio(let audio) = prepared {
+                    prepared = .audio(audio.ignoringSidecarStamps())
+                }
+                if ignoringDiskChange, case .image(let fields, let original, _) = prepared {
+                    // Die Bestätigung ersetzt den alten XMP-Lesestand durch den
+                    // jetzigen. Dieser bleibt ab hier bis zum Austausch geschützt.
+                    prepared = .image(fields: fields, original: original,
+                        sidecar: SidecarState.current(of: MediaFormats.sidecarURL(for: url)))
+                }
+                return try Self.write(snapshot: prepared, to: url, kind: kind, expecting: stamp)
             }.value
         }
     }

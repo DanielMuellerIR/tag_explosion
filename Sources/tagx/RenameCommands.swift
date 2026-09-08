@@ -256,7 +256,7 @@ struct Parse: ParsableCommand {
     /// Schreibt die geparsten Werte auf dem bestehenden Weg der Medienart:
     /// Lese-Schnappschuss, No-op-Erkennung, Papierkorb-Sicherung, atomarer
     /// Austausch. Liefert die Zahl der geänderten Felder.
-    static func write(fields parsed: [String: String], to url: URL, ruleValues: [String: [String]]? = nil, expecting: FileStamp? = nil) throws -> Int {
+    static func write(fields parsed: [String: String], to url: URL, ruleValues: [String: [String]]? = nil, expecting: FileStamp? = nil, imageReading: ImageCoreReading? = nil) throws -> Int {
         switch MediaFormats.kind(of: url) {
         case .audio:
             let snapshot = try FileSnapshot.capture(at: url) { try TagFile.read(at: url) }
@@ -278,7 +278,13 @@ struct Parse: ParsableCommand {
             return changed.count
 
         case .image:
-            let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
+            // Regeln haben bereits aus diesen Werten geplant. Ihr vollständiger
+            // Lesestand darf nicht durch ein erneutes Lesen ersetzt werden.
+            let snapshot = try FileSnapshot.capture(at: url, expecting: expecting) {
+                let reading = try imageReading ?? ExifTool.readCoreReading(url: url)
+                try reading.requireUnchangedSidecar(for: url)
+                return reading
+            }
             let original = snapshot.value.fields
             var fields = original
             do {
