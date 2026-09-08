@@ -16,7 +16,8 @@ extension FileEntry {
         case .sidecar:
             switch sidecarContents {
             case .nfo: return PatternFields.fields(from: nfoFields)
-            case .subtitle(let subtitle): return PatternFields.fields(from: subtitle, url: url)
+            case .subtitle(let subtitle):
+                return PatternFields.fields(from: SubtitleContents(info: subtitle.info, fields: subtitleFields), url: url)
             case nil: return [:]
             }
         case .invoice, .playlist: return [:]

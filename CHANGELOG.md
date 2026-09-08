@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.47 — 2026-09-08
+
+- Die Dateiliste findet bearbeitete Playlist-/VTT-Titel und Playlist-
+  Interpreten. VTT-Dateinamenmuster verwenden ebenfalls den aktuellen Titel.
+- Filtern und Sortieren sind getrennt; jeder Sortierschlüssel entsteht nur
+  einmal. Bei 10.000 Audioeinträgen sank die gemessene Titelsortierung von
+  118 auf 10 Millisekunden, bei unveränderter Ergebnisreihenfolge.
+
 ## 0.46.46 — 2026-09-08
 
 - NFO-Dateien verwenden beim Lesen und Schreiben denselben deklarierten

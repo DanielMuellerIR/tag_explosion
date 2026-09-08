@@ -71,8 +71,10 @@ struct SidecarEntryTests {
         #expect(entry.displaySubtitle == "en · 3 cues")
         #expect(!entry.isDirty)
         entry.subtitleFields.language = "de"
+        entry.subtitleFields.title = "Bearbeitet"
         #expect(entry.isDirty)
         let fields = entry.patternFields
+        #expect(fields["TITLE"] == "Bearbeitet")
         #expect(fields["BASE"] == "film")
         #expect(fields["LANG"] == "en")
         #expect(fields["FLAGS"] == "forced")

@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 2177341
+    "tokens_spent": 2328702
   },
   "campaign_history": [
     {
@@ -551,17 +551,20 @@
       "risk": "high",
       "priority": 9,
       "reason": "NFO und Untertitel: Erhalt unbekannter Inhalte, Zeitverschiebung und gemeinsame Validierung.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:46:47+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/NFOXMLLayout.swift"
-      ]
+        "completed_at": "2026-09-08T04:22:46+02:00",
+        "observed_head": "bc4198af4f654832eb60f9ce5dbf490c565f078c",
+        "content_sha256": "b2dfe5a312b4a5401f6cfe013ba134d63b568625bfefed3f35fb586f2687e451",
+        "file_count": 8,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Neu zugeordnete NFOXMLLayout.swift vollständig geprüft: Taggrenzen, DTD-Klammern und Quotes, Kommentar-/CDATA-/PI-Abgrenzung, Nachspann-URLs und deklarierte Kodierungen. Aufrufgrenzen zu KodiNFOFile und XMLTools geprüft; der gesamte Sidecar-Stand ist jetzt abgedeckt.",
+        "tests": [
+          "500 Core-, 117 App- und 494 Linux-Tests erfolgreich; Nachspannvarianten und Zeichensatzmatrix mit echten Dateien geprüft"
+        ]
+      }
     },
     {
       "id": "app-loading",
@@ -1230,6 +1233,27 @@
         "tests": [
           "macOS 491 Tests 9.147 s Exit 0; Linux 485 Tests 33.365 s Exit 0; gezielter Linux-Deskriptor-Test vorher Exit 23, danach PASS"
         ]
+      }
+    },
+    {
+      "id": "file-list-metadata",
+      "summary": "Die Dateiliste benutzt patternFields statt ihrer angezeigten Metadaten: Playlist-/Rechnungstitel fehlen, VTT-Titel stammen aus dem Lesestand. Sortiervergleiche bauen dieselben Wörterbücher mehrfach auf. Gemeinsamen eigentlichen Titel und gezielte Listenwerte nutzen; VTT-Muster aus dem Bearbeitungspuffer erzeugen; bestehende stabile Sortierung und Mehrfachinterpreten bewahren.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/FileList.swift",
+        "App/Sources/TagExplosionApp/FileEntry.swift",
+        "App/Sources/TagExplosionApp/FilenameActions.swift",
+        "App/Tests/TagExplosionAppTests/FileListTests.swift",
+        "App/Tests/TagExplosionAppTests/SidecarEntryTests.swift"
+      ],
+      "priority": 10,
+      "state": "in_progress",
+      "noted_at": "2026-09-08T04:22:27+02:00",
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T04:24:13+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T04:24:13+02:00",
+        "observed_head": "bc4198af4f654832eb60f9ce5dbf490c565f078c"
       }
     }
   ]

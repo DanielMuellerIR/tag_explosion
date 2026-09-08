@@ -9,7 +9,7 @@ struct FileListTests {
     @Test("Suche, stabile Sortierung und versteckte Auswahl bewahren Puffer und Nummerierung")
     func filtering() throws {
         let a = FileEntry(url: URL(fileURLWithPath: "/b.flac"), loaded: .audio(TagData(
-            properties: [TagProperty(key: "TITLE", value: "Gleich"), TagProperty(key: "ARTIST", value: "Miles")], artworks: [], audio: nil)))
+            properties: [TagProperty(key: "TITLE", value: "Gleich"), TagProperty(key: "ARTIST", value: "Miles"), TagProperty(key: "ARTIST", value: "Herbie")], artworks: [], audio: nil)))
         let b = FileEntry(url: URL(fileURLWithPath: "/a.flac"), loaded: .audio(TagData(
             properties: [TagProperty(key: "TITLE", value: "Gleich"), TagProperty(key: "ARTIST", value: "Coltrane")], artworks: [], audio: nil)))
         let model = AppModel()
@@ -25,6 +25,8 @@ struct FileListTests {
         model.listSearch = "miles"
         #expect(model.visibleEntries.map(\.url) == [a.url])
         #expect(model.hiddenSelectionCount == 1)
+        model.listSearch = "herbie"
+        #expect(model.visibleEntries.map(\.url) == [a.url])
         model.visibleSelection = []
         #expect(model.selection == [b.url])
         model.listSearch = ""
@@ -39,6 +41,30 @@ struct FileListTests {
         model.selection = [a.url, b.url]
         let plans = try model.rulePlan(for: model.selectedEntries, document: TagRuleDocument(rules: [TagRule(action: .number)]))
         #expect(plans.first { $0.url == b.url }?.newValues["TRACKNUMBER"] == "1")
+    }
+
+    @Test("Liste sucht und sortiert bearbeitete Playlist- und Untertiteltitel")
+    func editedNonAudioTitles() {
+        let playlist = FileEntry(url: URL(fileURLWithPath: "/list.xspf"), loaded: .playlist(
+            PlaylistContents(format: .xspf, fields: PlaylistCoreFields(title: "Old playlist"), entries: [])))
+        let info = SubtitleInfo(format: .vtt, cueCount: 0, firstStartMilliseconds: nil,
+            lastEndMilliseconds: nil, spanMilliseconds: 0, encoding: "UTF-8", lineEndings: "LF",
+            languageFromName: nil, flagsFromName: [], header: SubtitleHeader())
+        let subtitle = FileEntry(url: URL(fileURLWithPath: "/sub.vtt"), loaded: .sidecar(.subtitle(
+            SubtitleContents(info: info, fields: SubtitleEditableFields(title: "Old subtitle")))))
+        playlist.playlistFields.title = "Zebra"
+        playlist.playlistFields.performer = "Playlist band"
+        subtitle.subtitleFields.title = "Alpha"
+        let model = AppModel()
+        model.entries = [playlist, subtitle]
+        model.listSort = .title
+        #expect(model.visibleEntries.map(\.url) == [subtitle.url, playlist.url])
+        model.listSearch = "Alpha"
+        #expect(model.visibleEntries.map(\.url) == [subtitle.url])
+        model.listSearch = "Zebra"
+        #expect(model.visibleEntries.map(\.url) == [playlist.url])
+        model.listSearch = "Playlist band"
+        #expect(model.visibleEntries.map(\.url) == [playlist.url])
     }
 
     @Test("Veraltete Prüfung überschreibt keine neue; ungültiges Muster entfernt Bericht")

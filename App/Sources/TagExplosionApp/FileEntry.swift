@@ -603,7 +603,9 @@ final class FileEntry: Identifiable {
         }
     }
 
-    var displayTitle: String {
+    /// Titel aus dem Bearbeitungspuffer, ohne Ersatz durch den Dateinamen.
+    /// Suche und Sortierung sollen denselben Feldwert wie die Zeile verwenden.
+    var metadataTitle: String {
         let title: String
         switch kind {
         case .audio: title = firstValue("TITLE")
@@ -619,6 +621,11 @@ final class FileEntry: Identifiable {
             }
         case .playlist: title = playlistFields.title
         }
+        return title
+    }
+
+    var displayTitle: String {
+        let title = metadataTitle
         return title.isEmpty ? url.lastPathComponent : title
     }
 
