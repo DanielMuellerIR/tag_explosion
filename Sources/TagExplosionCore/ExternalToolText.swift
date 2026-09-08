@@ -77,13 +77,13 @@ enum ExternalToolText {
         // Ein Byte unter 0x80 ist immer eine gültige UTF-8-Sequenz für sich.
         let quotesSeparateFields = repairingSurrogateEscapes
         var fieldOfRun = [Int](repeating: 0, count: runs.count)
-        var fieldsWithForeignBytes = Set<Int>()
+        var foreignRunsByField: [Int: [Int]] = [:]
         var field = 0
         var backslashes = 0
         for (position, run) in runs.enumerated() {
             fieldOfRun[position] = field
             guard run.valid else {
-                fieldsWithForeignBytes.insert(field)
+                foreignRunsByField[field, default: []].append(position)
                 backslashes = 0
                 continue
             }
@@ -99,11 +99,12 @@ enum ExternalToolText {
             }
         }
 
-        // Je Feld die plausiblere der beiden Kodierungen wählen.
+        // Je Feld nur seine fremden Läufe bewerten. Eine erneute Suche im
+        // ganzen Bericht pro Feld würde quadratisch mit der Feldzahl wachsen.
         var encodingOfField: [Int: SingleByteEncoding] = [:]
-        for field in fieldsWithForeignBytes {
+        for (field, positions) in foreignRunsByField {
             encodingOfField[field] = betterEncoding(
-                runs: runs, fieldOfRun: fieldOfRun, field: field, bytes: bytes)
+                runs: runs, positions: positions, bytes: bytes)
         }
 
         var out = ""
@@ -162,14 +163,13 @@ enum ExternalToolText {
     /// wie bisher das C1-Byte für MacRoman — dort fehlt schlicht der
     /// Zusammenhang (etwa ein Feld aus einem einzigen Byte).
     private static func betterEncoding(runs: [(valid: Bool, range: Range<Int>)],
-                                       fieldOfRun: [Int],
-                                       field: Int,
+                                       positions: [Int],
                                        bytes: [UInt8]) -> SingleByteEncoding {
         var macRomanScore = 0
         var windowsScore = 0
         var hasC1 = false
-        for (position, run) in runs.enumerated()
-        where !run.valid && fieldOfRun[position] == field {
+        for position in positions {
+            let run = runs[position]
             if bytes[run.range].contains(where: { (0x80...0x9F).contains($0) }) { hasC1 = true }
             let before = precedingCharacter(runs: runs, position: position, bytes: bytes)
             macRomanScore += score(decode(bytes[run.range], as: .macRoman), before: before)

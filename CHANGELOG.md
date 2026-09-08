@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.49 — 2026-09-08
+
+- Die Reparatur fremd kodierter Werkzeugausgaben durchsucht Byteabschnitte
+  gezielt je Feld; 10.000 Testzeilen benötigen 21 statt 159 Millisekunden.
+- Cache-Tests verzichten auf künstliche Werkzeugpausen; unabhängige
+  Prozess- und Abbruchtests laufen parallel.
+
 ## 0.46.48 — 2026-09-08
 
 - Nach dem Abbrechen lassen sich dieselben Dateien sofort erneut öffnen.

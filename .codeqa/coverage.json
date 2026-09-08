@@ -577,13 +577,19 @@
       "risk": "high",
       "priority": 10,
       "reason": "Abbrechbares Laden, Dateiidentität und Listenansicht sollen bei großen Sammlungen skalieren.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T04:28:07+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T04:37:41+02:00",
+        "observed_head": "f006bd08a9126bf889303a8f2d6058bc77be835e",
+        "content_sha256": "f99561c3a071cb8b64dcca322ba47b504f79037943f0d5045dff52dd3680a889",
+        "file_count": 4,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle vier Dateien einschließlich Datei-/Auswahlgrenzen vollständig geprüft. Abgebrochene Ladeaufträge besitzen eigene Reservierungen, Fortschritt und Fehler; unmittelbarer Neustart funktioniert. Reihenfolge und Puffer im bestehenden Test verstärkt; unabhängige Tests parallel. Dateiliste bereits über Theme aktualisiert. Direkte Einfügesuche bleibt wegen möglicher paralleler Listenänderungen und gemessener 1000-Dateien-Laufzeit bewusst einfach.",
+        "tests": [
+          "119 App-Tests 0.406 s Exit 0; Neustarttest vorher fünf Issues, danach erfolgreich; 1000 echte generierte FLAC-Dateien: erstes Ergebnis 55 ms, vollständig 238 ms"
+        ]
       }
     },
     {
@@ -596,7 +602,20 @@
       "risk": "medium",
       "priority": 10,
       "reason": "Gemeinsame Text-, Datums- und XML-Hilfen sind Grenzen zahlreicher Dateiformate.",
-      "state": "pending"
+      "state": "completed",
+      "last_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T04:41:24+02:00",
+        "observed_head": "f006bd08a9126bf889303a8f2d6058bc77be835e",
+        "content_sha256": "12be7512eff57e134679ba578eceeccdd54c39c81ac93857b967e2229910bb8d",
+        "file_count": 3,
+        "review": "full",
+        "outcome": "reviewed-clean",
+        "summary": "Kalenderprüfung, plattformübergreifende Textkodierung und XML-Helfer vollständig gelesen; kleine klar getrennte Funktionen, keine belegte weitere Vereinfachung erforderlich. Formatspezifische Schreibregeln bleiben bei ihren Aufrufern.",
+        "tests": [
+          "Bestehende Kalender-, NFO-Kodierungs- und XML-Roundtrip-Prüfungen: zuletzt 500 Core-Tests auf macOS und 494 auf Linux bestanden."
+        ]
+      }
     },
     {
       "id": "process-reporting",
@@ -612,7 +631,7 @@
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:36:20+02:00",
@@ -632,7 +651,19 @@
         "Sources/TagExplosionCore/ExternalToolText.swift",
         "Sources/TagExplosionCore/MediaInfoCache.swift",
         "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T04:41:24+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "Sources/TagExplosionCore/ExternalToolRunner.swift",
+          "Sources/TagExplosionCore/ExternalToolText.swift",
+          "Sources/TagExplosionCore/MediaInfoCache.swift",
+          "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+        ]
+      }
     },
     {
       "id": "cover-tools",

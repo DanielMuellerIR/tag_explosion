@@ -8,7 +8,7 @@ import Glibc
 #endif
 @testable import TagExplosionCore
 
-@Suite("MediaInfo Bedarf, Cache und Abbruch", .serialized)
+@Suite("MediaInfo Bedarf, Cache und Abbruch")
 struct MediaInfoCacheTests {
     private func directory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -43,7 +43,6 @@ struct MediaInfoCacheTests {
         try Data("""
         #!/bin/sh
         printf 'x\\n' >> "$0.calls"
-        /bin/sleep 0.05
         printf diagnostic >&2 || exit 23
         if [ "$1" = "--Output=JSON" ]; then
           printf '%s' '{"media":{"track":[{"@type":"General","Title":"Test"}]}}'
@@ -57,13 +56,9 @@ struct MediaInfoCacheTests {
         func calls() throws -> Int {
             try String(contentsOf: dir.appendingPathComponent("mediainfo.calls"), encoding: .utf8).split(separator: "\n").count
         }
-        let before = Date()
         let full = try MediaInfoReader.read(url: file, output: .both, executable: exe.path)
-        let bothDuration = Date().timeIntervalSince(before)
         #expect(try calls() == 2)
-        let start = Date()
         let text = try MediaInfoReader.read(url: file, output: .text, executable: exe.path)
-        let textDuration = Date().timeIntervalSince(start)
         #expect(text.text == full.text)
         #expect(try calls() == 3)
         let json = try MediaInfoReader.read(url: file, output: .json, executable: exe.path)
@@ -72,14 +67,14 @@ struct MediaInfoCacheTests {
         let cache = MediaInfoCache(capacity: 1) { url, output, cancellation in
             try MediaInfoReader.read(url: url, output: output, executable: exe.path, cancellation: cancellation)
         }
+        // Gleichzeitigkeit prüft subscriberCancellation mit einem Gate. Hier
+        // zählen Werkzeugaufrufe unabhängig davon, welcher Task zuerst startet.
         async let first = cache.read(url: file)
         async let second = cache.read(url: file)
         let reports = try await [first, second]
         #expect(reports == [full, full])
         #expect(try calls() == 6)
-        let cachedStart = Date()
         #expect(try await cache.read(url: file) == full)
-        let cachedDuration = Date().timeIntervalSince(cachedStart)
         #expect(try calls() == 6)
         try Data("changed".utf8).write(to: file)
         _ = try await cache.read(url: file)
@@ -89,7 +84,6 @@ struct MediaInfoCacheTests {
         _ = try await cache.read(url: other)
         _ = try await cache.read(url: file)
         #expect(try calls() == 12)
-        print("MEDIAINFO_BENCHMARK both=\(bothDuration) text=\(textDuration) cached=\(cachedDuration)")
 
         // Der echte CLI-Einstieg nutzt den Fake über PATH und genau einen Prozess.
         for (json, closed) in [(false, ""), (true, ""), (true, "exec 2>&-;"), (true, "exec 0<&-;")] {

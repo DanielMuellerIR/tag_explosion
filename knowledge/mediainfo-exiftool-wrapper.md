@@ -84,6 +84,21 @@ Nachweise (2 → 1 bzw. 0); diese Zeiten gelten nicht allgemein für reale Medie
 Der forkende Pipe-Test brauchte vor der Prozessgruppen-Korrektur 2,002 s nach
 Abbruch; danach 0,508 s unter voller Testlast (isoliert etwa 0,35 s).
 
+### Vereinfachung 2026-09-08
+
+`ExternalToolText` merkt die Positionen fremder Byteabschnitte je Feld beim
+Durchlauf. Die Kodierungswertung besucht nur diese Abschnitte, statt für
+jedes Feld erneut den gesamten Bericht zu durchsuchen. Ein optimierter
+Standalone-Build mit 10.000 MacRoman-Zeilen benötigte vorher 159 ms, danach
+21 ms; die vollständige UTF-8-Ausgabe war bytegleich.
+
+Der Bedarfstest zählt weiterhin sämtliche Prozessaufrufe, Invalidierungen
+und Verdrängungen. Seine künstlichen 50-ms-Pausen und die davon bestimmten
+Benchmark-Ausgaben entfallen. Geteilte laufende Anfragen prüft der separate
+Abonnententest über eine ausdrückliche Freigabe. Der isolierte Bedarfstest
+sank von 1,358 auf 0,235 s; unabhängige Cache-/Abbruchtests laufen parallel.
+Nachweis: 500 Core-Tests und 119 App-Tests bestanden.
+
 ## exiftool (13.55)
 
 - **MWG-Tags brauchen `-use MWG`** in JEDEM Aufruf (lesen und schreiben),
