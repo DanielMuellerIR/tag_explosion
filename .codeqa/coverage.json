@@ -327,23 +327,20 @@
       "risk": "high",
       "priority": 6,
       "reason": "ZIP-Dokumente und Markdown erhalten fremde Inhalte sowie Dateiattribute beim Metadaten-Schreiben.",
-      "state": "pending",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:09:54+02:00",
-        "observed_head": "770f99c6e83ef554e6a1093e4ea83ff64c8734e3",
-        "content_sha256": "c579a82062ee7cfb4c8c761e3825ef34cd36cccdac763f03b69a80ee12972aad",
-        "file_count": 10,
-        "review": "full",
+        "completed_at": "2026-09-08T02:14:43+02:00",
+        "observed_head": "326fba20fdb98a719a38acd97a1347077dfdc845",
+        "content_sha256": "bcc0b12b72ece5cd24354f9c48dba01bf0c3a9fa18311ecab559565a4eac2438",
+        "file_count": 11,
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Dokument-Backend-Verträge, OOXML/ODF/Comic-Pakete, Markdown-Subset, CLI und Tests geprüft. Markdown-Grenzfälle korrigiert; große ZIP-Dateien blockweise kopiert, macOS-Foundation-Puffer begrenzt. Dokument-Prozessstarter konsolidiert, Markdown-Testdateien bereinigt. CRC- und Kalenderprüfung als belegte Querschnittsarbeit erfasst.",
+        "summary": "CRC-Theme einschließlich neu zugeordnetem ZipIntegrityTests nachgeprüft: Metadaten- und Nutzdaten-Prüfsummen werden vor Übernahme kontrolliert; blockweiser Kopierpfad nutzt dieselbe Prüfung.",
         "tests": [
-          "swift test 481 Tests/51 Suites grün (6.859 s). Markdown-Gegenproben vor Korrektur rot; große stored/deflate-Einträge behalten Bytes, Kompression und Rechte. 128-MiB-DOCX: Spitzenspeicher 283787264→15843328 Byte, SHA-256 und ZIP-Prüfsumme geprüft; keine belastbare Zeitbehauptung. Letzte Deflate-EOF-Regression korrigiert und vollständige Suite erneut grün. Commits 05aa4ed, 4b4ab26, 770f99c, minipc synchron."
+          "483 Core/CLI-Tests und 115 App-Tests grün; acht gezielte Prüfsummen-Gegenproben."
         ]
-      },
-      "pending_paths": [
-        "Tests/TagExplosionCoreTests/ZipIntegrityTests.swift"
-      ]
+      }
     },
     {
       "id": "ebook-writing",
@@ -356,7 +353,7 @@
       "risk": "high",
       "priority": 6,
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:12+02:00",
@@ -370,6 +367,13 @@
           "swift test: 176 Tests in 14 Suites bestanden; EbookTool-Suite einschließlich Calibre-, EPUB- und Coverpfaden grün",
           "swift test --package-path App: 65 Tests in 8 Suites bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:14:43+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1062,14 +1066,18 @@
         "Sources/TagExplosionCore/EpubFile.swift"
       ],
       "priority": 5,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T01:59:52+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T02:09:54+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:09:54+02:00",
-        "observed_head": "770f99c6e83ef554e6a1093e4ea83ff64c8734e3"
+        "completed_at": "2026-09-08T02:14:43+02:00",
+        "observed_head": "326fba20fdb98a719a38acd97a1347077dfdc845",
+        "summary": "Ein gemeinsamer CRC-geprüfter ZIP-Leser ersetzt vier EPUB-Extraktionen und schützt kleine wie große Nutzdaten beim Dokument-Neuaufbau. Zwei parametrisierte Integrationstests verändern ausschließlich gespeicherte Prüfsummen.",
+        "tests": [
+          "Vorher zehn Fehler in acht Fällen; nachher swift test 483 Tests/52 Suites grün (7.007 s), App 115 Tests grün (0.492 s). Originalbytes bei abgelehntem Neuaufbau unverändert. Diff geprüft, Commit/minipc-Push."
+        ]
       }
     },
     {
@@ -1083,6 +1091,19 @@
       "priority": 6,
       "state": "pending",
       "noted_at": "2026-09-08T02:09:54+02:00",
+      "campaign_id": "20260908T002532864338+0200"
+    },
+    {
+      "id": "tag-error-paths",
+      "summary": "EbookTool und DocumentTool ordnen dieselben pfadtragenden TagError-Fälle auf die Originaldatei um. Neue fachfremde Fehlerfälle erzwingen derzeit Änderungen im Ebook-Backend; Pfadzuordnung zentral beim Fehlertyp halten, formatspezifische Fehlernormalisierung getrennt lassen.",
+      "evidence": [
+        "Sources/TagExplosionCore/EbookTool.swift",
+        "Sources/TagExplosionCore/DocumentTool.swift",
+        "Sources/TagExplosionCore/Model.swift"
+      ],
+      "priority": 7,
+      "state": "pending",
+      "noted_at": "2026-09-08T02:17:26+02:00",
       "campaign_id": "20260908T002532864338+0200"
     }
   ]

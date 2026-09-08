@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.24 — 2026-09-08
+
+- Der Calibre-Serienindex-Test erzeugt sein kleines FB2 direkt statt bei
+  jedem Lauf ein EPUB zu konvertieren. Die echte ebook-meta-Prüfung bleibt;
+  der Test benötigt weder ebook-convert noch eine AZW3-Fixture.
+- Direkte Calibre-Testaufrufe verwenden den gemeinsamen Prozessstarter
+  mit Zeitlimit und getrennt erfassten Ausgaben.
+
 ## 0.46.23 — 2026-09-08
 
 - Dokumente und EPUB vergleichen die CRC32 jedes gelesenen ZIP-Eintrags

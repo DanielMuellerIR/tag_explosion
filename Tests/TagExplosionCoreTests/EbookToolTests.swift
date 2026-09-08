@@ -18,13 +18,6 @@ struct EbookToolTests {
     private static let calibreFixtureAvailable = EbookTool.calibreAvailable
         && FileManager.default.fileExists(
             atPath: Fixtures.directory.appendingPathComponent("book.azw3").path)
-    private static let calibreConversionAvailable: Bool = {
-        guard let meta = try? EbookTool.locateCalibre() else { return false }
-        let converter = URL(fileURLWithPath: meta)
-            .deletingLastPathComponent()
-            .appendingPathComponent("ebook-convert")
-        return FileManager.default.isExecutableFile(atPath: converter.path)
-    }()
 
     /// Voll ausgefüllte Felder für den Schreib-Roundtrip.
     private var editedFields: EbookCoreFields {
@@ -384,12 +377,14 @@ struct EbookToolTests {
     }
 
     @Test("Calibre: leerer Serienindex normalisiert einen alten Wert zu #1", .enabled(
-        if: Self.calibreFixtureAvailable && Self.calibreConversionAvailable,
-        "Calibre, ebook-convert oder die EPUB-Fixture fehlt"
+        if: EbookTool.calibreAvailable,
+        "Calibre fehlt"
     ))
     func calibreEmptySeriesIndexUsesDefaultOne() throws {
         let url = try makeFB2WorkingCopy()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try EbookTool.readCoreFields(url: url)
+        #expect(original.title == "Testbuch")
         var indexed = original
         indexed.series = "Testreihe"
         indexed.seriesIndex = "7"
@@ -781,44 +776,40 @@ struct EbookToolTests {
     /// Dateizustand und nicht nur die eigene Parser-Interpretation.
     private func directCalibreOutput(url: URL) throws -> String {
         let executable = try EbookTool.locateCalibre()
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["LC_ALL=C", executable, url.path]
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        try process.run()
-        process.waitUntilExit()
-        let output = stdout.fileHandleForReading.readDataToEndOfFile()
-        guard process.terminationStatus == 0 else {
-            let error = stderr.fileHandleForReading.readDataToEndOfFile()
-            throw NSError(domain: "EbookToolTests", code: Int(process.terminationStatus),
-                          userInfo: [NSLocalizedDescriptionKey: String(decoding: error, as: UTF8.self)])
+        let result = try runCapturedProcess(executable: executable, arguments: [url.path],
+            currentDirectory: TagxTestProcess.repoRoot, environment: ["LC_ALL": "C"])
+        guard result.status == 0 else {
+            throw NSError(domain: "EbookToolTests", code: Int(result.status),
+                          userInfo: [NSLocalizedDescriptionKey: result.stderr])
         }
-        return String(decoding: output, as: UTF8.self)
+        return result.stdout
     }
 
-    /// FB2 bewahrt Serienmetadaten in Calibre 7.7, azw3 dagegen nicht. Die
-    /// Kopie entsteht nur im Temp-Ordner und ist kein Test-Asset im Repository.
+    /// Minimales FB2 für den Serienindex-Test. Der Test benötigt ebook-meta,
+    /// keine EPUB-Konvertierung und kein Cover aus einem anderen Format.
     private func makeFB2WorkingCopy() throws -> URL {
-        let meta = try EbookTool.locateCalibre()
-        let converter = URL(fileURLWithPath: meta)
-            .deletingLastPathComponent()
-            .appendingPathComponent("ebook-convert")
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("tagx-calibre-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let result = dir.appendingPathComponent("book.fb2")
-        let process = Process()
-        process.executableURL = converter
-        process.arguments = [Fixtures.directory.appendingPathComponent("book2.epub").path, result.path]
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw NSError(domain: "EbookToolTests", code: Int(process.terminationStatus),
-                          userInfo: [NSLocalizedDescriptionKey: "ebook-convert fehlgeschlagen"])
-        }
+        let xml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+          <description>
+            <title-info><genre>antique</genre>
+              <author><first-name>Erika</first-name><last-name>Beispiel</last-name></author>
+              <book-title>Testbuch</book-title><lang>de</lang>
+            </title-info>
+            <document-info>
+              <author><first-name>Erika</first-name><last-name>Beispiel</last-name></author>
+              <date value="2026-09-08">2026-09-08</date>
+              <id>tagx-test</id><version>1.0</version>
+            </document-info>
+          </description>
+          <body><section><p>Synthetischer Testtext.</p></section></body>
+        </FictionBook>
+        """
+        try Data(xml.utf8).write(to: result)
         return result
     }
 
