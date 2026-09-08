@@ -53,7 +53,4 @@ struct DocCommandTests {
         #expect(noop.stdout.contains("No changes"))
     }
 
-    // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
-
-
 }

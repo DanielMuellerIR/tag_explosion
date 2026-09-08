@@ -15,8 +15,19 @@ Der EPUB-Weg (`EpubFile`: Eintrag entfernen, neu anhängen) hätte einen
 ersetzten `mimetype` ans Ende geschoben. EpubFile bleibt bewusst bei seinem
 getesteten Weg; die Backends hier teilen sich nur `ZipContainer`.
 
-Grenzen: Jeder Eintrag läuft beim Kopieren einmal durch den Speicher
-(nacheinander); Erweiterungsfelder der ZIP-Einträge gehen verloren.
+Unveränderte Dateieinträge über 1 MiB laufen blockweise durch eine Datei im
+privaten Arbeitsordner; kleine Einträge bleiben im Speicher. `readChunk`
+begrenzt unter macOS zusätzlich die Lebensdauer temporärer Foundation-Puffer.
+Ohne diesen Autorelease-Pool sammelt selbst blockweises Lesen den gesamten
+Inhalt bis zum Ende des CLI-Befehls im Speicher.
+
+Messung 2026-09-08 (macOS arm64, Debug-CLI, `/usr/bin/time -l`): Titeländerung
+in einer synthetischen DOCX mit einem unkomprimierten 128-MiB-Eintrag sank
+von 283.787.264 auf 15.843.328 Byte Spitzenspeicher. SHA-256 des Eintrags und
+ZIP-Prüfsummen blieben korrekt. Die Einzelmessungen belegen den Speichergewinn,
+keine verlässliche Beschleunigung.
+
+Grenzen: Erweiterungsfelder der ZIP-Einträge gehen verloren.
 Verschlüsselte oder anders als deflate/stored komprimierte Archive scheitern
 mit `saveFailed`.
 

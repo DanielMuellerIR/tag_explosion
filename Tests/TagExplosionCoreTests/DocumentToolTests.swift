@@ -3,6 +3,7 @@
 // Container-Invarianten: Der restliche ZIP-Inhalt bleibt byte-identisch in
 // gleicher Reihenfolge, ODF behält `mimetype` unkomprimiert an erster Stelle.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -34,16 +35,10 @@ struct DocumentToolTests {
     func zipPreservesExternalMetadata(fixture: String) throws {
         let url = try Fixtures.workingCopy(fixture)
         func command(_ executable: String, _ arguments: [String]) throws -> String {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = arguments
-            let output = Pipe()
-            process.standardOutput = output
-            try process.run()
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            #expect(process.terminationStatus == 0)
-            return String(decoding: data, as: UTF8.self)
+            let result = try runCapturedProcess(executable: executable, arguments: arguments,
+                                                currentDirectory: TagxTestProcess.repoRoot)
+            #expect(result.status == 0, Comment(rawValue: result.stderr))
+            return result.stdout
         }
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
         _ = try command("/usr/bin/xattr", ["-w", "com.test.tagx", "synthetic metadata", url.path])
@@ -109,6 +104,29 @@ struct DocumentToolTests {
         #expect(try DocumentTool.readCoreFields(url: url) == edited)
         expectUntouched(before: before, after: try archiveContents(url),
                         except: ["docProps/core.xml"])
+    }
+
+    @Test("Große ZIP-Einträge behalten Inhalt, Kompression und Rechte", arguments: [false, true])
+    func largeZipEntrySurvives(compressed: Bool) throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        let payload = Data(repeating: 0x5a, count: 2 * 1024 * 1024)
+        let entryPath = "word/media/large.bin"
+        do {
+            let archive = try ZipContainer.open(url: url, accessMode: .update)
+            try archive.addEntry(with: entryPath, type: .file, uncompressedSize: Int64(payload.count),
+                permissions: 0o640, compressionMethod: compressed ? .deflate : .none
+            ) { position, size in payload.subdata(in: Int(position)..<(Int(position) + size)) }
+        }
+        let original = try DocumentTool.readCoreFields(url: url)
+        var fields = original
+        fields.title = "Großer Anhang"
+        try DocumentTool.write(url: url, fields: fields, original: original)
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let entry = try #require(archive[entryPath])
+        #expect(entry.isCompressed == compressed)
+        #expect((entry.fileAttributes[.posixPermissions] as? NSNumber)?.intValue == 0o640)
+        #expect(try ZipContainer.data(of: entry, in: archive) == payload)
+        #expect(try DocumentTool.readCoreFields(url: url) == fields)
     }
 
     @Test("docx: Felder löschen entfernt die Elemente")
@@ -373,6 +391,7 @@ struct DocumentToolTests {
     @Test("Markdown: Frontmatter lesen (Skalare, Listen, Kommentare, komplexe Einträge)")
     func markdownRead() throws {
         let url = try markdownFile(Self.sampleFrontmatter)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let contents = try DocumentTool.readSnapshot(url: url, includeCover: true).value
         let fields = contents.fields
         #expect(fields.title == "Hallo: Welt")
@@ -392,6 +411,7 @@ struct DocumentToolTests {
     @Test("Markdown: Roundtrip erhält Reihenfolge, Fremdschlüssel und Body byte-identisch")
     func markdownRoundtrip() throws {
         let url = try markdownFile(Self.sampleFrontmatter)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try DocumentTool.readCoreFields(url: url)
         var edited = original
         edited.title = "Neuer Titel"
@@ -436,6 +456,7 @@ struct DocumentToolTests {
     func markdownCreatesFrontmatter() throws {
         let body = "\u{FEFF}# Nur Body\r\n\r\nText.\r\n"
         let url = try markdownFile(body)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let contents = try DocumentTool.readSnapshot(url: url, includeCover: false).value
         #expect(contents.fields == DocumentCoreFields())
         #expect(contents.info.contains(DocumentInfoItem(label: "frontmatter", value: "none")))
@@ -474,6 +495,7 @@ struct DocumentToolTests {
     @Test("Markdown: Komplexe Einträge lassen sich nicht überschreiben, Schlüsselform wird geprüft")
     func markdownProtectsComplexEntries() throws {
         let url = try markdownFile(Self.sampleFrontmatter)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let bytes = try Data(contentsOf: url)
         let original = try DocumentTool.readCoreFields(url: url)
         var nested = original

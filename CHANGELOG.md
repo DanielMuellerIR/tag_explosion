@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.21 — 2026-09-08
+
+- Große unveränderte ZIP-Einträge werden blockweise kopiert. Unter macOS
+  begrenzt der Leser zusätzlich temporäre Foundation-Puffer; der gemessene
+  Spitzenspeicher einer Titeländerung mit 128-MiB-Anhang sinkt von 271 auf 15 MiB.
+- Dokumenttests prüfen große komprimierte und unkomprimierte Einträge,
+  verwenden den gemeinsamen Prozessstarter und räumen Markdown-Arbeitsdateien auf.
+
 ## 0.46.20 — 2026-09-08
 
 - Markdown-Dateien ohne letzten Zeilenumbruch können Frontmatter erhalten;

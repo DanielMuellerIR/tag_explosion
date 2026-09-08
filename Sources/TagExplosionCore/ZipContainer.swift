@@ -67,9 +67,9 @@ enum ZipContainer {
     /// Archiv entsteht daneben und ersetzt die Kopie per `rename`. Der Aufrufer
     /// prüft das Ergebnis, bevor es das Original ersetzt.
     ///
-    /// Grenze: Jeder Eintrag wird beim Kopieren einmal vollständig in den
-    /// Speicher geladen (nacheinander, nicht alle zugleich). Erweiterungsfelder
-    /// der Einträge (z.B. Zeitstempel mit Zeitzone) gehen dabei verloren.
+    /// Große unveränderte Dateien werden blockweise über eine private
+    /// Zwischendatei kopiert; kleine Einträge bleiben im Speicher.
+    /// Erweiterungsfelder (z.B. Zeitstempel mit Zeitzone) gehen dabei verloren.
     static func rewrite(url: URL, replacing replacements: [String: Data]) throws {
         let workspace = url.deletingLastPathComponent().appendingPathComponent(
             ".\(url.lastPathComponent).zip-rebuild-\(UUID().uuidString)")
@@ -101,11 +101,21 @@ enum ZipContainer {
         let output = try FileHandle(forWritingTo: target)
         defer { try? output.close() }
         try output.truncate(atOffset: 0)
-        while let chunk = try input.read(upToCount: 1024 * 1024), !chunk.isEmpty {
+        while let chunk = try readChunk(from: input, size: 1024 * 1024), !chunk.isEmpty {
             try output.write(contentsOf: chunk)
         }
         try output.synchronize()
         try output.close()
+    }
+
+    /// Foundation hält unter macOS sonst gelesene NSData-Blöcke bis zum
+    /// nächsten äußeren Autorelease-Pool fest, auch innerhalb einer Schleife.
+    private static func readChunk(from input: FileHandle, size: Int) throws -> Data? {
+        #if canImport(Darwin)
+        return try autoreleasepool { try input.read(upToCount: size) }
+        #else
+        return try input.read(upToCount: size)
+        #endif
     }
 
     /// Eigene Funktion, damit das Zielarchiv (Dateihandle) sicher geschlossen
@@ -117,6 +127,11 @@ enum ZipContainer {
         var pending = replacements
         for entry in source {
             let path = entry.path
+            if replacements[path] == nil, entry.type == .file, entry.uncompressedSize > 1024 * 1024 {
+                try copyLargeEntry(entry, from: source, to: target,
+                    staging: targetURL.deletingLastPathComponent().appendingPathComponent("entry-content"))
+                continue
+            }
             let data: Data
             if let replacement = pending.removeValue(forKey: path) {
                 data = replacement
@@ -136,6 +151,33 @@ enum ZipContainer {
         for path in pending.keys.sorted() {
             try add(path: path, data: pending[path]!, type: .file, compressed: true,
                     attributes: [:], to: target)
+        }
+    }
+
+    /// ZIPFoundation stellt entpackte Daten als Push-Strom bereit, addEntry
+    /// fordert sie dagegen blockweise an. Eine Datei verbindet beide APIs,
+    /// ohne einen kompletten Medieninhalt im Arbeitsspeicher zu halten.
+    private static func copyLargeEntry(_ entry: Entry, from source: Archive, to target: Archive,
+                                       staging: URL) throws {
+        try Data().write(to: staging, options: .withoutOverwriting)
+        defer { try? FileManager.default.removeItem(at: staging) }
+        let output = try FileHandle(forWritingTo: staging)
+        defer { try? output.close() }
+        _ = try source.extract(entry, bufferSize: 256 * 1024) { try output.write(contentsOf: $0) }
+        try output.close()
+        let input = try FileHandle(forReadingFrom: staging)
+        defer { try? input.close() }
+        let attributes = entry.fileAttributes
+        try target.addEntry(with: entry.path, type: entry.type, uncompressedSize: Int64(entry.uncompressedSize),
+            modificationDate: attributes[.modificationDate] as? Date ?? Date(),
+            permissions: (attributes[.posixPermissions] as? NSNumber)?.uint16Value,
+            compressionMethod: entry.isCompressed ? .deflate : .none, bufferSize: 256 * 1024
+        ) { position, size in
+            try input.seek(toOffset: UInt64(position))
+            guard let chunk = try readChunk(from: input, size: size), chunk.count == size else {
+                throw TagError.saveFailed(path: staging.path)
+            }
+            return chunk
         }
     }
 
