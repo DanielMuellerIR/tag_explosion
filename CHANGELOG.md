@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.43 — 2026-09-08
+
+- Untertitel verschieben nur die Zeiten echter Cue-Zeilen. Zeitangaben im
+  gesprochenen Text und VTT-Kommentarblöcke bleiben unverändert.
+- Verschiebungen über 99 Stunden funktionieren bis zur erlaubten Grenze
+  von 1000 Stunden. Core-Aufrufe prüfen ebenfalls den Zahlenbereich;
+  ungültige Zeitangaben und Überläufe führen nicht zum Absturz.
+
 ## 0.46.42 — 2026-09-08
 
 - PLS berücksichtigt Dateiverweise und Titel nur im Abschnitt `[playlist]`.

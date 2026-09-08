@@ -64,11 +64,14 @@ Video-Editor.
 
 ## Untertitel
 
-- **Zeitverschiebung ändert nur Zeilen mit `-->`.** Alle anderen Zeilen,
-  Zeichensatz, BOM und Zeilenende bleiben byteweise erhalten; +x und −x
-  ergeben die Ausgangsdatei (Test). Negative Zeiten werden abgelehnt, bevor
-  etwas geschrieben wird. Ohne Stundenanteil (VTT `MM:SS.mmm`) erscheint er
-  erst, wenn eine Zeit eine Stunde erreicht.
+- **Lesen und Verschieben erkennen dieselben Cue-Zeilen.** Zeitangaben im
+  gesprochenen Text sowie VTT-Kopf-, NOTE-, STYLE- und REGION-Blöcke bleiben
+  unangetastet. Nach der Zeitzeile gehört der Rest eines Blocks zum Text.
+  Zeichensatz, BOM und Zeilenende bleiben erhalten. Stunden dürfen mehr
+  als zwei Stellen haben, sodass die erlaubten 1000 Stunden Verschiebung
+  zurücklesbar bleiben. Alle öffentlichen Verschiebungswege prüfen den
+  Wertebereich; negative Ergebnisse und Überläufe werden vor dem Austausch
+  abgelehnt. Ohne Stundenanteil erscheint er erst ab einer Stunde.
 - **`--seconds=-1.5`:** ArgumentParser liest `--seconds -1.5` als Option
   plus unbekanntes Flag; negative Werte brauchen die `=`-Form.
 - **Zeichensatz-Erkennung:** UTF-8-BOM → UTF-16-BOM → UTF-8 → Latin-1 als

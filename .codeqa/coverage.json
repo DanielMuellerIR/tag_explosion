@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 1950744
+    "tokens_spent": 2177341
   },
   "campaign_history": [
     {
@@ -521,13 +521,19 @@
       "risk": "high",
       "priority": 9,
       "reason": "Playlist-Parser, Cue-Anwendung und Export müssen Texte, Verweise und Fremdinhalte erhalten.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:28:07+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T03:46:32+02:00",
+        "observed_head": "36225e4ddf8ceb436a99d8642ce897ae6c8cb477",
+        "content_sha256": "77e38d468b08ee5a66ec8e7c840c7a0dcd8af8f24dbc2cded9c0ba0542c457ff",
+        "file_count": 11,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle 11 Dateien und App-/CLI-Grenzen vollständig geprüft. Dauerüberläufe, literal/URI-Pfade, unrepräsentierbare Exporte, gemeinsame Cue-Dateiidentitäten und fremde PLS-Abschnitte korrigiert. M3U/PLS-Zeilenänderungen gebündelt, Cue-Dauern linear. Eigenständige Tests parallel; fachliche Roundtrips, CLI-Verträge und Goldentexte bleiben sinnvoll getrennt. Cue-Metadatenmutation bleibt bei kleinen typischen Tracklisten bewusst einfach.",
+        "tests": [
+          "496 Core-Tests 6.849 s Exit 0; App 117 Tests 0.480 s (vor letzter interner PLS-Abgrenzung); CLI-Dauerfälle vorher drei Abstürze; Pfade vorher 18 Issues; Cue-Aliasse vorher zwei Issues; PLS-Fremdabschnitt vorher drei Issues. M3U 2.284→0.274 s, PLS 8.163→0.329 s, Cue 6.191→0.177 s mit bytegleichen Ausgaben."
+        ]
       }
     },
     {
@@ -544,7 +550,14 @@
       "risk": "high",
       "priority": 9,
       "reason": "NFO und Untertitel: Erhalt unbekannter Inhalte, Zeitverschiebung und gemeinsame Validierung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:46:47+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "app-loading",

@@ -5,7 +5,7 @@
 // Metadaten — die Sprache steckt dort allein im Dateinamen (`film.de.srt`).
 //
 // Dazu die Zeitverschiebung („alle Cues um +1,5 s"): Sie ändert ausschließlich
-// die Zeitangaben der Zeilen mit `-->`; jede andere Zeile bleibt byteweise
+// die Zeitangaben echter Cue-Zeilen; jede andere Zeile bleibt byteweise
 // erhalten, ebenso Zeichensatz, BOM und Zeilenende. Fallen:
 // knowledge/kodi-nfo-untertitel.md.
 import Foundation
@@ -207,18 +207,82 @@ public enum SubtitleFile {
     // MARK: - Zeiten
 
     /// Zeitangabe `HH:MM:SS,mmm` (SRT) bzw. `[HH:]MM:SS.mmm` (VTT).
-    static let timestampPattern = #"(?:(\d{1,2}):)?(\d{1,2}):(\d{2})([.,])(\d{1,3})"#
+    private static let timestampRegex = try! NSRegularExpression(
+        pattern: #"^(?:([0-9]+):)?([0-9]{1,2}):([0-9]{2})([.,])([0-9]{1,3})$"#)
 
-    private static let timestampRegex = try! NSRegularExpression(pattern: timestampPattern)
+    private struct Timestamp {
+        var range: Range<String.Index>
+        var milliseconds: Int
+        var separator: Character
+        var withHours: Bool
+    }
 
-    static func milliseconds(hours: String?, minutes: String, seconds: String, fraction: String) -> Int {
-        let h = Int(hours ?? "") ?? 0
-        let m = Int(minutes) ?? 0
-        let s = Int(seconds) ?? 0
-        // "5" hinter dem Komma sind 500 ms, nicht 5 ms.
-        let padded = fraction.padding(toLength: 3, withPad: "0", startingAt: 0)
-        let ms = Int(padded) ?? 0
-        return ((h * 60 + m) * 60 + s) * 1000 + ms
+    private struct Timing {
+        var start: Timestamp
+        var end: Timestamp
+    }
+
+    private static func timestamp(in text: String, range: Range<String.Index>) -> Timestamp? {
+        let token = String(text[range])
+        guard let match = timestampRegex.firstMatch(in: token, range: NSRange(token.startIndex..., in: token))
+        else { return nil }
+        func group(_ index: Int) -> String? {
+            Range(match.range(at: index), in: token).map { String(token[$0]) }
+        }
+        guard let hours = Int(group(1) ?? "0"),
+              let minutes = group(2).flatMap(Int.init), (0..<60).contains(minutes),
+              let seconds = group(3).flatMap(Int.init), (0..<60).contains(seconds),
+              let fraction = group(5),
+              let millis = Int(fraction.padding(toLength: 3, withPad: "0", startingAt: 0)) else { return nil }
+        let (wholeHours, hourOverflow) = hours.multipliedReportingOverflow(by: 3_600_000)
+        guard !hourOverflow else { return nil }
+        let (value, overflow) = wholeHours.addingReportingOverflow((minutes * 60 + seconds) * 1000 + millis)
+        guard !overflow else { return nil }
+        return Timestamp(range: range, milliseconds: value, separator: group(4)?.first ?? ",",
+                         withHours: group(1) != nil)
+    }
+
+    /// Nur eine vollständige Zeitzeile zählt; Zeitangaben mitten in einem
+    /// gesprochenen Satz bleiben Text. VTT-Einstellungen hinter dem Ende bleiben.
+    private static func timing(in body: String) -> Timing? {
+        guard let arrow = body.range(of: "-->"),
+              let start = body[..<arrow.lowerBound].firstIndex(where: { !$0.isWhitespace }),
+              let last = body[..<arrow.lowerBound].lastIndex(where: { !$0.isWhitespace }),
+              let endStart = body[arrow.upperBound...].firstIndex(where: { !$0.isWhitespace }) else { return nil }
+        let end = body[endStart...].firstIndex(where: { $0.isWhitespace }) ?? body.endIndex
+        guard let first = timestamp(in: body, range: start..<body.index(after: last)),
+              let second = timestamp(in: body, range: endStart..<end) else { return nil }
+        return Timing(start: first, end: second)
+    }
+
+    /// Lesen und Verschieben verwenden dieselben Cue-Zeilen. Nach einer
+    /// Zeitzeile gehört der Rest des Blocks zum Text; VTT-Kommentar-, Stil-
+    /// und Regionsblöcke sowie der Kopf enthalten keine Cues.
+    private static func timings(in allLines: [Substring]) -> [Int: Timing] {
+        let isVTT = allLines.first.map { content(of: $0).hasPrefix("WEBVTT") } ?? false
+        var atBlockStart = true
+        var ignored = false
+        var hasCue = false
+        var result: [Int: Timing] = [:]
+        for (index, line) in allLines.enumerated() {
+            let body = String(content(of: line))
+            let trimmed = body.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty {
+                atBlockStart = true
+                ignored = false
+                hasCue = false
+                continue
+            }
+            if atBlockStart {
+                ignored = isVTT && (index == 0 || trimmed == "NOTE" || trimmed.hasPrefix("NOTE ")
+                    || trimmed.hasPrefix("NOTE\t") || trimmed == "STYLE" || trimmed == "REGION")
+                atBlockStart = false
+            }
+            guard !ignored, !hasCue, let timing = timing(in: body) else { continue }
+            result[index] = timing
+            hasCue = true
+        }
+        return result
     }
 
     /// `HH:MM:SS<sep>mmm`; ohne Stunden `MM:SS<sep>mmm` (nur solange < 1 h).
@@ -227,24 +291,11 @@ public enum SubtitleFile {
         let minutes = (ms / 60_000) % 60
         let seconds = (ms / 1000) % 60
         let millis = ms % 1000
+        let tail = String(format: "%02d:%02d%@%03d", minutes, seconds, String(separator), millis)
         if withHours || hours > 0 {
-            return String(format: "%02d:%02d:%02d%@%03d", hours, minutes, seconds, String(separator), millis)
+            return (hours < 10 ? "0\(hours)" : "\(hours)") + ":" + tail
         }
-        return String(format: "%02d:%02d%@%03d", minutes, seconds, String(separator), millis)
-    }
-
-    /// Alle Zeitangaben einer Zeile in Millisekunden (Reihenfolge der Zeile).
-    static func timestamps(in line: Substring) -> [Int] {
-        let text = String(line)
-        let range = NSRange(text.startIndex..., in: text)
-        return timestampRegex.matches(in: text, range: range).map { match in
-            func group(_ i: Int) -> String? {
-                guard let r = Range(match.range(at: i), in: text) else { return nil }
-                return String(text[r])
-            }
-            return milliseconds(hours: group(1), minutes: group(2) ?? "0",
-                                seconds: group(3) ?? "0", fraction: group(5) ?? "0")
-        }
+        return tail
     }
 
     // MARK: - Lesen
@@ -271,12 +322,12 @@ public enum SubtitleFile {
         var cueCount = 0
         var firstStart: Int?
         var lastEnd: Int?
-        for line in allLines where line.contains("-->") {
-            let times = timestamps(in: content(of: line))
-            guard times.count >= 2 else { continue }
+        let cueTimings = timings(in: allLines)
+        for index in allLines.indices {
+            guard let timing = cueTimings[index] else { continue }
             cueCount += 1
-            if firstStart == nil { firstStart = times[0] }
-            lastEnd = max(lastEnd ?? 0, times[1])
+            if firstStart == nil { firstStart = timing.start.milliseconds }
+            lastEnd = max(lastEnd ?? 0, timing.end.milliseconds)
         }
         let lineEndings: String
         if decoded.text.contains("\r\n") {
@@ -452,41 +503,41 @@ public enum SubtitleFile {
         return Int((seconds * 1000).rounded())
     }
 
-    /// Verschiebt alle Zeitangaben um `milliseconds`; nur Zeilen mit `-->`
-    /// ändern sich. Negative Ergebnisse werden abgelehnt.
+    /// Verschiebt die beiden Zeitangaben jeder Cue-Zeile um `milliseconds`.
+    /// Text- und Kommentarblöcke bleiben erhalten; negative Ergebnisse und
+    /// Überläufe werden abgelehnt.
     public static func shifted(text: String, milliseconds delta: Int) throws -> String {
+        try requireShiftRange(delta)
+        let allLines = lines(keepingTerminators: text)
+        let cueTimings = timings(in: allLines)
         var out = ""
-        for line in lines(keepingTerminators: text) {
-            guard line.contains("-->") else {
+        func moved(_ timestamp: Timestamp) throws -> String {
+            let (value, overflow) = timestamp.milliseconds.addingReportingOverflow(delta)
+            guard !overflow, value >= 0 else {
+                throw TagError.invalidSubtitleShift(reason: "a cue would leave the supported timestamp range")
+            }
+            return formatTimestamp(value, separator: timestamp.separator, withHours: timestamp.withHours)
+        }
+        for (index, line) in allLines.enumerated() {
+            guard let timing = cueTimings[index] else {
                 out += line
                 continue
             }
             let body = String(content(of: line))
-            var shiftedLine = ""
-            var cursor = body.startIndex
-            let range = NSRange(body.startIndex..., in: body)
-            for match in timestampRegex.matches(in: body, range: range) {
-                guard let whole = Range(match.range, in: body) else { continue }
-                func group(_ i: Int) -> String? {
-                    guard let r = Range(match.range(at: i), in: body) else { return nil }
-                    return String(body[r])
-                }
-                let ms = milliseconds(hours: group(1), minutes: group(2) ?? "0",
-                                      seconds: group(3) ?? "0", fraction: group(5) ?? "0")
-                let moved = ms + delta
-                guard moved >= 0 else {
-                    throw TagError.invalidSubtitleShift(
-                        reason: "a cue would start before 00:00:00 (shift by \(delta) ms)")
-                }
-                let separator = group(4)?.first ?? ","
-                shiftedLine += body[cursor..<whole.lowerBound]
-                shiftedLine += formatTimestamp(moved, separator: separator, withHours: group(1) != nil)
-                cursor = whole.upperBound
-            }
-            shiftedLine += body[cursor...]
-            out += shiftedLine + terminator(of: line)
+            out += body[..<timing.start.range.lowerBound]
+            out += try moved(timing.start)
+            out += body[timing.start.range.upperBound..<timing.end.range.lowerBound]
+            out += try moved(timing.end)
+            out += body[timing.end.range.upperBound...]
+            out += terminator(of: line)
         }
         return out
+    }
+
+    private static func requireShiftRange(_ delta: Int) throws {
+        guard (-maxShiftMilliseconds...maxShiftMilliseconds).contains(delta) else {
+            throw TagError.invalidSubtitleShift(reason: "offset must be at most 1000 hours")
+        }
     }
 
     /// Verschiebt die Datei atomar (Sicherung macht der Aufrufer). Die
@@ -494,6 +545,7 @@ public enum SubtitleFile {
     public static func shift(url: URL, milliseconds delta: Int,
                              expecting stamp: FileStamp? = nil) throws {
         guard format(of: url) != nil else { throw TagError.cannotOpen(path: url.path) }
+        try requireShiftRange(delta)
         guard delta != 0 else {
             try FileStamp.requireUnchanged(stamp, at: url)
             return

@@ -389,7 +389,7 @@ struct SidecarTests {
     func shift() throws {
         let dir = try makeDir()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let srt = "1\r\n00:00:01,000 --> 00:00:02,500\r\nGrüße --> nicht anfassen\r\n\r\n2\r\n00:59:59,000 --> 01:00:00,000\r\nEnde\r\n"
+        let srt = "1\r\n00:00:01,000 --> 00:00:02,500\r\nGrüße 00:00:07,000 --> 00:00:08,000 nicht anfassen\r\n\r\n2\r\n00:59:59,000 --> 01:00:00,000\r\nEnde\r\n"
         let url = try writeFile("film.srt", srt, in: dir, encoding: .isoLatin1)
         try SubtitleFile.shift(url: url, milliseconds: 1500)
         let shifted = try #require(String.decoded(try Data(contentsOf: url), as: .isoLatin1))
@@ -408,6 +408,29 @@ struct SidecarTests {
             == "WEBVTT\n\n01:00:00.000 --> 01:00:00.900\nA\n")
         #expect(try SubtitleFile.shifted(text: vtt, milliseconds: -1000)
             == "WEBVTT\n\n59:58.000 --> 59:58.900\nA\n")
+    }
+
+    @Test("VTT verschiebt nur Cue-Zeilen, auch über 99 Stunden hinaus", arguments: [1000, 360_000_000, 3_600_000_000])
+    func subtitleTimingBlocks(delta: Int) throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let text = "WEBVTT\n\nNOTE Beispiel\n00:01.000 --> 00:02.000\n\n"
+            + "cue-id\n00:03.000 --> 00:04.000 line:0\n00:20.000 --> 00:21.000\n"
+        let url = try writeFile("blocks.vtt", text, in: dir)
+        let info = try SubtitleFile.read(url: url).info
+        #expect(info.cueCount == 1)
+        #expect(info.firstStartMilliseconds == 3000)
+        #expect(info.lastEndMilliseconds == 4000)
+        try SubtitleFile.shift(url: url, milliseconds: delta)
+        let replacement: String
+        switch delta {
+        case 1000: replacement = "00:04.000 --> 00:05.000 line:0"
+        case 360_000_000: replacement = "100:00:03.000 --> 100:00:04.000 line:0"
+        default: replacement = "1000:00:03.000 --> 1000:00:04.000 line:0"
+        }
+        #expect(try String(contentsOf: url, encoding: .utf8) == text.replacingOccurrences(
+            of: "00:03.000 --> 00:04.000 line:0", with: replacement))
+        #expect(try SubtitleFile.read(url: url).info.firstStartMilliseconds == 3000 + delta)
     }
 
     @Test("Muster: %{base}.%{lang} benennt einen Untertitel um")
@@ -499,5 +522,14 @@ struct SidecarTests {
         #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: 1e16) }
         #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: .infinity) }
         #expect(throws: TagError.self) { try SubtitleFile.shiftMilliseconds(seconds: .nan) }
+        let cue = "1\n00:00:01,000 --> 00:00:02,000\nText\n"
+        for delta in [Int.min, Int.max, SubtitleFile.maxShiftMilliseconds + 1] {
+            #expect(throws: TagError.self) { try SubtitleFile.shifted(text: cue, milliseconds: delta) }
+        }
+        for timestamp in ["00:60:00,000", "00:00:60,000", "\(Int.max):00:00,000"] {
+            let input = Data("1\n\(timestamp) --> 00:00:02,000\nText\n".utf8)
+            let parsed = SubtitleFile.parse(input, format: .srt, url: URL(fileURLWithPath: "/test.srt"))
+            #expect(parsed.info.cueCount == 0)
+        }
     }
 }
