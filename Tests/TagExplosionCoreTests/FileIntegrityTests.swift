@@ -265,8 +265,12 @@ struct FileIntegrityTests {
         // Größe + Änderungszeit allein reichen nicht: Ein Programm kann eine
         // Datei atomar durch eine gleich große ersetzen und die mtime exakt
         // wiederherstellen. Erst die Inode im Stempel macht das sichtbar.
-        let url = try Fixtures.workingCopy("sample.mp3")
-        let originalData = try Data(contentsOf: url)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("tagx-stamp-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("original.bin")
+        let originalData = Data("gleicher Inhalt".utf8)
+        try originalData.write(to: url)
 
         // Fremde Ersetzung: gleicher Inhalt und damit gleiche Größe. Beide
         // Dateien bekommen dieselbe ganzzahlige Sekunde als mtime (identische
@@ -280,15 +284,15 @@ struct FileIntegrityTests {
             try FileManager.default.setAttributes([.modificationDate: sharedDate],
                                                   ofItemAtPath: path)
         }
-        let stamp = try #require(FileStamp.current(of: url))
-        try FileManager.default.removeItem(at: url)
-        try FileManager.default.moveItem(at: replacement, to: url)
+        let snapshot = try FileSnapshot.capture(at: url) { try Data(contentsOf: url) }
+        let stamp = snapshot.stamp
+        try TestFiles.replaceAtomically(url, with: replacement)
 
         let after = try #require(FileStamp.current(of: url))
         #expect(after.size == stamp.size)
         #expect(after.modified == stamp.modified)
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
-            try FileStamp.requireUnchanged(stamp, at: url)
+            try snapshot.requireCurrent(at: url)
         }
     }
 

@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.33 — 2026-09-08
+
+- `tagx set --id3v23` berücksichtigt die ausdrücklich verlangte
+  Versionsumstellung auch bei unveränderten Tagwerten. Ein wiederholter
+  identischer Aufruf schreibt die Datei weiterhin nicht neu.
+- Die doppelte Dateiersetzungsprüfung aus den CLI-Tests steckt jetzt im
+  Core-Test für gleiche Größe und Änderungszeit. Er prüft den vollständigen
+  Schnappschuss und benötigt dafür keine Audio-Fixture mehr.
+
 ## 0.46.32 — 2026-09-08
 
 - Fehlgeschlagene Batch-Regeln speichern keine bereits vorhandenen

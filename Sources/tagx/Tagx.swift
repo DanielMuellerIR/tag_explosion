@@ -263,7 +263,12 @@ struct Set: ParsableCommand {
         // Swift.Set: "Set" ist in dieser Datei der Name des CLI-Befehls.
         let changedKeys = Swift.Set(before.keys).union(after.keys)
             .filter { (before[$0] ?? []) != (after[$0] ?? []) }
-        guard !changedKeys.isEmpty else {
+        // Eine ausdrücklich verlangte ID3-Version ist selbst eine Änderung,
+        // auch wenn die Tagwerte schon passen. Andere Formate bleiben unberührt.
+        let changesID3Version = id3v23 && existing.layers.contains {
+            $0.kind == .id3v2 && $0.present && $0.version != 3
+        }
+        guard !changedKeys.isEmpty || changesID3Version else {
             // Der Vergleich beruht auf dem Lesestand von oben. Erst die
             // Stempel-Prüfung macht die Erfolgsmeldung ehrlich: Hat ein anderes
             // Programm die Datei inzwischen auf einen abweichenden Wert
@@ -277,7 +282,8 @@ struct Set: ParsableCommand {
         try TrashBackup.shared.backUp(url, reason: BackupReason.tags)
         try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp,
                           id3Version: id3v23 ? .v23 : .v24)
-        print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed")
+        let versionNote = changesID3Version ? "; ID3v2.3 written" : ""
+        print("OK \(url.lastPathComponent): \(changedKeys.count) field(s) changed\(versionNote)")
     }
 }
 

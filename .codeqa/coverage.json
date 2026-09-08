@@ -386,15 +386,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:49:34+02:00",
-        "observed_head": "97403e3db61a524f68000c551cbf031bdb6accf8",
-        "content_sha256": "00dc3900659e5522e89192aec83911348c8c26d8eb31eaebfaae6515096e0319",
+        "completed_at": "2026-09-08T03:04:04+02:00",
+        "observed_head": "96ce7235f707080304427e470640769abe1ecca5",
+        "content_sha256": "36218c3f317fcc812600d0af74bf60b6c70c0b3822247d0bc2aed997e0fb3d96",
         "file_count": 8,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "Seit 2c61c25 nur zwei Sidecar-Lesestandsprüfungen im Bildzweig von Parse.write: vor No-op und vor Sicherung. Mit ImageCoreReading und anschließendem Core-Schreibschutz geprüft; keine weiteren Änderungen an Plan/App oder Tests. Commit 97403e3.",
+        "summary": "Delta seit 97403e3: FilenamePattern.formatValue prüft Breite 1 bis 9 auch für direkt konstruierte Platzhalter. FilenamePattern-Parser prüfte diesen Bereich bereits; Batch-Regeln nutzen jetzt dasselbe Sicherheitsnetz. Gültige Muster unverändert; Breite 10 und Int.max ohne Auffüllung geprüft. Commit 96ce723.",
         "tests": [
-          "swift test: 490 Tests, 6.623 s; App 117 Tests, 0.473 s aus dem Bild-Schritt"
+          "Core/CLI 491 Tests in 6.723 s; App 117 Tests in 0.487 s"
         ]
       }
     },
@@ -438,13 +438,19 @@
       "risk": "high",
       "priority": 8,
       "reason": "Regelplanung und Werteprüfung vor Batch-Mutation; Änderbarkeit von Regeltypen und Eingaben.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:49:34+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T03:04:03+02:00",
+        "observed_head": "96ce7235f707080304427e470640769abe1ecca5",
+        "content_sha256": "2a99fa165062003b0aaf57ee58015adb54dd83d664d427f3ddbb9513f36bfffe",
+        "file_count": 7,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle sieben Dateien einschließlich Regel-JSON, Listen-/Textsemantik, CLI, App-Formular und Tests geprüft. Nummerierungsüberlauf reproduziert (CLI Signalstatus 5), Bereich jetzt vorab geprüft und Exit 64. Textoperationen einmal pro Regel vorbereitet, zweite Skalar-Ausführung entfernt; 10000 Einträge 1.712 auf 0.950 s, vollständige Änderungspläne bytegleich. App-Vorschau berechnet einmal statt dreimal und unterscheidet gleiche Dateinamen über Pfad. Fehlerhafte Regelübernahmen speichern bestehende Pufferänderungen nicht; gemischter Erfolg getestet. Gemeinsame Platzhalterbreite begrenzt. Vorhandene Core-/CLI-/App-Tests prüfen unterschiedliche Verträge; Benchmark bleibt außerhalb Standardsuite. Commits 869f5d9, cf5e335, 96ce723.",
+        "tests": [
+          "Core/CLI 491 Tests in 6.723 s; App 117 Tests in 0.487 s; erweiterte App-Regelfälle danach 5 Tests in 0.010 s. Nummerierung, Breite und falsche Speicherauswahl jeweils vor Korrektur fehlgeschlagen."
+        ]
       }
     },
     {
@@ -458,7 +464,7 @@
       "risk": "high",
       "priority": 8,
       "reason": "Maschinenlesbare CLI, Exit-Codes und Mutationsoptionen sind die headless Bediengrenze aller Hauptfunktionen.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:56+02:00",
@@ -475,7 +481,16 @@
       },
       "pending_paths": [
         "Tests/TagxTests/ReplaceAtomically.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:04:04+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "Tests/TagxTests/ReplaceAtomically.swift"
+        ]
+      }
     },
     {
       "id": "media-discovery",
@@ -1159,6 +1174,20 @@
           "Core/CLI: 487 Tests in 6.499 s; App: 117 Tests in 0.490 s. Neue Fehlerproben vorher fünf Probleme; Prüfung verlorener zweiter Sidecar, JSON-Plan, aller Journalpfade und zweier deterministischer Rückwegfälle."
         ]
       }
+    },
+    {
+      "id": "property-value-maps",
+      "summary": "Set.valueMap, Parse.valueMap, TagRuleFields.values und TagArchive.propertyMap gruppieren TagProperty-Listen nach Schlüssel. Eine gemeinsame Modellfunktion prüfen, Reihenfolge und mehrwertige/leere Tags erhalten; Regeln sollen keine allgemeine Gruppierungsfunktion besitzen.",
+      "evidence": [
+        "Sources/tagx/Tagx.swift",
+        "Sources/tagx/RenameCommands.swift",
+        "Sources/TagExplosionCore/TagRules.swift",
+        "Sources/TagExplosionCore/TagArchive.swift"
+      ],
+      "priority": 8,
+      "state": "pending",
+      "noted_at": "2026-09-08T03:05:26+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

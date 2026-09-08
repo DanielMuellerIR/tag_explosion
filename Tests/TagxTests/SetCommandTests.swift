@@ -47,32 +47,17 @@ struct SetCommandTests {
         ])
         #expect(mixed.status == 0)
         #expect(mixed.stdout.contains("1 field(s) changed"))
-    }
 
-    @Test("No-op-Vertrag lehnt eine Ersetzung nach dem Feldvergleich ab",
-          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
-    func noopSnapshotRejectsSamePathReplacementAfterComparison() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-set-noop-race-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let file = directory.appendingPathComponent("song.mp3")
-        let replacement = directory.appendingPathComponent("replacement.mp3")
-        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: file)
-        try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: replacement)
-
-        // Genau derselbe Vertrag liegt im Set-Befehl um Read, Vergleich und
-        // No-op-Rückweg. Nach dem semantischen Vergleich wird der Pfad gezielt
-        // atomar auf eine andere Inode umgestellt.
-        let snapshot = try FileSnapshot.capture(at: file) {
-            try TagFile.read(at: file)
-        }
-        #expect(!snapshot.value.properties.isEmpty)
-        try TestFiles.replaceAtomically(file, with: replacement)
-
-        #expect(throws: TagError.fileChangedOnDisk(path: file.path)) {
-            try snapshot.requireCurrent(at: file)
-        }
+        // Die explizite ID3-Version ist ebenfalls ein Sollwert. Unveränderte
+        // Tags dürfen die verlangte Umstellung von v2.4 auf v2.3 nicht verhindern.
+        let versionArguments = ["set", file.path, "--no-backup", "--id3v23", "-t", "TITLE=Gleichbleibend"]
+        #expect(try TagFile.read(at: file).layers.first { $0.kind == .id3v2 }?.version == 4)
+        let converted = try runTagx(arguments: versionArguments)
+        #expect(converted.status == 0)
+        #expect(try TagFile.read(at: file).layers.first { $0.kind == .id3v2 }?.version == 3)
+        let convertedStamp = FileStamp.current(of: file)
+        #expect(try runTagx(arguments: versionArguments).status == 0)
+        #expect(FileStamp.current(of: file) == convertedStamp)
     }
 
     @Test("Leere Tag-Schlüssel werden ohne Dateiänderung abgelehnt",
@@ -160,9 +145,4 @@ struct SetCommandTests {
         #expect(!FileManager.default.fileExists(
             atPath: directory.appendingPathComponent("song-cover.jpg").path))
     }
-
-
-
-
-
 }
