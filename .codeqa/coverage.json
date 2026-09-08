@@ -1128,7 +1128,7 @@
         "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
         "summary": "Vier Prozessstarter auf runCapturedProcess konsolidiert; ffmpeg/ffprobe-Verfügbarkeit prüft ausführbare Datei statt erfolgreiche Dekodierung. Kapitel-Audioprüfung verlangt bei installiertem ffmpeg eine Prüfsumme. kid3-Suche Linux-tauglich.",
         "tests": [
-          "59 Bereichstests grün; Gegenprobe mit ausführbarem false statt ffmpeg erzeugt fünf Fehler statt Skip; danach swift test 477 Tests grün in 6.631 s. Diff geprüft, Commit und minipc-Push."
+          "59 Bereichstests grün; Gegenprobe mit ausführbarem false statt ffmpeg erzeugt fünf Fehler statt Skip; danach swift test 477 Tests grün in 6.631 s. Diff geprüft, Commit und Sicherung."
         ]
       }
     },
@@ -1150,7 +1150,7 @@
         "observed_head": "3a74e0955d8e076daf06b3f053f3e8b3c6b4f565",
         "summary": "Gemeinsame CLI-Vorprüfung und Sicherung der LRC-Sidecar vor Medienmutation; gemeinsamer Schreibabschluss meldet späte Teilfehler. App-Vorprüfung als Vertragsvergleich herangezogen, keine neue modulübergreifende Abstraktion nötig.",
         "tests": [
-          "Zwei echte CLI-Gegenproben änderten vorher trotz unlesbarer Sidecar die Mediendatei; nach Korrektur bytegleich. Lyrics-Suite 5 Tests grün; swift test 478 Tests grün (6.552 s). Diff geprüft, Commit/minipc-Push."
+          "Zwei echte CLI-Gegenproben änderten vorher trotz unlesbarer Sidecar die Mediendatei; nach Korrektur bytegleich. Lyrics-Suite 5 Tests grün; swift test 478 Tests grün (6.552 s). Diff geprüft, Commit/Sicherung."
         ]
       }
     },
@@ -1172,7 +1172,7 @@
         "observed_head": "326fba20fdb98a719a38acd97a1347077dfdc845",
         "summary": "Ein gemeinsamer CRC-geprüfter ZIP-Leser ersetzt vier EPUB-Extraktionen und schützt kleine wie große Nutzdaten beim Dokument-Neuaufbau. Zwei parametrisierte Integrationstests verändern ausschließlich gespeicherte Prüfsummen.",
         "tests": [
-          "Vorher zehn Fehler in acht Fällen; nachher swift test 483 Tests/52 Suites grün (7.007 s), App 115 Tests grün (0.492 s). Originalbytes bei abgelehntem Neuaufbau unverändert. Diff geprüft, Commit/minipc-Push."
+          "Vorher zehn Fehler in acht Fällen; nachher swift test 483 Tests/52 Suites grün (7.007 s), App 115 Tests grün (0.492 s). Originalbytes bei abgelehntem Neuaufbau unverändert. Diff geprüft, Commit/Sicherung."
         ]
       }
     },
@@ -1195,7 +1195,7 @@
         "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd",
         "summary": "Dokument-Zeitstempel und vollständige/verkürzte Comic-Daten verwenden ISODate.isCalendarDay. Bestehende Fehlerfalltests parametrisiert für OOXML/ODF und um unmögliche Tage/Monate sowie gültigen Schalttag erweitert.",
         "tests": [
-          "Vorher DOCX/ODT/CBZ-CLI jeweils Exit 0 für 2026-02-31 und 14 Fehler in erweiterten Tests. Nachher swift test: 483 Tests grün (6.984 s); Originalbytes bei ungültigem Datum unverändert. Diff geprüft, Commit/minipc-Push."
+          "Vorher DOCX/ODT/CBZ-CLI jeweils Exit 0 für 2026-02-31 und 14 Fehler in erweiterten Tests. Nachher swift test: 483 Tests grün (6.984 s); Originalbytes bei ungültigem Datum unverändert. Diff geprüft, Commit/Sicherung."
         ]
       }
     },
@@ -1218,7 +1218,7 @@
         "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
         "summary": "Drei Pfadzuordnungen aus EbookTool, DocumentTool und zusätzlich gefundenem PlaylistTool bei TagError zusammengeführt. Formatspezifische EPUB-Fehlernormalisierung bleibt separat. Neue TagError-Fälle erzwingen künftig nur eine zentrale Pfadentscheidung.",
         "tests": [
-          "swift test: 483 Tests/52 Suites grün (7.135 s). Bestehender ZIP-Fehlertest verlangt jetzt den exakten Originalpfad. Diff geprüft, Commit/minipc-Push."
+          "swift test: 483 Tests/52 Suites grün (7.135 s). Bestehender ZIP-Fehlertest verlangt jetzt den exakten Originalpfad. Diff geprüft, Commit/Sicherung."
         ]
       }
     },
