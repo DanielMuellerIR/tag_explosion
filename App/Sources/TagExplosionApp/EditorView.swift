@@ -229,20 +229,27 @@ struct TagEditorTab: View {
                 ForEach(extraIndices, id: \.self) { index in
                     HStack(spacing: 8) {
                         TextField("FELD", text: Binding(
-                            get: { entry.properties[index].key },
-                            set: { entry.properties[index].key = $0.uppercased() }
+                            get: { entry.properties.indices.contains(index) ? entry.properties[index].key : "" },
+                            set: {
+                                guard entry.properties.indices.contains(index) else { return }
+                                entry.properties[index].key = $0.uppercased()
+                            }
                         ))
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
                         .frame(width: 180)
 
                         TextField("Wert", text: Binding(
-                            get: { entry.properties[index].value },
-                            set: { entry.properties[index].value = $0 }
+                            get: { entry.properties.indices.contains(index) ? entry.properties[index].value : "" },
+                            set: {
+                                guard entry.properties.indices.contains(index) else { return }
+                                entry.properties[index].value = $0
+                            }
                         ))
                         .textFieldStyle(.roundedBorder)
 
                         Button {
+                            guard entry.properties.indices.contains(index) else { return }
                             entry.properties.remove(at: index)
                         } label: {
                             Image(systemName: "minus.circle.fill")

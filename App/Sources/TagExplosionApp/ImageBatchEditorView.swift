@@ -144,6 +144,7 @@ struct ImageBatchEditorView: View {
         let loaded = await Task.detached(priority: .userInitiated) {
             (try? ExifTool.readRawStringTags(urls: urls)) ?? [:]
         }.value
+        guard !Task.isCancelled else { return }
         rawTags = loaded
     }
 

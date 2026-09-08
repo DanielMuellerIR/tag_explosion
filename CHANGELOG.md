@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.63 — 2026-09-08
+
+- Bildansichten übernehmen keine Vorschauen oder Roh-Tags abgebrochener
+  Ladeaufträge; geänderte Sidecar-Ziele lösen das Nachladen der Gruppen aus.
+- Entfernte Zusatzfelder vertragen spätere Zugriffe ihrer bisherigen Bindings.
+
 ## 0.46.62 — 2026-09-08
 
 - Kapitel-Felder teilen einen geprüften Array-Zugriff. Bindings einer gerade

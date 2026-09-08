@@ -71,18 +71,22 @@ struct ImageFieldsTab: View {
             // nicht verlassen. Gelesen werden die Bytes, das Bild entsteht
             // hier auf dem MainActor.
             previewLoaded = false
+            preview = nil
             let data = await Task.detached(priority: .userInitiated) {
                 try? Data(contentsOf: url, options: .mappedIfSafe)
             }.value
+            guard !Task.isCancelled else { return }
             preview = data.flatMap { NSImage(data: $0) }
             previewLoaded = true
         }
         .task(id: entry.url) {
             rawTags = nil
             let url = entry.url
-            rawTags = await Task.detached(priority: .userInitiated) {
+            let loaded = await Task.detached(priority: .userInitiated) {
                 (try? ExifTool.readRawStringTags(urls: [url])) ?? [:]
             }.value
+            guard !Task.isCancelled else { return }
+            rawTags = loaded
         }
     }
 
@@ -340,13 +344,13 @@ struct ImageMetadataTab: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .task(id: url) {
+        .task(id: sidecarURL.map { [url, $0] } ?? [url]) {
             groups = nil
             errorText = nil
             let target = url
             let sidecar = sidecarURL
             do {
-                groups = try await Task.detached(priority: .userInitiated) {
+                let loaded = try await Task.detached(priority: .userInitiated) {
                     var all = try ExifTool.readAllGroups(url: target)
                     if let sidecar {
                         for group in try ExifTool.readAllGroups(url: sidecar) {
@@ -355,7 +359,10 @@ struct ImageMetadataTab: View {
                     }
                     return all
                 }.value
+                guard !Task.isCancelled else { return }
+                groups = loaded
             } catch {
+                guard !Task.isCancelled else { return }
                 errorText = error.localizedDescription
             }
         }
