@@ -5,7 +5,7 @@ import Testing
 @testable import TagExplosionApp
 import TagExplosionCore
 
-@Suite("Fenster-Registry", .serialized)
+@Suite("Fenster-Registry")
 @MainActor
 struct WindowSessionsTests {
 
@@ -53,6 +53,32 @@ struct WindowSessionsTests {
     }
 
     private let file = URL(fileURLWithPath: "/tmp/registry-test.mp3")
+
+    @Test("Erneute Anmeldung eines alten Fensters verbraucht keinen Auftrag für das neue")
+    func repeatedRegistrationKeepsNextWindowRequest() {
+        let harness = Harness()
+        let old = harness.addWindow()
+        harness.sessions.queueForNextWindow(urls: [file])
+        harness.sessions.requestWindow()
+        harness.sessions.register(old)
+        #expect(harness.opened.isEmpty)
+        harness.sessions.requestWindow()
+        #expect(harness.windowRequests == 1)
+        let next = harness.addWindow()
+        #expect(harness.opened.count == 1)
+        #expect(harness.opened.first?.0 === next)
+        #expect(harness.opened.first?.1 == [file])
+    }
+
+    @Test("Datei-Drops behalten ihre Reihenfolge trotz verspäteter Antworten")
+    func dropOrderFollowsInput() {
+        let first = URL(fileURLWithPath: "/tmp/first.mp3")
+        let last = URL(fileURLWithPath: "/tmp/last.mp3")
+        let collector = URLCollector(count: 3)
+        collector.set(last, at: 2)
+        collector.set(first, at: 0)
+        #expect(collector.snapshot() == [first, last])
+    }
 
     @Test("Ohne Fenster wird eins angefordert und die Datei nachgereicht")
     func openWithoutWindowCreatesOne() {
@@ -159,13 +185,7 @@ struct WindowSessionsTests {
         dirty.entries = [Self.changedEntry()]
 
         let termination = Task { await harness.sessions.confirmTermination() }
-        // Auf die Rückfrage des Fensters warten, ohne feste Wartezeit.
-        var attempts = 0
-        while dirty.pendingConflict == nil, attempts < 1000 {
-            await Task.yield()
-            attempts += 1
-        }
-        #expect(dirty.pendingConflict != nil)
+        #expect(await Self.waitForConflict(in: dirty))
 
         await dirty.resolvePendingConflict(.cancel)
         #expect(await termination.value == false)

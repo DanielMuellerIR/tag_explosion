@@ -74,6 +74,10 @@ final class WindowSessions {
     /// Wird von der Fensterbrücke gerufen, sobald das Modell wirklich ein
     /// Fenster hat. Erst dann darf es Dateien aufnehmen.
     func register(_ model: AppModel) {
+        pruneClosedWindows()
+        // SwiftUI kann die Fensterbrücke erneut installieren. Nur ein neues
+        // Modell erfüllt eine Fensteranforderung und bekommt vorgemerkte Dateien.
+        guard !models.contains(where: { $0 === model }) else { return }
         // Die Anforderung ist erfüllt: Merker frei, Watchdog abbestellen. Ohne
         // das Abbestellen fasste er später für eine ganz andere Anforderung
         // nach. `unregister` räumt bewusst NICHT auf — schließt sich ein
@@ -81,8 +85,7 @@ final class WindowSessions {
         // weiterhin gebraucht.
         finishWindowRequest()
         windowRequest.attempts = 0
-        pruneClosedWindows()
-        if !models.contains(where: { $0 === model }) { models.append(model) }
+        models.append(model)
         lastActive = model
         deliverPending(to: model)
     }

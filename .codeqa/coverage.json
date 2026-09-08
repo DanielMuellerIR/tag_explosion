@@ -634,15 +634,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T04:43:34+02:00",
-        "observed_head": "0c2585d740a2c012dac8d7503d5b4c0bf0301c2c",
-        "content_sha256": "98412d9a326802f04a66c88dfbcc36c58270075e9f3a660ff12fbdfad9915862",
+        "completed_at": "2026-09-08T05:05:38+02:00",
+        "observed_head": "c4f420b64ee2d59514a69a2ce1d9272c6779250d",
+        "content_sha256": "a85489cf0dff1e7c31cd9e4183df6d07e58bfe0b5ce8d739a36fbc4b4149a382",
         "file_count": 7,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Alle sieben Dateien einschließlich Parser, UI und Prozess-/Dekodierungstests gelesen. Fremde Byteabschnitte je Feld indexiert statt quadratischer Suche; künstliche Cache-Testpausen und Benchmark-Ausgabe entfernt, unabhängige Tests parallel. Prozessgruppen, Abbruch, Cache-Grenzen und Linux-FD-Schließen geprüft.",
+        "summary": "Linux-Nachprüfung: Kindprozess-Abbruchtests konsolidiert, Bereitschaftsabfrage gemeinsam, echte PID-Beendigung statt knapper Scheduler-Annahmen. Prozessstarter unverändert.",
         "tests": [
-          "500 Core-Tests 7,223 s; 119 App-Tests 0,474 s. 10.000 MacRoman-Zeilen 159→21 ms, bytegleiche Ausgabe. Bedarfstest isoliert 1,358→0,235 s."
+          "495 Linux-Tests bestanden; anschließend fünf betroffene Cache-/Abbruchtests lokal in 0,354 s bestanden."
         ]
       }
     },
@@ -720,7 +720,7 @@
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:41:07+02:00",
@@ -733,6 +733,13 @@
         "tests": [
           "swift test --package-path App --filter WindowSessionsTests\\|WindowChromeTests\\|BrewToolInstallerTests: 28 Tests in 3 Suites bestanden; swift build --package-path App -c release bestanden (nur bekannte lokale TagLib-Mindestversionswarnung)"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:05:38+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1299,14 +1306,18 @@
         "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
       ],
       "priority": 11,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T04:59:02+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T05:03:57+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:03:57+02:00",
-        "observed_head": "102c076c8b651b8e7e7246071d1acbc9b88bbbe8"
+        "completed_at": "2026-09-08T05:05:38+02:00",
+        "observed_head": "c4f420b64ee2d59514a69a2ce1d9272c6779250d",
+        "summary": "Kindprozess-Fälle mit offenen/geschlossenen Pipes zusammengefasst. Bereitschaft anhand der PID gemeinsam geprüft, tatsächliche Beendigung auch beim unbegrenzt laufenden Werkzeug. Knappe Scheduler-Fristen entfernt; Kindprozess bleibt mit 30 s Eigenlauf und zehn Sekunden Abbruchfrist klar unterscheidbar.",
+        "tests": [
+          "495 Linux-Tests auf 0.46.51 bestanden; anschließend fünf betroffene Cache-/Abbruchtests mit gemeinsamer Bereitschaftsabfrage lokal in 0,354 s bestanden."
+        ]
       }
     }
   ]

@@ -64,3 +64,21 @@ Trifft zu bei Arbeit an `TagExplosionApp.swift`, `WindowSessions.swift`,
   mitten im Wort um. Jetzt rechnet `InvoiceFieldLayout.termColumnWidth` die
   Spalte aus der verfügbaren Breite (Anteil, gedeckelt, mit Untergrenze) —
   einmal für die ganze Liste, damit die Terms eine echte Spalte bilden.
+
+## Dateiöffnung und Testlauf 2026-09-08
+
+`WindowSessions.register` behandelt die erneute Anmeldung eines bereits
+bekannten Modells als Wiederholung. Eine neu installierte SwiftUI-Brücke
+darf weder die Anforderung eines anderen Fensters beenden noch die für dieses
+Fenster vorgemerkten Playlist-Dateien übernehmen. Erst ein neues Modell
+bekommt diese Dateien.
+
+`ContentView.handleDrop` vergibt den URL-Antworten feste Plätze anhand der
+Provider-Reihenfolge. `URLCollector` wartet weiterhin auf alle Antworten,
+lässt fehlgeschlagene Plätze aus und gibt die übrigen in Eingabereihenfolge
+zurück. Die Callback-Reihenfolge bestimmte vorher fälschlich die Dateiliste.
+
+Die beiden Regressionen lieferten vorher zusammen vier Issues. Danach
+bestanden 121 App-Tests in 0,479 s. Die unabhängigen Fenster-Registrys laufen
+parallel (0,138 s statt zuletzt 0,454 s); ihre echten Watchdog-Fristen bleiben
+als Prüfung ausbleibender Fenster erhalten. Kein Fenster wurde dafür geöffnet.

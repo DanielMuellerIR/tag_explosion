@@ -322,12 +322,12 @@ struct ContentView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
-        let collector = URLCollector()
+        let collector = URLCollector(count: providers.count)
         let group = DispatchGroup()
-        for provider in providers {
+        for (index, provider) in providers.enumerated() {
             group.enter()
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url { collector.append(url) }
+                if let url { collector.set(url, at: index) }
                 group.leave()
             }
         }
@@ -342,18 +342,23 @@ struct ContentView: View {
 /// (die auf beliebigen Queues eintreffen).
 final class URLCollector: @unchecked Sendable {
     private let lock = NSLock()
-    private var urls: [URL] = []
+    private var urls: [URL?]
 
-    func append(_ url: URL) {
+    init(count: Int) {
+        urls = Array(repeating: nil, count: count)
+    }
+
+    /// Jeder Provider behält seinen Platz; fehlgeschlagene Antworten bleiben nil.
+    func set(_ url: URL, at index: Int) {
         lock.lock()
-        urls.append(url)
+        urls[index] = url
         lock.unlock()
     }
 
     func snapshot() -> [URL] {
         lock.lock()
         defer { lock.unlock() }
-        return urls
+        return urls.compactMap { $0 }
     }
 }
 

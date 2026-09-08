@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.53 — 2026-09-08
+
+- Drag-and-drop erhält die Dateireihenfolge trotz unterschiedlich schneller
+  Antworten der Datenanbieter.
+- Eine erneut installierte Fensterbrücke übernimmt keine Dateien, die für
+  ein neues Fenster vorgemerkt sind, und beendet dessen Anforderung nicht.
+- Unabhängige Fenstertests laufen parallel; die gemeinsame Wartehilfe ersetzt
+  eine doppelte Abfrage im Beenden-Test.
+
 ## 0.46.52 — 2026-09-08
 
 - Prozess-Abbruchtests teilen die Bereitschaftsabfrage anhand der gestarteten
