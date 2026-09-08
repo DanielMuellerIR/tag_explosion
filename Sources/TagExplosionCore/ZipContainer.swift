@@ -174,9 +174,10 @@ enum ZipContainer {
             compressionMethod: entry.isCompressed ? .deflate : .none, bufferSize: 256 * 1024
         ) { position, size in
             try input.seek(toOffset: UInt64(position))
-            guard let chunk = try readChunk(from: input, size: size), chunk.count == size else {
-                throw TagError.saveFailed(path: staging.path)
-            }
+            let chunk = try readChunk(from: input, size: size) ?? Data()
+            // Deflate darf zum Abschluss über das Dateiende hinaus anfragen.
+            let expected = min(Int64(size), max(0, Int64(entry.uncompressedSize) - position))
+            guard Int64(chunk.count) == expected else { throw TagError.saveFailed(path: staging.path) }
             return chunk
         }
     }
