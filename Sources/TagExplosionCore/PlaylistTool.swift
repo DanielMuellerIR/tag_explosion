@@ -161,9 +161,13 @@ public struct PlaylistContents: Sendable, Codable, Equatable {
         self.usedEncodingFallback = usedEncodingFallback
     }
 
-    /// Summe der bekannten Spielzeiten.
+    /// Summe der bekannten Spielzeiten, bei Überlauf auf Int.max begrenzt.
     public var totalDurationMilliseconds: Int {
-        entries.compactMap(\.durationMilliseconds).reduce(0, +)
+        entries.reduce(0) { total, entry in
+            let duration = max(0, entry.durationMilliseconds ?? 0)
+            let (sum, overflow) = total.addingReportingOverflow(duration)
+            return overflow ? Int.max : sum
+        }
     }
 
     /// Einträge, deren Spielzeit unbekannt ist (die Summe ist dann unvollständig).
@@ -369,14 +373,20 @@ public enum PlaylistTool {
             isrc: isrc)
     }
 
+    /// Millisekunden auf Sekunden runden, ohne vor der Division zu überlaufen.
+    static func roundedSeconds(_ milliseconds: Int) -> Int {
+        let value = max(0, milliseconds)
+        return value / 1000 + (value % 1000 >= 500 ? 1 : 0)
+    }
+
     /// Spielzeit als "m:ss" bzw. "h:mm:ss".
     public static func formatDuration(_ milliseconds: Int) -> String {
-        let totalSeconds = (milliseconds + 500) / 1000
+        let totalSeconds = roundedSeconds(milliseconds)
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
         let seconds = totalSeconds % 60
         if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            return "\(hours):" + String(format: "%02d:%02d", minutes, seconds)
         }
         return String(format: "%d:%02d", minutes, seconds)
     }

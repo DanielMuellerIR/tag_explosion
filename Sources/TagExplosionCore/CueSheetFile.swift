@@ -81,10 +81,15 @@ enum CueSheetFile: PlaylistBackend {
 
     /// `mm:ss:ff` (75 Frames je Sekunde) → Millisekunden.
     static func milliseconds(fromIndex text: String) -> Int? {
-        let parts = text.split(separator: ":").map { Int($0) }
+        let parts = text.split(separator: ":", omittingEmptySubsequences: false).map { Int($0) }
         guard parts.count == 3, let mm = parts[0], let ss = parts[1], let ff = parts[2],
-              mm >= 0, ss >= 0, ff >= 0 else { return nil }
-        return (mm * 60 + ss) * 1000 + Int((Double(ff) * 1000.0 / 75.0).rounded())
+              mm >= 0, (0..<60).contains(ss), (0..<75).contains(ff) else { return nil }
+        let (minutes, minutesOverflow) = mm.multipliedReportingOverflow(by: 60_000)
+        guard !minutesOverflow else { return nil }
+        // Frames sind auf 0…74 begrenzt; ganzzahlig auf Millisekunden runden.
+        let remainder = ss * 1000 + (ff * 1000 + 37) / 75
+        let (result, overflow) = minutes.addingReportingOverflow(remainder)
+        return overflow ? nil : result
     }
 
     static func parse(_ file: PlaylistTextFile) -> Parsed {

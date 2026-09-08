@@ -521,7 +521,14 @@
       "risk": "high",
       "priority": 9,
       "reason": "Playlist-Parser, Cue-Anwendung und Export müssen Texte, Verweise und Fremdinhalte erhalten.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:28:07+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "sidecar-writing",
@@ -1194,14 +1201,18 @@
         "Tests/Support/ProcessSupport.swift"
       ],
       "priority": 9,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T03:17:36+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T03:21:51+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:21:51+02:00",
-        "observed_head": "b89b90cf358c9c028302e2ff3fcc9513d0bf15b2"
+        "completed_at": "2026-09-08T03:28:07+02:00",
+        "observed_head": "9173afe23cb1268c495ff6bd2e6bad5fcb34b31c",
+        "summary": "Linux vererbte fremde Schreibdeskriptoren. Echter Starter reproduziert gezielt POSIX 26 vor Korrektur und erfolgreichen Skriptstart danach. closefrom nach dup2 schließt alle FDs ab 3; direkter Regressionstest ohne Rennen. Feste MediaInfo-Testwartezeiten bleiben für die anstehende vollständige Prüfung von process-reporting.",
+        "tests": [
+          "macOS 491 Tests 9.147 s Exit 0; Linux 485 Tests 33.365 s Exit 0; gezielter Linux-Deskriptor-Test vorher Exit 23, danach PASS"
+        ]
       }
     }
   ]

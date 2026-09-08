@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.37 — 2026-09-08
+
+- Überlange CUE-/XSPF-Zeitangaben lassen die Playlist-Anzeige nicht mehr
+  abstürzen. CUE prüft Sekunden und Frames; Anzeige und Export runden große
+  Millisekundenwerte ohne Überlauf. Zu große Gesamtdauern werden begrenzt.
+
 ## 0.46.36 — 2026-09-08
 
 - Unter Linux erben Metadaten-Werkzeuge keine fremden offenen Dateien mehr.

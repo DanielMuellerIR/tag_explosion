@@ -561,6 +561,22 @@ struct PlaylistTests {
         #expect(try PlaylistTool.read(url: pls).entries.map(\.durationMilliseconds) == [nil, nil, 7000])
     }
 
+    @Test("Playlist-Dauern runden ohne Überlauf; CUE prüft Sekunden und Frames")
+    func durationArithmetic() throws {
+        #expect(PlaylistTool.formatDuration(Int.max) == "2562047788015:12:56")
+        #expect(PlaylistTool.formatDuration(59_500) == "1:00")
+        #expect(CueSheetFile.milliseconds(fromIndex: "01:59:74") == 119_987)
+        for value in ["1::2:3", "0:60:0", "0:0:75", "\(Int.max):0:0"] {
+            #expect(CueSheetFile.milliseconds(fromIndex: value) == nil)
+        }
+        let item = PlaylistExporter.Item(url: URL(fileURLWithPath: "/a.mp3"), title: "A", durationMilliseconds: Int.max)
+        for format in [PlaylistFormat.m3u, .pls] {
+            let data = try PlaylistExporter.render(items: [item], format: format,
+                playlist: URL(fileURLWithPath: "/list.\(format.rawValue)"), absolutePaths: true, title: "")
+            #expect(String(decoding: data, as: UTF8.self).contains("9223372036854776"))
+        }
+    }
+
     @Test("Export: Zeilenumbrüche in Titel/Interpret bleiben auf einer Zeile; overwrite ersetzt atomar ohne Reste",
           .enabled(if: FileManager.default.fileExists(atPath: Fixtures.directory.appendingPathComponent("sample.mp3").path)))
     func exportEscapesNewlinesAndOverwritesSafely() throws {

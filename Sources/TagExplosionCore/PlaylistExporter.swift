@@ -114,7 +114,7 @@ public enum PlaylistExporter {
             var lines = ["#EXTM3U"]
             if !title.isEmpty { lines.append("#PLAYLIST:\(singleLine(title))") }
             for item in items {
-                let seconds = item.durationMilliseconds.map { ($0 + 500) / 1000 } ?? -1
+                let seconds = item.durationMilliseconds.map(PlaylistTool.roundedSeconds) ?? -1
                 lines.append("#EXTINF:\(seconds),\(displayText(item))")
                 lines.append(location(of: item.url, playlist: playlist, absolute: absolutePaths, asURI: false))
             }
@@ -125,7 +125,7 @@ public enum PlaylistExporter {
                 let number = offset + 1
                 lines.append("File\(number)=\(location(of: item.url, playlist: playlist, absolute: absolutePaths, asURI: false))")
                 lines.append("Title\(number)=\(displayText(item))")
-                lines.append("Length\(number)=\(item.durationMilliseconds.map { ($0 + 500) / 1000 } ?? -1)")
+                lines.append("Length\(number)=\(item.durationMilliseconds.map(PlaylistTool.roundedSeconds) ?? -1)")
             }
             lines.append("NumberOfEntries=\(items.count)")
             lines.append("Version=2")

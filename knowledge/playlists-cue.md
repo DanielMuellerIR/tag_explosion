@@ -56,6 +56,13 @@ sagt „document format" — bewusst wiederverwendet statt eines neuen Falls).
 
 ## Dauer und Pfade
 
+- CUE-Zeiten prüfen Sekunden (0…59), Frames (0…74) und den Integerbereich;
+  fehlerhafte INDEX-Angaben bleiben unbekannt. Millisekunden werden vor dem
+  Runden geteilt, damit auch `Int.max` nicht überläuft. Die Summe bekannter
+  Dauern bleibt ein `Int` und wird bei Überlauf auf `Int.max` begrenzt.
+  Drei CLI-Abstürze durch große CUE-/XSPF-Werte wurden am 2026-09-08
+  reproduziert und durch Core- und CLI-Grenzfalltests abgesichert.
+
 - Cue: Dauer eines Tracks = nächster `INDEX 01` derselben Datei minus eigener;
   der letzte Track einer Datei reicht bis zu deren Ende — dafür liest
   `TagFile` die Länge, wenn die Datei existiert. Fehlt sie, bleibt die Dauer

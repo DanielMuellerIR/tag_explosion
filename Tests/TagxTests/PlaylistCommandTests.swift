@@ -100,7 +100,32 @@ struct PlaylistCommandTests {
         #expect(items.allSatisfy { ($0["changedKeys"] as? [String])?.isEmpty == true })
     }
 
-    // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
+    @Test("Ungültige CUE-Zeiten und sehr große XSPF-Dauern lassen show nicht abstürzen")
+    func durationBoundaries() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let cue = directory.appendingPathComponent("large.cue")
+        try Data("FILE \"a.flac\" WAVE\nTRACK 01 AUDIO\nINDEX 01 \(Int.max):00:00\n".utf8).write(to: cue)
+        let cueResult = try runTagx(arguments: ["playlist", "show", cue.path, "--json"])
+        #expect(cueResult.status == 0, Comment(rawValue: cueResult.stderr))
+        let report = try #require(try JSONSerialization.jsonObject(with: Data(cueResult.stdout.utf8)) as? [String: Any])
+        let entries = try #require(report["entries"] as? [[String: Any]])
+        #expect(entries.count == 1)
+        #expect(entries[0]["startMilliseconds"] == nil)
 
-
+        let xspf = directory.appendingPathComponent("large.xspf")
+        try Data(("<playlist><trackList>" + String(repeating:
+            "<track><duration>\(Int.max)</duration></track>", count: 2)
+            + "</trackList></playlist>").utf8).write(to: xspf)
+        for option in [[], ["--json"]] {
+            let result = try runTagx(arguments: ["playlist", "show", xspf.path] + option)
+            #expect(result.status == 0, Comment(rawValue: result.stderr))
+            if option.isEmpty { #expect(result.stdout.contains("TOTAL=2562047788015:12:56")) }
+            else {
+                let report = try #require(try JSONSerialization.jsonObject(with: Data(result.stdout.utf8)) as? [String: Any])
+                #expect(report["totalDurationMilliseconds"] as? Int == Int.max)
+            }
+        }
+    }
 }
