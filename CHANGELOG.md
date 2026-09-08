@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.27 — 2026-09-08
+
+- Dateinamen-Import übernimmt Bild-, E-Book-, Dokument- und NFO-Felder erst,
+  wenn alle Schlüssel gültig sind. Abgelehnte Muster lassen die bisherigen
+  Bearbeitungswerte vollständig erhalten.
+- Führende Punkte werden auch bei dazwischenliegenden Leerzeichen entfernt,
+  damit Umbenennungsmuster keine versehentlich versteckten Dateien erzeugen.
+
 ## 0.46.26 — 2026-09-08
 
 - E-Book-, Dokument- und Playlist-Schreibwege ordnen Fehler temporärer

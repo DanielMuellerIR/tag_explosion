@@ -259,15 +259,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:57:09+02:00",
-        "observed_head": "3a74e0955d8e076daf06b3f053f3e8b3c6b4f565",
-        "content_sha256": "c3d7f89a00fbf878d5c9a9a2275c3874b17c9cc317fa833ab2dfc1b3911ee429",
+        "completed_at": "2026-09-08T02:24:30+02:00",
+        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
+        "content_sha256": "1819fdf7b30c38295cdc8a36d6ff9f34e858d0d85bcd602bfa1f93772a7c405b",
         "file_count": 21,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "CLI-Lyrics-Delta nachgeprüft: Sidecar-Vorprüfung und Backup vor Medien-Save; beiderseitige Schreibstände, No-op und expliziter später Teilfehler erhalten.",
+        "summary": "Delta des Querschnitts tag-error-paths nachgeprüft: gemeinsame typisierte Pfadzuordnung ersetzt formatlokale Kopien, Fehlerdaten und Originalpfad bleiben erhalten.",
         "tests": [
-          "Lyrics-Suite grün; Core/CLI 478 Tests grün."
+          "swift test: 483 Tests grün; exakter Originalpfad bei ZIP-Schreibfehler geprüft."
         ]
       }
     },
@@ -330,15 +330,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:21:51+02:00",
-        "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd",
-        "content_sha256": "42248c0ad47a6ea67c1754fca42b864b0b1fb7b5c6991de1eb5ec12937d0d07a",
+        "completed_at": "2026-09-08T02:24:30+02:00",
+        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
+        "content_sha256": "dd23bc58df07d94140ef711ebf0c6b75c80573a08c3f74be1708006e11a4dc9d",
         "file_count": 11,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Kalender-Theme nachgeprüft: gemeinsame Tagesprüfung, formatspezifische Datumsform und Schutz unveränderter Altwerte bleiben erhalten.",
+        "summary": "Delta des Querschnitts tag-error-paths nachgeprüft: gemeinsame typisierte Pfadzuordnung ersetzt formatlokale Kopien, Fehlerdaten und Originalpfad bleiben erhalten.",
         "tests": [
-          "483 Core/CLI-Tests grün; OOXML/ODF/Comic-Datumsfälle und Schalttag geprüft."
+          "swift test: 483 Tests grün; exakter Originalpfad bei ZIP-Schreibfehler geprüft."
         ]
       }
     },
@@ -356,15 +356,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:18:13+02:00",
-        "observed_head": "624b706dd1f07ce5e86d00acaf3eae3f567e94eb",
-        "content_sha256": "48bf49b4f738e18241303eccc6f085ce37d701bd38847acfcc452749a8a7eda0",
+        "completed_at": "2026-09-08T02:24:30+02:00",
+        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
+        "content_sha256": "145f26029640fb94c04abd1b1afc2e8a171ee30431b556557d8f2c3dab9a1375",
         "file_count": 4,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Delta der Prozess-/Text-Helfer, Fehlerpfade, XML-Tests und gemeinsamer CRC-Leser samt EPUB/PDF/Calibre-Ein-/Ausgängen geprüft. Unnötige EPUB→FB2-Konvertierung im Serienindex-Test durch synthetisches FB2 ersetzt; zwei eigene Prozesswege entfallen, echter Calibre-Nachweis bleibt. Doppelte Fehlerpfadzuordnung als Theme erfasst.",
+        "summary": "Delta des Querschnitts tag-error-paths nachgeprüft: gemeinsame typisierte Pfadzuordnung ersetzt formatlokale Kopien, Fehlerdaten und Originalpfad bleiben erhalten.",
         "tests": [
-          "EbookToolTests 33 Tests grün (5.271 s); Serienindex-Einzeltest 1.475→1.016 s im gemessenen Lauf. Zuvor Gesamtstand 483 Core/CLI- und 115 App-Tests grün. Diff geprüft, Commit/minipc-Push. Gebuchte Nutzung: gemeldetes Root-Delta ohne Cache seit Baseline 878284."
+          "swift test: 483 Tests grün; exakter Originalpfad bei ZIP-Schreibfehler geprüft."
         ]
       }
     },
@@ -383,7 +383,14 @@
       "risk": "high",
       "priority": 7,
       "reason": "Umbenennungen mit Sidecars, Kollisionen und Rollback; gemeinsame Muster zwischen App und CLI.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:24:30+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "image-writing",
@@ -1104,15 +1111,32 @@
         "Sources/TagExplosionCore/Model.swift"
       ],
       "priority": 7,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T02:17:26+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T02:21:51+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:21:51+02:00",
-        "observed_head": "499d7bd5d553a5e2cf7d7faa048be59be63b57dd"
+        "completed_at": "2026-09-08T02:24:29+02:00",
+        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
+        "summary": "Drei Pfadzuordnungen aus EbookTool, DocumentTool und zusätzlich gefundenem PlaylistTool bei TagError zusammengeführt. Formatspezifische EPUB-Fehlernormalisierung bleibt separat. Neue TagError-Fälle erzwingen künftig nur eine zentrale Pfadentscheidung.",
+        "tests": [
+          "swift test: 483 Tests/52 Suites grün (7.135 s). Bestehender ZIP-Fehlertest verlangt jetzt den exakten Originalpfad. Diff geprüft, Commit/minipc-Push."
+        ]
       }
+    },
+    {
+      "id": "rename-sidecar-groups",
+      "summary": "FileRenamer berücksichtigt pro Medium nur eine Sidecar; MP4 unterstützt zugleich NFO und LRC. Außerdem hängen RAW+JPEG am gemeinsamen XMP-Umzug: Scheitert dessen erster Eintrag, darf der zweite nicht ohne Sidecar umbenannt werden. Gruppenplanung, Rückweg und Anzeige aller Ergebnisse prüfen.",
+      "evidence": [
+        "Sources/TagExplosionCore/FileRenamer.swift",
+        "App/Sources/TagExplosionApp/FilenameActions.swift",
+        "Sources/tagx/RenameCommands.swift"
+      ],
+      "priority": 7,
+      "state": "pending",
+      "noted_at": "2026-09-08T02:35:00+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

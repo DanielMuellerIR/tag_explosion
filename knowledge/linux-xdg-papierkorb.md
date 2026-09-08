@@ -160,3 +160,8 @@ echtes Bundle, verwendet dafür aber `--debug`; die Feed-URL-Prüfung hängt nic
 von der Optimierungsstufe ab. Lokal sanken seine beiden Buildzeiten von
 38,15 + 33,21 auf 0,20 + 2,83 Sekunden. Release-Signierung und Mindestversion
 prüfen weiterhin ihre eigenen Skripttests und der Release-Ablauf.
+
+Erneute Validierung am 2026-09-08: Der unveränderte Commit `499d7bd`
+(0.46.25) bestand 477 Tests in 22,166 Sekunden reiner Testzeit unter
+Swift 6.0. Wieder mit zwei CPU-Kernen, eigenem Benutzer und frisch erzeugten
+Fixtures; Exit-Code 0, Container automatisch entfernt.

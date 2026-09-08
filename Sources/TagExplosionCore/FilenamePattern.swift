@@ -252,8 +252,7 @@ public struct FilenamePattern: Sendable, Equatable {
         }
         cleaned = cleaned.trimmingCharacters(in: .whitespaces)
         // Ein führender Punkt versteckt die Datei im Finder und in `ls`.
-        while cleaned.hasPrefix(".") { cleaned.removeFirst() }
-        return cleaned.trimmingCharacters(in: .whitespaces)
+        return String(cleaned.drop { $0 == "." || $0.isWhitespace })
     }
 
     // MARK: - Dateiname → Tags
@@ -437,25 +436,28 @@ public enum PatternFields {
 
     /// Setzt geparste Werte in NFO-Felder (Regel wie bei Bildern).
     public static func apply(_ parsed: [String: String], to nfo: inout NFOFields) throws {
+        // Erst vollständig prüfen; bei einem unbekannten Feld bleibt der Puffer erhalten.
+        var updated = nfo
         for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
             switch key {
-            case "TITLE": nfo.title = value
-            case "ORIGINALTITLE": nfo.originalTitle = value
-            case "SORTTITLE": nfo.sortTitle = value
-            case "YEAR", "DATE": nfo.year = value
-            case "PREMIERED": nfo.premiered = value
-            case "GENRE": nfo.genres = value.splitCommaList()
-            case "TAGS": nfo.tags = value.splitCommaList()
-            case "STUDIO": nfo.studio = value
-            case "DIRECTOR", "ARTIST": nfo.directors = value.splitCommaList()
-            case "RATING": nfo.rating = value
-            case "SEASON": nfo.season = value
-            case "EPISODE": nfo.episode = value
-            case "SHOWTITLE": nfo.showTitle = value
-            case "TAGLINE": nfo.tagline = value
+            case "TITLE": updated.title = value
+            case "ORIGINALTITLE": updated.originalTitle = value
+            case "SORTTITLE": updated.sortTitle = value
+            case "YEAR", "DATE": updated.year = value
+            case "PREMIERED": updated.premiered = value
+            case "GENRE": updated.genres = value.splitCommaList()
+            case "TAGS": updated.tags = value.splitCommaList()
+            case "STUDIO": updated.studio = value
+            case "DIRECTOR", "ARTIST": updated.directors = value.splitCommaList()
+            case "RATING": updated.rating = value
+            case "SEASON": updated.season = value
+            case "EPISODE": updated.episode = value
+            case "SHOWTITLE": updated.showTitle = value
+            case "TAGLINE": updated.tagline = value
             default: throw ApplyError.unsupportedField(key: key, kind: "nfo")
             }
         }
+        nfo = updated
     }
 
     public enum ApplyError: Error, LocalizedError, Equatable, Sendable {
@@ -482,55 +484,64 @@ public enum PatternFields {
     /// Setzt geparste Werte in Bildfelder. Schlüssel ohne Bildfeld werfen,
     /// damit ein Tippfehler im Muster nicht still verloren geht.
     public static func apply(_ parsed: [String: String], to image: inout ImageCoreFields) throws {
+        // Erst vollständig prüfen; bei einem unbekannten Feld bleibt der Puffer erhalten.
+        var updated = image
         for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
             switch key {
-            case "TITLE": image.title = value
-            case "DESCRIPTION": image.description = value
-            case "KEYWORDS": image.keywords = value.splitCommaList()
-            case "CREATOR", "ARTIST", "AUTHOR": image.creator = value
-            case "COPYRIGHT": image.copyright = value
-            case "DATE": image.dateTimeOriginal = value
+            case "TITLE": updated.title = value
+            case "DESCRIPTION": updated.description = value
+            case "KEYWORDS": updated.keywords = value.splitCommaList()
+            case "CREATOR", "ARTIST", "AUTHOR": updated.creator = value
+            case "COPYRIGHT": updated.copyright = value
+            case "DATE": updated.dateTimeOriginal = value
             default: throw ApplyError.unsupportedField(key: key, kind: "image")
             }
         }
+        image = updated
     }
 
     /// Setzt geparste Werte in E-Book-Felder (Regel wie bei Bildern).
     public static func apply(_ parsed: [String: String], to ebook: inout EbookCoreFields) throws {
+        // Erst vollständig prüfen; bei einem unbekannten Feld bleibt der Puffer erhalten.
+        var updated = ebook
         for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
             switch key {
-            case "TITLE": ebook.title = value
-            case "AUTHOR", "AUTHORS", "ARTIST": ebook.authors = value.splitCommaList()
-            case "SERIES": ebook.series = value
-            case "SERIESINDEX", "TRACKNUMBER": ebook.seriesIndex = value
-            case "DESCRIPTION": ebook.description = value
-            case "ISBN": ebook.isbn = value
-            case "PUBLISHER": ebook.publisher = value
-            case "LANGUAGE": ebook.language = value
-            case "DATE": ebook.date = value
-            case "SUBJECTS", "GENRE": ebook.subjects = value.splitCommaList()
+            case "TITLE": updated.title = value
+            case "AUTHOR", "AUTHORS", "ARTIST": updated.authors = value.splitCommaList()
+            case "SERIES": updated.series = value
+            case "SERIESINDEX", "TRACKNUMBER": updated.seriesIndex = value
+            case "DESCRIPTION": updated.description = value
+            case "ISBN": updated.isbn = value
+            case "PUBLISHER": updated.publisher = value
+            case "LANGUAGE": updated.language = value
+            case "DATE": updated.date = value
+            case "SUBJECTS", "GENRE": updated.subjects = value.splitCommaList()
             default: throw ApplyError.unsupportedField(key: key, kind: "e-book")
             }
         }
+        ebook = updated
     }
 
     /// Dokumente: nur der gemeinsame Feldsatz — ob das Zielformat das Feld
     /// speichern kann, prüft beim Speichern `DocumentTool.requireWritable`.
     public static func apply(_ parsed: [String: String], to document: inout DocumentCoreFields) throws {
+        // Erst vollständig prüfen; bei einem unbekannten Feld bleibt der Puffer erhalten.
+        var updated = document
         for (key, value) in parsed.sorted(by: { $0.key < $1.key }) {
             switch key {
-            case "TITLE": document.title = value
-            case "AUTHOR", "AUTHORS", "ARTIST": document.authors = value.splitCommaList()
-            case "SUBJECT": document.subject = value
-            case "DESCRIPTION": document.description = value
-            case "KEYWORDS", "SUBJECTS", "GENRE": document.keywords = value.splitCommaList()
-            case "PUBLISHER": document.publisher = value
-            case "LANGUAGE": document.language = value
-            case "CATEGORY": document.category = value
-            case "DATE", "CREATED": document.created = value
-            case "MODIFIED": document.modified = value
+            case "TITLE": updated.title = value
+            case "AUTHOR", "AUTHORS", "ARTIST": updated.authors = value.splitCommaList()
+            case "SUBJECT": updated.subject = value
+            case "DESCRIPTION": updated.description = value
+            case "KEYWORDS", "SUBJECTS", "GENRE": updated.keywords = value.splitCommaList()
+            case "PUBLISHER": updated.publisher = value
+            case "LANGUAGE": updated.language = value
+            case "CATEGORY": updated.category = value
+            case "DATE", "CREATED": updated.created = value
+            case "MODIFIED": updated.modified = value
             default: throw ApplyError.unsupportedField(key: key, kind: "document")
             }
         }
+        document = updated
     }
 }

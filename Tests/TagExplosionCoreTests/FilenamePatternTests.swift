@@ -60,6 +60,8 @@ struct FilenamePatternTests {
         #expect(onlyFields.renderFileName(fields: [:], extension: "flac") == "")
         #expect(onlyFields.renderFileName(fields: ["TITLE": ".versteckt"], extension: "flac")
                 == "versteckt.flac")
+        #expect(onlyFields.renderFileName(fields: ["TITLE": ". .versteckt"], extension: "flac")
+                == "versteckt.flac")
     }
 
     @Test("Zu lange Namen werden auf 255 Bytes gekürzt, die Endung bleibt")
@@ -140,6 +142,29 @@ struct FilenamePatternTests {
         #expect(parsedEbook.authors == ["A", "B"])
         #expect(parsedEbook.seriesIndex == "3")
         #expect(parsedEbook.subjects == ["SF"])
+    }
+
+    @Test("Ungültige Musterfelder lassen sämtliche bisherigen Werte unverändert")
+    func invalidFieldsLeaveBuffersUnchanged() {
+        let parsed = ["TITLE": "Neu", "ZZZ": "unbekannt"]
+        var image = ImageCoreFields(title: "Alt")
+        let originalImage = image
+        #expect(throws: PatternFields.ApplyError.self) { try PatternFields.apply(parsed, to: &image) }
+        #expect(image == originalImage)
+        var ebook = EbookCoreFields(title: "Alt")
+        let originalEbook = ebook
+        #expect(throws: PatternFields.ApplyError.self) { try PatternFields.apply(parsed, to: &ebook) }
+        #expect(ebook == originalEbook)
+        var document = DocumentCoreFields()
+        document.title = "Alt"
+        let originalDocument = document
+        #expect(throws: PatternFields.ApplyError.self) { try PatternFields.apply(parsed, to: &document) }
+        #expect(document == originalDocument)
+        var nfo = NFOFields()
+        nfo.title = "Alt"
+        let originalNFO = nfo
+        #expect(throws: PatternFields.ApplyError.self) { try PatternFields.apply(parsed, to: &nfo) }
+        #expect(nfo == originalNFO)
     }
 
     @Test("Audio: geparste Werte ersetzen genau ihren Schlüssel, leere löschen")
