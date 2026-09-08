@@ -58,9 +58,11 @@ Video-Editor.
   vorher ungültiger, unveränderter Altwert blockiert andere Änderungen nicht.
   `SubtitleFile.shiftMilliseconds(seconds:)` begrenzt die Verschiebung auf
   1000 Stunden — `Int(1e16 * 1000)` wäre sonst ein Laufzeitabbruch.
-- **Zeichensatz:** UTF-8 (BOM bleibt erhalten); bei Deklaration
-  `iso-8859-1`/`windows-1252` wird in diesem Zeichensatz zurückgeschrieben,
-  andere Angaben fallen auf UTF-8 zurück.
+- **Zeichensatz:** UTF-8 (BOM bleibt erhalten); deklarierte
+  `iso-8859-1`-/`windows-1252`-Dateien werden in diesem Zeichensatz gelesen
+  und geschrieben. Nur eine echte XML-Deklaration zählt, keine Angabe in
+  Kommentaren. Unbekannte Kodierungen werden abgelehnt, damit Deklaration
+  und geschriebene Bytes nicht auseinanderlaufen.
 
 ## Untertitel
 
@@ -106,3 +108,12 @@ bleibt bei `XMLTools`. Der Nachspann enthält auch Kommentare und
 Verarbeitungsanweisungen; nur echte URL-Zeilen außerhalb davon werden als
 Scraper-URLs angezeigt. Drei Varianten des bestehenden Nachspann-Tests
 scheiterten zuvor, weil Kommentare als Tags oder als Teil der Wurzel galten.
+
+
+Linux-Foundation liefert für Namespace-Knoten einen leeren `xmlString`.
+`NFOWriter` setzt die Deklaration deshalb aus `name` und `stringValue`
+zusammen und maskiert den Attributwert. Ein Linux-Lauf deckte diesen
+Unterschied auf; der korrigierte Lauf bestand sämtliche 494 Tests.
+Die Core-Sidecar-Suite benötigt nur synthetische Textdateien. Ihre Tests
+und die beiden unabhängigen CLI-Abläufe laufen parallel. Versteckte Namen
+wie `.en.srt` werden nicht zu einem leeren Basisnamen plus Sprache zerlegt.

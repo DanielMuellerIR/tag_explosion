@@ -6,7 +6,7 @@ import Foundation
 import Testing
 @testable import TagExplosionCore
 
-@Suite("Sidecars (NFO, SRT, VTT)", .serialized)
+@Suite("Sidecars (NFO, SRT, VTT)")
 struct SidecarTests {
 
     private func makeDir() throws -> URL {
@@ -208,6 +208,38 @@ struct SidecarTests {
         #expect(!text.contains("<premiered>"))
     }
 
+    @Test("NFO liest und schreibt den deklarierten Zeichensatz", arguments: ["windows-1252", "iso-8859-1", "utf-8", "comment"])
+    func nfoDeclaredEncoding(name: String) throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let encoding: String.Encoding = name == "windows-1252" ? .windowsCP1252 : name == "iso-8859-1" ? .isoLatin1 : .utf8
+        let plot = name == "iso-8859-1" ? "Grüße" : "€ „Text“"
+        let prefix = name == "comment" ? "<!-- encoding='windows-1252' -->\n"
+            : "<?xml version='1.0' encoding\t= '\(name.uppercased())'?>\n"
+        let text = prefix + "<movie>\n    <title>A</title>\n    <plot>\(plot)</plot>\n</movie>\n"
+        let url = try writeFile("encoded.nfo", text, in: dir, encoding: encoding)
+        let original = try KodiNFOFile.read(url: url).fields
+        #expect(original.plot == plot)
+        var edited = original
+        edited.title = "B"
+        try KodiNFOFile.write(url: url, fields: edited, original: original)
+        let expected = try #require(text.replacingOccurrences(of: "<title>A</title>", with: "<title>B</title>").encoded(as: encoding))
+        #expect(try Data(contentsOf: url) == expected)
+    }
+
+    @Test("Unbekannte NFO-Kodierung wird nicht als UTF-8 überschrieben")
+    func nfoUnknownEncoding() throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let text = "<?xml version='1.0' encoding='koi8-r'?>\n<movie><title>A</title></movie>\n"
+        let url = try writeFile("unknown.nfo", text, in: dir)
+        #expect(throws: TagError.self) { try KodiNFOFile.read(url: url) }
+        #expect(throws: TagError.self) {
+            try KodiNFOFile.write(url: url, fields: NFOFields(title: "B"), original: NFOFields(title: "A"))
+        }
+        #expect(try Data(contentsOf: url) == Data(text.utf8))
+    }
+
     @Test("NFO: Werteprüfung vor dem Schreiben")
     func nfoValidation() throws {
         let original = NFOFields()
@@ -294,7 +326,8 @@ struct SidecarTests {
         let dir = try makeDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         let video = dir.appendingPathComponent("sample.mkv")
-        try FileManager.default.copyItem(at: Fixtures.directory.appendingPathComponent("sample.mkv"), to: video)
+        // Die Kopplung prüft Namen und Existenz, keine Video-Metadaten.
+        try Data().write(to: video)
         let nfo = try writeFile("sample.nfo", Self.movieNFO, in: dir)
         let orphan = try writeFile("tvshow.nfo", "<tvshow>\n    <title>Serie</title>\n</tvshow>\n", in: dir)
         let subtitle = try writeFile("sample.de.srt", "1\n00:00:01,000 --> 00:00:02,000\nHallo\n", in: dir)
@@ -365,6 +398,8 @@ struct SidecarTests {
         #expect(parts("film.srt") == ("film", nil, []))
         #expect(parts("film.2019.srt") == ("film.2019", nil, []))
         #expect(parts("de.srt") == ("de", nil, []))
+        #expect(parts(".en.srt") == (".en", nil, []))
+        #expect(parts(".forced.srt") == (".forced", nil, []))
         #expect(parts("Serie.S01E01.ger.srt") == ("Serie.S01E01", "ger", []))
         #expect(parts("film.forced.srt") == ("film", nil, ["forced"]))
     }

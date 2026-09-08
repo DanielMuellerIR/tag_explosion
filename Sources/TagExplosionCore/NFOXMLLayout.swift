@@ -94,7 +94,7 @@ struct NFOXMLLayout {
         let suffix = String(text[end...])
         guard let urls = trailingURLs(in: suffix) else { throw TagError.cannotOpen(path: path) }
         return NFOXMLLayout(prefix: prefix, xml: String(text[root.range.lowerBound..<end]),
-                            suffix: suffix, encoding: declaredEncoding(in: prefix), urls: urls)
+                            suffix: suffix, encoding: try declaredEncoding(in: prefix), urls: urls)
     }
 
     /// Nach dem Wurzelelement sind Leerraum, Kommentare, Verarbeitungs-
@@ -122,16 +122,32 @@ struct NFOXMLLayout {
         return urls
     }
 
-    /// Zeichensatz aus der Deklaration; Standard UTF-8.
-    private static func declaredEncoding(in prefix: String) -> String.Encoding {
-        guard let range = prefix.range(of: #"encoding\s*=\s*["']([^"']+)["']"#, options: .regularExpression)
-        else { return .utf8 }
-        let name = prefix[range].split(separator: "=").last?
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"' ")).lowercased() ?? ""
-        switch name {
-        case "iso-8859-1", "latin1", "latin-1": return .isoLatin1
-        case "windows-1252", "cp1252": return .windowsCP1252
-        default: return .utf8
+    /// Nur die echte XML-Deklaration bestimmt die Kodierung, keine gleich
+    /// aussehende Angabe in einem Kommentar oder einer anderen Anweisung.
+    static func declaredEncoding(in text: String) throws -> String.Encoding {
+        var cursor = text.startIndex
+        while let start = text[cursor...].firstIndex(of: "<") {
+            guard let token = markup(in: text, at: start) else { break }
+            if case .opening = token.kind { break }
+            let declaration = text[token.range]
+            let target = declaration.dropFirst(2).prefix { !$0.isWhitespace && $0 != "?" }
+            if declaration.hasPrefix("<?"), target == "xml" {
+                guard let range = declaration.range(of: #"encoding\s*=\s*["']([^"']+)["']"#, options: .regularExpression)
+                else { return .utf8 }
+                let trim = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"'"))
+                let name = declaration[range].split(separator: "=", maxSplits: 1).last?
+                    .trimmingCharacters(in: trim).lowercased() ?? ""
+                switch name {
+                case "utf-8", "utf8": return .utf8
+                case "iso-8859-1", "latin1", "latin-1": return .isoLatin1
+                case "windows-1252", "cp1252": return .windowsCP1252
+                default:
+                    throw TagError.invalidDocumentValue(field: "encoding",
+                        reason: "unsupported NFO XML encoding '\(name)'; use UTF-8, ISO-8859-1 or Windows-1252")
+                }
+            }
+            cursor = token.range.upperBound
         }
+        return .utf8
     }
 }

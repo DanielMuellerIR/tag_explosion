@@ -5,7 +5,7 @@ import Foundation
 import TagExplosionTestSupport
 import Testing
 
-@Suite("tagx nfo/subtitle CLI", .serialized)
+@Suite("tagx nfo/subtitle CLI")
 struct SidecarCommandTests {
 
     private func makeDir() throws -> URL {
@@ -101,8 +101,5 @@ struct SidecarCommandTests {
         #expect(vttShow.stdout.contains("TITLE=Titel"))
         #expect(vttShow.stdout.contains("HEADER=Language: de"))
     }
-
-    // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
-
 
 }

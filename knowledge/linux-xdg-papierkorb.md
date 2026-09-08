@@ -189,3 +189,12 @@ Validierung der Korrektur auf `b89b90c` plus Prozessstarter und Regressionstest:
 485 Linux-Tests bestanden in 33,365 Sekunden (Swift 6.0, zwei CPU-Kerne,
 eigener Benutzer, frische Fixtures), Exit-Code 0. Auf macOS bestanden
 491 Core-Tests in 9,147 Sekunden. Der Linux-Container wurde automatisch entfernt.
+
+
+Weitere Linux-Prüfung am 2026-09-08: `60aee2e` mit Änderungen an NFO-
+Kodierungen und Sidecar-Tests bestand zunächst 493 von 494 Tests. Foundation
+lieferte für einen XML-Namespace-Knoten einen leeren `xmlString`, obwohl
+Präfix und URI vorhanden waren. Die explizite Serialisierung dieser beiden
+Werte korrigierte den Fehler. Der anschließende vollständige Lauf bestand
+494 Tests in 32,489 Sekunden, Exit-Code 0 (Swift 6.0, zwei CPU-Kerne,
+eigener Benutzer, frische Fixtures); beide Container wurden entfernt.

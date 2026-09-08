@@ -124,12 +124,13 @@ public enum SubtitleFile {
         let stem = url.deletingPathExtension().lastPathComponent
         var parts = stem.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
         var flags: [String] = []
-        while parts.count > 1, let last = parts.last, knownFlags.contains(last.lowercased()) {
+        while parts.dropLast().contains(where: { !$0.isEmpty }),
+              let last = parts.last, knownFlags.contains(last.lowercased()) {
             flags.insert(last.lowercased(), at: 0)
             parts.removeLast()
         }
         var language: String?
-        if parts.count > 1, let last = parts.last,
+        if parts.dropLast().contains(where: { !$0.isEmpty }), let last = parts.last,
            last.range(of: #"^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$"#, options: .regularExpression) != nil {
             language = last
             parts.removeLast()

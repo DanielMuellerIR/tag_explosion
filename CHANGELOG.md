@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.46 — 2026-09-08
+
+- NFO-Dateien verwenden beim Lesen und Schreiben denselben deklarierten
+  Zeichensatz. Windows-1252-Zeichen erscheinen korrekt; unbekannte
+  Kodierungen werden nicht mit einer falschen Deklaration überschrieben.
+- Eigene XML-Namensräume bleiben auch unter Linux erhalten. Die Sidecar-
+  Tests laufen parallel und benötigen keine Video-Fixture.
+- Versteckte Untertitelnamen ohne Basisnamen werden nicht als Sprachsuffix
+  oder Flag interpretiert.
+
 ## 0.46.45 — 2026-09-08
 
 - NFO-Dateien behalten Kommentare und Verarbeitungsanweisungen vor und

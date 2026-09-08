@@ -123,7 +123,7 @@ public enum KodiNFOFile {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: sniffLimit), !data.isEmpty else { return false }
-        let text = decode(data)
+        guard let text = try? decode(data, path: url.path) else { return false }
         if NFOXMLLayout.rootName(in: text) != nil { return true }
         return isURLOnly(text)
     }
@@ -142,11 +142,21 @@ public enum KodiNFOFile {
             && !line.contains(where: \.isWhitespace)
     }
 
-    /// UTF-8 (mit oder ohne BOM), sonst Latin-1 — wie bei den übrigen
-    /// Textformaten des Projekts.
-    private static func decode(_ data: Data) -> String {
+    /// Deklarierte Legacy-Kodierungen gelten auch beim Lesen. Ohne solche
+    /// Angabe bleibt der bisherige UTF-8-/Latin-1-Fallback erhalten.
+    private static func decode(_ data: Data, path: String) throws -> String {
         var bytes = data
         if bytes.starts(with: [0xEF, 0xBB, 0xBF]) { bytes = bytes.dropFirst(3) }
+        // Die XML-Deklaration ist ASCII. Ersatzzeichen beim kurzen Vorlesen
+        // ändern ihren Kodierungsnamen nicht; der Inhalt wird danach dekodiert.
+        let prefix = String(decoding: bytes.prefix(sniffLimit), as: UTF8.self)
+        let encoding = try NFOXMLLayout.declaredEncoding(in: prefix)
+        if encoding != .utf8 {
+            guard let decoded = String.decoded(bytes, as: encoding) else {
+                throw TagError.cannotOpen(path: path)
+            }
+            return decoded
+        }
         return String(data: bytes, encoding: .utf8)
             ?? String.decoded(bytes, as: .isoLatin1)
             ?? ""
@@ -161,7 +171,7 @@ public enum KodiNFOFile {
         } catch {
             throw TagError.cannotOpen(path: url.path)
         }
-        return try parse(decode(data), path: url.path, companionOf: url)
+        return try parse(decode(data, path: url.path), path: url.path, companionOf: url)
     }
 
     /// Felder unter einem Dateistempel lesen (Konfliktschutz beim Schreiben).
@@ -341,7 +351,7 @@ public enum KodiNFOFile {
         } catch {
             throw TagError.cannotOpen(path: originalPath)
         }
-        let text = decode(data)
+        let text = try decode(data, path: originalPath)
         guard let layout = try NFOXMLLayout.parse(text, path: originalPath) else {
             throw TagError.urlOnlyNFO(path: originalPath)
         }
@@ -490,7 +500,11 @@ enum NFOWriter {
         out += pad + "<" + name
         // Namensraumdeklarationen gehören bei Foundation nicht zu attributes.
         for namespace in element.namespaces ?? [] {
-            out += " " + namespace.xmlString
+            // Linux-Foundation liefert für Namespace-Knoten einen leeren
+            // xmlString; Präfix und URI sind auf beiden Plattformen verfügbar.
+            let prefix = namespace.name ?? ""
+            let attribute = prefix.isEmpty ? "xmlns" : "xmlns:" + prefix
+            out += " \(attribute)=\"\(escapeAttribute(namespace.stringValue ?? ""))\""
         }
         for attribute in element.attributes ?? [] {
             out += " \(attribute.name ?? "")=\"\(escapeAttribute(attribute.stringValue ?? ""))\""
