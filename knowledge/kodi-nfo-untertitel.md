@@ -97,3 +97,12 @@ bleiben auch in reinen Text- oder gemischten Elementen erhalten, statt nur
 ihren Inhalt als Text auszugeben. Drei Roundtrip-Varianten reproduzierten
 vor der Korrektur zwei Inhaltsverluste und einen fehlgeschlagenen Schreibweg.
 Rücklesefehler nennen den Originalpfad statt der temporären Geschwisterkopie.
+
+
+`NFOXMLLayout` trennt XML-Grenzen von der Feldbearbeitung. Der Scanner zählt
+Elemente, überspringt Kommentare/CDATA/Verarbeitungsanweisungen und beachtet
+Anführungszeichen sowie den internen DTD-Teil. Die eigentliche XML-Prüfung
+bleibt bei `XMLTools`. Der Nachspann enthält auch Kommentare und
+Verarbeitungsanweisungen; nur echte URL-Zeilen außerhalb davon werden als
+Scraper-URLs angezeigt. Drei Varianten des bestehenden Nachspann-Tests
+scheiterten zuvor, weil Kommentare als Tags oder als Teil der Wurzel galten.

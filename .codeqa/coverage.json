@@ -545,7 +545,8 @@
         "Sources/tagx/NfoCommand.swift",
         "Sources/tagx/SubtitleCommand.swift",
         "Tests/TagExplosionCoreTests/SidecarTests.swift",
-        "Tests/TagxTests/SidecarCommandTests.swift"
+        "Tests/TagxTests/SidecarCommandTests.swift",
+        "Sources/TagExplosionCore/NFOXMLLayout.swift"
       ],
       "risk": "high",
       "priority": 9,
@@ -557,7 +558,10 @@
         "required_review": "full",
         "status_at_start": "pending",
         "covered_pending_paths": []
-      }
+      },
+      "pending_paths": [
+        "Sources/TagExplosionCore/NFOXMLLayout.swift"
+      ]
     },
     {
       "id": "app-loading",

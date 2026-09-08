@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.45 — 2026-09-08
+
+- NFO-Dateien behalten Kommentare und Verarbeitungsanweisungen vor und
+  hinter dem Wurzelelement. Die Erkennung überspringt XML-Vorspänne korrekt;
+  URL-Zeilen innerhalb von Kommentaren werden nicht als Scraper-URLs geführt.
+- Die XML-Textgrenzen liegen getrennt von der NFO-Feldbearbeitung.
+
 ## 0.46.44 — 2026-09-08
 
 - NFO-Dateien behalten eigene XML-Namensräume und Verarbeitungsanweisungen

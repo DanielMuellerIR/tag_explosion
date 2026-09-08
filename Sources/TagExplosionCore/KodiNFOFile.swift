@@ -124,41 +124,8 @@ public enum KodiNFOFile {
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: sniffLimit), !data.isEmpty else { return false }
         let text = decode(data)
-        if rootName(in: text) != nil { return true }
+        if NFOXMLLayout.rootName(in: text) != nil { return true }
         return isURLOnly(text)
-    }
-
-    /// Wurzelelement eines XML-Texts (erstes Tag, das keine Deklaration,
-    /// kein Kommentar und keine DTD ist), sofern es ein NFO-Wurzelelement ist.
-    static func rootName(in text: String) -> String? {
-        guard let range = rootStartRange(in: text) else { return nil }
-        var name = ""
-        for character in text[range.upperBound...] {
-            if character.isLetter || character.isNumber || character == "_" {
-                name.append(character)
-            } else {
-                break
-            }
-        }
-        return rootNames.contains(name.lowercased()) ? name.lowercased() : nil
-    }
-
-    /// Position des `<` des Wurzelelements.
-    private static func rootStartRange(in text: String) -> Range<String.Index>? {
-        var search = text.startIndex
-        while let lt = text[search...].firstIndex(of: "<") {
-            let next = text.index(after: lt)
-            guard next < text.endIndex else { return nil }
-            let following = text[next]
-            if following == "?" || following == "!" {
-                // Deklaration, Kommentar oder DTD überspringen.
-                guard let gt = text[next...].firstIndex(of: ">") else { return nil }
-                search = text.index(after: gt)
-                continue
-            }
-            return lt..<next
-        }
-        return nil
     }
 
     /// Nur-URL-NFO: jede nicht-leere Zeile ist eine http(s)-Adresse.
@@ -169,7 +136,7 @@ public enum KodiNFOFile {
         return !lines.isEmpty && lines.allSatisfy(isURLLine)
     }
 
-    private static func isURLLine(_ line: String) -> Bool {
+    static func isURLLine(_ line: String) -> Bool {
         let lower = line.lowercased()
         return (lower.hasPrefix("http://") || lower.hasPrefix("https://"))
             && !line.contains(where: \.isWhitespace)
@@ -186,18 +153,6 @@ public enum KodiNFOFile {
     }
 
     // MARK: - Lesen
-
-    /// Zerlegte Datei: XML-Teil und alles außerhalb des Wurzelelements.
-    struct Layout {
-        /// Alles vor dem `<` des Wurzelelements (Deklaration, Kommentare).
-        var prefix: String
-        /// Das Wurzelelement samt Inhalt.
-        var xml: String
-        /// Alles nach dem Wurzelelement (Zeilenumbruch, URL-Zeilen).
-        var suffix: String
-        /// Zeichensatz der Ausgabe (aus der Deklaration).
-        var encoding: String.Encoding
-    }
 
     public static func read(url: URL) throws -> NFOContents {
         let data: Data
@@ -216,7 +171,7 @@ public enum KodiNFOFile {
     }
 
     static func parse(_ text: String, path: String, companionOf url: URL? = nil) throws -> NFOContents {
-        guard let layout = try layout(of: text, path: path) else {
+        guard let layout = try NFOXMLLayout.parse(text, path: path) else {
             // Kein XML mit NFO-Wurzel: Nur-URL oder gar keine NFO.
             guard isURLOnly(text) else { throw TagError.cannotOpen(path: path) }
             let urls = urlLines(in: text)
@@ -277,7 +232,7 @@ public enum KodiNFOFile {
                 if !value.isEmpty { info.append(DocumentInfoItem(label: "fanart", value: value)) }
             }
         }
-        let urls = urlLines(in: layout.suffix)
+        let urls = layout.urls
         info.append(contentsOf: urls.map { DocumentInfoItem(label: "url", value: $0) })
         if let url { info.append(companionItem(for: url)) }
         return NFOContents(rootName: rootName, fields: fields, info: info, urls: urls)
@@ -315,38 +270,6 @@ public enum KodiNFOFile {
     private static func companionItem(for url: URL) -> DocumentInfoItem {
         DocumentInfoItem(label: "video",
                          value: MediaFormats.videoURL(forNFO: url)?.lastPathComponent ?? "(none)")
-    }
-
-    /// Zerlegt den Text in Vorspann, Wurzelelement und Nachspann; nil, wenn
-    /// kein NFO-Wurzelelement gefunden wird.
-    static func layout(of text: String, path: String) throws -> Layout? {
-        guard let start = rootStartRange(in: text), rootName(in: text) != nil else { return nil }
-        // Ende des Wurzelelements: das letzte `>` der Datei, hinter dem nur
-        // noch Leerraum oder URL-Zeilen stehen.
-        guard let end = text.lastIndex(of: ">") else { return nil }
-        let after = text.index(after: end)
-        let prefix = String(text[..<start.lowerBound])
-        let xml = String(text[start.lowerBound..<after])
-        let suffix = String(text[after...])
-        let trailing = suffix.split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        guard trailing.allSatisfy(isURLLine) else { throw TagError.cannotOpen(path: path) }
-        return Layout(prefix: prefix, xml: xml, suffix: suffix, encoding: declaredEncoding(in: prefix))
-    }
-
-    /// Zeichensatz aus `encoding="…"` der Deklaration; Standard UTF-8.
-    private static func declaredEncoding(in prefix: String) -> String.Encoding {
-        guard let range = prefix.range(of: #"encoding\s*=\s*["']([^"']+)["']"#, options: .regularExpression)
-        else { return .utf8 }
-        let declaration = prefix[range]
-        let name = declaration.split(separator: "=").last?
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"' ")).lowercased() ?? ""
-        switch name {
-        case "iso-8859-1", "latin1", "latin-1": return .isoLatin1
-        case "windows-1252", "cp1252": return .windowsCP1252
-        default: return .utf8
-        }
     }
 
     // MARK: - Schreiben
@@ -419,7 +342,7 @@ public enum KodiNFOFile {
             throw TagError.cannotOpen(path: originalPath)
         }
         let text = decode(data)
-        guard let layout = try layout(of: text, path: originalPath) else {
+        guard let layout = try NFOXMLLayout.parse(text, path: originalPath) else {
             throw TagError.urlOnlyNFO(path: originalPath)
         }
         let document = try XMLTools.document(from: Data(layout.xml.utf8), path: originalPath)

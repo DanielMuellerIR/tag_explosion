@@ -251,11 +251,16 @@ struct SidecarTests {
         #expect(throws: TagError.self) { try KodiNFOFile.read(url: scene) }
     }
 
-    @Test("XML plus URL-Zeile hinter dem Wurzelelement bleibt beim Schreiben erhalten")
-    func xmlWithTrailingURL() throws {
+    @Test("NFO erhält XML-Vorspann, Nachspann und URL-Zeilen", arguments: [
+        ("", "\n<!-- </movie> > bleibt -->\n"),
+        ("<!-- > <fake> -->\n", "\n<!--\nhttps://example.invalid/comment\n-->\n"),
+        ("<?xml version=\"1.0\"?>\n<!DOCTYPE movie [<!ELEMENT movie ANY><!ENTITY marker \">\">]>\n", "\n<?after keep?>\n")
+    ])
+    func xmlWithTrailingURL(parts: (String, String)) throws {
         let dir = try makeDir()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let text = "<movie>\n    <title>A</title>\n</movie>\nhttps://www.imdb.com/title/tt0000001/\n"
+        let text = parts.0 + "<movie>\n    <title>A</title>\n</movie>" + parts.1
+            + "https://www.imdb.com/title/tt0000001/\n"
         let url = try writeFile("film.nfo", text, in: dir)
         let contents = try KodiNFOFile.read(url: url)
         #expect(contents.urls == ["https://www.imdb.com/title/tt0000001/"])
