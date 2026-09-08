@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.50 — 2026-09-08
+
+- Cover-Analyse akzeptiert JPEG-/PNG-Ausschnitte ohne Absturz.
+- PNG-Metadatenbereinigung lehnt abgeschnittene End-Chunks ab und erhält
+  nachfolgende Bytes. Ordnersuche ignoriert Verzeichnisse mit Cover-Namen.
+- Cover-Export folgt den tatsächlichen Bildbytes bei widersprüchlichem
+  MIME-Type und prüft beim Ersetzen den Dateistempel vor der Sicherung.
+- Die Prüfung auf Export-Tempdateien steckt im vorhandenen Roundtrip;
+  unabhängige CLI-Cover-Tests laufen parallel.
+
 ## 0.46.49 — 2026-09-08
 
 - Die Reparatur fremd kodierter Werkzeugausgaben durchsucht Byteabschnitte

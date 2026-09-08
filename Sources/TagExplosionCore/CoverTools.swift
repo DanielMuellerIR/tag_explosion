@@ -477,7 +477,7 @@ enum JPEGHeader {
     }
 
     /// Ruft `visit(marker, payload)` je Segment bis SOS auf; `false` bricht ab.
-    private static func walkSegments(_ data: Data, visit: (UInt8, Data) -> Bool) {
+    private static func walkSegments(_ data: Data, visit: (UInt8, ArraySlice<UInt8>) -> Bool) {
         let bytes = [UInt8](data)
         guard bytes.count >= 4, bytes[0] == 0xFF, bytes[1] == 0xD8 else { return }
         var index = 2
@@ -490,7 +490,7 @@ enum JPEGHeader {
             if standalone.contains(marker) { index += 2; continue }
             let length = Int(bytes[index + 2]) << 8 | Int(bytes[index + 3])
             guard length >= 2, index + 2 + length <= bytes.count else { return }
-            let payload = data.subdata(in: (index + 4)..<(index + 2 + length))
+            let payload = bytes[(index + 4)..<(index + 2 + length)]
             if !visit(marker, payload) { return }
             index += 2 + length
         }
@@ -554,12 +554,16 @@ enum PNGHeader {
                 output.append(contentsOf: bytes[index..<end])
             }
             index = end
-            if type == "IEND" { break }
+            if type == "IEND" {
+                // Auch unbekannte Anhänge bleiben bei der verlustfreien Operation erhalten.
+                output.append(contentsOf: bytes[index...])
+                return output
+            }
         }
-        return index >= 8 ? output : nil
+        return nil // Ohne vollständigen End-Chunk keine neue Datei zurückgeben.
     }
 
-    private static func walkChunks(_ data: Data, visit: (String, Data) -> Bool) {
+    private static func walkChunks(_ data: Data, visit: (String, ArraySlice<UInt8>) -> Bool) {
         let bytes = [UInt8](data)
         guard bytes.count >= 8, Array(bytes[0..<8]) == signature else { return }
         var index = 8
@@ -569,7 +573,7 @@ enum PNGHeader {
             let type = String(decoding: bytes[(index + 4)..<(index + 8)], as: UTF8.self)
             let end = index + 12 + length
             guard end <= bytes.count else { return }
-            let payload = data.subdata(in: (index + 8)..<(index + 8 + length))
+            let payload = bytes[(index + 8)..<(index + 8 + length)]
             if !visit(type, payload) { return }
             index = end
         }
@@ -599,8 +603,11 @@ public enum FolderCover {
         var byLowercase: [String: [String]] = [:]
         for name in names { byLowercase[name.lowercased(), default: []].append(name) }
         for candidate in candidateNames {
-            if let matches = byLowercase[candidate], let first = matches.sorted().first {
-                return directory.appendingPathComponent(first)
+            for name in (byLowercase[candidate] ?? []).sorted() {
+                let url = directory.appendingPathComponent(name)
+                if (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
+                    return url
+                }
             }
         }
         return nil
@@ -611,8 +618,8 @@ public enum FolderCover {
     public static func load(in directory: URL) throws -> Artwork? {
         guard let url = find(in: directory) else { return nil }
         let data = try Data(contentsOf: url)
-        guard Artwork.sniffMimeType(from: data) != nil else { throw CoverToolError.unsupportedImage }
-        return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
+        guard let mimeType = Artwork.sniffMimeType(from: data) else { throw CoverToolError.unsupportedImage }
+        return Artwork(data: data, mimeType: mimeType,
                        pictureType: "Front Cover")
     }
 
@@ -620,7 +627,7 @@ public enum FolderCover {
     /// Endung nach Magic Bytes (jpg, png, gif, webp, bmp). nil bei unbekannten
     /// Daten — eine `.jpg`-Endung auf Nicht-JPEG wäre eine Lüge.
     public static func exportFileName(for artwork: Artwork) -> String? {
-        switch artwork.resolvedMimeType {
+        switch Artwork.sniffMimeType(from: artwork.data) {
         case "image/jpeg": return "folder.jpg"
         case "image/png": return "folder.png"
         case "image/gif": return "folder.gif"
@@ -643,7 +650,7 @@ public enum FolderCover {
         guard let name = exportFileName(for: artwork) else { throw CoverToolError.unsupportedImage }
         let target = directory.appendingPathComponent(name)
         let fileManager = FileManager.default
-        let expected = artwork.resolvedMimeType
+        let expected = Artwork.sniffMimeType(from: artwork.data)
         let mutate: (URL) throws -> Void = { temp in try artwork.data.write(to: temp) }
         // Magic-Byte-Prüfung: Die geschriebene Datei muss das Bild sein, das
         // der Dateiname verspricht.
@@ -653,8 +660,9 @@ public enum FolderCover {
             }
         }
         if force, fileManager.fileExists(atPath: target.path) {
+            let stamp = FileStamp.current(of: target)
             try TrashBackup.shared.backUp(target)
-            try AtomicFileRewrite.run(url: target, mutate: mutate, validate: validate)
+            try AtomicFileRewrite.run(url: target, expecting: stamp, mutate: mutate, validate: validate)
             return target
         }
         do {

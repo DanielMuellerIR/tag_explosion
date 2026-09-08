@@ -9,6 +9,16 @@ import Testing
 @Suite("CoverTools")
 struct CoverToolsTests {
 
+    @Test("Bildanalyse akzeptiert Data-Ausschnitte mit fremdem Startindex", arguments: ["cover.jpg", "cover.png"])
+    func analyzeDataSlice(_ name: String) throws {
+        let original = try Fixtures.coverData(name)
+        let prefixed = Data(repeating: 0, count: 64) + original
+        let slice = prefixed.dropFirst(64)
+        #expect(slice.startIndex == 64)
+        #expect(CoverTools.analyze(slice) == CoverTools.analyze(original))
+        #expect(try CoverTools.stripMetadata(slice) == CoverTools.stripMetadata(original))
+    }
+
     // MARK: - Analyse
 
     @Test("64×64-JPEG: Maße, Format, Farbmodell und Hinweis „zu klein“")
@@ -200,6 +210,9 @@ struct CoverToolsTests {
         try jpg.write(to: directory.appendingPathComponent("folder.jpeg"))
         #expect(FolderCover.find(in: directory)?.lastPathComponent == "folder.jpeg")
 
+        // Ein gleichnamiger Ordner ist kein Cover und darf die Datei nicht verdecken.
+        try FileManager.default.createDirectory(at: directory.appendingPathComponent("folder.jpg"), withIntermediateDirectories: false)
+        #expect(FolderCover.find(in: directory)?.lastPathComponent == "folder.jpeg")
         let loaded = try FolderCover.load(in: directory)
         #expect(loaded?.data == jpg)
         #expect(loaded?.mimeType == "image/jpeg")
@@ -218,7 +231,7 @@ struct CoverToolsTests {
     func folderCoverExport() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let png = Artwork(data: try Fixtures.coverData("cover.png"))
+        let png = Artwork(data: try Fixtures.coverData("cover.png"), mimeType: "image/jpeg")
         let jpg = Artwork(data: try Fixtures.coverData("cover.jpg"), mimeType: "image/jpeg")
         #expect(FolderCover.exportFileName(for: png) == "folder.png")
         #expect(FolderCover.exportFileName(for: jpg) == "folder.jpg")
@@ -227,6 +240,7 @@ struct CoverToolsTests {
         let target = try FolderCover.export(png, to: directory)
         #expect(target.lastPathComponent == "folder.png")
         #expect(try Data(contentsOf: target) == png.data)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["folder.png"])
 
         let other = Artwork(data: try Fixtures.coverData("cover-alpha.png"))
         #expect(throws: CoverToolError.targetExists(path: target.path)) {
@@ -281,12 +295,15 @@ struct CoverToolsTests {
     }
 
 
-    @Test("Export legt eine neue Datei über die geprüfte Geschwisterkopie an — ohne Temp-Reste")
-    func folderCoverExportLeavesNoTempFiles() throws {
-        let directory = try makeDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let png = Artwork(data: try Fixtures.coverData("cover.png"))
-        _ = try FolderCover.export(png, to: directory)
-        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["folder.png"])
+    @Test("PNG-Metadatenentfernung lehnt fehlendes IEND ab und erhält nachfolgende Bytes")
+    func stripPNGRequiresCompleteChunks() throws {
+        let original = try Fixtures.coverData("cover.png")
+        for removed in [1, 8, 12] {
+            #expect(throws: CoverToolError.unsupportedImage) {
+                try CoverTools.stripMetadata(original.dropLast(removed))
+            }
+        }
+        let trailing = original + Data("Anhang".utf8)
+        #expect(try CoverTools.stripMetadata(trailing) == trailing)
     }
 }

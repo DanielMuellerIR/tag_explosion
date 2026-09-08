@@ -631,37 +631,18 @@
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:36:20+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "d0ab8e96214a111f1fdc4005642130e6095ae626fcbc3266041cfe50a514602a",
-        "file_count": 3,
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T04:43:34+02:00",
+        "observed_head": "0c2585d740a2c012dac8d7503d5b4c0bf0301c2c",
+        "content_sha256": "98412d9a326802f04a66c88dfbcc36c58270075e9f3a660ff12fbdfad9915862",
+        "file_count": 7,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "JSON- und Klartextdekodierung sind an allen Aufrufgrenzen explizit getrennt; nur JSON repariert MediaInfos Lone-Surrogate-Escapes und trennt Felder an unmaskierten Anführungszeichen. Ein echter fehlschlagender Prozess belegt bracket-beginnendes stderr unverändert; Pipe-Leeren, Timeout, Track-Parser und SwiftUI-Abbruchgrenze bleiben unverändert.",
+        "summary": "Alle sieben Dateien einschließlich Parser, UI und Prozess-/Dekodierungstests gelesen. Fremde Byteabschnitte je Feld indexiert statt quadratischer Suche; künstliche Cache-Testpausen und Benchmark-Ausgabe entfernt, unabhängige Tests parallel. Prozessgruppen, Abbruch, Cache-Grenzen und Linux-FD-Schließen geprüft.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden; MediaInfoReader-Prozesssuite einschließlich 1-MiB-Pipe- und echter stderr-Regression grün",
-          "swift test --package-path App: 65 Tests in 8 Suites bestanden"
-        ]
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/ExternalToolRunner.swift",
-        "Sources/TagExplosionCore/ExternalToolText.swift",
-        "Sources/TagExplosionCore/MediaInfoCache.swift",
-        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
-      ],
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T04:41:24+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": [
-          "Sources/TagExplosionCore/ExternalToolRunner.swift",
-          "Sources/TagExplosionCore/ExternalToolText.swift",
-          "Sources/TagExplosionCore/MediaInfoCache.swift",
-          "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+          "500 Core-Tests 7,223 s; 119 App-Tests 0,474 s. 10.000 MacRoman-Zeilen 159→21 ms, bytegleiche Ausgabe. Bedarfstest isoliert 1,358→0,235 s."
         ]
       }
     },
@@ -679,7 +660,14 @@
       "risk": "high",
       "priority": 11,
       "reason": "Bildparser, verlustfreie Metadatenentfernung und Export; ungültige und versetzte Data-Eingaben.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T04:43:34+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "einvoice-reading",

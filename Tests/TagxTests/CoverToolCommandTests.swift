@@ -5,7 +5,7 @@ import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
-@Suite("tagx cover info/convert/from-folder/to-folder", .serialized)
+@Suite("tagx cover info/convert/from-folder/to-folder")
 struct CoverToolCommandTests {
 
     /// Spiegel der CLI-JSON-Ausgabe (`Report` ist im CLI-Target privat).
