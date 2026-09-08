@@ -123,11 +123,17 @@ enum ComicArchiveFile: DocumentBackend {
         if fields.authors != original.authors {
             try DocumentTool.requireValues(fields.authors, free: [","], field: .authors)
         }
-        if fields.created != original.created, !fields.created.isEmpty,
-           fields.created.range(of: #"^\d{4}(-\d{2}(-\d{2})?)?$"#, options: .regularExpression) == nil {
-            throw TagError.invalidDocumentValue(
-                field: DocumentField.created.rawValue,
-                reason: "expected YYYY, YYYY-MM or YYYY-MM-DD")
+        if fields.created != original.created, !fields.created.isEmpty {
+            // Fehlende Monate/Tage nur für die Prüfung mit Januar bzw. dem
+            // ersten Monatstag ergänzen; gespeichert bleibt die verkürzte Form.
+            let day = fields.created + (fields.created.count == 4 ? "-01-01"
+                : fields.created.count == 7 ? "-01" : "")
+            guard fields.created.range(of: #"^\d{4}(-\d{2}(-\d{2})?)?$"#, options: .regularExpression) != nil,
+                  ISODate.isCalendarDay(day) else {
+                throw TagError.invalidDocumentValue(
+                    field: DocumentField.created.rawValue,
+                    reason: "expected a calendar date: YYYY, YYYY-MM or YYYY-MM-DD")
+            }
         }
         for key in ["Volume", "PageCount"] {
             let value = fields.customValue(for: key)

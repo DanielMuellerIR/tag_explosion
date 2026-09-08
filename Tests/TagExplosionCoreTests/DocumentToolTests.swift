@@ -168,9 +168,9 @@ struct DocumentToolTests {
         #expect(core.contains("xsi:type=\"dcterms:W3CDTF\""))
     }
 
-    @Test("Nicht speicherbare Felder und Werte scheitern vor jeder Mutation")
-    func rejectsUnsupportedFieldsBeforeWriting() throws {
-        let url = try Fixtures.workingCopy("doc.docx")
+    @Test("Nicht speicherbare Felder und Werte scheitern vor jeder Mutation", arguments: ["doc.docx", "doc.odt"])
+    func rejectsUnsupportedFieldsBeforeWriting(fixture: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
         let bytes = try Data(contentsOf: url)
         let original = try DocumentTool.readCoreFields(url: url)
 
@@ -184,10 +184,12 @@ struct DocumentToolTests {
         #expect(throws: TagError.unsupportedDocumentField(name: "Fantasie")) {
             try DocumentTool.write(url: url, fields: unknownCustom, original: original)
         }
-        var badDate = original
-        badDate.created = "5.11.2023"
-        #expect(throws: TagError.self) {
-            try DocumentTool.write(url: url, fields: badDate, original: original)
+        for value in ["5.11.2023", "2026-02-31", "2025-02-29", "2026-13-01", "2026-02-31T12:00:00Z"] {
+            var badDate = original
+            badDate.created = value
+            #expect(throws: TagError.self) {
+                try DocumentTool.write(url: url, fields: badDate, original: original)
+            }
         }
         var badAuthor = original
         badAuthor.authors = ["Muster; Max"]
@@ -195,6 +197,10 @@ struct DocumentToolTests {
             try DocumentTool.write(url: url, fields: badAuthor, original: original)
         }
         #expect(try Data(contentsOf: url) == bytes)
+        var leapDay = original
+        leapDay.created = "2024-02-29T12:00:00Z"
+        try DocumentTool.write(url: url, fields: leapDay, original: original)
+        #expect(try DocumentTool.readCoreFields(url: url) == leapDay)
     }
 
     // MARK: - OpenDocument (odt)
@@ -340,11 +346,15 @@ struct DocumentToolTests {
         #expect(throws: TagError.self) {
             try DocumentTool.write(url: url, fields: author, original: original)
         }
-        var date = original
-        date.created = "2020-3-5"
-        #expect(throws: TagError.self) {
-            try DocumentTool.write(url: url, fields: date, original: original)
+        let before = try Data(contentsOf: url)
+        for value in ["2020-3-5", "2026-02-31", "2025-02-29", "2026-13"] {
+            var date = original
+            date.created = value
+            #expect(throws: TagError.self) {
+                try DocumentTool.write(url: url, fields: date, original: original)
+            }
         }
+        #expect(try Data(contentsOf: url) == before)
         var keywords = original
         keywords.keywords = ["kein Speicherort"]
         #expect(throws: TagError.unsupportedDocumentField(name: "keywords")) {

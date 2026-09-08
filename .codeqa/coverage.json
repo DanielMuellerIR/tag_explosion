@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 1208672
+    "tokens_spent": 1361481
   },
   "campaign_history": [
     {
@@ -353,27 +353,19 @@
       "risk": "high",
       "priority": 6,
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:35:12+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "f6f47a068c9e3ca83fbe4d6a267bac793011b98886bf5542898269f75e70febf",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T02:18:13+02:00",
+        "observed_head": "624b706dd1f07ce5e86d00acaf3eae3f567e94eb",
+        "content_sha256": "48bf49b4f738e18241303eccc6f085ce37d701bd38847acfcc452749a8a7eda0",
         "file_count": 4,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Calibres ebook-meta-Ausgabe nimmt ausdrücklich den Klartext-Dekodierweg; bracket-beginnende Werte oder Diagnosen können keine JSON-Surrogatreparatur mehr auslösen. EPUB-, PDF-, Cover- und Schreibgrenzen sind im Delta unverändert.",
+        "summary": "Delta der Prozess-/Text-Helfer, Fehlerpfade, XML-Tests und gemeinsamer CRC-Leser samt EPUB/PDF/Calibre-Ein-/Ausgängen geprüft. Unnötige EPUB→FB2-Konvertierung im Serienindex-Test durch synthetisches FB2 ersetzt; zwei eigene Prozesswege entfallen, echter Calibre-Nachweis bleibt. Doppelte Fehlerpfadzuordnung als Theme erfasst.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden; EbookTool-Suite einschließlich Calibre-, EPUB- und Coverpfaden grün",
-          "swift test --package-path App: 65 Tests in 8 Suites bestanden"
+          "EbookToolTests 33 Tests grün (5.271 s); Serienindex-Einzeltest 1.475→1.016 s im gemessenen Lauf. Zuvor Gesamtstand 483 Core/CLI- und 115 App-Tests grün. Diff geprüft, Commit/minipc-Push. Gebuchte Nutzung: gemeldetes Root-Delta ohne Cache seit Baseline 878284."
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:14:43+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -1089,9 +1081,15 @@
         "Sources/TagExplosionCore/ISODate.swift"
       ],
       "priority": 6,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T02:09:54+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T02:18:13+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:18:13+02:00",
+        "observed_head": "624b706dd1f07ce5e86d00acaf3eae3f567e94eb"
+      }
     },
     {
       "id": "tag-error-paths",

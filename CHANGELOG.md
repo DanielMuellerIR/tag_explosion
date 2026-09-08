@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.25 — 2026-09-08
+
+- Dokument- und Comic-Metadaten verwenden die gemeinsame Kalenderprüfung.
+  Unmögliche Tage und Monate werden vor dem Schreiben abgelehnt;
+  Schaltjahre und verkürzte Comic-Daten bleiben unterstützt.
+- Die bestehenden Prüfungen ungültiger Dokumentwerte decken jetzt sowohl
+  OOXML als auch OpenDocument ab.
+
 ## 0.46.24 — 2026-09-08
 
 - Der Calibre-Serienindex-Test erzeugt sein kleines FB2 direkt statt bei
