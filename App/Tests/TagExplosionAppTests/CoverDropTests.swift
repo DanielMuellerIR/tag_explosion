@@ -3,6 +3,7 @@
 // MainActor-Zustellung des Produktionscodes nicht blockiert wird.
 import Foundation
 import Testing
+import TagExplosionCore
 import UniformTypeIdentifiers
 @testable import TagExplosionApp
 
@@ -82,6 +83,9 @@ struct CoverDropTests {
 
     @Test("Cover-Export beschriftet BMP und unbekannte Daten ehrlich")
     func exportFileExtensionsMatchMimeType() {
+        let png = Artwork(data: Data([0x89, 0x50, 0x4E, 0x47] + Array(repeating: 0, count: 8)),
+                          mimeType: "image/jpeg")
+        #expect(CoverExport.fileExtension(for: png) == "png")
         #expect(CoverExport.fileExtension(for: "image/jpeg") == "jpg")
         #expect(CoverExport.fileExtension(for: "image/png") == "png")
         #expect(CoverExport.fileExtension(for: "image/gif") == "gif")

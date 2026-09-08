@@ -76,24 +76,20 @@
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
-      "state": "pending",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:09:15+02:00",
-        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e",
-        "content_sha256": "2477a5b0e8057857bfbb80f1c20e614e1cf643fc5054800dbdad1ffa811feed5",
-        "file_count": 8,
+        "completed_at": "2026-09-08T05:45:26+02:00",
+        "observed_head": "061ee18229437a96a6883713e8777ba82d98d17e",
+        "content_sha256": "e0bf6361002c0298c1514429105425c7217cb58b5cf15cf8161496b569ebdf3e",
+        "file_count": 10,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Seit letztem gebuchten Stand nur FileIntegrityTests.sameSizeSameMtimeReplacementIsDetected geändert: einfache eigene Daten statt Audio-Fixture, atomarer Ersatz über gemeinsamen TestFiles-Helfer, FileSnapshot.capture/requireCurrent statt isoliertem FileStamp-Vergleich. Der nun redundante CLI-Test wurde entfernt. Gleichheit von Größe und mtime bleibt geprüft. Keine Änderung an produktiven Schreibwegen. Commit b02a778.",
+        "summary": "FileExport und seine Tests aus dem Export-Querschnitt nachgeprüft: vorhandene Bytes atomar ersetzen, neue Ziele exklusiv anlegen, Backupfehler weiterreichen, vollständige Bytes prüfen; bestehende AtomicFileRewrite-Verträge unverändert.",
         "tests": [
-          "swift test: 490 Tests in 6.587 s"
+          "505 Core-/CLI-Tests in 7,618 s; zwei neue Exporttests bestehen, Ausgangsmechanik vier Fehler."
         ]
-      },
-      "pending_paths": [
-        "Sources/TagExplosionCore/FileExport.swift",
-        "Tests/TagExplosionCoreTests/FileExportTests.swift"
-      ]
+      }
     },
     {
       "id": "app-save-coordination",
@@ -803,7 +799,7 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
         "completed_at": "2026-09-08T05:39:08+02:00",
@@ -816,6 +812,13 @@
         "tests": [
           "128 App-Tests in 0,409 s bestanden."
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:45:26+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1336,14 +1339,18 @@
         "Sources/TagExplosionCore/AtomicFileRewrite.swift"
       ],
       "priority": 2,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T05:33:04+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T05:39:09+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:39:09+02:00",
-        "observed_head": "e249f9ffe4cd40b42b82cdf399f6522c6aacdb17"
+        "completed_at": "2026-09-08T05:45:12+02:00",
+        "observed_head": "061ee18229437a96a6883713e8777ba82d98d17e",
+        "summary": "Drei direkte Exporte durch gemeinsamen FileExport-Core-Weg mit bytegenauer Prüfung, Stempel, Backup und atomarem Austausch/Neuanlage ersetzt; AppModel.exportData führt IO im Hintergrund aus und meldet Fehler.",
+        "tests": [
+          "505 Core-/CLI-Tests in 7,618 s; 129 App-Tests in 0,564 s. Alte Schreibmechanik zeigte vier Fehler; neuer Weg hält Sicherung und Hardlink-Altstand, Backupfehler unverändert, App-Fehler sichtbar."
+        ]
       }
     }
   ]

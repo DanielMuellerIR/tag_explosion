@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.65 — 2026-09-08
+
+- Der Einzel-Coverexport bestimmt die vorgeschlagene Endung aus den Bildbytes,
+  damit eine falsche MIME-Angabe keine PNG-Datei als JPEG beschriftet.
+
 ## 0.46.64 — 2026-09-08
 
 - Cover-, Kapitel- und LRC-Export teilen einen sicheren Core-Schreibweg:

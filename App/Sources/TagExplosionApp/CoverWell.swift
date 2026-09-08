@@ -104,7 +104,7 @@ struct CoverWell: View {
     private func exportImage() {
         guard let artwork else { return }
         let panel = NSSavePanel()
-        let ext = CoverExport.fileExtension(for: artwork.resolvedMimeType)
+        let ext = CoverExport.fileExtension(for: artwork)
         panel.nameFieldStringValue = entry.url.deletingPathExtension()
             .lastPathComponent + "-cover." + ext
         if panel.runModal() == .OK, let url = panel.url {
@@ -116,6 +116,11 @@ struct CoverWell: View {
 /// Dateiendung für unveränderte Coverdaten. Unbekannte Daten dürfen nicht
 /// als JPEG beschriftet werden; die neutrale Endung hält den Inhalt ehrlich.
 enum CoverExport {
+    static func fileExtension(for artwork: Artwork) -> String {
+        // Eine falsche MIME-Angabe darf die unveränderten Bytes nicht falsch beschriften.
+        fileExtension(for: Artwork.sniffMimeType(from: artwork.data) ?? "application/octet-stream")
+    }
+
     static func fileExtension(for mimeType: String) -> String {
         switch mimeType {
         case "image/jpeg": return "jpg"

@@ -55,7 +55,5 @@ die tatsächlich geänderte Dateiidentität. Die Fixture-Sperre verwendet
 SwiftPM kann für die lokale Root-Abhängigkeit einen alten Bauplan verwenden:
 Eine neue Core-Datei baut im Root-Paket, ist im App-Paket aber noch unbekannt.
 Am 2026-09-08 half weder ein erneuter Lauf noch ein aktualisierter
-Manifest-Zeitstempel. `swift test --package-path App
---disable-build-manifest-caching` erzeugte den Plan neu und bestand.
-Die Option gehört auf dieselbe Kommandozeile; kein Löschen der Dependencies
-oder vollständiges Bereinigen erforderlich.
+Manifest-Zeitstempel. `swift test --package-path App --disable-build-manifest-caching` erzeugte den Plan neu und bestand.
+Ein Löschen der Abhängigkeiten oder vollständiges Bereinigen war nicht erforderlich.
