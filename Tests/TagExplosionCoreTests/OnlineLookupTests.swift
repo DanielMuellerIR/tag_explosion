@@ -538,6 +538,19 @@ struct OnlineLookupServiceTests {
         #expect(detailed.tracks.count == 3)
         #expect(detailed.tracks[0].acoustID == "ffffffff-1111-2222-3333-444444444444", "AcoustID bleibt am erkannten Titel")
         #expect(detailed.tracks[1].acoustID == nil)
+
+        // Eine Positionsnummer darf eine abweichende Recording-ID nicht überstimmen.
+        var shifted = candidates[0]
+        shifted.tracks[0].recordingID = "rrrrrrrr-0000-0000-0000-000000000002"
+        let matchedByID = try await service.details(for: shifted)
+        #expect(matchedByID.tracks[0].acoustID == nil)
+        #expect(matchedByID.tracks[1].acoustID == candidates[0].tracks[0].acoustID)
+        shifted.tracks[0].recordingID = "unknown-recording"
+        let missingID = try await service.details(for: shifted)
+        #expect(missingID.tracks.allSatisfy { $0.acoustID == nil })
+        shifted.tracks[0].recordingID = nil
+        let matchedByPosition = try await service.details(for: shifted)
+        #expect(matchedByPosition.tracks[0].acoustID == candidates[0].tracks[0].acoustID)
     }
 
     @Test("fpcalc fehlt → toolNotFound, ohne Netzzugriff")

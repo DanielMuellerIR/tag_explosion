@@ -1,4 +1,4 @@
-# Online-Lookup: MusicBrainz, Discogs, AcoustID (Stand 2026-09-02)
+# Online-Lookup: MusicBrainz, Discogs, AcoustID (Stand 2026-09-08)
 
 Konsultieren bei Arbeit an `Sources/TagExplosionCore/OnlineLookup/`,
 `tagx lookup`, dem Sheet „Online nachschlagen …" oder den Einstellungen
@@ -41,7 +41,9 @@ für Online-Dienste.
   Body wäre ein Leerzeichen. Releases stehen je nach `meta` flach unter dem
   Recording oder unter `releasegroups[].releases`; der Parser liest beides.
   AcoustID kennt keine Trackliste; die holt danach der MusicBrainz-Client
-  über die Release-ID, die AcoustID-Kennung bleibt am erkannten Titel.
+  über die Release-ID. `OnlineLookupService.details` ordnet die AcoustID
+  anhand der Recording-ID zu; nur ohne ID anhand von CD- und Tracknummer.
+  Eine unbekannte ID darf keinen anderen Titel an derselben Position treffen.
 
 ## Zuordnung und Plan
 

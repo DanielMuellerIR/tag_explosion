@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.54 — 2026-09-08
+
+- Beim Nachladen einer Online-Trackliste entscheidet die Recording-ID über
+  die AcoustID-Zuordnung. Die Position greift nur ohne bekannte ID.
+
 ## 0.46.53 — 2026-09-08
 
 - Drag-and-drop erhält die Dateireihenfolge trotz unterschiedlich schneller

@@ -134,8 +134,12 @@ public final class OnlineLookupService: Sendable {
         // AcoustID-Kennung an den wiedergefundenen Titel heften.
         for known in candidate.tracks where known.acoustID != nil {
             if let index = detailed.tracks.firstIndex(where: {
-                ($0.recordingID != nil && $0.recordingID == known.recordingID)
-                    || ($0.number == known.number && $0.discNumber == known.discNumber && known.number > 0)
+                // Die Kennung identifiziert die Aufnahme; die Position ist nur
+                // ein Ersatz, wenn die Antwort keine Recording-ID enthält.
+                if let recordingID = known.recordingID, !recordingID.isEmpty {
+                    return $0.recordingID == recordingID
+                }
+                return known.number > 0 && $0.number == known.number && $0.discNumber == known.discNumber
             }) {
                 detailed.tracks[index].acoustID = known.acoustID
             }

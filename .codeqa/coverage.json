@@ -720,26 +720,19 @@
       "risk": "high",
       "priority": 12,
       "reason": "Öffnen/Drop, Fenster- und App-Lebenszyklus, Tool-Installation und UI-Dialoggrenzen.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:41:07+02:00",
-        "observed_head": "8e7acaadf86789a84584188d0409abcef7ae0e9e",
-        "content_sha256": "904f6c85ca97fe99285d2d80ee8da56b2f658bc7db76f55f36274c142b39d966",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T05:08:12+02:00",
+        "observed_head": "51b09255b088a9e443b13a61aefa0978d7d7eb37",
+        "content_sha256": "fbbd1354efd6ee4a0203403bf9f2d7083817567416166ab1534157af3681eed6",
         "file_count": 9,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Delta und Grenzen von Fenster-Registry, Finder-/Dock-Dateiöffnung, begrenzter Fensteranforderung, fensterweiser Terminierung, Delegate-Weiterleitung, dargestellter Dokument-URL, Fensterkopf, Seitenleistenregel und Homebrew-Angebot geprüft; kein weiterer kleiner Eingriff nötig.",
+        "outcome": "improved",
+        "summary": "Delta und Grenzen aller neun vorhandenen Dateien geprüft: neue Editorrouten/Toolbar/Settings, Registry, Fensterbrücke, Homebrew und Tests. Wiederholte Registrierung darf neue Fensteraufträge nicht übernehmen; Drop-Reihenfolge an Eingabe statt Callback gebunden. Unabhängige Registry-Tests parallel, Konfliktwartehilfe geteilt; tatsächliche Watchdog-Fristen bewusst erhalten.",
         "tests": [
-          "swift test --package-path App --filter WindowSessionsTests\\|WindowChromeTests\\|BrewToolInstallerTests: 28 Tests in 3 Suites bestanden; swift build --package-path App -c release bestanden (nur bekannte lokale TagLib-Mindestversionswarnung)"
+          "Vorher vier Issues in zwei Regressionen, danach 121 App-Tests in 0,479 s bestanden. Registry-Suite 0,138 statt zuletzt 0,454 s; headless."
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:05:38+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -756,7 +749,14 @@
       "risk": "high",
       "priority": 12,
       "reason": "Nur ausdrücklich freigegebene Netzwerkzugriffe; fremde Antworten, Zahlenwerte und Tag-Zuordnung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:08:12+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "app-editors",
