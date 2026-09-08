@@ -45,6 +45,8 @@ Konsultieren bei Arbeit an `ExifTool.readCoreReading`, `writeDestination`,
 - **Sidecar-Name ist immer kleingeschrieben `.xmp`.** Auf
   Groß-/Kleinschreibung-sensiblen Dateisystemen (Linux) wird eine fremde
   `IMG.XMP` nicht gefunden; macOS-APFS ist standardmäßig unempfindlich.
+  Die Ordnererkennung blendet abweichend geschriebene XMP-/NFO-Sidecars
+  deshalb nur aus, wenn der Backend-Pfad dieselbe Datei bezeichnet.
 
 ## Testersatz für RAW
 

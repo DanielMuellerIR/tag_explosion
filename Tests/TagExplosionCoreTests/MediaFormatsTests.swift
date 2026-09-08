@@ -53,23 +53,28 @@ struct MediaFormatsTests {
         #expect(MediaFormats.sidecarURL(for: URL(fileURLWithPath: "/tmp/IMG_1.xmp")).path == "/tmp/IMG_1.xmp")
     }
 
-    @Test("Sidecar eines gelisteten Bildes wird versteckt, eine .xmp ohne Bild bleibt")
-    func sidecarsOfListedImagesAreHidden() throws {
+    @Test("Mitgelesene Sidecars werden versteckt, eigenständige Sidecars bleiben",
+          arguments: [("nef", "xmp"), ("nef", "XMP"), ("mp4", "nfo"), ("mp4", "NFO")])
+    func sidecarsOfListedImagesAreHidden(format: (String, String)) throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("tagx-sidecars-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let raw = root.appendingPathComponent("IMG_1.nef")
-        let rawSidecar = root.appendingPathComponent("IMG_1.xmp")
+        let raw = root.appendingPathComponent("IMG_1").appendingPathExtension(format.0)
+        let rawSidecar = root.appendingPathComponent("IMG_1").appendingPathExtension(format.1)
         let lone = root.appendingPathComponent("notiz.xmp")
         for url in [raw, rawSidecar, lone] {
-            try Data("x".utf8).write(to: url)
+            try Data("<movie/>".utf8).write(to: url)
         }
         let expanded = MediaFormats.expandMediaFiles([root])
-        #expect(expanded == [
-            MediaFormats.canonicalFileURL(raw),
-            MediaFormats.canonicalFileURL(lone),
-        ])
+        // Ausblenden nur, wenn der Backend-Pfad dieselbe Sidecar tatsächlich
+        // findet; auf case-sensitiven Volumes bleibt eine .XMP eigenständig.
+        let backendPath = raw.deletingPathExtension().appendingPathExtension(format.1.lowercased())
+        let isReadByOwner = FileManager.default.fileExists(atPath: backendPath.path)
+        #expect(expanded.contains(MediaFormats.canonicalFileURL(rawSidecar)) == !isReadByOwner)
+        #expect(expanded.contains(MediaFormats.canonicalFileURL(raw)))
+        #expect(expanded.contains(MediaFormats.canonicalFileURL(lone)))
+        #expect(expanded.count == (isReadByOwner ? 2 : 3))
         // Direkt angegeben wird die Sidecar geöffnet (als eigenes Format).
         #expect(MediaFormats.expandMediaFiles([rawSidecar]) == [MediaFormats.canonicalFileURL(rawSidecar)])
     }

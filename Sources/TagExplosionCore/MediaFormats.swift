@@ -226,8 +226,8 @@ public enum MediaFormats {
 
     /// Liefert die Identität, unter der die App dieselbe Datei wiedererkennt.
     /// `standardizedFileURL` räumt `.` und `..` auf, `resolvingSymlinksInPath`
-    /// führt anschließend auch einen Finder-Alias/Unix-Symlink auf sein Ziel
-    /// zurück. So erzeugen zwei Wege zu derselben Datei keinen zweiten Editor.
+    /// führt anschließend einen Unix-Symlink auf sein Ziel zurück. So erzeugen
+    /// zwei Wege zu derselben Datei keinen zweiten Editor.
     public static func canonicalFileURL(_ url: URL) -> URL {
         url.standardizedFileURL.resolvingSymlinksInPath()
     }
@@ -279,21 +279,30 @@ public enum MediaFormats {
     /// Video-Editor zeigt den NFO-Abschnitt. Untertitel bleiben eigene
     /// Einträge (sie teilen sich meist nicht einmal den Namen: `film.de.srt`).
     static func hidingSidecars(of files: [URL]) -> [URL] {
-        var sidecarOwners: Set<URL> = []
-        var nfoOwners: Set<URL> = []
+        // Die Schreibweise einer Endung kann auf dem Volume unerheblich
+        // sein (.XMP neben .nef). Der Index grenzt Kandidaten ein; bei einer
+        // abweichenden Schreibweise entscheidet die echte Dateiidentität.
+        var owners: [String: Set<URL>] = [:]
         for file in files {
             let ext = file.pathExtension.lowercased()
+            let candidate: URL?
             if !isXMPSidecar(file), image.contains(ext) {
-                sidecarOwners.insert(sidecarURL(for: file))
+                candidate = sidecarURL(for: file)
+            } else if nfoVideo.contains(ext) {
+                candidate = file.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension)
+            } else {
+                candidate = nil
             }
-            if nfoVideo.contains(ext) {
-                nfoOwners.insert(file.deletingPathExtension().appendingPathExtension(SidecarTool.nfoExtension))
-            }
+            if let candidate { owners[candidate.path.lowercased(), default: []].insert(candidate) }
         }
-        return files.filter {
-            if isXMPSidecar($0) { return !sidecarOwners.contains($0) }
-            if SidecarTool.isNFO($0) { return !nfoOwners.contains($0) }
-            return true
+        return files.filter { file in
+            guard isXMPSidecar(file) || SidecarTool.isNFO(file),
+                  let candidates = owners[file.path.lowercased()] else { return true }
+            if candidates.contains(file) { return false }
+            guard let stamp = FileStamp.current(of: file) else { return true }
+            return !candidates.contains { candidate in
+                FileStamp.current(of: candidate)?.hasSameFileIdentity(as: stamp) == true
+            }
         }
     }
 }

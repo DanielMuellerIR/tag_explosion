@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.35 — 2026-09-08
+
+- Die Ordnererkennung zeigt mitgelesene `.XMP`- und `.NFO`-Dateien auf
+  Dateisystemen ohne Unterscheidung der Groß-/Kleinschreibung nicht doppelt
+  an. Auf case-sensitiven Volumes bleiben eigenständige Sidecars sichtbar.
+
 ## 0.46.34 — 2026-09-08
 
 - CLI, Archiv und Batch-Regeln gruppieren Tagwerte über eine gemeinsame

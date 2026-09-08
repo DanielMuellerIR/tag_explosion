@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 1666694
+    "tokens_spent": 1950744
   },
   "campaign_history": [
     {
@@ -187,15 +187,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:27:52+02:00",
-        "observed_head": "e2017106d6e490e237925be51bfdc540805d38fe",
-        "content_sha256": "40ff2dc82e980ae00ec71bd3ea447612310ac31127c0d5d76e3835eb8b347711",
+        "completed_at": "2026-09-08T03:12:06+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "content_sha256": "0f2f0d00afd8cc6458ff8358f624e0474a9f5354f92cdd544df11972c588a46e",
         "file_count": 5,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Schema-3/4-Erweiterungen, Dokument-/NFO-Import, Bild-Sidecar-Grenzen, CLI/App-Aufrufer und Testdeltas geprüft. Ziel-Deduplizierung von paarweisen Vergleichen auf Mengen umgestellt, fachfremde NFO-Payloads abgelehnt; Fixture-Ordner-Cleanup ergänzt. Commit 0.46.13.",
+        "outcome": "reviewed-clean",
+        "summary": "TagArchive ersetzt seine private Gruppierungsschleife und drei Aufrufe durch TagProperty.valuesByKey. Reihenfolge und leere Werte bleiben identisch; keine Änderung an Archivzielen oder Schreibschutz. Gegen Commit 09293aa geprüft.",
         "tests": [
-          "40 Archiv-/Exporttests bestanden, 4.488 s, inklusive Symlink/Hardlink/No-op-Konflikten. NFO-Repro vor Fix vier Fehler. Temporäre 10000-Ziele-Messung: 6.377 -> 0.537 s; Benchmarktest anschließend entfernt."
+          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
         ]
       }
     },
@@ -259,15 +259,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:24:30+02:00",
-        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
-        "content_sha256": "1819fdf7b30c38295cdc8a36d6ff9f34e858d0d85bcd602bfa1f93772a7c405b",
+        "completed_at": "2026-09-08T03:12:06+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "content_sha256": "bc37da129393b993bb1e5df921a92054deae8decc4e8ebd27350b1c3c9cd2229",
         "file_count": 21,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Delta des Querschnitts tag-error-paths nachgeprüft: gemeinsame typisierte Pfadzuordnung ersetzt formatlokale Kopien, Fehlerdaten und Originalpfad bleiben erhalten.",
+        "outcome": "reviewed-clean",
+        "summary": "Model.swift erhält nur TagProperty.valuesByKey, eine gemeinsame Gruppierung mit erhaltener Reihenfolge, Duplikaten und Leerwerten. Shim und Schreibwege unverändert. Gegen Commit 09293aa geprüft.",
         "tests": [
-          "swift test: 483 Tests grün; exakter Originalpfad bei ZIP-Schreibfehler geprüft."
+          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
         ]
       }
     },
@@ -386,15 +386,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:04:04+02:00",
-        "observed_head": "96ce7235f707080304427e470640769abe1ecca5",
-        "content_sha256": "36218c3f317fcc812600d0af74bf60b6c70c0b3822247d0bc2aed997e0fb3d96",
+        "completed_at": "2026-09-08T03:12:06+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "content_sha256": "cd38decc7a26726b46742dc27e5eadf3354a891b5edbcad2fe6475168ceb7081",
         "file_count": 8,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "Delta seit 97403e3: FilenamePattern.formatValue prüft Breite 1 bis 9 auch für direkt konstruierte Platzhalter. FilenamePattern-Parser prüfte diesen Bereich bereits; Batch-Regeln nutzen jetzt dasselbe Sicherheitsnetz. Gültige Muster unverändert; Breite 10 und Int.max ohne Auffüllung geprüft. Commit 96ce723.",
+        "summary": "Parse.write verwendet TagProperty.valuesByKey für den Vorher-/Nachher-Vergleich; die private identische Schleife entfällt. Keine Änderung an Feldanwendung oder Umbenennungsplan. Gegen Commit 09293aa geprüft.",
         "tests": [
-          "Core/CLI 491 Tests in 6.723 s; App 117 Tests in 0.487 s"
+          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
         ]
       }
     },
@@ -441,15 +441,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:04:03+02:00",
-        "observed_head": "96ce7235f707080304427e470640769abe1ecca5",
-        "content_sha256": "2a99fa165062003b0aaf57ee58015adb54dd83d664d427f3ddbb9513f36bfffe",
+        "completed_at": "2026-09-08T03:12:07+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "content_sha256": "b6edb699921191dc84764340d9a8ce1f091dbd7e30bce82971638217ed5c9c41",
         "file_count": 7,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Alle sieben Dateien einschließlich Regel-JSON, Listen-/Textsemantik, CLI, App-Formular und Tests geprüft. Nummerierungsüberlauf reproduziert (CLI Signalstatus 5), Bereich jetzt vorab geprüft und Exit 64. Textoperationen einmal pro Regel vorbereitet, zweite Skalar-Ausführung entfernt; 10000 Einträge 1.712 auf 0.950 s, vollständige Änderungspläne bytegleich. App-Vorschau berechnet einmal statt dreimal und unterscheidet gleiche Dateinamen über Pfad. Fehlerhafte Regelübernahmen speichern bestehende Pufferänderungen nicht; gemischter Erfolg getestet. Gemeinsame Platzhalterbreite begrenzt. Vorhandene Core-/CLI-/App-Tests prüfen unterschiedliche Verträge; Benchmark bleibt außerhalb Standardsuite. Commits 869f5d9, cf5e335, 96ce723.",
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "TagRuleFields.values bleibt als kompatible Weiterleitung auf TagProperty.valuesByKey. CLI-Apply und App-Regelplanung verwenden dieselbe Modellfunktion direkt; Listen- und Filtersemantik bleiben unverändert. Gegen Commit 09293aa geprüft.",
         "tests": [
-          "Core/CLI 491 Tests in 6.723 s; App 117 Tests in 0.487 s; erweiterte App-Regelfälle danach 5 Tests in 0.010 s. Nummerierung, Breite und falsche Speicherauswahl jeweils vor Korrektur fehlgeschlagen."
+          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
         ]
       }
     },
@@ -467,15 +467,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:08:50+02:00",
-        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e",
-        "content_sha256": "96effb5a3e1f1ed945ab37426db60cd637ede71b92f7d216a7a3e884500686e9",
+        "completed_at": "2026-09-08T03:12:07+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "content_sha256": "7951406e3f44d08f839191922e532909d5dc47bdf11444c91ed0385cd3a37190",
         "file_count": 3,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Drei aktuelle Dateien gegen 269f0150 plus Set-/Cover-/Show-/Info-Grenzen geprüft. Async-Wurzel und neue Unterbefehle sind passend angebunden. Explizites id3v23 wurde bei identischen Feldern ignoriert, reproduziert und korrigiert; wiederholte v2.3 bleibt No-op. Generischen CLI-Schnappschusstest mit stärkerer Core-Inode-Prüfung konsolidiert, ohne Audio-Fixture. Historischer ReplaceAtomically.swift ist bewusst durch TestFiles aus Test-Support ersetzt, keine offene Datei. Vier Gruppierungsduplikate als Querschnittsthema erfasst. Commit 2c61c25 nicht erneut geprüft; Abschlussstand siehe aktueller HEAD.",
+        "outcome": "reviewed-clean",
+        "summary": "Set ersetzt seine private valueMap-Schleife durch TagProperty.valuesByKey. No-op- und Versionsentscheidungen bleiben unverändert. Budgetdelta seit Root-Basis 1336306: 284050; neue Basis 1620356 (uncached input plus output). Gegen Commit 09293aa geprüft.",
         "tests": [
-          "swift test: 490 Tests, 6.587 s; ID3-No-op-Test vor Korrektur fehlgeschlagen, nachher Versionswechsel und stabiler zweiter Aufruf bestätigt"
+          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
         ]
       }
     },
@@ -488,7 +488,7 @@
       "risk": "high",
       "priority": 9,
       "reason": "Gemeinsame Datei- und Verzeichniserkennung steuert App, CLI und Archive; Fehlklassifikation wirkt breit.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260815T135107310106+0200",
         "completed_at": "2026-08-15T15:17:59+02:00",
@@ -502,6 +502,13 @@
           "swift test --filter MediaFormatsTests|sniffReadsPastLongPreamble|sniffRequiresInvoiceNamespace|mediaFormatsAcceptsOnlyInvoiceXML: 4 Tests in 2 Suites bestanden",
           "Vollständige Theme-Suite: 132 Tests in 13 Suites; App: 27 Tests in 3 Suites"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:12:07+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1172,15 +1179,32 @@
         "Sources/TagExplosionCore/TagArchive.swift"
       ],
       "priority": 8,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T03:05:26+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T03:09:16+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:09:16+02:00",
-        "observed_head": "b02a778d7868b6212043a4989487e3de911d270e"
+        "completed_at": "2026-09-08T03:11:27+02:00",
+        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
+        "summary": "Vier identische Gruppierungen auf TagProperty.valuesByKey in Model.swift reduziert; TagArchive, Set und Parse verwenden sie direkt. TagRuleFields.values bleibt kompatible öffentliche Weiterleitung, CLI-Apply und App-Regelplanung nutzen direkt das Modell. Vorhandene Mehrwert-/Archiv-/CLI-Tests sichern Reihenfolge, Leerwerte und Ergebnislisten. Commit siehe aktueller HEAD.",
+        "tests": [
+          "swift test: 490 Tests in 8.184 s; App swift test: 117 Tests in 0.510 s; keine neuen Implementierungs-Spiegeltests nötig"
+        ]
       }
+    },
+    {
+      "id": "linux-test-executable-busy",
+      "summary": "Linux-Validierung von 09293aa (0.46.34, Swift 6.0, eigener Benutzer, zwei CPU-Kerne) scheitert in MediaInfoCacheTests.demandAndCache mit POSIX 26 Text file busy; 484 Tests mit einem Fehler. Temporäres Fake-Werkzeug wird einmal über Data.write erstellt und danach mehrfach gestartet. Ursache prüfen, nicht durch pauschale Wiederholung verdecken; gleichzeitig feste Test-Wartezeiten prüfen.",
+      "evidence": [
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift",
+        "Sources/TagExplosionCore/ExternalToolRunner.swift",
+        "Tests/Support/ProcessSupport.swift"
+      ],
+      "priority": 9,
+      "state": "pending",
+      "noted_at": "2026-09-08T03:17:36+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }
