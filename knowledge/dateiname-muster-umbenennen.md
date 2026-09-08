@@ -51,14 +51,18 @@ atomaren Austausch (`tagx parse --apply` bzw. normales Speichern in der App).
   (`FileEntry(relocating:to:)`) an derselben Listenposition; Puffer, Original
   und Stempel ziehen mit. `WindowSessions` kennt keine Pfade, Fenstertitel
   und `representedURL` folgen dem Eintrag automatisch.
-- **Namensgebundene Sidecars wandern mit** (`FileRenamer.companionSidecar`,
+- **Namensgebundene Sidecars wandern mit** (`FileRenamer.companionSidecars`,
   seit 0.40.0): `.xmp` bei Bildern, `.lrc` bei Audio, `.nfo` bei Videos —
-  je Eintrag höchstens eine, Sprachsuffix-Sidecars (`film.de.srt`) bewusst
-  nicht (Zuordnung nicht eindeutig). Scheitert das Verschieben der Sidecar,
-  geht das Medium zurück; scheitert AUCH dieser Rückweg, meldet
-  `RenameError.sidecarRollbackFailed` den getrennten Zustand statt ihn per
-  `try?` zu verschlucken. Nach jedem gelungenen Eintrag zieht
+  seit 0.46.28 auch mehrere je Eintrag, etwa NFO und LRC neben einer MP4.
+  Sprachsuffix-Sidecars (`film.de.srt`) bleiben ausgenommen (Zuordnung nicht
+  eindeutig). Alle Ziele werden vorab geprüft. Bei einem Umzugfehler gehen
+  bereits bewegte Dateien in umgekehrter Reihenfolge zurück; schlägt ein
+  Rückweg fehl, laufen die übrigen trotzdem weiter. `sidecarRollbackFailed`
+  nennt die verbliebenen Zielpfade. Ein gescheiterter gemeinsamer XMP-Umzug
+  blockiert auch die abhängige Datei eines RAW-/JPEG-Paars. Nach jedem gelungenen Eintrag zieht
   `BackupJournal.relocate` die Historie nach; ein Journalfehler landet in
-  `Outcome.warning`, die Umbenennung bleibt. Test-Falle: Auf
+  `Outcome.warning`, die Umbenennung bleibt. App und CLI zeigen die Warnung.
+  `additionalSidecars` im Plan und `additionalSidecarTargets` im Ergebnis
+  ergänzen die bisherigen JSON-Felder optional. Test-Falle: Auf
   case-insensitivem APFS gilt `film.nfo` als vorhanden, solange `Film.nfo`
   existiert — Zielnamen in Tests deshalb wirklich anders wählen.

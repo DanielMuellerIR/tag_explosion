@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.29 — 2026-09-08
+
+- Bild-Schnappschüsse prüfen auch den XMP-Lesestand nach dem Werkzeuglauf.
+  Schreiben und Archiv-Probeläufe kontrollieren Bild und Sidecar gemeinsam;
+  auch ohne Feldänderung wird eine nachträglich angelegte Sidecar erkannt.
+- Die Bild-Schreibwege verwenden die gemeinsame Dateizustandsprüfung.
+  CLI-Anzeige und Dateinamen-Import berücksichtigen den Sidecar-Lesestand.
+- ExifTool-Tests laufen mit getrennten Arbeitskopien parallel und entfernen
+  ihre Arbeitsordner; der gezielte Lauf sank lokal von 3,816 auf 0,670 Sekunden.
+
 ## 0.46.28 — 2026-09-08
 
 - Umbenennen berücksichtigt alle namensgebundenen Sidecars, auch NFO und LRC

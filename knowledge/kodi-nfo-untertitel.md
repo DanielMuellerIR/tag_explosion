@@ -51,7 +51,7 @@ Video-Editor.
   über `AppModel.write` mit dem Eintrag gespeichert — nur die NFO, wenn
   `AudioSnapshot.mediaChanged` false ist. Damit greift die
   Schließen-/Beenden-Rückfrage auch für NFO-Eingaben (Review 2026-09-02).
-  Beim Umbenennen des Videos wandert die NFO mit (`FileRenamer.companionSidecar`),
+  Beim Umbenennen des Videos wandert die NFO mit (`FileRenamer.companionSidecars`),
   der Eintrag bekommt den neuen NFO-Pfad über `init(relocating:sidecar:)`.
 - **Prüfung:** `rating`/`userrating` nur als endliche Zahl 0…10, `premiered`
   nur als existierender Kalendertag (`ISODate.isCalendarDay`); ein schon

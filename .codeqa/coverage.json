@@ -409,7 +409,7 @@
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260830T093346620969+0200",
         "completed_at": "2026-08-30T09:35:42+02:00",
@@ -423,6 +423,13 @@
           "swift test: 176 Tests in 14 Suites bestanden; 66 gezielte Archiv-, ExifTool-, Exif-CLI- und Prozessdekodier-Tests grün",
           "swift test --package-path App: 65 Tests in 8 Suites bestanden; App-Bildschreibgrenze kompiliert und Save-Tests grün"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:42:21+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1140,14 +1147,18 @@
         "Sources/tagx/RenameCommands.swift"
       ],
       "priority": 7,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T02:35:00+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T02:35:39+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:35:39+02:00",
-        "observed_head": "0df37295f9fc85e12f409f7ac32dc2173501643c"
+        "completed_at": "2026-09-08T02:42:21+02:00",
+        "observed_head": "2c61c25237b998e0c85381d33d7880e11da7acb8",
+        "summary": "Reproduziert: MP4 ließ LRC liegen und übersah dessen Zielkonflikt; RAW-Fehler ließ JPEG ohne XMP umbenennen. Plan/JSON unterstützen weitere Sidecars bei erhaltenen bisherigen Feldern. Vorprüfung aller Ziele, Rückwege umgekehrt und auch nach Rückwegfehlern fortgesetzt; erfolgreiche gemeinsame Sidecar-Pfade an beide App-Einträge gemeldet. App/CLI zeigen Journalwarnungen und zusätzliche Pfade. Commit 2c61c25.",
+        "tests": [
+          "Core/CLI: 487 Tests in 6.499 s; App: 117 Tests in 0.490 s. Neue Fehlerproben vorher fünf Probleme; Prüfung verlorener zweiter Sidecar, JSON-Plan, aller Journalpfade und zweier deterministischer Rückwegfälle."
+        ]
       }
     }
   ]

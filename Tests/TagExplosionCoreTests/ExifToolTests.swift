@@ -4,12 +4,13 @@ import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
-@Suite("ExifTool", .serialized)
+@Suite("ExifTool")
 struct ExifToolTests {
 
     @Test("Kernfelder schreiben und lesen (JPEG)")
     func coreFieldsRoundtripJPEG(  ) throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: url)
         var edited = original
         edited.title = "Sonnenuntergang über Köln"
@@ -47,6 +48,7 @@ struct ExifToolTests {
         ]
         for invalid in invalidValues {
             let url = try Fixtures.workingCopy("cover.jpg")
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
             let original = try ExifTool.readCoreFields(url: url)
             let bytesBefore = try Data(contentsOf: url)
             var changed = original
@@ -88,6 +90,7 @@ struct ExifToolTests {
     @Test("Archiv-Read-back scheitert vor dem atomaren Austausch")
     func archivedNormalizationLeavesOriginalUntouched() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: url)
         let bytesBefore = try Data(contentsOf: url)
         let stampBefore = try #require(FileStamp.current(of: url))
@@ -110,6 +113,7 @@ struct ExifToolTests {
     @Test("Feld löschen (leerer Wert)")
     func deleteField() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let empty = ImageCoreFields()
         var withTitle = empty
         withTitle.title = "Wegwerftitel"
@@ -127,6 +131,7 @@ struct ExifToolTests {
     @Test("Alle Gruppen lesen enthält EXIF/XMP nach dem Schreiben")
     func readAllGroups() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: url)
         var edited = original
         edited.title = "Gruppentest"
@@ -143,7 +148,9 @@ struct ExifToolTests {
     @Test("Roh-Text-Tags mehrerer Dateien in einem Aufruf (Kopier-Quellen)")
     func readRawStringTags() throws {
         let jpg = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: jpg.deletingLastPathComponent()) }
         let png = try Fixtures.workingCopy("cover.png")
+        defer { try? FileManager.default.removeItem(at: png.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: jpg)
         var edited = original
         edited.description = "Quelle fürs Umkopieren"
@@ -166,6 +173,7 @@ struct ExifToolTests {
         // finden; sonst bliebe `exif set --copy` über Verknüpfungen wirkungslos
         // und meldete "No changes".
         let jpg = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: jpg.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: jpg)
         var edited = original
         edited.description = "Über eine Verknüpfung gelesen"
@@ -182,6 +190,7 @@ struct ExifToolTests {
     @Test("PNG: XMP-Kernfelder funktionieren")
     func pngRoundtrip() throws {
         let url = try Fixtures.workingCopy("cover.png")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let original = try ExifTool.readCoreFields(url: url)
         var edited = original
         edited.title = "PNG-Titel"
@@ -195,7 +204,9 @@ struct ExifToolTests {
     @Test("Ersetzung zwischen exiftool-Read und Stempelprüfung wird erkannt")
     func replacementDuringSnapshotReadIsRejected() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let replacement = try Fixtures.workingCopy("cover.png")
+        defer { try? FileManager.default.removeItem(at: replacement.deletingLastPathComponent()) }
         let replacementBytes = try Data(contentsOf: replacement)
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
@@ -235,14 +246,17 @@ struct ExifToolTests {
     @Test("Schreibziel: RAW, nicht schreibbare Formate und vorhandene Sidecar erzwingen die Sidecar")
     func writeDestinationRules() throws {
         let raw = try rawWorkingCopy(extension: "nef")
+        defer { try? FileManager.default.removeItem(at: raw.deletingLastPathComponent()) }
         let rawTarget = ExifTool.writeDestination(for: raw, preferSidecar: false)
         #expect(rawTarget.reason == .rawFormat)
         #expect(rawTarget.url == raw.deletingPathExtension().appendingPathExtension("xmp"))
 
         let bmp = try Fixtures.workingCopy("cover.bmp")
+        defer { try? FileManager.default.removeItem(at: bmp.deletingLastPathComponent()) }
         #expect(ExifTool.writeDestination(for: bmp, preferSidecar: false).reason == .formatNotWritable)
 
         let jpg = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: jpg.deletingLastPathComponent()) }
         #expect(ExifTool.writeDestination(for: jpg, preferSidecar: false).reason == .original)
         #expect(ExifTool.writeDestination(for: jpg, preferSidecar: true).reason == .setting)
         try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8)
@@ -257,6 +271,7 @@ struct ExifToolTests {
     @Test("RAW: Schreiben legt die Sidecar an und lässt die RAW-Datei byteweise unverändert")
     func rawWritesGoToSidecar() throws {
         let raw = try rawWorkingCopy(extension: "nef")
+        defer { try? FileManager.default.removeItem(at: raw.deletingLastPathComponent()) }
         let rawBytes = try Data(contentsOf: raw)
         let sidecar = MediaFormats.sidecarURL(for: raw)
         let snapshot = try ExifTool.readCoreFieldsSnapshot(url: raw)
@@ -305,6 +320,7 @@ struct ExifToolTests {
     @Test("Sidecar-Werte überlagern eingebettete Werte feldweise")
     func sidecarOverlaysEmbeddedValuesPerField() throws {
         let jpg = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: jpg.deletingLastPathComponent()) }
         let empty = try ExifTool.readCoreFields(url: jpg)
         var embedded = empty
         embedded.description = "eingebettet"
@@ -341,6 +357,7 @@ struct ExifToolTests {
     @Test(".xmp alleine: lesen und bearbeiten wie ein Bild ohne Pixel")
     func standaloneXMPRoundtrip() throws {
         let dir = try Fixtures.workingCopy("cover.jpg").deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: dir) }
         let xmp = dir.appendingPathComponent("notiz.xmp")
         // Eine leere XMP-Datei, wie sie ein anderes Programm hinterlassen
         // haben könnte; geöffnet wird immer eine vorhandene Datei.
@@ -372,6 +389,7 @@ struct ExifToolTests {
     @Test("Fremd angelegte oder veränderte Sidecar gilt als Konflikt")
     func foreignSidecarChangesAreConflicts() throws {
         let raw = try rawWorkingCopy(extension: "arw")
+        defer { try? FileManager.default.removeItem(at: raw.deletingLastPathComponent()) }
         let sidecar = MediaFormats.sidecarURL(for: raw)
         let snapshot = try ExifTool.readCoreFieldsSnapshot(url: raw)
         var edited = snapshot.value.fields
@@ -397,11 +415,61 @@ struct ExifToolTests {
         }
     }
 
+    @Test("Bild-Schnappschuss erkennt Sidecar-Änderungen am Ende des Lesens", arguments: [false, true])
+    func snapshotChecksSidecarAtCompletion(existing: Bool) throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let sidecar = MediaFormats.sidecarURL(for: url)
+        let bytes = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8)
+        if existing { try bytes.write(to: sidecar) }
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            _ = try ExifTool.readCoreFieldsSnapshot(url: url, afterRead: {
+                try (bytes + Data(" ".utf8)).write(to: sidecar)
+            })
+        }
+    }
+
+    @Test("Bild-No-op erkennt eine nach dem Lesen angelegte Sidecar")
+    func noOpChecksAbsentSidecar() throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
+        let destination = ExifTool.writeDestination(for: url, preferSidecar: false)
+        let sidecar = MediaFormats.sidecarURL(for: url)
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8).write(to: sidecar)
+        #expect(throws: TagError.fileChangedOnDisk(path: sidecar.path)) {
+            try ExifTool.writeCoreFields(url: url, fields: snapshot.value.fields,
+                original: snapshot.value.fields, expecting: snapshot.stamp,
+                to: destination, sidecar: snapshot.value.sidecar)
+        }
+    }
+
+    @Test("Sidecar-Schreiben prüft auch das Bild unmittelbar vor dem Austausch")
+    func sidecarCommitChecksOriginalImage() throws {
+        let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let replacement = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: replacement.deletingLastPathComponent()) }
+        let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
+        var edited = snapshot.value.fields
+        edited.title = "Neu"
+        let destination = ExifTool.writeDestination(for: url, preferSidecar: true)
+        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
+            try ExifTool.writeArchivedCoreFields(url: url, fields: edited,
+                original: snapshot.value.fields, expecting: snapshot.stamp,
+                to: destination, sidecar: snapshot.value.sidecar, dryRun: false,
+                beforeReplace: { try TestFiles.replaceAtomically(url, with: replacement) })
+        }
+        #expect(!FileManager.default.fileExists(atPath: destination.url.path))
+    }
+
     @Test("Exif-No-op bestätigt keinen inzwischen ersetzten Pfad")
     func exifNoopRejectsStaleSnapshot() throws {
         let url = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let snapshot = try ExifTool.readCoreFieldsSnapshot(url: url)
         let replacement = try Fixtures.workingCopy("cover.jpg")
+        defer { try? FileManager.default.removeItem(at: replacement.deletingLastPathComponent()) }
         try TestFiles.replaceAtomically(url, with: replacement)
 
         #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {

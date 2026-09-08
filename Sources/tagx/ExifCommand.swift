@@ -54,6 +54,7 @@ struct ExifShow: ParsableCommand {
             return Reading(core: core, groups: groups)
         }
         try snapshot.requireCurrent(at: url)
+        try snapshot.value.core.requireUnchangedSidecar(for: url)
         let reading = snapshot.value.core
         let core = reading.fields
         let groups = snapshot.value.groups
@@ -178,6 +179,7 @@ struct ExifSet: ParsableCommand {
             // beschreiben; der zweite exiftool-Aufruf darf nicht unbemerkt auf
             // eine zwischenzeitlich ersetzte Datei wechseln.
             try snapshot.requireCurrent(at: url)
+            try snapshot.value.requireUnchangedSidecar(for: url)
             for assignment in copy {
                 guard let eq = assignment.firstIndex(of: "=") else {
                     throw ValidationError("Invalid copy assignment (expected TARGET=Group:Tag): \(assignment)")
@@ -210,10 +212,12 @@ struct ExifSet: ParsableCommand {
         }
         guard fields != original else {
             try snapshot.requireCurrent(at: url)
+            try snapshot.value.requireUnchangedSidecar(for: url)
             print("No changes")
             return
         }
         try snapshot.requireCurrent(at: url)
+        try snapshot.value.requireUnchangedSidecar(for: url)
         // Gesichert wird die Datei, die sich wirklich ändert: bei einem
         // Sidecar-Ziel die .xmp (eine noch fehlende Sidecar überspringt die
         // Sicherung — es gibt nichts zu sichern), sonst das Bild.

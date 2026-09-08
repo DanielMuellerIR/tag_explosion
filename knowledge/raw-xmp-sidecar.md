@@ -53,3 +53,17 @@ Keine echten RAW-Dateien im Repo. NEF/ARW/DNG sind TIFF-Container: Das
 exiftool als `FileType: NEF` erkannt und ist für Sidecar-Tests ausreichend.
 `exiftool -listwf` liefert die Schreibfähigkeit der installierten Version;
 `imageWritabilityMatchesExifTool` hält `imageEmbeddedReadOnly` dagegen.
+
+## Gemeinsamer Lesestand (2026-09-08)
+
+Bild und Sidecar gehören zu einem Lesestand, auch wenn nur die Sidecar
+beschrieben wird. `readCoreFieldsSnapshot` prüft deshalb nach dem Lesen beide
+Dateien. `ImageCoreReading.requireUnchangedSidecar` verwendet `FileState`
+und erkennt auch eine nachträglich angelegte Sidecar. Der Schreibkern prüft
+beide Dateien vor der Arbeit, nach der Validierung und unmittelbar vor dem
+Austausch; der Archiv-Probelauf endet ebenfalls nach der Prüfung.
+
+Die ExifTool-Tests benutzen ausschließlich eigene Arbeitskopien und entfernen
+deren Ordner. Sie benötigen keine serielle Suite: Der gezielte Lauf mit
+20 Tests sank lokal von 3,816 auf 0,670 Sekunden (2026-09-08); die konkreten
+Werkzeugaufrufe und Prüfungen der geschriebenen Dateien bleiben erhalten.

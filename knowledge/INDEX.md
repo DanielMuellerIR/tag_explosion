@@ -47,7 +47,7 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Dateinamen-Dialogen: warum Umbenennen ohne Papierkorb-Sicherung läuft,
   Alles-oder-nichts-Plan, Groß-/Kleinschreibung auf APFS, `%{` in
   lokalisierten Texten, neuer `FileEntry` nach dem Umbenennen, mitwandernde
-  Sidecars (xmp/lrc/nfo, `companionSidecar`) samt Rollback-Ehrlichkeit und
+  Sidecars (xmp/lrc/nfo, `companionSidecars`) samt Rollback-Ehrlichkeit und
   Journal-Nachzug.
 - [dokument-container-metadaten.md](dokument-container-metadaten.md) — Bei
   Arbeit an DocumentTool, ZipContainer, `tagx doc` oder dem Dokument-Editor:

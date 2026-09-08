@@ -291,9 +291,11 @@ struct Parse: ParsableCommand {
             }
             guard fields != original else {
                 try snapshot.requireCurrent(at: url)
+                try snapshot.value.requireUnchangedSidecar(for: url)
                 return 0
             }
             try snapshot.requireCurrent(at: url)
+            try snapshot.value.requireUnchangedSidecar(for: url)
             // Kamera-RAW, bmp/svg und eine vorhandene Sidecar schreiben in die
             // XMP-Sidecar; gesichert wird dann diese (siehe `tagx exif set`).
             let destination = ExifTool.writeDestination(for: url, preferSidecar: false)

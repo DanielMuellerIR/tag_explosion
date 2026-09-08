@@ -104,6 +104,12 @@ public struct ImageCoreReading: Sendable, Equatable {
         self.sidecar = sidecar
         self.sidecarFields = sidecarFields
     }
+
+    /// Auch eine beim Lesen fehlende Sidecar gehört zum Lesestand des Bildes.
+    public func requireUnchangedSidecar(for imageURL: URL) throws {
+        guard !MediaFormats.isXMPSidecar(imageURL) else { return }
+        try sidecar.requireUnchanged(at: MediaFormats.sidecarURL(for: imageURL))
+    }
 }
 
 /// Wohin ein Schreibvorgang geht: in die Bilddatei selbst oder in die
@@ -247,6 +253,7 @@ public enum ExifTool {
             return ImageCoreReading(fields: embedded.fields)
         }
         let sidecar = try readCoreFieldsWithPresence(url: sidecarURL)
+        try FileStamp.requireUnchanged(sidecarStamp, at: sidecarURL)
         var merged = embedded.fields
         for key in sidecar.present {
             merged.assign(key, from: sidecar.fields)
@@ -321,6 +328,7 @@ public enum ExifTool {
         try FileSnapshot.capture(at: url, expecting: stamp) {
             let reading = try readCoreReading(url: url)
             try afterRead()
+            try reading.requireUnchangedSidecar(for: url)
             return reading
         }
     }
@@ -549,21 +557,22 @@ public enum ExifTool {
             }
         }
 
-        guard !args.isEmpty else {
-            // Auch ein No-op ist eine Aussage über den gelesenen Stand — für
-            // Bild UND Sidecar.
+        // Bild und Sidecar bilden gemeinsam den Lesestand, auch wenn nur
+        // eine der beiden Dateien geschrieben wird oder gar nichts zu tun ist.
+        let requireCurrentReading = {
             try FileStamp.requireUnchanged(stamp, at: url)
-            if case .present(let sidecarStamp) = sidecar, destination.isSidecar {
-                try FileStamp.requireUnchanged(sidecarStamp, at: destination.url)
+            if !MediaFormats.isXMPSidecar(url) {
+                try sidecar.requireUnchanged(at: MediaFormats.sidecarURL(for: url))
             }
-            return
         }
+        try requireCurrentReading()
+        guard !args.isEmpty else { return }
 
         let exe = try locateExecutable()
-        // Früh prüfen spart Kopie und Werkzeuglauf, wenn die Datei ohnehin
-        // schon fremd verändert ist. Die verbindliche Prüfung macht der
-        // atomare Rahmen unten direkt vor dem Austausch.
-        try FileStamp.requireUnchanged(stamp, at: url)
+        let beforeCommit = {
+            try beforeReplace()
+            try requireCurrentReading()
+        }
 
         // exiftool auf der Temp-Kopie; die Temp-Datei einer neuen Sidecar
         // legt exiftool selbst an (eine fehlende .xmp entsteht beim Schreiben).
@@ -596,12 +605,14 @@ public enum ExifTool {
                     throw TagError.saveFailed(path: url.path)
                 }
             }
+            // Auch ein Archiv-Probelauf endet erst nach Prüfung beider Quelldateien.
+            try requireCurrentReading()
         }
 
         guard destination.isSidecar else {
             try AtomicFileRewrite.run(
                 url: url, expecting: stamp, replacingOriginal: replacingOriginal,
-                beforeReplace: beforeReplace, mutate: mutate, validate: validate)
+                beforeReplace: beforeCommit, mutate: mutate, validate: validate)
             return
         }
 
@@ -611,28 +622,20 @@ public enum ExifTool {
         // eine inzwischen fremd angelegte oder gelöschte Sidecar ist ein
         // Konflikt, kein stilles Überschreiben.
         let sidecarURL = destination.url
-        let sidecarExists = FileManager.default.fileExists(atPath: sidecarURL.path)
+        let sidecarStamp: FileStamp?
         switch sidecar {
-        case .present(let sidecarStamp):
-            guard sidecarExists else { throw TagError.fileChangedOnDisk(path: sidecarURL.path) }
+        case .present(let known): sidecarStamp = known
+        case .absent: sidecarStamp = nil
+        case .unknown: sidecarStamp = FileStamp.current(of: sidecarURL)
+        }
+        if let sidecarStamp {
             try AtomicFileRewrite.run(
                 url: sidecarURL, expecting: sidecarStamp, replacingOriginal: replacingOriginal,
-                beforeReplace: beforeReplace, mutate: mutate, validate: validate)
-        case .absent:
-            guard !sidecarExists else { throw TagError.fileChangedOnDisk(path: sidecarURL.path) }
+                beforeReplace: beforeCommit, mutate: mutate, validate: validate)
+        } else {
             try AtomicFileRewrite.create(
                 url: sidecarURL, replacingOriginal: replacingOriginal,
-                beforeReplace: beforeReplace, mutate: mutate, validate: validate)
-        case .unknown:
-            if sidecarExists {
-                try AtomicFileRewrite.run(
-                    url: sidecarURL, expecting: nil, replacingOriginal: replacingOriginal,
-                    beforeReplace: beforeReplace, mutate: mutate, validate: validate)
-            } else {
-                try AtomicFileRewrite.create(
-                    url: sidecarURL, replacingOriginal: replacingOriginal,
-                    beforeReplace: beforeReplace, mutate: mutate, validate: validate)
-            }
+                beforeReplace: beforeCommit, mutate: mutate, validate: validate)
         }
     }
 

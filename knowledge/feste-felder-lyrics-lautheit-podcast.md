@@ -61,7 +61,7 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
   zweiphasig (Sidecar-Stempel und -Sicherung VOR dem Container, Austausch
   danach), damit nie Containerfelder übernommen sind, während die Lyrics an
   einem Sicherungsfehler scheitern. Beim Umbenennen nimmt
-  `FileRenamer.companionSidecar` die `.lrc` mit.
+  `FileRenamer.companionSidecars` die `.lrc` mit.
 - CLI-Vorrang (`loadSyncedLyrics` in `LyricsCommand.swift`): eingebettete
   SYLT-Zeilen zuerst, sonst die Sidecar — auch bei MP3, denn `lyrics set
   --sidecar` legt sie dort bewusst an. Neben vorhandenem SYLT wird
