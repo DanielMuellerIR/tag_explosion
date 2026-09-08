@@ -401,9 +401,11 @@ public enum KodiNFOFile {
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
             try mutate(url: temp, originalPath: url.path, fields: fields, original: original)
         } validate: { temp in
-            let readBack = try read(url: temp)
-            guard !readBack.isURLOnly, readBack.fields == fields else {
-                throw TagError.saveFailed(path: url.path)
+            try TagError.withOriginalPath(url) {
+                let readBack = try read(url: temp)
+                guard !readBack.isURLOnly, readBack.fields == fields else {
+                    throw TagError.saveFailed(path: url.path)
+                }
             }
         }
     }
@@ -563,6 +565,10 @@ enum NFOWriter {
         let pad = String(repeating: style.indent, count: depth)
         let name = element.name ?? ""
         out += pad + "<" + name
+        // Namensraumdeklarationen gehören bei Foundation nicht zu attributes.
+        for namespace in element.namespaces ?? [] {
+            out += " " + namespace.xmlString
+        }
         for attribute in element.attributes ?? [] {
             out += " \(attribute.name ?? "")=\"\(escapeAttribute(attribute.stringValue ?? ""))\""
         }
@@ -613,6 +619,8 @@ enum NFOWriter {
                     }
                 case .comment:
                     out += "<!--\(child.stringValue ?? "")-->"
+                case .processingInstruction:
+                    out += child.xmlString
                 default:
                     let raw = child.xmlString
                     if raw.hasPrefix("<![CDATA[") {

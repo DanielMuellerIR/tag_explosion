@@ -89,3 +89,11 @@ Video-Editor.
   Kopfzeile bis zur ersten Leerzeile. Ein leerer Wert entfernt Titel bzw.
   Zeile; eine neue Language-Zeile entsteht am Ende des Kopfblocks. SRT hat
   keinen Kopf: Titel/Sprache werden mit `unsupportedDocumentField` abgelehnt.
+
+
+`NFOWriter` schreibt Namensraumdeklarationen ausdrücklich mit: Foundation
+führt sie getrennt von normalen Attributen. XML-Verarbeitungsanweisungen
+bleiben auch in reinen Text- oder gemischten Elementen erhalten, statt nur
+ihren Inhalt als Text auszugeben. Drei Roundtrip-Varianten reproduzierten
+vor der Korrektur zwei Inhaltsverluste und einen fehlgeschlagenen Schreibweg.
+Rücklesefehler nennen den Originalpfad statt der temporären Geschwisterkopie.

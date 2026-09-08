@@ -168,6 +168,24 @@ struct SidecarTests {
         #expect(FileStamp.current(of: url) == stamp)
     }
 
+    @Test("NFO erhält fremde Namensräume und XML-Verarbeitungsanweisungen", arguments: [
+        "    <custom><?keep data?></custom>",
+        "    <custom>before<?keep data?>after</custom>",
+        "    <x:custom xmlns:x=\"urn:x\" x:id=\"1\">Text</x:custom>"
+    ])
+    func nfoForeignXML(foreign: String) throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let text = "<movie>\n    <title>A</title>\n" + foreign + "\n</movie>\n"
+        let url = try writeFile("foreign.nfo", text, in: dir)
+        let original = try KodiNFOFile.read(url: url).fields
+        var edited = original
+        edited.title = "B"
+        try KodiNFOFile.write(url: url, fields: edited, original: original)
+        #expect(try String(contentsOf: url, encoding: .utf8) == text.replacingOccurrences(
+            of: "<title>A</title>", with: "<title>B</title>"))
+    }
+
     @Test("NFO: CRLF, zwei Leerzeichen, selbstschließende Elemente und Episoden-aired bleiben erhalten")
     func nfoStyleDetection() throws {
         let dir = try makeDir()

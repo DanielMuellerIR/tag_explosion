@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.44 — 2026-09-08
+
+- NFO-Dateien behalten eigene XML-Namensräume und Verarbeitungsanweisungen
+  beim Bearbeiten. Dadurch bleiben fremde Inhalte erhalten, und zusätzliche
+  Namensräume lassen den Schreibweg nicht mehr scheitern.
+
 ## 0.46.43 — 2026-09-08
 
 - Untertitel verschieben nur die Zeiten echter Cue-Zeilen. Zeitangaben im
