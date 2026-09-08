@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.67 — 2026-09-08
+
+- Die Bibliotheksprüfung trennt Album- und Interpretenwerte auch bei
+  enthaltenen Trennzeichen. Gleiche Anzeigenamen erhalten eindeutige Zusätze,
+  damit ihre Befunde getrennt bleiben.
+- Unlesbare Dateien stehen auch in der Dateiliste des JSON-Berichts;
+  Regelfilter erhalten diese Liste vollständig.
+
 ## 0.46.66 — 2026-09-08
 
 - Track- und Disc-Lücken werden aus vorhandenen Nummern ermittelt. Große

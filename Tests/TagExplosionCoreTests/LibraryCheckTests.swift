@@ -51,6 +51,26 @@ struct LibraryCheckTests {
         #expect(report.plainText().contains("No findings in 3 file(s)"))
     }
 
+    @Test("Trennzeichen in Album und Interpret vermischen keine Gruppen")
+    func groupingSeparators() {
+        let items = [audio("a.mp3", ["ALBUM": "A|B", "ALBUMARTIST": "C", "TRACKNUMBER": "1/1"]),
+                     audio("b.mp3", ["ALBUM": "A", "ALBUMARTIST": "B|C", "TRACKNUMBER": "1/1"])]
+        let report = LibraryCheck.run(items)
+        #expect(report.groups.count == 2)
+        #expect(!codes(report).contains(.trackDuplicate))
+    }
+
+    @Test("Gleiche Anzeigenamen behalten getrennte Befunde")
+    func distinctGroupsWithSameLabel() {
+        let items = [audio("a.mp3", ["ALBUM": "A — B", "TRACKNUMBER": "1/1"]),
+                     audio("b.mp3", ["ALBUM": "A", "ALBUMARTIST": "B", "TRACKNUMBER": "1/1"])]
+        let report = LibraryCheck.run(items)
+        #expect(Set(report.groups.map(\.label)).count == 2)
+        for group in report.groups {
+            #expect(report.findings(in: group.label).allSatisfy { Set($0.files).isSubset(of: Set(group.files)) })
+        }
+    }
+
     @Test("Tracknummern: Lücke, Dublette, fehlende Gesamtzahl, Track > Gesamt, fehlende Nummer")
     func trackNumberRules() {
         var items = cleanAlbum()
@@ -269,6 +289,12 @@ struct LibraryCheckTests {
         #expect(codes(report) == [.unreadable])
         #expect(report.checkedFiles == 4)
         #expect(report.findings.first?.message == "Cannot read file")
+        #expect(report.files.count == 4)
+        #expect(report.files.last?.codes == [.unreadable])
+        let filtered = report.filtered(to: [.emptyTitle])
+        #expect(filtered.files.count == 4)
+        #expect(filtered.files.last?.file == "/lib/album/broken.mp3")
+        #expect(filtered.files.last?.codes.isEmpty == true)
     }
 
     @Test("Filter auf Regeln und JSON-Roundtrip des Berichts")

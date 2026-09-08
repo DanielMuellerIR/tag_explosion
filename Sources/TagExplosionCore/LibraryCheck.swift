@@ -310,10 +310,11 @@ public enum LibraryCheck {
         /// Bericht auf bestimmte Regeln eingeschränkt (`--only`).
         public func filtered(to codes: Set<RuleCode>) -> Report {
             Report(checkedFiles: checkedFiles, groups: groups,
-                   findings: findings.filter { codes.contains($0.code) })
+                   findings: findings.filter { codes.contains($0.code) },
+                   ungroupedFiles: files.filter { $0.group.isEmpty }.map(\.file))
         }
 
-        init(checkedFiles: Int, groups: [Group], findings: [Finding]) {
+        init(checkedFiles: Int, groups: [Group], findings: [Finding], ungroupedFiles: [String] = []) {
             self.checkedFiles = checkedFiles
             self.groups = groups
             self.findings = findings
@@ -339,7 +340,7 @@ public enum LibraryCheck {
             }
             self.files = groups.flatMap { group in
                 group.files.map { FileResult(file: $0, group: group.label, codes: codesByFile[$0] ?? []) }
-            }
+            } + ungroupedFiles.map { FileResult(file: $0, group: "", codes: codesByFile[$0] ?? []) }
         }
 
         /// Klartext für Terminal und Zwischenablage: Befunde je Gruppe, dann
@@ -391,7 +392,8 @@ public enum LibraryCheck {
 
         // Unlesbare Dateien: je eine Warnung, sonst keine Prüfung.
         let readable = items.filter { $0.readError == nil }
-        for item in items where item.readError != nil {
+        let unreadable = items.filter { $0.readError != nil }
+        for item in unreadable {
             findings.append(Finding(code: .unreadable, group: "", message: item.readError ?? "",
                                     files: [item.url]))
         }
@@ -415,7 +417,8 @@ public enum LibraryCheck {
         }
         findings.append(contentsOf: checkDuplicateTitles(readable.filter { $0.kind == .audio }))
 
-        return Report(checkedFiles: items.count, groups: groups, findings: findings)
+        return Report(checkedFiles: items.count, groups: groups, findings: findings,
+                      ungroupedFiles: unreadable.map(\.url.path))
     }
 
     // MARK: Gruppierung
@@ -446,27 +449,40 @@ public enum LibraryCheck {
     }
 
     static func makeGroups(_ items: [Item]) -> [ItemGroup] {
-        var keys: [String] = []
-        var members: [String: [Item]] = [:]
+        enum GroupKey: Hashable {
+            case album(title: String, artist: String)
+            case folder(String)
+        }
+        var keys: [GroupKey] = []
+        var members: [GroupKey: [Item]] = [:]
         for item in items {
-            let key: String
+            let key: GroupKey
             if item.kind == .audio, !item.value("ALBUM").isEmpty {
-                key = "album|" + normalized(item.value("ALBUM")) + "|" + normalized(item.value("ALBUMARTIST"))
+                key = .album(title: normalized(item.value("ALBUM")), artist: normalized(item.value("ALBUMARTIST")))
             } else {
-                key = "folder|" + item.url.deletingLastPathComponent().path
+                key = .folder(item.url.deletingLastPathComponent().path)
             }
             if members[key] == nil { keys.append(key) }
             members[key, default: []].append(item)
         }
+        var labels: Set<String> = []
         return keys.map { key in
             let group = members[key] ?? []
-            let label: String
-            if key.hasPrefix("album|") {
+            let preferredLabel: String
+            if case .album = key {
                 let album = mostCommon(group.map { $0.value("ALBUM") })
                 let artists = group.map { $0.value("ALBUMARTIST") }.filter { !$0.isEmpty }
-                label = artists.isEmpty ? album : "\(album) — \(mostCommon(artists))"
+                preferredLabel = artists.isEmpty ? album : "\(album) — \(mostCommon(artists))"
             } else {
-                label = group.first?.url.deletingLastPathComponent().path ?? ""
+                preferredLabel = group.first?.url.deletingLastPathComponent().path ?? ""
+            }
+            // Der Bericht verwendet das Label auch als Gruppenzuordnung.
+            // Verschiedene Gruppen mit gleichem Text brauchen eindeutige Labels.
+            var label = preferredLabel
+            var suffix = 2
+            while !labels.insert(label).inserted {
+                label = "\(preferredLabel) (\(suffix))"
+                suffix += 1
             }
             return ItemGroup(label: label, items: group)
         }
