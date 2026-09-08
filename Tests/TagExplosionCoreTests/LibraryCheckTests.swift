@@ -76,6 +76,21 @@ struct LibraryCheckTests {
         #expect(report.summary.first { $0.code == .trackDuplicate }?.files == 2)
     }
 
+    @Test("Große Track- und Disc-Lücken ergeben begrenzte Berichte", arguments: [1_000_000, Int.max])
+    func largeNumberGaps(highest: Int) {
+        let items = (1...2).map { index in
+            audio("\(index).mp3", ["TITLE": "Track \(index)", "ALBUM": "A", "ARTIST": "Duo",
+                                   "TRACKNUMBER": "\(index)/\(highest)", "DISCNUMBER": "1/\(highest)"])
+        }
+        let report = LibraryCheck.run(items)
+        for code in [LibraryCheck.RuleCode.trackGap, .discGap] {
+            let finding = report.findings.first { $0.code == code }
+            #expect(finding != nil)
+            #expect((finding?.message.count ?? 0) < 100)
+            #expect(finding?.message == "missing \(code == .trackGap ? 3 : 2)–\(highest)")
+        }
+    }
+
     @Test("Tracknummern: getrennte TRACKTOTAL-Felder (Vorbis) zählen als Gesamtzahl")
     func separateTotalFields() {
         var items = cleanAlbum()

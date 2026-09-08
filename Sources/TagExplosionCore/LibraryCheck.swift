@@ -653,11 +653,10 @@ public enum LibraryCheck {
             }
             let highest = max(onDisc.map(\.number).max() ?? 0, onDisc.compactMap(\.total).max() ?? 0)
             guard highest > 0 else { continue }
-            let gaps = (1...highest).filter { seen[$0] == nil }
-            if !gaps.isEmpty {
+            if let gaps = missingNumbers(Set(seen.keys), through: highest) {
                 findings.append(Finding(
                     code: .trackGap, group: group,
-                    message: prefix + "missing " + gaps.map(String.init).joined(separator: ", "),
+                    message: prefix + "missing " + gaps,
                     files: onDisc.map(\.item.url)))
             }
         }
@@ -698,15 +697,37 @@ public enum LibraryCheck {
         let present = Set(parsed.map(\.number))
         let highest = max(present.max() ?? 0, parsed.compactMap(\.total).max() ?? 0)
         if highest > 0 {
-            let gaps = (1...highest).filter { !present.contains($0) }
-            if !gaps.isEmpty {
+            if let gaps = missingNumbers(present, through: highest) {
                 findings.append(Finding(
                     code: .discGap, group: group,
-                    message: "missing " + gaps.map(String.init).joined(separator: ", "),
+                    message: "missing " + gaps,
                     files: parsed.map(\.url)))
             }
         }
         return findings
+    }
+
+    /// Aufwand nach vorhandenen Nummern, nicht nach einem möglicherweise
+    /// falschen Gesamtwert. Kleine Lücken bleiben einzeln lesbar; große
+    /// erscheinen als Bereich statt als Millionen Zahlen im Bericht.
+    private static func missingNumbers(_ present: Set<Int>, through highest: Int) -> String? {
+        guard highest > 0 else { return nil }
+        var parts: [String] = []
+        func appendGap(_ start: Int, _ end: Int) {
+            if end - start < 20 {
+                parts.append(contentsOf: (start...end).map(String.init))
+            } else {
+                parts.append("\(start)–\(end)")
+            }
+        }
+        var next = 1
+        for number in present.filter({ $0 > 0 && $0 <= highest }).sorted() {
+            if next < number { appendGap(next, number - 1) }
+            if number == highest { return parts.isEmpty ? nil : parts.joined(separator: ", ") }
+            next = number + 1
+        }
+        if next <= highest { appendGap(next, highest) }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     // MARK: Dateinamen

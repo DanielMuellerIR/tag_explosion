@@ -799,26 +799,19 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T05:39:08+02:00",
-        "observed_head": "e249f9ffe4cd40b42b82cdf399f6522c6aacdb17",
-        "content_sha256": "958088ce2af165a5e557622c5fbda09718cb420b7482fce5a82c0bcc658b1b67",
+        "completed_at": "2026-09-08T05:46:49+02:00",
+        "observed_head": "2260e138a46db7bd1a6f9fc04f495225e4a18096",
+        "content_sha256": "2e5f6532dcc37cd8d6e5ff3b5cd8041edf03a2d3fe3aa67b3adb6a87f6f25954",
         "file_count": 24,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Drei während des Reviews ergänzte Dateien für Textentwurf und Editor-Bindings nachgebucht; bereits implementiert, vollständig gelesen und im App-Gesamtlauf verifiziert.",
+        "outcome": "improved",
+        "summary": "Export-Querschnitt in drei Panels und gemeinsamem AppModel-Aufruf nachgebucht. Zusätzlich Cover-Endung anhand echter Bildbytes statt möglicher falscher MIME-Angabe; Fehleranzeige headless geprüft.",
         "tests": [
-          "128 App-Tests in 0,409 s bestanden."
+          "129 App-Tests in 0,564 s; nach Endungskorrektur vier CoverDrop-/Exporttests in 0,003 s; PNG als JPEG zuvor reproduziert."
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:45:26+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -835,7 +828,14 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Dateigruppierung, Track-Vergleich und wiederholte Berechnungen in der Konsistenzprüfung.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:46:49+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "developer-tools",
