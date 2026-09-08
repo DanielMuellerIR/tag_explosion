@@ -224,9 +224,8 @@ public struct LookupFileInfo: Sendable, Equatable {
             guard let first = nonEmpty.first, nonEmpty.allSatisfy({ $0 == first }) else { return "" }
             return first
         }
-        let artist = common(files.map(\.albumArtist)).isEmpty
-            ? common(files.map(\.artist))
-            : common(files.map(\.albumArtist))
+        let albumArtist = common(files.map(\.albumArtist))
+        let artist = albumArtist.isEmpty ? common(files.map(\.artist)) : albumArtist
         let query = LookupQuery(
             artist: artist,
             album: common(files.map(\.album)),

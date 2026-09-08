@@ -52,11 +52,17 @@ public enum TrackMatcher {
             remaining.remove(at: hits[0])
         }
 
+        if result.allSatisfy({ $0 != nil }) { return result.map { $0! } }
+
         // Runde 2: Dauer ±3 s plus Titelähnlichkeit; sonst nur Titel.
+        // Normalisierung und Zeichenlisten einmal je Titel statt je Dateipaar.
+        var candidates = remaining.map { (track: $0, title: PreparedTitle($0.title)) }
         for (index, file) in files.enumerated() where result[index] == nil {
+            let title = PreparedTitle(file.title)
             var best: (index: Int, score: Double, reason: LookupAssignment.Reason)?
-            for (i, track) in remaining.enumerated() {
-                let similarity = titleSimilarity(file.title, track.title)
+            for (i, prepared) in candidates.enumerated() {
+                let track = prepared.track
+                let similarity = titleSimilarity(title, prepared.title)
                 let durationMatches: Bool
                 if let fileDuration = file.durationMilliseconds, let trackDuration = track.durationMilliseconds {
                     let (difference, overflow) = fileDuration.subtractingReportingOverflow(trackDuration)
@@ -77,8 +83,8 @@ public enum TrackMatcher {
                 }
             }
             if let best {
-                result[index] = LookupAssignment(fileURL: file.url, track: remaining[best.index], reason: best.reason)
-                remaining.remove(at: best.index)
+                result[index] = LookupAssignment(fileURL: file.url, track: candidates[best.index].track, reason: best.reason)
+                candidates.remove(at: best.index)
             } else {
                 result[index] = LookupAssignment(fileURL: file.url, track: nil, reason: .none)
             }
@@ -93,15 +99,29 @@ public enum TrackMatcher {
     /// Wertung mit Abschlag: „Nachtlied (Remaster)" passt so zu „Nachtlied",
     /// ein wörtlich gleicher Titel gewinnt aber weiterhin den Vergleich.
     public static func titleSimilarity(_ a: String, _ b: String) -> Double {
-        let exact = ratio(normalized(a), normalized(b))
-        let stripped = ratio(normalized(stripParentheticals(a)), normalized(stripParentheticals(b)))
-        return max(exact, stripped * 0.9)
+        titleSimilarity(PreparedTitle(a), PreparedTitle(b))
     }
 
-    private static func ratio(_ left: String, _ right: String) -> Double {
+    private struct PreparedTitle {
+        let full: [Character]
+        let stripped: [Character]
+
+        init(_ text: String) {
+            full = Array(normalized(text))
+            stripped = Array(normalized(stripParentheticals(text)))
+        }
+    }
+
+    private static func titleSimilarity(_ a: PreparedTitle, _ b: PreparedTitle) -> Double {
+        let exact = ratio(a.full, b.full)
+        if exact == 1 { return 1 }
+        return max(exact, ratio(a.stripped, b.stripped) * 0.9)
+    }
+
+    private static func ratio(_ left: [Character], _ right: [Character]) -> Double {
         if left.isEmpty || right.isEmpty { return left == right ? 1 : 0 }
         if left == right { return 1 }
-        let distance = levenshtein(Array(left), Array(right))
+        let distance = levenshtein(left, right)
         let longest = max(left.count, right.count)
         return 1.0 - Double(distance) / Double(longest)
     }

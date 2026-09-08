@@ -88,3 +88,11 @@ Coveroption; die Suche und ihre Folgeabfragen teilen eine Serviceinstanz.
 Der erste Treffer wird ausschließlich über diesen Auswahl-Task geladen.
 Vier Headless-Tests steuern die Antwortreihenfolge über Fortsetzungen statt
 über Wartezeiten; echte Dienste und Schlüsselbund bleiben unberührt.
+
+## Zuordnungsaufwand
+
+`TrackMatcher.assign` bereitet normalisierte Titel samt Variante ohne
+Klammerzusätze erst nach der Nummernzuordnung vor. Die verbleibenden Vergleiche
+verwenden dieselben Zeichenlisten. Messung im optimierten Swift-Build mit
+300 Dateien und 300 umgekehrt geordneten Kandidaten: 300 → 73 ms,
+Zuordnungen einschließlich Grund und Trackdaten bytegleich.

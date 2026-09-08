@@ -5,7 +5,7 @@ import Foundation
 import TagExplosionTestSupport
 import Testing
 
-@Suite("tagx lookup", .serialized)
+@Suite("tagx lookup")
 struct LookupCommandTests {
 
     @Test("Ohne TAGX_ONLINE: Exit 1 mit Hinweis, auch bei nicht existierender Datei")
