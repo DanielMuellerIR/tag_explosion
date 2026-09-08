@@ -5,7 +5,7 @@ import Foundation
 import TagExplosionTestSupport
 import Testing
 
-@Suite("tagx playlist/cue CLI", .serialized)
+@Suite("tagx playlist/cue CLI")
 struct PlaylistCommandTests {
 
     @Test("show --json, set, export und cue apply",

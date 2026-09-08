@@ -6,7 +6,7 @@ import Foundation
 import Testing
 @testable import TagExplosionCore
 
-@Suite("PlaylistTool", .serialized)
+@Suite("PlaylistTool")
 struct PlaylistTests {
 
     /// Frisches Temp-Verzeichnis mit einer Textdatei darin.
@@ -556,6 +556,20 @@ struct PlaylistTests {
         try write("FILE \"01.mp3\" MP3\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n  TRACK 02 AUDIO\n    INDEX 01 00:01:00\n", to: image)
         #expect(throws: CueApply.ApplyError.sharedFile(mp3.standardizedFileURL.path, tracks: [1, 2])) {
             try CueApply.plan(cueURL: image)
+        }
+        // Zwei Namen derselben Datei sind weiterhin ein gemeinsames Image.
+        for kind in ["symlink", "hardlink"] {
+            let alias = dir.appendingPathComponent(kind + ".mp3")
+            if kind == "symlink" {
+                try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: mp3)
+            } else {
+                try FileManager.default.linkItem(at: mp3, to: alias)
+            }
+            try write("FILE \"01.mp3\" MP3\nTRACK 01 AUDIO\nINDEX 01 00:00:00\n"
+                + "FILE \"\(alias.lastPathComponent)\" MP3\nTRACK 02 AUDIO\nINDEX 01 00:01:00\n", to: image)
+            #expect(throws: CueApply.ApplyError.sharedFile(mp3.standardizedFileURL.path, tracks: [1, 2])) {
+                try CueApply.plan(cueURL: image)
+            }
         }
         // Fehlende Datei: Fehler mit Pfad.
         let missing = dir.appendingPathComponent("missing.cue")

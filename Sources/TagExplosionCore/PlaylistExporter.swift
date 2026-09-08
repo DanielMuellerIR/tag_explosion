@@ -204,8 +204,12 @@ public enum PlaylistExporter {
         }
         if FileManager.default.fileExists(atPath: playlist.path) {
             guard overwrite else { throw ExportError.outputExists(playlist.path) }
+            guard let stamp = FileStamp.current(of: playlist) else {
+                throw TagError.cannotOpen(path: playlist.path)
+            }
             try TrashBackup.shared.backUp(playlist, reason: BackupReason.playlist)
-            try AtomicFileRewrite.run(url: playlist, mutate: mutate, validate: validate)
+            // Der Stand vor der Sicherung bleibt bis zum Austausch verbindlich.
+            try AtomicFileRewrite.run(url: playlist, expecting: stamp, mutate: mutate, validate: validate)
         } else {
             do {
                 try AtomicFileRewrite.create(url: playlist, replacingOriginal: true, beforeReplace: {},

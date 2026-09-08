@@ -77,6 +77,12 @@ sagt „document format" — bewusst wiederverwendet statt eines neuen Falls).
 
 ## `cue apply` nur bei einer Datei je Track
 
+Die Gruppierung prüft Geräte- und Inode-Nummer, ersatzweise den aufgelösten
+Pfad. Symlinks und Hardlinks auf dieselbe Audiodatei zählen daher als ein
+Image; zwei Track-Schreibaufträge darauf werden bereits beim Planen
+abgelehnt. Der bestehende Cue-Apply-Test prüft beide Verknüpfungsarten.
+
+
 Ein Cue-Sheet über EIN Image (typisch: `album.flac` mit vielen Tracks) müsste
 die Datei zerschneiden; das tut Tag Explosion nicht. `CueApply.plan` lehnt
 geteilte Dateien mit Tracknummern ab (`sharedFile`), fehlende Dateien mit
@@ -126,3 +132,8 @@ werden. Textformate können Zeilenumbrüche, echte Rückschrägstriche und
 solche Pfade vor jeder Sicherung oder Mutation ab; XSPF kodiert sie als URI.
 Die Regressionen prüfen vorhandene Zieldateien auf unveränderte Bytes und
 lesen alle darstellbaren Dateinamen wieder auf ihre Originalpfade zurück.
+
+Beim Überschreiben eines Playlist-Exports wird der Dateistempel vor der
+Papierkorb-Sicherung aufgenommen und an `AtomicFileRewrite` weitergereicht.
+Eine fremde Änderung während der Sicherung wird so nicht zum neuen,
+ungesehenen Ausgangsstand des atomaren Schreibens.

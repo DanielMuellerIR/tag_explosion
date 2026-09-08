@@ -74,14 +74,28 @@ public enum CueApply {
         let contents = try PlaylistTool.read(url: cueURL)
         guard contents.format == .cue else { throw TagError.cannotOpen(path: cueURL.path) }
         guard !contents.entries.isEmpty else { throw ApplyError.noTracks(cueURL.path) }
-        var owners: [String: [Int]] = [:]
+        enum Identity: Hashable {
+            case file(device: UInt64, inode: UInt64)
+            case path(String)
+        }
+        var owners: [Identity: (path: String, tracks: [Int])] = [:]
         for entry in contents.entries {
             guard let path = entry.resolvedPath else { throw ApplyError.trackWithoutFile(entry.number) }
             guard entry.exists else { throw ApplyError.missingFile(path) }
-            owners[path, default: []].append(entry.number)
+            let url = MediaFormats.canonicalFileURL(URL(fileURLWithPath: path))
+            let stamp = FileStamp.current(of: url)
+            let identity: Identity
+            if let device = stamp?.device, let inode = stamp?.inode {
+                identity = .file(device: device, inode: inode)
+            } else {
+                identity = .path(url.path)
+            }
+            // Symlinks und Hardlinks dürfen dieselbe Audiodatei nicht für
+            // mehrere Tracks zur vermeintlich getrennten Schreibdatei machen.
+            owners[identity, default: (url.path, [])].tracks.append(entry.number)
         }
-        for (path, tracks) in owners.sorted(by: { $0.key < $1.key }) where tracks.count > 1 {
-            throw ApplyError.sharedFile(path, tracks: tracks)
+        for owner in owners.values.sorted(by: { $0.path < $1.path }) where owner.tracks.count > 1 {
+            throw ApplyError.sharedFile(owner.path, tracks: owner.tracks)
         }
         var items: [Item] = []
         for entry in contents.entries {

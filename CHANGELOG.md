@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.40 — 2026-09-08
+
+- `cue apply` erkennt Symlinks und Hardlinks auf dieselbe Audiodatei als
+  gemeinsames Image und lehnt mehrere Track-Schreibaufträge darauf ab.
+- Playlist-Exporte prüfen beim Überschreiben auch den Dateistand vor der
+  Sicherung. Die voneinander unabhängigen Playlist-Tests laufen parallel.
+
 ## 0.46.39 — 2026-09-08
 
 - Playlist-Verweise erhalten Prozentzeichen, Raute und Doppelpunkt in
