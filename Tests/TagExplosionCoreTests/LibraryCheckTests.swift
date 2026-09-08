@@ -244,6 +244,10 @@ struct LibraryCheckTests {
         #expect(duplicates.first?.files == ["/lib/one/a.mp3", "/lib/two/b.mp3"])
         #expect(duplicates.first?.group == "")
         #expect(report.plainText().contains("== Across all files"))
+        var extremes = Array(items.prefix(2))
+        extremes[0].durationMilliseconds = Int.min
+        extremes[1].durationMilliseconds = Int.max
+        #expect(!codes(LibraryCheck.run(extremes)).contains(.duplicateTitle))
     }
 
     @Test("Dateinamen-Muster: nur mit Muster, Abweichung nennt den erwarteten Namen")
@@ -364,7 +368,7 @@ struct LibraryCheckTests {
 /// Lauf über echte Dateien: Fixture-Kopien bekommen gezielt Tags über den
 /// regulären Schreibweg; geprüft wird über `Item.load` (Leseweg samt
 /// Cover-Größe aus den Bilddaten).
-@Suite("LibraryCheck auf Fixtures", .serialized)
+@Suite("LibraryCheck auf Fixtures")
 struct LibraryCheckFixtureTests {
 
     private func makeAlbum() throws -> URL {

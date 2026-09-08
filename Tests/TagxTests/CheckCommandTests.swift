@@ -5,7 +5,7 @@ import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
 
-@Suite("tagx check", .serialized)
+@Suite("tagx check")
 struct CheckCommandTests {
 
     private func makeDirectory(_ label: String) throws -> URL {
@@ -21,10 +21,15 @@ struct CheckCommandTests {
         let second = directory.appendingPathComponent("drei.mp3")
         try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: first)
         try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: second)
-        let common = ["ARTIST=Duo", "ALBUM=Album", "ALBUMARTIST=Duo", "DATE=2020"]
-        #expect(try runTagx(arguments: ["set", first.path, "--no-backup", "-t", "TITLE=Eins", "TRACKNUMBER=1/3"] + common).status == 0)
-        #expect(try runTagx(arguments: ["set", second.path, "--no-backup", "-t", "TITLE=Drei", "TRACKNUMBER=3/3"] + common).status == 0)
-        #expect(try runTagx(arguments: ["cover", "set", "--no-backup", first.path, TagxFixtures.trackedCover.path]).status == 0)
+        let common = [TagProperty(key: "ARTIST", value: "Duo"), TagProperty(key: "ALBUM", value: "Album"),
+                      TagProperty(key: "ALBUMARTIST", value: "Duo"), TagProperty(key: "DATE", value: "2020")]
+        let cover = try Data(contentsOf: TagxFixtures.trackedCover)
+        try TagFile.write(properties: common + [TagProperty(key: "TITLE", value: "Eins"),
+                                               TagProperty(key: "TRACKNUMBER", value: "1/3")],
+                          artworks: [Artwork(data: cover, pictureType: "Front Cover")], to: first)
+        try TagFile.write(properties: common + [TagProperty(key: "TITLE", value: "Drei"),
+                                               TagProperty(key: "TRACKNUMBER", value: "3/3")],
+                          artworks: [], to: second)
         return (first, second)
     }
 

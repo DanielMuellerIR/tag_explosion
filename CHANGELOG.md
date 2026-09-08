@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.68 — 2026-09-08
+
+- Die Dublettenprüfung berechnet Dauerdifferenzen ohne Ganzzahlüberlauf.
+- Berichtstests erzeugen ihre Dateien direkt über den Core; neun zusätzliche
+  CLI-Aufrufe entfallen. Unabhängige Berichts- und Fixture-Tests laufen parallel.
+
 ## 0.46.67 — 2026-09-08
 
 - Die Bibliotheksprüfung trennt Album- und Interpretenwerte auch bei

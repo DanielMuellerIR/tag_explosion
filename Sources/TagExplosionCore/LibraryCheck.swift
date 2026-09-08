@@ -795,7 +795,8 @@ public enum LibraryCheck {
             }
             for item in candidates.dropFirst() {
                 let previous = cluster.last?.durationMilliseconds ?? 0
-                if abs((item.durationMilliseconds ?? 0) - previous) <= duplicateDurationTolerance {
+                let (difference, overflow) = (item.durationMilliseconds ?? 0).subtractingReportingOverflow(previous)
+                if !overflow, difference <= duplicateDurationTolerance {
                     cluster.append(item)
                 } else {
                     flush()
