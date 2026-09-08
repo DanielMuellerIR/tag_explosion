@@ -87,6 +87,22 @@ struct ApplyCommandTests {
         #expect(FileStamp.current(of: second) == stamp)
     }
 
+    @Test("Überlauf der Nummerierung meldet Exit 64 vor jeder Dateiänderung",
+          .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt"))
+    func numberingOverflowIsUsageError() throws {
+        let directory = try makeDirectory("number-overflow")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let files = ["a.mp3", "b.mp3"].map { directory.appendingPathComponent($0) }
+        for file in files { try FileManager.default.copyItem(at: try TagxFixtures.url("sample.mp3"), to: file) }
+        let original = try Data(contentsOf: files[0])
+        let rules = directory.appendingPathComponent("rules.json")
+        try TagRulesIO.save(TagRuleDocument(rules: [TagRule(action: .number, start: Int.max)]), to: rules)
+        let result = try runTagx(arguments: ["apply", rules.path, "--apply", "--no-backup"] + files.map(\.path))
+        #expect(result.status == 64)
+        #expect(result.stderr.contains("Rule 1"))
+        for file in files { #expect(try Data(contentsOf: file) == original) }
+    }
+
     @Test("Ungültige Regeldatei: Exit 64 mit Regelnummer und Zeile, nichts wird gelesen oder geschrieben",
           .enabled(if: TagxFixtures.isAvailable, "Audio-Fixture fehlt (ffmpeg?)"))
     func invalidRulesExit64() throws {

@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 1361481
+    "tokens_spent": 1666694
   },
   "campaign_history": [
     {
@@ -386,15 +386,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:35:39+02:00",
-        "observed_head": "0df37295f9fc85e12f409f7ac32dc2173501643c",
-        "content_sha256": "ba3fa259479065f1ceeda55fd507d5549b74dcc573d6293efd72b97f89bb0312",
+        "completed_at": "2026-09-08T02:49:34+02:00",
+        "observed_head": "97403e3db61a524f68000c551cbf031bdb6accf8",
+        "content_sha256": "00dc3900659e5522e89192aec83911348c8c26d8eb31eaebfaae6515096e0319",
         "file_count": 8,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Alle acht Dateien einschließlich CLI-Schreibpfaden, App-Vorschau und Tests geprüft. Musterübernahme für vier Feldmodelle bei Fehlern atomar; Punkt-Leerzeichen-Präfix korrigiert. Zwei bestehende/ergänzte Tests zeigten zuvor fünf Fehler. Mehrfach-Sidecars und abhängige Umbenennungen als Querschnittsthema erfasst; Warnungsanzeige dort mitprüfen. Bestehende CLI- und App-Tests schützen unterschiedliche Grenzen und bleiben.",
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Seit 2c61c25 nur zwei Sidecar-Lesestandsprüfungen im Bildzweig von Parse.write: vor No-op und vor Sicherung. Mit ImageCoreReading und anschließendem Core-Schreibschutz geprüft; keine weiteren Änderungen an Plan/App oder Tests. Commit 97403e3.",
         "tests": [
-          "swift test: 484 Tests, 6.667 s; App swift test: 115 Tests, 0.501 s; Commit 0df3729"
+          "swift test: 490 Tests, 6.623 s; App 117 Tests, 0.473 s aus dem Bild-Schritt"
         ]
       }
     },
@@ -409,27 +409,19 @@
       "risk": "high",
       "priority": 7,
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260830T093346620969+0200",
-        "completed_at": "2026-08-30T09:35:42+02:00",
-        "observed_head": "269f0150afcb5851f5e2e0a3f6f2555d91e5ad87",
-        "content_sha256": "a322f2eb5aeaacba675a790e1ffc4d3a626964991a93524d7a7427e1e6ba868e",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T02:49:34+02:00",
+        "observed_head": "97403e3db61a524f68000c551cbf031bdb6accf8",
+        "content_sha256": "fa014f45d2b6302dbbcbc2ab38aa5568d6f558786f0bbd5bb2678d8bf34500db",
         "file_count": 4,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Der Bild-Backend-Writer teilt Argumentbildung und Temp-Datei-Validierung zwischen normalem Schreiben und Archiv-Restore; der Archivpfad kann dieselbe geprüfte Kopie verwerfen oder atomar einsetzen. Exif-JSON nimmt den expliziten JSON-Dekodierer, und die CLI-Rating-Regression hängt nicht mehr an Audio-Fixtures.",
+        "summary": "Vier Dateien gegen 269f0150 plus Core-/CLI-Aufrufgrenzen geprüft. Fünf reproduzierte Probleme bei Sidecar-Lesestand und spätem Bildwechsel behoben; gemeinsame FileState-Prüfung ersetzt doppelte Anlegen-/Ersetzen-Zweige. ExifTool-Tests sind unabhängig: Serialisierung entfernt und Arbeitskopien bereinigt, gezielt 3.816 auf 0.670 s. Dateinamen-CLI-No-op am Bildzweig ebenfalls abgesichert. Commit 97403e3. Budgetdelta aus uncached input plus output des Root-Transkripts; neuer kumulierter Root-Basiswert 1336306, vorher 1031093.",
         "tests": [
-          "swift test: 176 Tests in 14 Suites bestanden; 66 gezielte Archiv-, ExifTool-, Exif-CLI- und Prozessdekodier-Tests grün",
-          "swift test --package-path App: 65 Tests in 8 Suites bestanden; App-Bildschreibgrenze kompiliert und Save-Tests grün"
+          "swift test: 490 Tests, 6.623 s; App swift test: 117 Tests, 0.473 s; gezielte ExifTool-Fehlerproben vor Korrektur fünf Probleme, danach 20 Tests bestanden"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T02:42:21+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -446,7 +438,14 @@
       "risk": "high",
       "priority": 8,
       "reason": "Regelplanung und Werteprüfung vor Batch-Mutation; Änderbarkeit von Regeltypen und Eingaben.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:49:34+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "cli-tag-commands",

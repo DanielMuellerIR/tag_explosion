@@ -744,13 +744,20 @@ public enum TagRuleEngine {
     public static func plan(_ document: TagRuleDocument, inputs: [TagRuleInput]) throws -> [TagRulePlan] {
         try document.validate()
         var working = inputs.map(\.values)
-        for rule in document.rules {
+        for (ruleIndex, rule) in document.rules.enumerated() {
             // Betroffene Dateien: Medienart und Bedingung auf dem AKTUELLEN
             // Stand — eine frühere Regel kann die Bedingung erst erfüllen.
             let affected = inputs.indices.filter { index in
                 applies(rule, to: inputs[index], fields: working[index].mapValues { $0.first ?? "" })
             }
             if rule.action == .number {
+                // Der gesamte Bereich muss darstellbar sein, bevor die erste
+                // Nummer entsteht. Ein einzelnes Int.max bleibt zulässig.
+                let (_, overflow) = (rule.start ?? 1).addingReportingOverflow(max(0, affected.count - 1))
+                guard !overflow else {
+                    throw TagRulesError.invalidRule(index: ruleIndex, line: nil,
+                        reason: "numbering exceeds the supported integer range")
+                }
                 var flat = working.map { $0.mapValues { $0.first ?? "" } }
                 number(rule, inputs: inputs, indices: affected, fields: &flat)
                 for index in affected { working[index][rule.field] = [flat[index][rule.field] ?? ""] }

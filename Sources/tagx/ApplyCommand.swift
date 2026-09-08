@@ -52,6 +52,11 @@ struct Apply: ParsableCommand {
         var items: [Item]
     }
 
+    private static func rejectRules(_ error: TagRulesError) throws -> Never {
+        FileHandle.standardError.write(Data("Error: \(error.localizedDescription)\n".utf8))
+        throw usageExitCode
+    }
+
     func run() throws {
         if example {
             print(TagRulesIO.exampleJSON)
@@ -68,8 +73,7 @@ struct Apply: ParsableCommand {
         } catch let error as TagRulesError {
             // Bewusst kein ValidationError: Der hängt die Befehlshilfe an,
             // die bei einer kaputten Regeldatei nicht weiterhilft.
-            FileHandle.standardError.write(Data("Error: \(error.localizedDescription)\n".utf8))
-            throw usageExitCode
+            try Self.rejectRules(error)
         }
 
         // Dateien einsammeln: explizit genannte Dateien müssen taggbar sein;
@@ -113,7 +117,12 @@ struct Apply: ParsableCommand {
                                   error: readErrors[url.path]))
             }
         }
-        let plans = try TagRuleEngine.plan(document, inputs: inputs)
+        let plans: [TagRulePlan]
+        do {
+            plans = try TagRuleEngine.plan(document, inputs: inputs)
+        } catch let error as TagRulesError {
+            try Self.rejectRules(error)
+        }
         items += plans.map { Item(file: $0.url.path, kind: $0.kind, changes: $0.changes, changed: nil, error: nil) }
         // Bericht in der Reihenfolge der Eingabe, nicht „Fehler zuerst".
         let order = Dictionary(uniqueKeysWithValues: files.enumerated().map { ($1.path, $0) })

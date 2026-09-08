@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.30 — 2026-09-08
+
+- Batch-Nummerierung prüft den gesamten Zahlenbereich vor der Planung.
+  Ein Überlauf beendet die CLI mit Exit 64 und Regelnummer, statt beim
+  zweiten Eintrag abzustürzen. Ein einzelner maximaler Integer bleibt gültig.
+
 ## 0.46.29 — 2026-09-08
 
 - Bild-Schnappschüsse prüfen auch den XMP-Lesestand nach dem Werkzeuglauf.

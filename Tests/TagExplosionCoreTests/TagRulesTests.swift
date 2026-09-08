@@ -193,6 +193,12 @@ struct TagRulesTests {
             doc(TagRule(action: .number, start: 5, width: 2)), inputs: inputs)
         #expect(padded.map { $0.changes[0].new } == ["07", "06", "05"])
         #expect(padded[0].changes[0].field == "TRACKNUMBER")
+        let maximum = try TagRuleEngine.plan(doc(TagRule(action: .number, start: Int.max)),
+                                             inputs: Array(inputs.prefix(1)))
+        #expect(maximum[0].changes[0].new == String(Int.max))
+        #expect(throws: TagRulesError.self) {
+            try TagRuleEngine.plan(doc(TagRule(action: .number, start: Int.max)), inputs: inputs)
+        }
     }
 
     @Test("number: nach Feld zahlenbewusst, Filter nimmt nur passende Dateien")
