@@ -348,9 +348,10 @@ public enum LibraryCheck {
         /// Regelnamen; Voreinstellung sind die englischen.
         public func plainText(ruleTitle: (RuleCode) -> String = { $0.title }) -> String {
             var lines: [String] = []
-            let crossGroup = findings.filter { $0.group.isEmpty }
+            let byGroup = Dictionary(grouping: findings, by: \.group)
+            let crossGroup = byGroup[""] ?? []
             for group in groups {
-                let groupFindings = findings(in: group.label)
+                let groupFindings = byGroup[group.label] ?? []
                 guard !groupFindings.isEmpty else { continue }
                 lines.append("== \(group.label) (\(group.files.count) file(s))")
                 for finding in groupFindings {

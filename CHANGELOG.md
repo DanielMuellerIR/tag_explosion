@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.69 — 2026-09-08
+
+- Textbericht und App gruppieren Bibliotheksbefunde einmal, statt sie je
+  Gruppe erneut zu durchsuchen. Die Ausgabe für 3.000 Gruppen sinkt bei
+  bytegleichem Text von 1,69 s auf 24 ms.
+
 ## 0.46.68 — 2026-09-08
 
 - Die Dublettenprüfung berechnet Dauerdifferenzen ohne Ganzzahlüberlauf.

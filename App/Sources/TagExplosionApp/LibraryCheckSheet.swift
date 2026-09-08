@@ -114,8 +114,9 @@ struct LibraryCheckSheet: View {
 
     private var sections: [Section] {
         guard let report else { return [] }
+        let byGroup = Dictionary(grouping: report.findings, by: \.group)
         var result: [Section] = report.groups.compactMap { group in
-            let findings = report.findings(in: group.label)
+            let findings = byGroup[group.label] ?? []
             guard !findings.isEmpty else { return nil }
             // Ordnergruppen tragen den vollen Pfad; sichtbar reicht der Name.
             let title = group.label.hasPrefix("/")
@@ -123,7 +124,7 @@ struct LibraryCheckSheet: View {
                 : group.label
             return Section(id: group.label, title: title, fileCount: group.files.count, findings: findings)
         }
-        let acrossAll = report.findings(in: "")
+        let acrossAll = byGroup[""] ?? []
         if !acrossAll.isEmpty {
             result.append(Section(id: "", title: String(localized: "Über alle Dateien"),
                                   fileCount: report.checkedFiles, findings: acrossAll))

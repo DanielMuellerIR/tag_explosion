@@ -116,3 +116,6 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Titel-Splitting, Matcher-Schwellen, Keychain statt UserDefaults.
 
 - [backup-journal-format.md](backup-journal-format.md) — unbekannte Journal-Versionen erhalten, Defekte getrennt aufbewahren, Restore-Zielstempel.
+
+- [bibliothekspruefung.md](bibliothekspruefung.md) — Bei Konsistenzprüfung,
+  Berichtsgruppierung, Track-/Disc-Lücken und `tagx check`.
