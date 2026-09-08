@@ -209,3 +209,9 @@ natürlichem Ende nachgewiesen, ohne eine knappe Scheduler-Frist vorauszusetzen.
 Der vollständige zweite Lauf bestand 495 Tests in 31,633 Sekunden, Exit 0;
 beide Container wurden automatisch entfernt. macOS: 501 Core-Tests in 6,243 s,
 119 App-Tests in 0,536 s.
+
+Die Bereitschaftsabfrage der beiden verbleibenden Abbruchtests ist gemeinsam:
+Erst eine lesbare PID bestätigt, dass das Skript seine Signalbehandlung
+installiert hat. Beim unbegrenzt laufenden Werkzeug wird ebenfalls die
+verschwundene PID geprüft; die zweite knappe Grenze von zwei Sekunden
+entfällt. Fünf MediaInfo-Cache-/Abbruchtests bestanden lokal in 0,354 s.

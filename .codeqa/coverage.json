@@ -688,26 +688,19 @@
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260829T191121837920+0200",
-        "completed_at": "2026-08-29T19:36:56+02:00",
-        "observed_head": "8b5c7b83ed51476444e459c31de6e53fb97930ad",
-        "content_sha256": "87351c28a3662dce81691df35137ab1cc3d33412cb5a4461b05db30dce9d114e",
-        "file_count": 13,
-        "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Delta und Grenzen von XML-/PDF-Erkennung, Profilauflösung, CII-/UBL-Mapping, XMP- und Anhangsauswahl, Ressourcenbudgets sowie ausschließlich lesender CLI-/App-Darstellung geprüft. Die neue adaptive Feldspalte passt zum bestehenden Anzeigemodell; keine weitere kleine Änderung nötig.",
-        "tests": [
-          "swift test --filter EInvoiceTests|InvoiceCommandTests: 31 Tests in 2 Suites bestanden; swift test --package-path App --filter InvoiceFieldLayoutTests: 3 Tests bestanden"
-        ]
-      },
-      "active_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T04:47:55+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T05:03:57+02:00",
+        "observed_head": "102c076c8b651b8e7e7246071d1acbc9b88bbbe8",
+        "content_sha256": "c19d1372de2194c6a4fa88181fde6a36058b1edede8785de3feb81412fb660f2",
+        "file_count": 15,
+        "review": "delta-plus-boundaries",
+        "outcome": "improved",
+        "summary": "Neue Order-Mappings, Dokumentarten, Summenvalidierung, Modelle, UI/CLI und Tests samt Parser-/PDF-Grenzen geprüft. Vollständige Dezimalprüfung, fehlend/unlesbar getrennt, unbekannte Order-URNs nicht geraten; Bestellkopf ohne BT-Nummern. JSON-Struktur statt Formatierung im CLI-Test, unabhängige Suite parallel. Kein Schematron-Umbau.",
+        "tests": [
+          "Vorher elf Issues für Betragsfälle, zwei für unbekannte Profile; danach 501 Core-Tests auf macOS, 119 App-Tests; 495 Linux-Tests in 31,633 s bestanden."
+        ]
       }
     },
     {
@@ -1306,9 +1299,15 @@
         "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
       ],
       "priority": 11,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T04:59:02+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T05:03:57+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:03:57+02:00",
+        "observed_head": "102c076c8b651b8e7e7246071d1acbc9b88bbbe8"
+      }
     }
   ]
 }

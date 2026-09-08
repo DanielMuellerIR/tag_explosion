@@ -165,13 +165,7 @@ struct MediaInfoCacheTests {
         let task = Task.detached {
             try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], cancellation: cancellation)
         }
-        var child: Int32?
-        for _ in 0..<2000 {
-            child = (try? String(contentsOf: ready, encoding: .utf8)).flatMap(Int32.init)
-            if child != nil { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        let pid = try #require(child)
+        let pid = try await waitForPID(at: ready)
         let start = Date()
         cancellation.cancel()
         do { _ = try await task.value; Issue.record("Abbruch blieb wirkungslos") }
@@ -200,24 +194,35 @@ struct MediaInfoCacheTests {
         while True: time.sleep(0.1)
         """.utf8).write(to: script)
         let cancellation = ExternalToolRunner.Cancellation()
+        defer { cancellation.cancel() }
         let task = Task.detached {
             try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 5, cancellation: cancellation)
         }
-        for _ in 0..<2000 {
-            if FileManager.default.fileExists(atPath: ready.path) { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        #expect(FileManager.default.fileExists(atPath: ready.path))
-        let start = Date()
+        let pid = try await waitForPID(at: ready)
         cancellation.cancel()
         do { _ = try await task.value; Issue.record("Abbruch blieb wirkungslos") }
         catch is CancellationError {}
         catch { Issue.record("Falscher Fehler: \(error)") }
-        #expect(Date().timeIntervalSince(start) < 2)
+        // Der Hilfsprozess läuft unbegrenzt. Seine PID muss nach dem Abbruch
+        // verschwunden sein; eine knappe Scheduler-Frist beweist das nicht.
+        #expect(kill(pid, 0) == -1)
         // Ein vor dem Start abgebrochener Auftrag darf keinen Prozess erzeugen.
         do {
             _ = try ExternalToolRunner.run("/usr/bin/false", [], cancellation: cancellation)
             Issue.record("Prozess trotz Abbruch gestartet")
         } catch is CancellationError {}
     }
+
+    /// Erst abbrechen, wenn Signalbehandlung und Ausgabe der PID abgeschlossen sind.
+    private func waitForPID(at url: URL) async throws -> Int32 {
+        for _ in 0..<2000 {
+            if let text = try? String(contentsOf: url, encoding: .utf8), let pid = Int32(text) {
+                return pid
+            }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let text = try String(contentsOf: url, encoding: .utf8)
+        return try #require(Int32(text))
+    }
+
 }

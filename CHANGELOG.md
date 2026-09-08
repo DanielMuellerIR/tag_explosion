@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.52 — 2026-09-08
+
+- Prozess-Abbruchtests teilen die Bereitschaftsabfrage anhand der gestarteten
+  PID. Beim unbegrenzt laufenden Werkzeug ersetzt die Prüfung auf tatsächliche
+  Beendigung eine knappe Zwei-Sekunden-Annahme.
+
 ## 0.46.51 — 2026-09-08
 
 - Rechnungs-Summenprüfung setzt unlesbare optionale Beträge nicht als null
