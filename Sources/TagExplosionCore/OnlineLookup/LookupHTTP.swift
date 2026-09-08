@@ -211,7 +211,11 @@ enum LookupJSON {
     }
 
     static func int(_ value: Any?) -> Int? {
-        if let n = value as? NSNumber { return n.intValue }
+        if let n = value as? NSNumber {
+            // stringValue erhält große Ganzzahlen exakt; der zweite Weg
+            // akzeptiert ganzzahlige Fließkommazahlen, ohne sie abzuschneiden.
+            return Int(n.stringValue) ?? Int(exactly: n.doubleValue)
+        }
         if let s = value as? String { return Int(s) }
         return nil
     }

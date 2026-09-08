@@ -324,6 +324,11 @@ struct OnlineLookupParserTests {
 
     @Test("Hilfen: mm:ss, Query-Kodierung, führende Zahl, Jahr")
     func helpers() {
+        #expect(LookupJSON.int(NSNumber(value: Int.max)) == Int.max)
+        #expect(LookupJSON.int(NSNumber(value: 1.0)) == 1)
+        for invalid in [NSNumber(value: 1.5), NSNumber(value: UInt64.max), NSNumber(value: 1e100)] {
+            #expect(LookupJSON.int(invalid) == nil)
+        }
         #expect(LookupJSON.milliseconds(fromClock: "3:01") == 181000)
         #expect(LookupJSON.milliseconds(fromClock: "1:02:03") == 3723000)
         #expect(LookupJSON.milliseconds(fromClock: "") == nil)

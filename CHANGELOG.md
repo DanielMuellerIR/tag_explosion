@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.59 — 2026-09-08
+
+- Die gemeinsame Online-JSON-Konvertierung verwirft Bruchteile und nicht
+  darstellbare Ganzzahlen, statt sie abzuschneiden oder umzubrechen.
+
 ## 0.46.58 — 2026-09-08
 
 - Der Online-Matcher bereitet Titel einmal vor und verwendet die Zeichenlisten
