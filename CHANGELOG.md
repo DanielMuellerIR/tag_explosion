@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.73 — 2026-09-08
+
+- MediaInfo-Prozessleser laufen auf einer Dispatch-Queue. Blockierende
+  Werkzeugaufrufe belegen damit keine Swift-Task-Threads, die für Abbruch
+  und weitere Abonnenten benötigt werden. Die Abbruchtests verwenden
+  dieselbe Trennung für ihre kontrollierten Hilfsprozesse.
+
 ## 0.46.72 — 2026-09-08
 
 - Der Prozess-Abbruchtest wartet zuverlässig auf den Abbruch, statt bei hoher

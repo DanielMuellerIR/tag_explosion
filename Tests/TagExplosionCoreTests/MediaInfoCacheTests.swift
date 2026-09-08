@@ -162,8 +162,8 @@ struct MediaInfoCacheTests {
         """.utf8).write(to: script)
         let cancellation = ExternalToolRunner.Cancellation()
         defer { cancellation.cancel() }
-        let task = Task.detached {
-            try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 60, cancellation: cancellation)
+        let task = Task {
+            try await runOffExecutor { try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 60, cancellation: cancellation) }
         }
         let pid = try await waitForPID(at: ready)
         let start = Date()
@@ -196,8 +196,8 @@ struct MediaInfoCacheTests {
         """.utf8).write(to: script)
         let cancellation = ExternalToolRunner.Cancellation()
         defer { cancellation.cancel() }
-        let task = Task.detached {
-            try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 5, cancellation: cancellation)
+        let task = Task {
+            try await runOffExecutor { try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 5, cancellation: cancellation) }
         }
         let pid = try await waitForPID(at: ready)
         cancellation.cancel()
@@ -212,6 +212,16 @@ struct MediaInfoCacheTests {
             _ = try ExternalToolRunner.run("/usr/bin/false", [], cancellation: cancellation)
             Issue.record("Prozess trotz Abbruch gestartet")
         } catch is CancellationError {}
+    }
+
+    /// Blockierende Testprozesse dürfen die Tasks für ihre Abbruchsignale
+    /// nicht aus dem begrenzten Swift-Executor verdrängen.
+    private func runOffExecutor<T: Sendable>(
+        _ operation: @escaping @Sendable () throws -> T
+    ) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global().async { continuation.resume(with: Result(catching: operation)) }
+        }
     }
 
     /// Erst abbrechen, wenn Signalbehandlung und Ausgabe der PID abgeschlossen sind.

@@ -63,14 +63,17 @@ public actor MediaInfoCache {
                     pending.append(Pending(id: id, key: key, cancellation: cancellation,
                                            subscribers: [subscriber: continuation]))
                     let reader = self.reader
-                    Task.detached(priority: .userInitiated) {
+                    // Der synchrone Prozessleser blockiert bis zum Ende des
+                    // Werkzeugs. Er darf dabei keinen Swift-Task-Thread belegen,
+                    // den die Abbruch- und Abonnenten-Tasks selbst benötigen.
+                    DispatchQueue.global(qos: .userInitiated).async {
                         let result = Result {
                             let report = try reader(url, output, cancellation)
                             try FileStamp.requireUnchanged(key.stamp, at: url)
                             try cancellation.check()
                             return report
                         }
-                        await self.complete(id, key: key, result: result)
+                        Task { await self.complete(id, key: key, result: result) }
                     }
                 }
             }

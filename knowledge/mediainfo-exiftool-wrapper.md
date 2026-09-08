@@ -131,3 +131,18 @@ Nachweis: 500 Core-Tests und 119 App-Tests bestanden.
   rechnet solche Archive beim Lesen um.
 - `-overwrite_original` verhindert `_original`-Duplikate; `-n` für numerische
   Werte (GPS dezimal), sonst kommen formatierte Strings.
+
+## Synchrone Leser und Swift-Tasks (2026-09-08)
+
+`Task.detached` ist kein eigener Thread für blockierende Arbeit. Ein synchroner
+MediaInfo-Leser kann einen Thread des begrenzten Swift-Executors belegen,
+während Abbruch und weitere Abonnenten auf eben diese Threads warten.
+Auf dem macOS-CI-Runner schlugen dadurch Abbruch- und Gate-Tests nach 60 s
+fehl; längere Prozesslaufzeiten behoben die Konkurrenz nicht.
+
+`MediaInfoCache` führt den synchronen Leser deshalb über
+`DispatchQueue.global(qos: .userInitiated).async` aus. Nur die fertige Antwort
+kehrt als Task zum Actor zurück. Die direkten Prozess-Abbruchtests benutzen
+Dispatch plus Continuation; sie blockieren den Swift-Executor ebenfalls nicht.
+Der gezielte Lauf aller fünf Cache-/Abbruchtests mit
+`LIBDISPATCH_COOPERATIVE_POOL_STRICT=1` besteht in 0,641 s.
