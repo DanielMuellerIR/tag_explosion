@@ -72,8 +72,7 @@ enum EpubFile {
         guard let coverHref = coverHref(in: document) else { return nil }
         let coverPath = resolve(href: coverHref, relativeTo: opfPath)
         guard let entry = archive[coverPath] else { return nil }
-        var data = Data()
-        _ = try archive.extract(entry) { data.append($0) }
+        let data = try ZipContainer.data(of: entry, in: archive)
         let mime = Artwork.sniffMimeType(from: data) ?? ""
         return Artwork(data: data, mimeType: mime, pictureType: "Front Cover")
     }
@@ -303,16 +302,14 @@ enum EpubFile {
         guard let containerEntry = archive["META-INF/container.xml"] else {
             throw TagError.cannotOpen(path: url.path)
         }
-        var containerData = Data()
-        _ = try archive.extract(containerEntry) { containerData.append($0) }
+        let containerData = try ZipContainer.data(of: containerEntry, in: archive)
         let container = try XMLDocument(data: containerData)
         guard let rootfile = descendants(named: "rootfile", in: container.rootElement()).first,
               let opfPath = attribute(rootfile, "full-path"),
               let opfEntry = archive[opfPath] else {
             throw TagError.cannotOpen(path: url.path)
         }
-        var opfData = Data()
-        _ = try archive.extract(opfEntry) { opfData.append($0) }
+        let opfData = try ZipContainer.data(of: opfEntry, in: archive)
         return (try XMLDocument(data: opfData), opfPath, archive)
     }
 
@@ -326,8 +323,7 @@ enum EpubFile {
               first.path == "mimetype", !first.isCompressed else {
             throw TagError.cannotOpen(path: url.path)
         }
-        var mimetype = Data()
-        _ = try archive.extract(first) { mimetype.append($0) }
+        let mimetype = try ZipContainer.data(of: first, in: archive)
         guard String(decoding: mimetype, as: UTF8.self) == "application/epub+zip" else {
             throw TagError.cannotOpen(path: url.path)
         }

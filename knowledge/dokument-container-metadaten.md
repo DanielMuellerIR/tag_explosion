@@ -13,7 +13,8 @@ genannten Einträge bekommen neuen Inhalt; neue Pfade kommen ans Ende.
 Grund: OpenDocument verlangt `mimetype` **unkomprimiert an erster Stelle**.
 Der EPUB-Weg (`EpubFile`: Eintrag entfernen, neu anhängen) hätte einen
 ersetzten `mimetype` ans Ende geschoben. EpubFile bleibt bewusst bei seinem
-getesteten Weg; die Backends hier teilen sich nur `ZipContainer`.
+getesteten Schreibweg; für das Lesen nutzt es ebenfalls den gemeinsamen
+CRC-geprüften Leser aus `ZipContainer`.
 
 Unveränderte Dateieinträge über 1 MiB laufen blockweise durch eine Datei im
 privaten Arbeitsordner; kleine Einträge bleiben im Speicher. `readChunk`
@@ -30,6 +31,16 @@ keine verlässliche Beschleunigung.
 Grenzen: Erweiterungsfelder der ZIP-Einträge gehen verloren.
 Verschlüsselte oder anders als deflate/stored komprimierte Archive scheitern
 mit `saveFailed`.
+
+## ZIP-Prüfsummen
+
+`Archive.extract` aus ZIPFoundation liefert die berechnete CRC32 zurück,
+vergleicht sie aber nicht mit `Entry.checksum`. `ZipContainer.extract` übernimmt
+diesen Vergleich für Dokumente und EPUB. Ein abweichender Wert bricht den
+Lese- oder Schreibvorgang ab; besonders beim ZIP-Neuaufbau dürfen beschädigte
+Nutzdaten nicht mit einer neuen gültigen Prüfsumme als unversehrt erscheinen.
+`ZipIntegrityTests` verändert gezielt die gespeicherte CRC, während Inhalt und
+ZIP-Struktur lesbar bleiben, und prüft kleine sowie große Nutzdateneinträge.
 
 ## OOXML (docx/xlsx/pptx)
 

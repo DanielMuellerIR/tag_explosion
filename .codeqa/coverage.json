@@ -321,19 +321,29 @@
         "Sources/TagExplosionCore/ZipContainer.swift",
         "Sources/tagx/DocCommand.swift",
         "Tests/TagExplosionCoreTests/DocumentToolTests.swift",
-        "Tests/TagxTests/DocCommandTests.swift"
+        "Tests/TagxTests/DocCommandTests.swift",
+        "Tests/TagExplosionCoreTests/ZipIntegrityTests.swift"
       ],
       "risk": "high",
       "priority": 6,
       "reason": "ZIP-Dokumente und Markdown erhalten fremde Inhalte sowie Dateiattribute beim Metadaten-Schreiben.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "pending",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:57:09+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
-      }
+        "completed_at": "2026-09-08T02:09:54+02:00",
+        "observed_head": "770f99c6e83ef554e6a1093e4ea83ff64c8734e3",
+        "content_sha256": "c579a82062ee7cfb4c8c761e3825ef34cd36cccdac763f03b69a80ee12972aad",
+        "file_count": 10,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Dokument-Backend-Verträge, OOXML/ODF/Comic-Pakete, Markdown-Subset, CLI und Tests geprüft. Markdown-Grenzfälle korrigiert; große ZIP-Dateien blockweise kopiert, macOS-Foundation-Puffer begrenzt. Dokument-Prozessstarter konsolidiert, Markdown-Testdateien bereinigt. CRC- und Kalenderprüfung als belegte Querschnittsarbeit erfasst.",
+        "tests": [
+          "swift test 481 Tests/51 Suites grün (6.859 s). Markdown-Gegenproben vor Korrektur rot; große stored/deflate-Einträge behalten Bytes, Kompression und Rechte. 128-MiB-DOCX: Spitzenspeicher 283787264→15843328 Byte, SHA-256 und ZIP-Prüfsumme geprüft; keine belastbare Zeitbehauptung. Letzte Deflate-EOF-Regression korrigiert und vollständige Suite erneut grün. Commits 05aa4ed, 4b4ab26, 770f99c, minipc synchron."
+        ]
+      },
+      "pending_paths": [
+        "Tests/TagExplosionCoreTests/ZipIntegrityTests.swift"
+      ]
     },
     {
       "id": "ebook-writing",
@@ -1052,8 +1062,27 @@
         "Sources/TagExplosionCore/EpubFile.swift"
       ],
       "priority": 5,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T01:59:52+02:00",
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T02:09:54+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T02:09:54+02:00",
+        "observed_head": "770f99c6e83ef554e6a1093e4ea83ff64c8734e3"
+      }
+    },
+    {
+      "id": "calendar-validation",
+      "summary": "Dokument- und Comic-Datumsprüfungen akzeptieren 2026-02-31 per CLI (DOCX/ODT/CBZ Exit 0), obwohl ISODate.isCalendarDay bereits eine gemeinsame Kalenderprüfung bietet. Formateigene Schreibweisen erhalten, echte Tage gemeinsam prüfen.",
+      "evidence": [
+        "Sources/TagExplosionCore/DocumentTool.swift",
+        "Sources/TagExplosionCore/ComicArchiveFile.swift",
+        "Sources/TagExplosionCore/ISODate.swift"
+      ],
+      "priority": 6,
+      "state": "pending",
+      "noted_at": "2026-09-08T02:09:54+02:00",
       "campaign_id": "20260908T002532864338+0200"
     }
   ]

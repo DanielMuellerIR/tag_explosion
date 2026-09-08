@@ -35,8 +35,17 @@ enum ZipContainer {
     /// Vollständiger Inhalt eines Eintrags.
     static func data(of entry: Entry, in archive: Archive) throws -> Data {
         var data = Data()
-        _ = try archive.extract(entry) { data.append($0) }
+        try extract(entry, in: archive) { data.append($0) }
         return data
+    }
+
+    /// ZIPFoundation berechnet CRC32, vergleicht den Wert aber nicht selbst.
+    /// Jeder gelesene Eintrag muss zur gespeicherten Prüfsumme passen — auch
+    /// unveränderte Nutzdaten, die beim Neuaufbau eine neue Prüfsumme bekommen.
+    private static func extract(_ entry: Entry, in archive: Archive,
+                                consume: (Data) throws -> Void) throws {
+        let checksum = try archive.extract(entry, bufferSize: 256 * 1024, consumer: consume)
+        guard checksum == entry.checksum else { throw TagError.cannotOpen(path: archive.url.path) }
     }
 
     /// Inhalt des Eintrags unter `path`; nil, wenn es ihn nicht gibt.
@@ -163,7 +172,7 @@ enum ZipContainer {
         defer { try? FileManager.default.removeItem(at: staging) }
         let output = try FileHandle(forWritingTo: staging)
         defer { try? output.close() }
-        _ = try source.extract(entry, bufferSize: 256 * 1024) { try output.write(contentsOf: $0) }
+        try extract(entry, in: source) { try output.write(contentsOf: $0) }
         try output.close()
         let input = try FileHandle(forReadingFrom: staging)
         defer { try? input.close() }

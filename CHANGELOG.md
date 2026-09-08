@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.23 — 2026-09-08
+
+- Dokumente und EPUB vergleichen die CRC32 jedes gelesenen ZIP-Eintrags
+  mit der gespeicherten Prüfsumme. Beschädigte Metadaten und Cover werden
+  abgelehnt; beschädigte Dokumentinhalte verhindern den ZIP-Neuaufbau.
+- Ein gemeinsamer ZIP-Leser ersetzt vier getrennte EPUB-Lesewege.
+
 ## 0.46.22 — 2026-09-08
 
 - Die ZIP-Längenprüfung berücksichtigt die abschließende Deflate-Anfrage
