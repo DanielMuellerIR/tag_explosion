@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.20 — 2026-09-08
+
+- Markdown-Dateien ohne letzten Zeilenumbruch können Frontmatter erhalten;
+  der bisherige Text bleibt bytegleich.
+- Frontmatter-Listen erhalten Kommas, Klammern, Apostrophe und maskierte
+  Backslashes. Unklare Zusätze hinter zitierten Werten bleiben geschützt.
+
 ## 0.46.19 — 2026-09-08
 
 - `lyrics set` und `lyrics clear` prüfen und sichern LRC-Sidecars vor

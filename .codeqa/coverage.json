@@ -259,15 +259,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:54:15+02:00",
-        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4",
-        "content_sha256": "90f6b2e2e70c8aac05bcb89fa357c7dc4bf0c0a0e9490d7574065f444fcb4650",
+        "completed_at": "2026-09-08T01:57:09+02:00",
+        "observed_head": "3a74e0955d8e076daf06b3f053f3e8b3c6b4f565",
+        "content_sha256": "c3d7f89a00fbf878d5c9a9a2275c3874b17c9cc317fa833ab2dfc1b3911ee429",
         "file_count": 21,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Querschnitts-Delta der externen Testzeugen nachgeprüft: gemeinsamer Prozessstarter, separate Werkzeugverfügbarkeit und verpflichtende Audioprüfsumme.",
+        "summary": "CLI-Lyrics-Delta nachgeprüft: Sidecar-Vorprüfung und Backup vor Medien-Save; beiderseitige Schreibstände, No-op und expliziter später Teilfehler erhalten.",
         "tests": [
-          "swift test: 477 Tests grün; fehlschlagender Decoder erzeugt fünf Testfehler."
+          "Lyrics-Suite grün; Core/CLI 478 Tests grün."
         ]
       }
     },
@@ -326,7 +326,14 @@
       "risk": "high",
       "priority": 6,
       "reason": "ZIP-Dokumente und Markdown erhalten fremde Inhalte sowie Dateiattribute beim Metadaten-Schreiben.",
-      "state": "pending"
+      "state": "in_progress",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T01:57:09+02:00",
+        "required_review": "full",
+        "status_at_start": "pending",
+        "covered_pending_paths": []
+      }
     },
     {
       "id": "ebook-writing",
@@ -1023,15 +1030,31 @@
         "App/Sources/TagExplosionApp/AppFileIO.swift"
       ],
       "priority": 5,
-      "state": "in_progress",
+      "state": "completed",
       "noted_at": "2026-09-08T01:50:22+02:00",
       "campaign_id": "20260908T002532864338+0200",
       "started_at": "2026-09-08T01:54:15+02:00",
-      "active_run": {
+      "completed": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T01:54:15+02:00",
-        "observed_head": "c0c8038d4aadd19fa1a8f54d9a1e4f10065b72c4"
+        "completed_at": "2026-09-08T01:57:09+02:00",
+        "observed_head": "3a74e0955d8e076daf06b3f053f3e8b3c6b4f565",
+        "summary": "Gemeinsame CLI-Vorprüfung und Sicherung der LRC-Sidecar vor Medienmutation; gemeinsamer Schreibabschluss meldet späte Teilfehler. App-Vorprüfung als Vertragsvergleich herangezogen, keine neue modulübergreifende Abstraktion nötig.",
+        "tests": [
+          "Zwei echte CLI-Gegenproben änderten vorher trotz unlesbarer Sidecar die Mediendatei; nach Korrektur bytegleich. Lyrics-Suite 5 Tests grün; swift test 478 Tests grün (6.552 s). Diff geprüft, Commit/minipc-Push."
+        ]
       }
+    },
+    {
+      "id": "zip-checksums",
+      "summary": "ZIPFoundation liefert beim Extract die berechnete CRC zurück, vergleicht sie aber nicht mit dem Archiveintrag. Dokumente und EPUB verwerfen sie; beschädigte Einträge können beim Neuaufbau eine neue gültige Prüfsumme erhalten.",
+      "evidence": [
+        "Sources/TagExplosionCore/ZipContainer.swift",
+        "Sources/TagExplosionCore/EpubFile.swift"
+      ],
+      "priority": 5,
+      "state": "pending",
+      "noted_at": "2026-09-08T01:59:52+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

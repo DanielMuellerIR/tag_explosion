@@ -448,6 +448,29 @@ struct DocumentToolTests {
         #expect(text == "\u{FEFF}---\r\ntitle: Neu\r\nauthors: [Eins, Zwei]\r\n---\r\n# Nur Body\r\n\r\nText.\r\n")
     }
 
+    @Test("Markdown ohne abschließenden Zeilenumbruch erhält Frontmatter", arguments: ["# Kurz", ""])
+    func markdownWithoutNewline(body: String) throws {
+        let url = try markdownFile(body)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let original = try DocumentTool.readCoreFields(url: url)
+        var fields = original
+        fields.title = "Neu"
+        try DocumentTool.write(url: url, fields: fields, original: original)
+        #expect(try DocumentTool.readCoreFields(url: url) == fields)
+        #expect(try Data(contentsOf: url) == Data(("---\ntitle: Neu\n---\n" + body).utf8))
+    }
+
+    @Test("Markdown-Listen erhalten Kommas und abschließende Backslashes")
+    func markdownListEscapes() throws {
+        let url = try markdownFile("# Text\n")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let original = try DocumentTool.readCoreFields(url: url)
+        var fields = original
+        fields.authors = ["Nachname, Vorname", "Ende, \\", "[Name]", "O'Connor"]
+        try DocumentTool.write(url: url, fields: fields, original: original)
+        #expect(try DocumentTool.readCoreFields(url: url) == fields)
+    }
+
     @Test("Markdown: Komplexe Einträge lassen sich nicht überschreiben, Schlüsselform wird geprüft")
     func markdownProtectsComplexEntries() throws {
         let url = try markdownFile(Self.sampleFrontmatter)
@@ -502,6 +525,7 @@ struct DocumentToolTests {
         #expect(complex.entry("f")?.value == .scalar(""))
         #expect(complex.entry("g")?.value == .complex)
         #expect(complex.entry("d")?.rawLines == ["d: |", "  Zeile"])
+        #expect(try parse("---\na: \"Text\" unklar\n---\n").entry("a")?.value == .complex)
         // Serialisierung quotiert nur, was nötig ist.
         #expect(MarkdownFrontmatter.yamlScalar("Einfach") == "Einfach")
         #expect(MarkdownFrontmatter.yamlScalar("2024-01-05") == "2024-01-05")

@@ -87,7 +87,8 @@ enum MarkdownFrontmatter {
             bytes.removeFirst(bomBytes.count)
         }
         let lines = splitLines(bytes)
-        let lineEnding = lines.first?.ending ?? "\n"
+        let firstEnding = lines.first?.ending ?? ""
+        let lineEnding = firstEnding.isEmpty ? "\n" : firstEnding
 
         // Erste Zeile muss genau "---" sein, sonst gibt es keinen Block.
         guard let first = lines.first, first.text == "---",
@@ -254,18 +255,11 @@ enum MarkdownFrontmatter {
 
     private static func parseDoubleQuoted(_ text: String) -> String? {
         var result = ""
-        var iterator = text.dropFirst().makeIterator()
-        var closed = false
-        while let char = iterator.next() {
-            if closed {
-                // Nach dem schließenden Zeichen nur noch Kommentar/Leerraum.
-                let remainder = String(char)
-                guard remainder.trimmingCharacters(in: .whitespaces).isEmpty || char == "#" else { return nil }
-                break
-            }
+        var rest = text.dropFirst()
+        while let char = rest.popFirst() {
             switch char {
             case "\\":
-                guard let escaped = iterator.next() else { return nil }
+                guard let escaped = rest.popFirst() else { return nil }
                 switch escaped {
                 case "n": result.append("\n")
                 case "t": result.append("\t")
@@ -277,12 +271,14 @@ enum MarkdownFrontmatter {
                 default: return nil
                 }
             case "\"":
-                closed = true
+                // Den gesamten Rest prüfen, nicht nur sein erstes Leerzeichen.
+                let trailing = rest.trimmingCharacters(in: .whitespaces)
+                return trailing.isEmpty || trailing.hasPrefix("#") ? result : nil
             default:
                 result.append(char)
             }
         }
-        return closed ? result : nil
+        return nil
     }
 
     /// "[a, "b, c", 'd']" → ["a", "b, c", "d"]
@@ -291,12 +287,18 @@ enum MarkdownFrontmatter {
         var items: [String] = []
         var current = ""
         var quote: Character?
-        var previous: Character?
+        var escaped = false
         for char in inner {
             if let open = quote {
                 current.append(char)
-                if char == open, previous != "\\" { quote = nil }
-            } else if char == "\"" || char == "'" {
+                if escaped {
+                    escaped = false
+                } else if open == "\"", char == "\\" {
+                    escaped = true
+                } else if char == open {
+                    quote = nil
+                }
+            } else if (char == "\"" || char == "'"), current.allSatisfy(\.isWhitespace) {
                 quote = char
                 current.append(char)
             } else if char == "," {
@@ -305,7 +307,6 @@ enum MarkdownFrontmatter {
             } else {
                 current.append(char)
             }
-            previous = char
         }
         guard quote == nil else { return nil }
         items.append(current)
@@ -346,6 +347,9 @@ enum MarkdownFrontmatter {
         if first.isWhitespace || last.isWhitespace { return true }
         if "-?:,[]{}#&*!|>'\"%@`".contains(first) { return true }
         if last == ":" { return true }
+        // Derselbe Skalar wird auch in Fließlisten verwendet. Deren
+        // Trennzeichen dürfen nicht als Teil der Listenstruktur erscheinen.
+        if value.contains(where: { ",[]{}".contains($0) }) { return true }
         if value.contains(": ") || value.contains(" #") || value.contains("\t")
             || value.contains("\n") || value.contains("\r") { return true }
         let lowered = value.lowercased()
