@@ -103,3 +103,17 @@ Fenster: `WindowSessions.queueForNextWindow(urls:)` merkt die Dateien vor,
 `openWindow(id:)` legt das Fenster an, `register` liefert sie über den
 gewohnten `AppModel.open` aus. Die Tabelle steht in Zellen-Funktionen —
 als ein Ausdruck war sie dem Typprüfer zu groß.
+
+
+## Viele Titel in Text-Playlists ändern
+
+M3U und PLS parsen die Liste einmal für alle Eintragsänderungen.
+`PlaylistTextFile.apply` führt die geplanten Zeileneingriffe von unten aus;
+bei gleicher Position wird erst die vorhandene Zeile geändert und danach
+eingefügt. So bleiben auch unsortierte PLS-Schlüssel korrekt zugeordnet.
+
+Messung am 2026-09-08 mit je 1.000 CLI-Titeländerungen, gemischtem Einfügen,
+Ersetzen und Leeren, BOM/CRLF und Kommentaren: M3U 2,284 → 0,274 Sekunden,
+PLS 8,163 → 0,329 Sekunden. Beide Ausgaben waren bytegleich mit dem
+vorherigen Ergebnis. Der bestehende PLS-Roundtrip prüft zusätzlich das
+Einfügen und Ersetzen an derselben ursprünglichen Zeilenposition.

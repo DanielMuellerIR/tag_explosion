@@ -90,21 +90,19 @@ enum PLSPlaylistFile: PlaylistBackend {
 
     static func mutate(url: URL, fields: PlaylistCoreFields, original: PlaylistCoreFields) throws {
         var file = try PlaylistTextFile.load(url: url)
-        for (index, entry) in fields.entries.enumerated()
-        where entry.title != original.entries[index].title {
-            let items = parse(file)
-            guard index < items.count else { continue }
+        let items = parse(file)
+        guard items.count == fields.entries.count else { throw TagError.saveFailed(path: url.path) }
+        let edits: [PlaylistTextFile.Edit] = fields.entries.indices.compactMap { index in
+            let entry = fields.entries[index]
+            guard entry.title != original.entries[index].title else { return nil }
             let item = items[index]
-            if let titleLine = item.titleLine {
-                if entry.title.isEmpty {
-                    file.remove(at: titleLine)
-                } else {
-                    file.replace("Title\(item.number)=\(entry.title)", at: titleLine)
-                }
-            } else if !entry.title.isEmpty {
-                file.insert("Title\(item.number)=\(entry.title)", at: item.fileLine + 1)
+            let text = "Title\(item.number)=\(entry.title)"
+            if let line = item.titleLine {
+                return entry.title.isEmpty ? .remove(line) : .replace(line, text)
             }
+            return entry.title.isEmpty ? nil : .insert(item.fileLine + 1, text)
         }
+        file.apply(edits)
         try file.write(to: url)
     }
 }

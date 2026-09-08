@@ -299,16 +299,17 @@ struct PlaylistTests {
         File2=zwei.mp3
         Length2=120
         File1=eins.mp3
+        File3=drei.mp3
         Title1=Eins
         Length1=-1
-        NumberOfEntries=2
+        NumberOfEntries=3
         Version=2
 
         """, to: url)
 
         let contents = try PlaylistTool.read(url: url)
         #expect(contents.format == .pls)
-        #expect(contents.entries.map(\.number) == [1, 2])
+        #expect(contents.entries.map(\.number) == [1, 2, 3])
         #expect(contents.entries[0].title == "Eins")
         #expect(contents.entries[0].durationMilliseconds == nil)
         #expect(contents.entries[1].title == "")
@@ -319,6 +320,9 @@ struct PlaylistTests {
         var edited = contents.fields
         edited.entries[0].title = "Eins neu"
         edited.entries[1].title = "Zwei"
+        // Title3 wird genau vor der vorhandenen Title1-Zeile eingefügt,
+        // während Title1 im selben Schritt ersetzt wird.
+        edited.entries[2].title = "Drei"
         try PlaylistTool.write(url: url, fields: edited, original: contents.fields)
         #expect(try text(of: url) == """
         [playlist]
@@ -326,9 +330,11 @@ struct PlaylistTests {
         Title2=Zwei
         Length2=120
         File1=eins.mp3
+        File3=drei.mp3
+        Title3=Drei
         Title1=Eins neu
         Length1=-1
-        NumberOfEntries=2
+        NumberOfEntries=3
         Version=2
 
         """)

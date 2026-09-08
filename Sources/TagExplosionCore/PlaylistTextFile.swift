@@ -91,11 +91,45 @@ struct PlaylistTextFile: Equatable {
         return crlf > lf ? "\r\n" : "\n"
     }
 
+    /// Zeilenpositionen beziehen sich auf denselben, noch unveränderten Stand.
+    enum Edit {
+        case insert(Int, String), replace(Int, String), remove(Int)
+
+        var index: Int {
+            switch self {
+            case .insert(let index, _), .replace(let index, _), .remove(let index): return index
+            }
+        }
+        var isInsertion: Bool { if case .insert = self { return true }; return false }
+    }
+
+    /// Von unten ändern, damit gemerkte Zeilennummern gültig bleiben. Bei
+    /// gleicher Position zuerst die vorhandene Zeile ändern, dann einfügen.
+    /// Mehrere Einfügungen behalten die Reihenfolge des Aufrufers.
+    mutating func apply(_ edits: [Edit]) {
+        let ending = dominantEnding
+        let ordered = edits.enumerated().sorted {
+            if $0.element.index != $1.element.index { return $0.element.index > $1.element.index }
+            if $0.element.isInsertion != $1.element.isInsertion { return !$0.element.isInsertion }
+            return $0.offset > $1.offset
+        }
+        for (_, edit) in ordered {
+            switch edit {
+            case .insert(let index, let text): insert(text, at: index, ending: ending)
+            case .replace(let index, let text): replace(text, at: index)
+            case .remove(let index): remove(at: index)
+            }
+        }
+    }
+
     /// Fügt eine Zeile an Position `index` ein (Ende = anhängen). Hat die
     /// bisher letzte Zeile kein Zeilenende, bekommt sie eines, damit die neue
     /// Zeile nicht an sie klebt.
     mutating func insert(_ text: String, at index: Int) {
-        let ending = dominantEnding
+        insert(text, at: index, ending: dominantEnding)
+    }
+
+    private mutating func insert(_ text: String, at index: Int, ending: String) {
         if index >= lines.count {
             if let last = lines.indices.last, lines[last].ending.isEmpty {
                 lines[last].ending = ending

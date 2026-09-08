@@ -91,10 +91,27 @@ enum M3UPlaylistFile: PlaylistBackend {
         if fields.title != original.title {
             setTitle(&file, fields.title)
         }
-        for (index, entry) in fields.entries.enumerated()
-        where entry.title != original.entries[index].title {
-            setEntryText(&file, itemIndex: index, text: entry.title)
+        let changed = fields.entries.indices.filter { fields.entries[$0].title != original.entries[$0].title }
+        var parsed = parse(file)
+        guard parsed.items.count == fields.entries.count else { throw TagError.saveFailed(path: url.path) }
+        if !parsed.hasHeader, changed.contains(where: {
+            parsed.items[$0].extinfLine == nil && !fields.entries[$0].title.isEmpty
+        }) {
+            _ = ensureHeader(&file)
+            parsed = parse(file)
         }
+        let edits: [PlaylistTextFile.Edit] = changed.compactMap { index in
+            let item = parsed.items[index]
+            let text = fields.entries[index].title
+            guard let lineIndex = item.extinfLine else {
+                return text.isEmpty ? nil : .insert(item.locationLine, "#EXTINF:-1,\(text)")
+            }
+            let line = file.lines[lineIndex].text
+            // Sekunden und fremde Attribute vor dem Komma bleiben erhalten.
+            let prefix = line.firstIndex(of: ",").map { String(line[...$0]) } ?? (line + ",")
+            return .replace(lineIndex, prefix + text)
+        }
+        file.apply(edits)
         try file.write(to: url)
     }
 
@@ -125,23 +142,4 @@ enum M3UPlaylistFile: PlaylistBackend {
         file.insert("#PLAYLIST:\(title)", at: position)
     }
 
-    private static func setEntryText(_ file: inout PlaylistTextFile, itemIndex: Int, text: String) {
-        var parsed = parse(file)
-        guard itemIndex < parsed.items.count else { return }
-        if parsed.items[itemIndex].extinfLine == nil {
-            // Ohne EXTINF-Zeile eine anlegen (Dauer unbekannt) — direkt vor
-            // der Pfadzeile; der Kopf muss dann ebenfalls da sein.
-            guard !text.isEmpty else { return }
-            _ = ensureHeader(&file)
-            parsed = parse(file)
-            file.insert("#EXTINF:-1,\(text)", at: parsed.items[itemIndex].locationLine)
-            return
-        }
-        let item = parsed.items[itemIndex]
-        let line = file.lines[item.extinfLine!].text
-        // Alles bis zum ersten Komma (Sekunden und Attribute) bleibt, nur der
-        // Anzeigetext dahinter wechselt.
-        let prefix = line.firstIndex(of: ",").map { String(line[...$0]) } ?? (line + ",")
-        file.replace(prefix + text, at: item.extinfLine!)
-    }
 }

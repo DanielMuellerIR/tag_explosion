@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.38 — 2026-09-08
+
+- M3U und PLS lesen ihre Zeilenstruktur für mehrere Titeländerungen gemeinsam.
+  Bei 1.000 Änderungen sank die gemessene CLI-Laufzeit von 2,28 auf 0,27
+  Sekunden beziehungsweise von 8,16 auf 0,33 Sekunden; die Ausgaben blieben
+  bytegleich. Einfügen, Ersetzen und Löschen teilen sich einen Zeilenhelfer.
+
 ## 0.46.37 — 2026-09-08
 
 - Überlange CUE-/XSPF-Zeitangaben lassen die Playlist-Anzeige nicht mehr
