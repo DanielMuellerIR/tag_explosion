@@ -26,20 +26,24 @@ struct ValidatedTagField: View {
     var placeholder = ""
     /// Zusatzanzeige rechts neben dem Feld (z.B. R128 als dB).
     var trailing: ((String) -> String)? = nil
-    @State private var text = ""
+    @State private var draft = ValidatedFieldDraft()
     @State private var error: String?
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                TextField(placeholder, text: $text)
+                TextField(placeholder, text: Binding(
+                    get: { draft.text }, set: { draft.edit($0) }))
                     .textFieldStyle(.roundedBorder)
                     .focused($focused)
-                    .onAppear { text = value }
+                    .onAppear { draft.synchronize(value) }
                     // Änderungen von außen (Verwerfen, Batch, Neuladen) nachziehen.
                     .onChange(of: value) { _, newValue in
-                        if !focused { text = newValue }
+                        if !focused {
+                            draft.synchronize(newValue)
+                            error = nil
+                        }
                     }
                     .onSubmit { commit() }
                     .onChange(of: focused) { _, isFocused in
@@ -60,17 +64,11 @@ struct ValidatedTagField: View {
     }
 
     private func commit() {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            value = ""
-            error = nil
-            return
-        }
         do {
-            let normalized = try FixedFields.normalized(key: key, value: trimmed)
-            value = normalized
-            text = normalized
-            error = nil
+            if let normalized = try draft.commit(key: key) {
+                value = normalized
+                error = nil
+            }
         } catch {
             self.error = error.localizedDescription
         }

@@ -789,7 +789,9 @@
         "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
         "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
         "App/Sources/TagExplosionApp/SidecarEditorView.swift",
-        "App/Sources/TagExplosionApp/TagLayerSection.swift"
+        "App/Sources/TagExplosionApp/TagLayerSection.swift",
+        "App/Sources/TagExplosionApp/ValidatedFieldDraft.swift",
+        "App/Tests/TagExplosionAppTests/ValidatedFieldDraftTests.swift"
       ],
       "risk": "medium",
       "priority": 13,
@@ -817,7 +819,9 @@
         "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
         "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
         "App/Sources/TagExplosionApp/SidecarEditorView.swift",
-        "App/Sources/TagExplosionApp/TagLayerSection.swift"
+        "App/Sources/TagExplosionApp/TagLayerSection.swift",
+        "App/Sources/TagExplosionApp/ValidatedFieldDraft.swift",
+        "App/Tests/TagExplosionAppTests/ValidatedFieldDraftTests.swift"
       ],
       "active_run": {
         "campaign_id": "20260908T002532864338+0200",

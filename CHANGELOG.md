@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.61 — 2026-09-08
+
+- Geprüfte Textfelder übertragen nur tatsächliche Eingaben. Fokusverlust
+  löscht damit keine gemischten Lautheitswerte einer Mehrfachauswahl.
+  Normalisierung, bewusstes Leeren und Neuladen teilen einen getesteten
+  Textentwurf; ungültige Eingaben bleiben korrigierbar.
+
 ## 0.46.60 — 2026-09-08
 
 - Der Bewertungstest verwendet das echte Binding des Bild-Batch-Editors.
