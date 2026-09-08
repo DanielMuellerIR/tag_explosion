@@ -326,11 +326,17 @@ struct PlaylistTests {
         Length1=-1
         NumberOfEntries=3
         Version=2
+        [foreign]
+        File1=foreign.mp3
+        Title1=Foreign
+        NumberOfEntries=99
 
         """, to: url)
 
         let contents = try PlaylistTool.read(url: url)
         #expect(contents.format == .pls)
+        #expect(contents.info == [DocumentInfoItem(label: "NumberOfEntries", value: "3"),
+                                  DocumentInfoItem(label: "Version", value: "2")])
         #expect(contents.entries.map(\.number) == [1, 2, 3])
         #expect(contents.entries[0].title == "Eins")
         #expect(contents.entries[0].durationMilliseconds == nil)
@@ -358,6 +364,10 @@ struct PlaylistTests {
         Length1=-1
         NumberOfEntries=3
         Version=2
+        [foreign]
+        File1=foreign.mp3
+        Title1=Foreign
+        NumberOfEntries=99
 
         """)
         #expect(try PlaylistTool.read(url: url).fields == edited)

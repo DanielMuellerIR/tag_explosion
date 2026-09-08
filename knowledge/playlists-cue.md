@@ -52,7 +52,8 @@ sagt „document format" — bewusst wiederverwendet statt eines neuen Falls).
 - **Cue-Werte kennen kein Escape für `"`.** Solche Werte werden abgelehnt.
   `REM`-Werte bekommen Anführungszeichen nur bei Leerraum (EAC-Stil).
 - **PLS hat keinen Listentitel**; die Einträge werden nach `N` sortiert, auch
-  wenn sie in der Datei durcheinander stehen.
+  wenn sie in der Datei durcheinander stehen. Nur Schlüssel innerhalb von
+  `[playlist]` zählen; gleichnamige Felder fremder Abschnitte bleiben unangetastet.
 
 ## Dauer und Pfade
 

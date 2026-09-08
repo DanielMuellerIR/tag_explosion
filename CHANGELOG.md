@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.42 — 2026-09-08
+
+- PLS berücksichtigt Dateiverweise und Titel nur im Abschnitt `[playlist]`.
+  Gleichnamige Schlüssel fremder Abschnitte verdrängen keine Einträge mehr
+  und bleiben beim Bearbeiten unverändert.
+
 ## 0.46.41 — 2026-09-08
 
 - Die CUE-Dauerberechnung findet folgende Tracks mit einem Durchlauf durch

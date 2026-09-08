@@ -32,13 +32,29 @@ enum PLSPlaylistFile: PlaylistBackend {
         return (key, number, value)
     }
 
+    /// Nur der Abschnitt [playlist] besitzt PLS-Felder. Gleichnamige
+    /// Schlüssel fremder Abschnitte bleiben beim Lesen und Schreiben fremd.
+    private static func playlistLines(in file: PlaylistTextFile) -> [(index: Int, text: String)] {
+        var active = false
+        var result: [(index: Int, text: String)] = []
+        for (index, line) in file.lines.enumerated() {
+            let trimmed = line.text.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("["), trimmed.hasSuffix("]") {
+                active = trimmed.lowercased() == "[playlist]"
+            } else if active {
+                result.append((index, line.text))
+            }
+        }
+        return result
+    }
+
     /// Einträge nach ihrer Nummer sortiert (so spielen Player sie ab).
     static func parse(_ file: PlaylistTextFile) -> [Item] {
         var items: [Int: Item] = [:]
         var titles: [Int: (line: Int, value: String)] = [:]
         var lengths: [Int: Double] = [:]
-        for (index, line) in file.lines.enumerated() {
-            guard let (key, number, value) = keyValue(of: line.text), let number else { continue }
+        for (index, text) in playlistLines(in: file) {
+            guard let (key, number, value) = keyValue(of: text), let number else { continue }
             switch key {
             case "FILE": items[number] = Item(number: number, fileLine: index)
             case "TITLE": titles[number] = (index, value)
@@ -71,8 +87,8 @@ enum PLSPlaylistFile: PlaylistBackend {
                 performer: "", durationMilliseconds: item.seconds.map(PlaylistTool.milliseconds(fromSeconds:))))
         }
         var info: [DocumentInfoItem] = []
-        for line in file.lines {
-            guard let (key, number, value) = keyValue(of: line.text), number == nil else { continue }
+        for (_, text) in playlistLines(in: file) {
+            guard let (key, number, value) = keyValue(of: text), number == nil else { continue }
             if key == "NUMBEROFENTRIES" || key == "VERSION" {
                 info.append(DocumentInfoItem(label: key == "VERSION" ? "Version" : "NumberOfEntries",
                                              value: value))
