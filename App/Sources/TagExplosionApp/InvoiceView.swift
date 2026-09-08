@@ -118,9 +118,9 @@ struct InvoiceContentView: View {
             }
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 2) {
                 headerRow("Dokumentart", String(localized: documentKindLabel))
-                headerRow("Spezifikation (BT-24)", document.profile.guidelineID)
+                headerRow(document.syntax.isOrder ? "Spezifikation" : "Spezifikation (BT-24)", document.profile.guidelineID)
                 if let process = document.profile.businessProcessID {
-                    headerRow("Geschäftsprozess (BT-23)", process)
+                    headerRow(document.syntax.isOrder ? "Geschäftsprozess" : "Geschäftsprozess (BT-23)", process)
                 }
                 if case .pdfEmbedded(let fileName) = document.source {
                     headerRow("Eingebettet als", fileName)

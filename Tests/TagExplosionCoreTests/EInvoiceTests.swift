@@ -540,6 +540,9 @@ struct EInvoiceTests {
         #expect(xr23ext.profile == "XRechnung 2.3 (mit Extension)")
         #expect(resolved("urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0")
             .standard == "Peppol BIS")
+        for unknown in ["order_custom:3", "order_response_custom:3"] {
+            #expect(resolved("urn:fdc:peppol.eu:poacc:trns:" + unknown).standard == "EN 16931-basiert?")
+        }
         // Bloße Namensähnlichkeit darf einen fremden Bezeichner nicht als
         // bekannten Standard ausgeben.
         #expect(resolved("urn:example:xrechnung_demo").standard == "EN 16931-basiert?")
@@ -903,6 +906,22 @@ struct EInvoiceTests {
         #expect(EInvoiceValidation.parseAmount("1,5") == nil)
         #expect(EInvoiceValidation.parseAmount("1 000.00") == nil)
         #expect(EInvoiceValidation.parseAmount("EUR 5") == nil)
+        for invalid in ["1.2.3", "1-2", "1+2", "--1", ".", "+", "-"] {
+            #expect(EInvoiceValidation.parseAmount(invalid) == nil)
+        }
+        for valid in ["+5", ".50", "5.", "0", "-0.50"] {
+            #expect(EInvoiceValidation.parseAmount(valid) == Decimal(string: valid))
+        }
+    }
+
+    @Test("Unlesbare optionale Beträge werden nicht als null in Summen eingesetzt",
+          arguments: ["BT-107", "BT-108", "BT-110", "BT-117"])
+    func unreadableAmountsSkipDependentSums(_ term: String) throws {
+        var document = try EInvoiceReader.document(
+            fromXML: Data(Self.ciiCreditNoteXML.utf8), source: .xmlFile)
+        let index = try #require(document.fields.firstIndex { $0.term == term })
+        document.fields[index].value = "unlesbar"
+        #expect(EInvoiceValidation.warnings(for: document).isEmpty)
     }
 
     // MARK: - Vollständigkeit

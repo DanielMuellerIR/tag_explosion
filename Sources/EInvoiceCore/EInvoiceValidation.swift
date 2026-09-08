@@ -66,9 +66,11 @@ enum EInvoiceValidation {
     private static func checkSums(_ document: EInvoiceDocument,
                                   into warnings: inout [EInvoiceWarning]) {
         let currency = document.summary.currency
-        /// Erster Betrag zu einem Term; nil, wenn er fehlt oder nicht lesbar ist.
-        func amount(_ term: String) -> Decimal? {
-            document.firstValue(term: term).flatMap(parseAmount)
+        /// Fehlende optionale Beträge dürfen null sein; unlesbare Werte bleiben nil.
+        /// Sonst würde die Summenregel mit einem erfundenen Betrag rechnen.
+        func amount(_ term: String, ifMissing defaultValue: Decimal? = nil) -> Decimal? {
+            guard let text = document.firstValue(term: term) else { return defaultValue }
+            return parseAmount(text)
         }
         /// Summe ALLER Beträge eines Terms in Rechnungswährung. Beträge in
         /// einer abweichenden Währung (currencyID ≠ BT-5) bleiben draußen —
@@ -85,41 +87,43 @@ enum EInvoiceValidation {
                 total += value
                 count += 1
             }
-            return count == 0 ? nil : (total, count)
+            return (total, count)
         }
 
         // BR-CO-10: BT-106 = Σ BT-131 (nur, wenn Positionen vorhanden sind).
-        if let lineTotal = amount("BT-106"), let lines = sum("BT-131") {
+        if let lineTotal = amount("BT-106"), let lines = sum("BT-131"), lines.count > 0 {
             compare("BR-CO-10", term: "BT-106", actual: lineTotal, expected: lines.total,
                     formula: "Summe der \(lines.count) Positionsbeträge (BT-131)",
                     into: &warnings)
         }
 
         // BR-CO-13: BT-109 = BT-106 − BT-107 + BT-108.
-        if let base = amount("BT-109"), let lineTotal = amount("BT-106") {
-            let expected = lineTotal - (amount("BT-107") ?? 0) + (amount("BT-108") ?? 0)
+        if let base = amount("BT-109"), let lineTotal = amount("BT-106"),
+           let allowance = amount("BT-107", ifMissing: 0), let charge = amount("BT-108", ifMissing: 0) {
+            let expected = lineTotal - allowance + charge
             compare("BR-CO-13", term: "BT-109", actual: base, expected: expected,
                     formula: "BT-106 − BT-107 + BT-108", into: &warnings)
         }
 
-        // BR-CO-14: BT-110 = Σ BT-117 — nur, wenn es überhaupt eine
-        // Umsatzsteuerangabe gibt (Steuersumme oder Aufschlüsselung).
-        let taxTotal = amount("BT-110")
+        // BR-CO-14: BT-110 = Σ BT-117. Ohne Steuerangaben stehen beide Seiten
+        // auf null; bei unlesbaren Angaben wird die Regel ausgelassen.
+        let taxTotal = amount("BT-110", ifMissing: 0)
         let taxParts = sum("BT-117")
-        if taxTotal != nil || taxParts != nil {
-            compare("BR-CO-14", term: "BT-110", actual: taxTotal ?? 0, expected: taxParts?.total ?? 0,
+        if let taxTotal, let taxParts {
+            compare("BR-CO-14", term: "BT-110", actual: taxTotal, expected: taxParts.total,
                     formula: "Summe der Steuerbeträge (BT-117)", into: &warnings)
         }
 
         // BR-CO-15: BT-112 = BT-109 + BT-110.
-        if let grand = amount("BT-112"), let base = amount("BT-109") {
-            compare("BR-CO-15", term: "BT-112", actual: grand, expected: base + (taxTotal ?? 0),
+        if let grand = amount("BT-112"), let base = amount("BT-109"), let taxTotal {
+            compare("BR-CO-15", term: "BT-112", actual: grand, expected: base + taxTotal,
                     formula: "BT-109 + BT-110", into: &warnings)
         }
 
         // BR-CO-16: BT-115 = BT-112 − BT-113 + BT-114.
-        if let payable = amount("BT-115"), let grand = amount("BT-112") {
-            let expected = grand - (amount("BT-113") ?? 0) + (amount("BT-114") ?? 0)
+        if let payable = amount("BT-115"), let grand = amount("BT-112"),
+           let prepaid = amount("BT-113", ifMissing: 0), let rounding = amount("BT-114", ifMissing: 0) {
+            let expected = grand - prepaid + rounding
             compare("BR-CO-16", term: "BT-115", actual: payable, expected: expected,
                     formula: "BT-112 − BT-113 + BT-114", into: &warnings)
         }
@@ -140,7 +144,10 @@ enum EInvoiceValidation {
     /// andere gilt als nicht lesbar und lässt die Regel aus.
     static func parseAmount(_ text: String) -> Decimal? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed.allSatisfy({ $0.isNumber || $0 == "." || $0 == "-" || $0 == "+" }),
+        // Decimal(string:) akzeptiert auch nur den gültigen Anfang von "1.2.3".
+        // Erst die vollständige Dezimalschreibweise prüfen, dann konvertieren.
+        guard trimmed.range(of: #"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"#,
+                            options: .regularExpression) != nil,
               let value = Decimal(string: trimmed, locale: Locale(identifier: "en_US_POSIX")) else {
             return nil
         }

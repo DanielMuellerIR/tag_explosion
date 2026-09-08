@@ -1,11 +1,12 @@
 // CLI-Regressionen für `tagx invoice` und den Umgang des Archivs mit
 // E-Rechnungen: --terms-only muss auch die JSON-Ausgabe filtern, und
 // `tagx export` darf Rechnungen weder mitzählen noch still überspringen.
+import EInvoiceCore
 import Foundation
 import TagExplosionTestSupport
 import Testing
 
-@Suite("tagx invoice CLI", .serialized)
+@Suite("tagx invoice CLI")
 struct InvoiceCommandTests {
 
     /// Minimale CII-Rechnung: ein gemapptes Feld (BT-1) und bewusst ein
@@ -62,14 +63,15 @@ struct InvoiceCommandTests {
         try withInvoiceFile { xml in
             let full = try runTagx(arguments: ["invoice", xml.path, "--json"])
             #expect(full.status == 0)
-            #expect(full.stdout.contains("Fantasiefeld"))
+            #expect(try invoice(from: full.stdout).fields.contains { $0.element == "ram:Fantasiefeld" })
 
             let filtered = try runTagx(arguments: [
                 "invoice", xml.path, "--json", "--terms-only",
             ])
             #expect(filtered.status == 0)
-            #expect(filtered.stdout.contains("BT-1"))
-            #expect(!filtered.stdout.contains("Fantasiefeld"))
+            let document = try invoice(from: filtered.stdout)
+            #expect(document.firstValue(term: "BT-1") == "R-42")
+            #expect(!document.fields.contains { $0.element == "ram:Fantasiefeld" })
         }
     }
 
@@ -84,11 +86,12 @@ struct InvoiceCommandTests {
             #expect(text.stdout.contains("WARNING [BR-03] BT-2: Pflichtfeld fehlt: BT-2 Rechnungsdatum"))
             #expect(!text.stdout.contains("[BR-02]"))  // BT-1 ist vorhanden
 
-            let json = try runTagx(arguments: ["invoice", xml.path, "--json"])
-            #expect(json.status == 0)
-            #expect(json.stdout.contains("\"documentKind\" : \"invoice\""))
-            #expect(json.stdout.contains("\"code\" : \"BR-03\""))
-            #expect(json.stdout.contains("\"term\" : \"BT-2\""))
+            let json = try runTagx(arguments: ["invoice", xml.path, "--json", "--strict"])
+            #expect(json.status == 3)
+            let document = try invoice(from: json.stdout)
+            #expect(document.documentKind == .invoice)
+            #expect(document.warnings.count == 9)
+            #expect(document.warnings.contains { $0.code == "BR-03" && $0.term == "BT-2" })
 
             // --strict: Ausgabe bleibt vollständig, nur der Exit-Code ändert sich.
             let strict = try runTagx(arguments: ["invoice", xml.path, "--strict"])
@@ -112,8 +115,9 @@ struct InvoiceCommandTests {
             // --terms-only behält beschriftete Order-X-Felder.
             let filtered = try runTagx(arguments: ["invoice", xml.path, "--json", "--terms-only"])
             #expect(filtered.status == 0)
-            #expect(filtered.stdout.contains("\"documentKind\" : \"order\""))
-            #expect(filtered.stdout.contains("Bestellnummer"))
+            let document = try invoice(from: filtered.stdout)
+            #expect(document.documentKind == .order)
+            #expect(document.fields.contains { $0.termName == "Bestellnummer" && $0.value == "B-1" })
         }
     }
 
@@ -129,8 +133,10 @@ struct InvoiceCommandTests {
         }
     }
 
-    // MARK: - Prozess-Helfer (gleiches Muster wie die übrigen CLI-Tests)
-
-
+    private func invoice(from output: String) throws -> EInvoiceDocument {
+        struct Report: Decodable { let invoice: EInvoiceDocument }
+        let reports = try JSONDecoder().decode([Report].self, from: Data(output.utf8))
+        return try #require(reports.first).invoice
+    }
 
 }

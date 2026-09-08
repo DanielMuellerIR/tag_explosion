@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 2328702
+    "tokens_spent": 2467329
   },
   "campaign_history": [
     {
@@ -660,13 +660,19 @@
       "risk": "high",
       "priority": 11,
       "reason": "Bildparser, verlustfreie Metadatenentfernung und Export; ungültige und versetzte Data-Eingaben.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T04:43:34+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
+        "completed_at": "2026-09-08T04:47:55+02:00",
+        "observed_head": "136ae2561b1550d27fc2c607f72a4f110dcdb48a",
+        "content_sha256": "1d6e4a2e6339301af4acb6f0872effe1efb796b4ca99e25d634a598f45234c97",
+        "file_count": 7,
+        "review": "full",
+        "outcome": "improved",
+        "summary": "Alle sieben Dateien vollständig geprüft. Data-Slice-Absturz der JPEG-/PNG-Analyse korrigiert; PNG-End-Chunk und Anhänge erhalten; Ordner als Cover übersprungen; Export-MIME aus Bildbytes und Lesestempel vor Sicherung. Doppelte Tempdatei-Testvorbereitung integriert, CLI-Suite parallel. Schnellen reinen Größenleser bewusst behalten.",
+        "tests": [
+          "Vorher Slice-Test Signal 5, PNG/Ordnersuche sechs Issues, falscher MIME zwei Issues. Nachher 501 Core-Tests 6,559 s sowie 119 App-Tests bestanden."
+        ]
       }
     },
     {
@@ -682,7 +688,7 @@
       "risk": "high",
       "priority": 11,
       "reason": "Norm- und Profilzuordnung muss vollständig und semantisch korrekt sein; Rechnungen bleiben bewusst read-only.",
-      "state": "completed",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:36:56+02:00",
@@ -695,6 +701,13 @@
         "tests": [
           "swift test --filter EInvoiceTests|InvoiceCommandTests: 31 Tests in 2 Suites bestanden; swift test --package-path App --filter InvoiceFieldLayoutTests: 3 Tests bestanden"
         ]
+      },
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T04:47:55+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": []
       }
     },
     {
@@ -1285,6 +1298,17 @@
           "118 App-Tests 0.518 s Exit 0; 10.000 Audioeinträge: input 57.6→0.05 ms, Titel 118.4→10.3 ms, Suchvarianten 77.6→41.2 und 86.0→40.3 ms; Ergebnis-JSON bytegleich"
         ]
       }
+    },
+    {
+      "id": "linux-cancellation-test-timing",
+      "summary": "Linux-Lauf mit zwei CPU-Kernen: Abbruchtest misst 1,309 s statt verlangter <1 s, während alle Rechnungs-/Cover-Prüfungen bestehen. Zwei fast gleiche Kindprozess-Tests konsolidieren, echte Prozessbeendigung prüfen und knappe Scheduler-Annahme entfernen.",
+      "evidence": [
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+      ],
+      "priority": 11,
+      "state": "pending",
+      "noted_at": "2026-09-08T04:59:02+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

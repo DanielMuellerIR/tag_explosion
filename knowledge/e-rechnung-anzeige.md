@@ -149,3 +149,26 @@ Rechnungsansicht der App.
 - Vollständigkeits-Invariante: Zahl der Anzeigefelder == Zahl der
   XML-Elemente. Gegen echte Dateien per
   `tagx invoice --json … | python3` gegengerechnet (2026-08-14: 161/161).
+
+## QA 2026-09-08
+
+`EInvoiceValidation.parseAmount` prüft die vollständige Dezimalschreibweise.
+`Decimal(string:)` allein akzeptiert etwa den Anfang von `1.2.3`; auch
+Vorzeichen mitten im Wert kamen vorher durch. Fehlende optionale Beträge
+dürfen in der Summenformel null sein, unlesbare Beträge dagegen nicht.
+Betroffene Summenregeln werden wie dokumentiert ausgelassen; die Rohwerte
+bleiben sichtbar. Das ist weiterhin keine vollständige Syntaxvalidierung.
+Vier parametrisierte Fälle verhindern erfundene Summenhinweise bei
+unlesbarem Nachlass, Zuschlag, Steuerbetrag und Steueraufschlüsselung.
+
+Peppol-Bestellprofile verlangen die vollständigen Komponenten `order:` bzw.
+`order_response:`. Ähnliche unbekannte Kennungen wie `order_custom:` bleiben
+unbekannt. Die Bestellansicht zeigt Spezifikation und Geschäftsprozess ohne
+Rechnungs-Termnummern BT-24/BT-23; Rechnungsköpfe behalten ihre Nummern.
+
+Die CLI-Tests dekodieren JSON in das Dokumentmodell statt Leerzeichen und
+Textfragmente zu vergleichen. `--json --strict` ist damit ebenfalls geprüft;
+die vier unabhängigen CLI-Tests laufen parallel.
+
+Nachweis: 501 Core-Tests auf macOS, 119 App-Tests und 495 Core-/CLI-Tests
+unter Linux (Swift 6.0, zwei CPU-Kerne) bestanden.

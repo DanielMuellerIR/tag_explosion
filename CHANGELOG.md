@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.51 — 2026-09-08
+
+- Rechnungs-Summenprüfung setzt unlesbare optionale Beträge nicht als null
+  ein und verlangt vollständig lesbare Dezimalzahlen.
+- Ähnliche unbekannte Peppol-Bestellkennungen bleiben unbekannt;
+  Bestellköpfe zeigen keine Rechnungs-Termnummern.
+- Rechnungs-CLI-Tests prüfen dekodierte JSON-Felder und laufen parallel.
+  Zwei Kindprozess-Abbruchtests sind zusammengefasst und tolerieren
+  Scheduler-Verzögerungen unter Linux bei weiterhin geprüftem Prozessende.
+
 ## 0.46.50 — 2026-09-08
 
 - Cover-Analyse akzeptiert JPEG-/PNG-Ausschnitte ohne Absturz.

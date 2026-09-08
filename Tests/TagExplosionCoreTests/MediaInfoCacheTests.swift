@@ -143,8 +143,9 @@ struct MediaInfoCacheTests {
         #expect(try await cache.read(url: a).text == "a.flac")
     }
 
-    @Test("Abbruch schließt geerbte Pipes auch bei einem Kindprozess")
-    func cancellationWithChild() async throws {
+    @Test("Abbruch beendet Kindprozesse mit offenen und geschlossenen Ausgabepipes",
+          .timeLimit(.minutes(1)), arguments: [false, true])
+    func cancellationWithChild(closingPipes: Bool) async throws {
         let dir = try directory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let script = dir.appendingPathComponent("child.py")
@@ -153,40 +154,14 @@ struct MediaInfoCacheTests {
         import os, signal, time, sys
         if os.fork() == 0:
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
-            with open(sys.argv[1], 'w') as f: f.write('ready')
-        time.sleep(2)
-        """.utf8).write(to: script)
-        let cancellation = ExternalToolRunner.Cancellation()
-        let task = Task.detached {
-            try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], cancellation: cancellation)
-        }
-        for _ in 0..<2000 {
-            if FileManager.default.fileExists(atPath: ready.path) { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        let start = Date()
-        cancellation.cancel()
-        do { _ = try await task.value; Issue.record("Abbruch blieb wirkungslos") }
-        catch is CancellationError {}
-        #expect(Date().timeIntervalSince(start) < 1)
-    }
-
-    @Test("Abbruch beendet auch Nachkommen ohne offene Ausgabepipes")
-    func cancellationWithoutChildPipes() async throws {
-        let dir = try directory()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let script = dir.appendingPathComponent("closed-child.py")
-        let ready = dir.appendingPathComponent("ready")
-        try Data("""
-        import os, signal, time, sys
-        if os.fork() == 0:
-            signal.signal(signal.SIGTERM, signal.SIG_IGN)
-            os.close(1)
-            os.close(2)
+            if \(closingPipes ? "True" : "False"):
+                os.close(1)
+                os.close(2)
             with open(sys.argv[1], 'w') as f: f.write(str(os.getpid()))
-        time.sleep(3)
+        time.sleep(30)
         """.utf8).write(to: script)
         let cancellation = ExternalToolRunner.Cancellation()
+        defer { cancellation.cancel() }
         let task = Task.detached {
             try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], cancellation: cancellation)
         }
@@ -197,9 +172,13 @@ struct MediaInfoCacheTests {
             try await Task.sleep(for: .milliseconds(1))
         }
         let pid = try #require(child)
+        let start = Date()
         cancellation.cancel()
         do { _ = try await task.value; Issue.record("Abbruch blieb wirkungslos") }
         catch is CancellationError {}
+        // Der Prozess würde von selbst erst nach 30 s enden. Zehn Sekunden
+        // lassen dem Scheduler unter CI-Last Luft; eine Sekunde war zu knapp.
+        #expect(Date().timeIntervalSince(start) < 10)
         // Nach dem Gruppen-Kill kann der System-Reaper einen kurzen Moment brauchen.
         for _ in 0..<500 {
             if kill(pid, 0) == -1 { break }

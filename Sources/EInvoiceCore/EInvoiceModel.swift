@@ -265,10 +265,11 @@ extension EInvoiceProfile {
         // --- Peppol BIS Ordering (UBL Order / OrderResponse). Die
         // CustomizationID nennt die Transaktion: …:trns:order:3 bzw.
         // …:trns:order_response:3.
-        if let matched = matchedComponent(withPrefix: "urn:fdc:peppol.eu:poacc:trns:order") {
-            let name = matched.contains("order_response") ? "Peppol BIS Order Response"
-                                                          : "Peppol BIS Order"
-            return make("Peppol BIS", name)
+        if hasComponent(withPrefix: "urn:fdc:peppol.eu:poacc:trns:order_response:") {
+            return make("Peppol BIS", "Peppol BIS Order Response")
+        }
+        if hasComponent(withPrefix: "urn:fdc:peppol.eu:poacc:trns:order:") {
+            return make("Peppol BIS", "Peppol BIS Order")
         }
 
         // --- Order-X (Bestellungen im ZUGFeRD-Stil, CIO-Syntax). URN-Stamm

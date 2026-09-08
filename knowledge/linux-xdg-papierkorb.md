@@ -198,3 +198,14 @@ Präfix und URI vorhanden waren. Die explizite Serialisierung dieser beiden
 Werte korrigierte den Fehler. Der anschließende vollständige Lauf bestand
 494 Tests in 32,489 Sekunden, Exit-Code 0 (Swift 6.0, zwei CPU-Kerne,
 eigener Benutzer, frische Fixtures); beide Container wurden entfernt.
+
+Linux-Prüfung auf `136ae25` mit Rechnungs-Änderungen am 2026-09-08:
+496 Tests, ein Fehler im parallelen Prozess-Abbruchtest. Seine Grenze von
+einer Sekunde wurde mit 1,309 Sekunden überschritten. Die zwei fast gleichen
+Kindprozess-Tests sind nun ein parametrisierter Test: Hilfsprozesse laufen
+von selbst 30 Sekunden, Abbruch muss binnen zehn Sekunden enden und die
+Kind-PID verschwinden. Damit bleibt der Unterschied zwischen Abbruch und
+natürlichem Ende nachgewiesen, ohne eine knappe Scheduler-Frist vorauszusetzen.
+Der vollständige zweite Lauf bestand 495 Tests in 31,633 Sekunden, Exit 0;
+beide Container wurden automatisch entfernt. macOS: 501 Core-Tests in 6,243 s,
+119 App-Tests in 0,536 s.

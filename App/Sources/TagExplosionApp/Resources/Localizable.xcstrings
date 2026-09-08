@@ -6190,6 +6190,26 @@
           }
         }
       }
+    },
+    "Spezifikation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Specification"
+          }
+        }
+      }
+    },
+    "Geschäftsprozess": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Business process"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
