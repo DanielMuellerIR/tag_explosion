@@ -6,7 +6,7 @@
     "token_budget": 8000000,
     "status": "active",
     "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 2467329
+    "tokens_spent": 2783511
   },
   "campaign_history": [
     {
@@ -751,18 +751,20 @@
       "risk": "high",
       "priority": 12,
       "reason": "Nur ausdrücklich freigegebene Netzwerkzugriffe; fremde Antworten, Zahlenwerte und Tag-Zuordnung.",
-      "state": "in_progress",
-      "active_run": {
+      "state": "completed",
+      "last_run": {
         "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T05:08:12+02:00",
-        "required_review": "full",
-        "status_at_start": "pending",
-        "covered_pending_paths": []
-      },
-      "pending_paths": [
-        "App/Sources/TagExplosionApp/OnlineLookupDetails.swift",
-        "App/Tests/TagExplosionAppTests/OnlineLookupDetailsTests.swift"
-      ]
+        "completed_at": "2026-09-08T05:30:27+02:00",
+        "observed_head": "41535ce6169554681c43b7fc6f1ab7fec02dacfb",
+        "content_sha256": "e9bc3c62cbf2da6ec5fe2c13da1ab804c1a23ed33296b502b93b9ae4fb444c63",
+        "file_count": 17,
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Neue OnlineLookupDetails-Datei samt Tests aus demselben verifizierten Schritt nachgebucht: Auswahl besitzt Antworten, Reset entwertet laufende Tasks; SwiftUI lädt über Auswahl-/Cover-Task und teilt die Serviceinstanz.",
+        "tests": [
+          "125 App-Tests in 0,380 s, darunter vier deterministische Headless-Tests des neuen Ladezustands; Ausgangsmechanik zeigte fünf Fehler."
+        ]
+      }
     },
     {
       "id": "app-editors",
@@ -792,7 +794,7 @@
       "risk": "medium",
       "priority": 13,
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
-      "state": "pending",
+      "state": "in_progress",
       "last_run": {
         "campaign_id": "20260829T191121837920+0200",
         "completed_at": "2026-08-29T19:46:17+02:00",
@@ -816,7 +818,24 @@
         "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
         "App/Sources/TagExplosionApp/SidecarEditorView.swift",
         "App/Sources/TagExplosionApp/TagLayerSection.swift"
-      ]
+      ],
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T05:30:28+02:00",
+        "required_review": "delta-plus-boundaries",
+        "status_at_start": "changed",
+        "covered_pending_paths": [
+          "App/Sources/TagExplosionApp/ChapterSection.swift",
+          "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
+          "App/Sources/TagExplosionApp/DocumentEditorView.swift",
+          "App/Sources/TagExplosionApp/FixedFieldSections.swift",
+          "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
+          "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
+          "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
+          "App/Sources/TagExplosionApp/SidecarEditorView.swift",
+          "App/Sources/TagExplosionApp/TagLayerSection.swift"
+        ]
+      }
     },
     {
       "id": "library-check",
@@ -1325,6 +1344,20 @@
           "495 Linux-Tests auf 0.46.51 bestanden; anschließend fünf betroffene Cache-/Abbruchtests mit gemeinsamer Bereitschaftsabfrage lokal in 0,354 s bestanden."
         ]
       }
+    },
+    {
+      "id": "editor-export-safety",
+      "summary": "CoverWell, ChapterSection und LyricsSection exportieren per try? Data.write direkt auf bestätigte Ziele: Fehler verschwinden, vorhandene Dateien haben keine Sicherung und keinen geprüften atomaren Austausch. Gemeinsamen öffentlichen Core-Exportweg über AtomicFileRewrite und TrashBackup schaffen und drei App-Aufrufer umstellen.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/CoverWell.swift",
+        "App/Sources/TagExplosionApp/ChapterSection.swift",
+        "App/Sources/TagExplosionApp/FixedFieldSections.swift",
+        "Sources/TagExplosionCore/AtomicFileRewrite.swift"
+      ],
+      "priority": 2,
+      "state": "pending",
+      "noted_at": "2026-09-08T05:33:04+02:00",
+      "campaign_id": "20260908T002532864338+0200"
     }
   ]
 }

@@ -149,7 +149,10 @@ struct ImageBatchEditorView: View {
 
     /// Gemeinsamer Bewertungszustand der Auswahl (Abbildung in `RatingChoice`,
     /// dort auch getestet). „— verschieden —" auszuwählen ändert nichts.
-    private var ratingBinding: Binding<RatingChoice> {
+    private var ratingBinding: Binding<RatingChoice> { Self.ratingBinding(for: entries) }
+
+    /// Dasselbe Binding verwenden Ansicht und Headless-Test.
+    static func ratingBinding(for entries: [FileEntry]) -> Binding<RatingChoice> {
         Binding(
             get: { RatingChoice.choice(for: entries.map(\.imageFields.rating)) },
             set: { newValue in

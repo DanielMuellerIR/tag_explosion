@@ -79,14 +79,6 @@ struct RatingPickerTests {
         #expect(RatingChoice.mixed.label == "— verschieden —")
     }
 
-    @Test("Was die Auswahl schreibt: verschieden nichts, keine löscht, Wert setzt")
-    func batchApply() {
-        #expect(RatingChoice.mixed.ratingToApply == nil)
-        #expect(RatingChoice.none.ratingToApply == .some(nil))
-        #expect(RatingChoice.value(-1).ratingToApply == .some(-1))
-        #expect(RatingChoice.value(4).ratingToApply == .some(4))
-    }
-
     @Test("Gemischte Einträge: −1 setzen trifft alle, verschieden lässt alles stehen")
     @MainActor
     func batchBindingOnEntries() {
@@ -96,19 +88,19 @@ struct RatingPickerTests {
             FileEntry(url: URL(fileURLWithPath: "/tmp/c.jpg"), loaded: .image(ImageCoreReading(fields: ImageCoreFields(rating: -1)))),
         ]
         #expect(RatingChoice.choice(for: entries.map(\.imageFields.rating)) == .mixed)
-        // Dieselbe Logik wie im Binding-Setter des Batch-Editors.
-        func apply(_ choice: RatingChoice) {
-            guard let rating = choice.ratingToApply else { return }
-            for entry in entries { entry.imageFields.rating = rating }
-        }
-        apply(.mixed)
+        let binding = ImageBatchEditorView.ratingBinding(for: entries)
+        #expect(binding.wrappedValue == .mixed)
+        binding.wrappedValue = .mixed
         #expect(entries.map(\.imageFields.rating) == [nil, 5, -1])
         #expect(entries.map(\.isDirty) == [false, false, false])
-        apply(.value(-1))
+        binding.wrappedValue = .value(-1)
         #expect(entries.map(\.imageFields.rating) == [-1, -1, -1])
         #expect(RatingChoice.choice(for: entries.map(\.imageFields.rating)) == .value(-1))
         #expect(entries.map(\.isDirty) == [true, true, false])
-        apply(.none)
+        binding.wrappedValue = .value(4)
+        #expect(entries.map(\.imageFields.rating) == [4, 4, 4])
+        #expect(binding.wrappedValue == .value(4))
+        binding.wrappedValue = .none
         #expect(entries.map(\.imageFields.rating) == [nil, nil, nil])
         #expect(RatingChoice.choice(for: entries.map(\.imageFields.rating)) == .none)
     }
