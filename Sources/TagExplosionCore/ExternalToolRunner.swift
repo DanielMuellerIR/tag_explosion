@@ -248,6 +248,12 @@ public enum ExternalToolRunner {
         for descriptor in Set(descriptors + [outputFD, errorFD]) where descriptor > STDERR_FILENO {
             try require(posix_spawn_file_actions_addclose(&actions, descriptor))
         }
+        #if os(Linux)
+        // Erst nach dup2 schließen: Das Werkzeug braucht nur stdin/out/err.
+        // Fremde Schreib-FDs würden Dateien im Kind weiter offen halten und
+        // können parallele Skriptstarts mit ETXTBSY (Text file busy) verhindern.
+        try require(posix_spawn_file_actions_addclosefrom_np(&actions, STDERR_FILENO + 1))
+        #endif
         try require(posix_spawnattr_setpgroup(&attributes, 0))
         var flags = Int16(POSIX_SPAWN_SETPGROUP)
         #if canImport(Darwin)

@@ -165,3 +165,27 @@ Erneute Validierung am 2026-09-08: Der unveränderte Commit `499d7bd`
 (0.46.25) bestand 477 Tests in 22,166 Sekunden reiner Testzeit unter
 Swift 6.0. Wieder mit zwei CPU-Kernen, eigenem Benutzer und frisch erzeugten
 Fixtures; Exit-Code 0, Container automatisch entfernt.
+
+
+## Fremde Dateideskriptoren bei Werkzeugstarts
+
+Ein Linux-Lauf von `09293aa` (0.46.34) scheiterte am 2026-09-08 in
+`MediaInfoCacheTests.demandAndCache` mit POSIX 26 (`Text file busy`):
+484 Tests, ein Fehler. Der Linux-Zweig von `ExternalToolRunner.spawn`
+schloss nur seine eigenen Pipes. Ein gleichzeitig offener Schreibdeskriptor
+konnte deshalb nach `posix_spawn` im Werkzeug weiterleben. War dessen Datei
+ein später gestartetes Testskript, verweigerte Linux dessen Ausführung.
+
+Ein kontrollierter Versuch mit dem echten Prozessstarter reproduzierte
+POSIX 26: Skript zum Schreiben öffnen, wartendes Werkzeug starten,
+Schreibdeskriptor im Elternprozess schließen, Skript ausführen. Seit der
+Korrektur schließt Linux nach den `dup2`-Aktionen alle Deskriptoren ab 3
+über `posix_spawn_file_actions_addclosefrom_np`; derselbe Versuch gelingt.
+macOS verwendet bereits `POSIX_SPAWN_CLOEXEC_DEFAULT`. Der Regressionstest
+prüft die Grenze direkt mit einem bewusst vererbbaren Schreibdeskriptor,
+ohne ein zeitabhängiges Rennen zu benötigen.
+
+Validierung der Korrektur auf `b89b90c` plus Prozessstarter und Regressionstest:
+485 Linux-Tests bestanden in 33,365 Sekunden (Swift 6.0, zwei CPU-Kerne,
+eigener Benutzer, frische Fixtures), Exit-Code 0. Auf macOS bestanden
+491 Core-Tests in 9,147 Sekunden. Der Linux-Container wurde automatisch entfernt.

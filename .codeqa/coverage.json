@@ -488,27 +488,19 @@
       "risk": "high",
       "priority": 9,
       "reason": "Gemeinsame Datei- und Verzeichniserkennung steuert App, CLI und Archive; Fehlklassifikation wirkt breit.",
-      "state": "in_progress",
+      "state": "completed",
       "last_run": {
-        "campaign_id": "20260815T135107310106+0200",
-        "completed_at": "2026-08-15T15:17:59+02:00",
-        "observed_head": "cea778a6076af7166d88fbe3e6557db4a7b2d0c6",
-        "content_sha256": "e33c13dbc24c8b292e8eb4df4e63d885d66ad3fd7cac1c88c1a7345e5dc59031",
+        "campaign_id": "20260908T002532864338+0200",
+        "completed_at": "2026-09-08T03:21:39+02:00",
+        "observed_head": "b89b90cf358c9c028302e2ff3fcc9513d0bf15b2",
+        "content_sha256": "1bf4e2e30acc16506acf19e65ecafa9ca206ae8c5668418cc95b8bf437c266ef",
         "file_count": 2,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "MediaFormats delegiert XML-Klassifikation nun an den streamingfähigen, namensraumtreuen Rechnungs-Sniff; reguläre-Datei-Filter, Kanonisierung, Deduplizierung und Sortierung bleiben unverändert.",
+        "summary": "Formatregister, Erkennung und Aufrufgrenzen geprüft; XMP/NFO-Endungsschreibweise über Pfadindex und Dateiidentität konsistent mit Backend aufgelöst. Vorher vier Testfehler, bestehender Test auf vier Formatvarianten erweitert; Finder-Alias-Kommentar korrigiert.",
         "tests": [
-          "swift test --filter MediaFormatsTests|sniffReadsPastLongPreamble|sniffRequiresInvoiceNamespace|mediaFormatsAcceptsOnlyInvoiceXML: 4 Tests in 2 Suites bestanden",
-          "Vollständige Theme-Suite: 132 Tests in 13 Suites; App: 27 Tests in 3 Suites"
+          "swift test: 490 Tests, 7.072 s, Exit 0"
         ]
-      },
-      "active_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "started_at": "2026-09-08T03:12:07+02:00",
-        "required_review": "delta-plus-boundaries",
-        "status_at_start": "changed",
-        "covered_pending_paths": []
       }
     },
     {
@@ -1202,9 +1194,15 @@
         "Tests/Support/ProcessSupport.swift"
       ],
       "priority": 9,
-      "state": "pending",
+      "state": "in_progress",
       "noted_at": "2026-09-08T03:17:36+02:00",
-      "campaign_id": "20260908T002532864338+0200"
+      "campaign_id": "20260908T002532864338+0200",
+      "started_at": "2026-09-08T03:21:51+02:00",
+      "active_run": {
+        "campaign_id": "20260908T002532864338+0200",
+        "started_at": "2026-09-08T03:21:51+02:00",
+        "observed_head": "b89b90cf358c9c028302e2ff3fcc9513d0bf15b2"
+      }
     }
   ]
 }

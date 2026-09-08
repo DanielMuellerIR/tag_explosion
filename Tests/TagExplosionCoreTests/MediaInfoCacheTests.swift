@@ -1,6 +1,11 @@
 import Foundation
 import TagExplosionTestSupport
 import Testing
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 @testable import TagExplosionCore
 
 @Suite("MediaInfo Bedarf, Cache und Abbruch", .serialized)
@@ -9,6 +14,25 @@ struct MediaInfoCacheTests {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
+    }
+
+    @Test("Werkzeuge erben keine fremden offenen Dateien")
+    func closesUnrelatedDescriptors() throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("open-writer")
+        let original = open(file.path, O_CREAT | O_WRONLY, 0o600)
+        #expect(original >= 0)
+        guard original >= 0 else { return }
+        defer { close(original) }
+        // Eine hohe Nummer vermeidet zufällige Wiederverwendung durch die Shell.
+        // F_DUPFD setzt bewusst kein CLOEXEC: Der Starter muss selbst aufräumen.
+        let descriptor = fcntl(original, F_DUPFD, 100)
+        #expect(descriptor >= 100)
+        guard descriptor >= 100 else { return }
+        defer { close(descriptor) }
+        _ = try ExternalToolRunner.run("/bin/sh", ["-c",
+            "if [ -e /dev/fd/\"$1\" ]; then exit 23; fi", "test", String(descriptor)])
     }
 
     @Test("Fake-Werkzeug zählt JSON/Text, gemeinsame Anfrage, Invalidierung und Cache-Grenze")

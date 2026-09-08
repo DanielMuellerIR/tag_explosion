@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.36 — 2026-09-08
+
+- Unter Linux erben Metadaten-Werkzeuge keine fremden offenen Dateien mehr.
+  Das verhindert unter anderem `Text file busy` bei parallelen Skriptstarts;
+  stdin, stdout und stderr bleiben wie vorgesehen verbunden.
+
 ## 0.46.35 — 2026-09-08
 
 - Die Ordnererkennung zeigt mitgelesene `.XMP`- und `.NFO`-Dateien auf
