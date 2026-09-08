@@ -126,9 +126,10 @@ struct TagRulesSheet: View {
 
     /// Eine Zeile der Vorschau: ein Feld einer Datei.
     private struct PreviewRow: Identifiable {
-        let file: String
+        let url: URL
         let change: TagFieldChange
-        var id: String { "\(file)\u{0}\(change.field)" }
+        var file: String { url.lastPathComponent }
+        var id: String { "\(url.path)\u{0}\(change.field)" }
     }
 
     /// Das Dokument, wie es Engine und Speichern sehen (Feldnamen kanonisch).
@@ -141,6 +142,8 @@ struct TagRulesSheet: View {
     }
 
     var body: some View {
+        // Tabelle, Zusammenfassung und Knopf verwenden denselben Plan.
+        let result = planResult
         VStack(alignment: .leading, spacing: 12) {
             Text("Regeln anwenden")
                 .font(.title3.weight(.semibold))
@@ -160,8 +163,8 @@ struct TagRulesSheet: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .frame(minHeight: 220)
-            previewTable
-            footer
+            previewTable(result)
+            footer(result)
         }
         .padding(20)
         .frame(minWidth: 860, idealWidth: 940, minHeight: 640)
@@ -290,13 +293,13 @@ struct TagRulesSheet: View {
 
     // MARK: Vorschau
 
-    private var previewTable: some View {
+    private func previewTable(_ result: Result<[TagRulePlan], Error>) -> some View {
         let rows: [PreviewRow]
         var planError: String?
-        switch planResult {
+        switch result {
         case .success(let plans):
             rows = plans.flatMap { plan in
-                plan.changes.map { PreviewRow(file: plan.url.lastPathComponent, change: $0) }
+                plan.changes.map { PreviewRow(url: plan.url, change: $0) }
             }
         case .failure(let error):
             rows = []
@@ -329,9 +332,10 @@ struct TagRulesSheet: View {
         }
     }
 
-    private var footer: some View {
-        HStack {
-            if case .success(let plans) = planResult {
+    private func footer(_ result: Result<[TagRulePlan], Error>) -> some View {
+        let hasChanges = (try? result.get().isEmpty) == false
+        return HStack {
+            if case .success(let plans) = result {
                 let changes = plans.reduce(0) { $0 + $1.changes.count }
                 Text("\(changes) Änderungen in \(plans.count) Dateien")
                     .font(.caption)
@@ -344,11 +348,6 @@ struct TagRulesSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(isApplying || !hasChanges)
         }
-    }
-
-    private var hasChanges: Bool {
-        if case .success(let plans) = planResult { return !plans.isEmpty }
-        return false
     }
 
     private func apply() {

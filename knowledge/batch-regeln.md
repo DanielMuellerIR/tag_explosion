@@ -72,3 +72,18 @@ App (`TagRulesSheet.swift`, `TagRulesActions.swift`).
   Befehlshilfe anhängt, die bei einer kaputten Regeldatei nicht hilft.
   Lese- und Schreibfehler an Dateien sind Exit 1, ein Probelauf mit
   unlesbarer Datei ebenfalls.
+
+## Vorbereitung pro Regel (2026-09-08)
+
+`TagRuleEngine` bereitet für `replace` den regulären Ausdruck und für
+Titel-Schreibweise die Wortmenge einmal je Regel vor. Die Textfunktion
+arbeitet direkt auf jedem Wert einer Liste; das frühere Hilfswörterbuch
+pro Einzelwert und die zweite Regelausführung sind entfallen. Regeln ohne
+Bedingung benötigen kein flaches Feldwörterbuch für die Filterprüfung.
+
+Messung mit 10.000 synthetischen Audioeinträgen, jeweils zwei Titelwerten
+und einem Genre, Regeln `replace` (Regex plus Regex-Bedingung), `trim` und
+Titel-Schreibweise: 1,712 auf 0,950 Sekunden für die Planung. Die vollständig
+serialisierten Änderungspläne waren bytegleich. Der Benchmark gehört nicht
+in den normalen Testlauf; die bestehenden Mehrwert-, Bedingungs- und
+Textoperationstests prüfen das Verhalten.

@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.31 — 2026-09-08
+
+- Batch-Textregeln bereiten Regex und Wortmenge einmal je Regel vor.
+  Einzelwerte benötigen keine Hilfswörterbücher und keine zweite
+  Regelausführung mehr. Eine Messung mit 10.000 Einträgen sank von
+  1,712 auf 0,950 Sekunden bei bytegleichen Änderungsplänen.
+- Der Regel-Dialog berechnet pro Darstellung einen gemeinsamen Plan für
+  Tabelle, Zusammenfassung und Anwenden-Knopf statt drei Pläne.
+  Gleichnamige Dateien aus verschiedenen Ordnern behalten eigene Vorschauzeilen.
+
 ## 0.46.30 — 2026-09-08
 
 - Batch-Nummerierung prüft den gesamten Zahlenbereich vor der Planung.

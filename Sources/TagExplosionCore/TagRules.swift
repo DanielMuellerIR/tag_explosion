@@ -748,7 +748,9 @@ public enum TagRuleEngine {
             // Betroffene Dateien: Medienart und Bedingung auf dem AKTUELLEN
             // Stand — eine frühere Regel kann die Bedingung erst erfüllen.
             let affected = inputs.indices.filter { index in
-                applies(rule, to: inputs[index], fields: working[index].mapValues { $0.first ?? "" })
+                if let kinds = rule.kinds, !kinds.contains(inputs[index].kind) { return false }
+                guard let condition = rule.when else { return true }
+                return condition.matches(working[index].mapValues { $0.first ?? "" })
             }
             if rule.action == .number {
                 // Der gesamte Bereich muss darstellbar sein, bevor die erste
@@ -763,8 +765,9 @@ public enum TagRuleEngine {
                 for index in affected { working[index][rule.field] = [flat[index][rule.field] ?? ""] }
                 continue
             }
+            let transform = try textTransform(for: rule)
             for index in affected {
-                try applyValues(rule, to: &working[index])
+                applyValues(rule, to: &working[index], transform: transform)
             }
         }
         return inputs.indices.map { index in
@@ -781,17 +784,14 @@ public enum TagRuleEngine {
     }
 
     /// Bereinigung arbeitet pro Wert; explizites Setzen ersetzt die Liste.
-    private static func applyValues(_ rule: TagRule, to values: inout [String: [String]]) throws {
+    private static func applyValues(_ rule: TagRule, to values: inout [String: [String]],
+                                    transform: (String) -> String) {
         switch rule.action {
         case .trim, .case, .replace:
             let keys = rule.field == "*" ? values.keys.sorted() : [rule.field]
             for key in keys {
                 guard let current = values[key] else { continue }
-                values[key] = try current.map { value in
-                    var single = [key: value]
-                    try apply(rule, to: &single)
-                    return single[key] ?? ""
-                }
+                values[key] = current.map { $0.isEmpty ? $0 : transform($0) }
             }
         case .copy:
             let source = values[rule.from ?? ""] ?? []
@@ -819,52 +819,22 @@ public enum TagRuleEngine {
         return result
     }
 
-    private static func applies(_ rule: TagRule, to input: TagRuleInput, fields: [String: String]) -> Bool {
-        if let kinds = rule.kinds, !kinds.contains(input.kind) { return false }
-        if let when = rule.when, !when.matches(fields) { return false }
-        return true
-    }
-
-    /// Alle Felder, die eine `*`-Regel bearbeitet: die vorhandenen mit Wert.
-    private static func targetFields(_ rule: TagRule, in fields: [String: String]) -> [String] {
-        rule.field == "*" ? fields.keys.sorted() : [rule.field]
-    }
-
-    /// Eine Regel (außer `number`) auf ein Feld-Wörterbuch anwenden.
-    static func apply(_ rule: TagRule, to fields: inout [String: String]) throws {
+    /// Regex und Wortmenge einmal je Regel vorbereiten. Jeder Feldwert
+    /// durchläuft danach dieselbe Textfunktion, ohne ein Hilfswörterbuch.
+    private static func textTransform(for rule: TagRule) throws -> (String) -> String {
         switch rule.action {
-        case .set:
-            fields[rule.field] = TagRuleText.expandPlaceholders(rule.value ?? "", fields: fields)
-        case .copy:
-            let source = fields[rule.from ?? ""] ?? ""
-            let target = fields[rule.field] ?? ""
-            if rule.onlyIfEmpty == true, !target.trimmingCharacters(in: .whitespaces).isEmpty { return }
-            // Eine leere Quelle lässt das Ziel in Ruhe — wie `tagx set -c`.
-            guard !source.isEmpty else { return }
-            fields[rule.field] = source
+        case .trim: return TagRuleText.trim
         case .replace:
-            for key in targetFields(rule, in: fields) {
-                guard let current = fields[key], !current.isEmpty else { continue }
-                fields[key] = try TagRuleText.replace(
-                    in: current, search: rule.search ?? "", replacement: rule.replacement ?? "",
-                    regex: rule.regex == true, ignoreCase: rule.ignoreCase == true)
-            }
+            return try TagRuleText.replacement(search: rule.search ?? "", replacement: rule.replacement ?? "",
+                                               regex: rule.regex == true, ignoreCase: rule.ignoreCase == true)
         case .case:
-            for key in targetFields(rule, in: fields) {
-                guard let current = fields[key], !current.isEmpty else { continue }
-                fields[key] = TagRuleText.changeCase(
-                    current, mode: rule.mode ?? .title,
-                    smallWords: rule.smallWords ?? TagRule.defaultSmallWords)
+            let mode = rule.mode ?? .title
+            if mode == .title {
+                let words = Set((rule.smallWords ?? TagRule.defaultSmallWords).map { $0.lowercased() })
+                return { TagRuleText.titleCase($0, smallWords: words) }
             }
-        case .trim:
-            for key in targetFields(rule, in: fields) {
-                guard let current = fields[key], !current.isEmpty else { continue }
-                fields[key] = TagRuleText.trim(current)
-            }
-        case .remove:
-            fields[rule.field] = ""
-        case .number:
-            break // läuft über alle Dateien, siehe number(_:...)
+            return { TagRuleText.changeCase($0, mode: mode, smallWords: []) }
+        default: return { $0 }
         }
     }
 
@@ -958,7 +928,13 @@ public enum TagRuleText {
     /// (`$1`). Ein ungültiger Ausdruck wirft `invalidRule` (ohne Nummer).
     public static func replace(in text: String, search: String, replacement: String,
                                regex: Bool, ignoreCase: Bool) throws -> String {
-        guard !search.isEmpty else { return text }
+        try Self.replacement(search: search, replacement: replacement, regex: regex, ignoreCase: ignoreCase)(text)
+    }
+
+    /// Eine vorbereitete Ersetzung kann alle Werte eines Stapels bearbeiten.
+    static func replacement(search: String, replacement: String,
+                            regex: Bool, ignoreCase: Bool) throws -> (String) -> String {
+        guard !search.isEmpty else { return { $0 } }
         if regex {
             let expression: NSRegularExpression
             do {
@@ -968,12 +944,14 @@ public enum TagRuleText {
                 throw TagRulesError.invalidRule(
                     index: 0, line: nil, reason: "\"search\" is not a valid regular expression: \(search)")
             }
-            let range = NSRange(text.startIndex..., in: text)
-            return expression.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
+            return { text in
+                let range = NSRange(text.startIndex..., in: text)
+                return expression.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
+            }
         }
         var options: String.CompareOptions = [.literal]
         if ignoreCase { options.insert(.caseInsensitive) }
-        return text.replacingOccurrences(of: search, with: replacement, options: options)
+        return { $0.replacingOccurrences(of: search, with: replacement, options: options) }
     }
 
     /// Leerzeichen, Zeilenumbrüche und Steuerzeichen am Rand entfernen;
