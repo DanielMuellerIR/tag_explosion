@@ -294,7 +294,7 @@ public enum PlaylistTool {
     /// Löst einen Playlist-Pfad auf: `file://`-URIs werden entpackt, Netz-
     /// adressen erkannt, relative Pfade an `base` gehängt. Rückschrägstriche
     /// (Windows-Playlists) gelten als Pfadtrenner.
-    static func resolve(location: String, base: URL) -> (path: String?, isRemote: Bool) {
+    static func resolve(location: String, base: URL, locationIsURI: Bool = false) -> (path: String?, isRemote: Bool) {
         let trimmed = location.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return (nil, false) }
         // Windows-Laufwerk (`C:\Musik\…`) oder UNC (`\\server\share\…`): ein
@@ -313,9 +313,9 @@ public enum PlaylistTool {
             return (nil, true)
         }
         var path = trimmed.replacingOccurrences(of: "\\", with: "/")
-        // Relative URIs (xspf) sind prozentkodiert; ein unkodierter Pfad mit
-        // "%" bleibt so, wie er ist, wenn das Dekodieren nichts ändert.
-        if path.contains("%"), let decoded = path.removingPercentEncoding { path = decoded }
+        // Nur XSPF verwendet relative URIs. In M3U, PLS und CUE ist ein
+        // Prozentzeichen Teil des Dateinamens, auch in einer Folge wie %20.
+        if locationIsURI, let decoded = path.removingPercentEncoding { path = decoded }
         if path.hasPrefix("/") {
             return (URL(fileURLWithPath: path).standardizedFileURL.path, false)
         }
@@ -363,8 +363,8 @@ public enum PlaylistTool {
     static func makeEntry(number: Int, location: String, base: URL, title: String,
                           performer: String, album: String = "",
                           durationMilliseconds: Int? = nil, startMilliseconds: Int? = nil,
-                          isrc: String = "") -> PlaylistEntry {
-        let resolved = resolve(location: location, base: base)
+                          isrc: String = "", locationIsURI: Bool = false) -> PlaylistEntry {
+        let resolved = resolve(location: location, base: base, locationIsURI: locationIsURI)
         return PlaylistEntry(
             number: number, location: location, resolvedPath: resolved.path,
             exists: fileExists(resolved.path), isRemote: resolved.isRemote,

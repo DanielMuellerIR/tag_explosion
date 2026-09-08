@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.39 — 2026-09-08
+
+- Playlist-Verweise erhalten Prozentzeichen, Raute und Doppelpunkt in
+  Dateinamen. Nicht eindeutig darstellbare Pfade lehnt der M3U-/PLS-Export
+  vor dem Überschreiben ab; XSPF speichert diese Namen als kodierte URIs.
+
 ## 0.46.38 — 2026-09-08
 
 - M3U und PLS lesen ihre Zeilenstruktur für mehrere Titeländerungen gemeinsam.

@@ -43,6 +43,7 @@ public enum PlaylistExporter {
         case unsupportedFormat(PlaylistFormat)
         case outputExists(String)
         case nothingToExport
+        case unrepresentablePath(String, format: PlaylistFormat)
 
         public var errorDescription: String? {
             switch self {
@@ -52,6 +53,8 @@ public enum PlaylistExporter {
                 return "Output file already exists: \(path)"
             case .nothingToExport:
                 return "No files to export"
+            case .unrepresentablePath(let path, let format):
+                return "Path cannot be represented in .\(format.rawValue); use XSPF: \(path)"
             }
         }
     }
@@ -83,7 +86,12 @@ public enum PlaylistExporter {
             let canonical = url.standardizedFileURL
             return asURI ? canonical.absoluteString : canonical.path
         }
-        let relative = TagArchiveIO.relativePath(of: url, to: playlist.deletingLastPathComponent())
+        var relative = TagArchiveIO.relativePath(of: url, to: playlist.deletingLastPathComponent())
+        // Ein lokaler Name darf weder als M3U-Kommentar noch als URI-Schema
+        // gelesen werden. ./ bleibt ein relativer Pfad und löst beides auf.
+        if relative.hasPrefix("#") || relative.split(separator: "/").first?.contains(":") == true {
+            relative = "./" + relative
+        }
         guard asURI else { return relative }
         // Relative URI: jedes Segment prozentkodiert, "/" bleibt Trenner.
         return relative.split(separator: "/", omittingEmptySubsequences: false)
@@ -109,6 +117,15 @@ public enum PlaylistExporter {
 
     public static func render(items: [Item], format: PlaylistFormat, playlist: URL,
                               absolutePaths: Bool, title: String) throws -> Data {
+        if format == .m3u || format == .m3u8 || format == .pls {
+            for item in items {
+                let path = location(of: item.url, playlist: playlist, absolute: absolutePaths, asURI: false)
+                guard !path.contains(where: \.isNewline), !path.contains("\\"),
+                      path == path.trimmingCharacters(in: .whitespacesAndNewlines) else {
+                    throw ExportError.unrepresentablePath(item.url.path, format: format)
+                }
+            }
+        }
         switch format {
         case .m3u, .m3u8:
             var lines = ["#EXTM3U"]

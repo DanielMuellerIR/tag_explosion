@@ -54,7 +54,7 @@ enum XSPFPlaylistFile: PlaylistBackend {
                 title: XMLTools.text(of: "title", in: track),
                 performer: XMLTools.text(of: "creator", in: track),
                 album: XMLTools.text(of: "album", in: track),
-                durationMilliseconds: duration.flatMap { $0 >= 0 ? $0 : nil }))
+                durationMilliseconds: duration.flatMap { $0 >= 0 ? $0 : nil }, locationIsURI: true))
         }
         let fields = PlaylistCoreFields(
             title: XMLTools.text(of: "title", in: root),

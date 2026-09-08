@@ -68,8 +68,8 @@ sagt „document format" — bewusst wiederverwendet statt eines neuen Falls).
   `TagFile` die Länge, wenn die Datei existiert. Fehlt sie, bleibt die Dauer
   unbekannt (`unknownDurationCount`), die Gesamtdauer ist dann unvollständig.
 - Pfade: relativ zum Ordner der Playlist, `file://`-URIs werden entpackt,
-  Rückschrägstriche gelten als Trenner, Prozentkodierung (xspf) wird
-  aufgelöst; `http(s)` gilt als `isRemote` und wird nicht auf Existenz geprüft.
+  Rückschrägstriche gelten als Trenner; nur relative XSPF-URIs werden
+  prozentdekodiert, `%20` bleibt in M3U/PLS/CUE ein Dateinamenbestandteil; `http(s)` gilt als `isRemote` und wird nicht auf Existenz geprüft.
 - **`/private/tmp`-Falle in Tests:** `standardizedFileURL` kürzt `/private/tmp`
   auf `/tmp`, wenn der Pfad existiert — für fehlende Dateien bleibt
   `/private/tmp`. Tests vergleichen deshalb `resolvedPath` mit
@@ -117,3 +117,12 @@ Ersetzen und Leeren, BOM/CRLF und Kommentaren: M3U 2,284 → 0,274 Sekunden,
 PLS 8,163 → 0,329 Sekunden. Beide Ausgaben waren bytegleich mit dem
 vorherigen Ergebnis. Der bestehende PLS-Roundtrip prüft zusätzlich das
 Einfügen und Ersetzen an derselben ursprünglichen Zeilenposition.
+
+
+Exportierte relative Namen mit führender Raute oder einem Doppelpunkt im
+ersten Segment erhalten `./`, damit sie weder Kommentar noch URI-Schema
+werden. Textformate können Zeilenumbrüche, echte Rückschrägstriche und
+äußeren Leerraum im Pfad nicht eindeutig wiedergeben. Der Export lehnt
+solche Pfade vor jeder Sicherung oder Mutation ab; XSPF kodiert sie als URI.
+Die Regressionen prüfen vorhandene Zieldateien auf unveränderte Bytes und
+lesen alle darstellbaren Dateinamen wieder auf ihre Originalpfade zurück.

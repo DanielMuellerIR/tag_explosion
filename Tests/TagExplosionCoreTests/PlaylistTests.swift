@@ -463,6 +463,46 @@ struct PlaylistTests {
         }
     }
 
+    @Test("Playlist-Export erhält Prozentzeichen, Raute und Doppelpunkt im Dateinamen")
+    func unusualFileNamesRoundtrip() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let files = try ["a%20b.mp3", "#song.mp3", "abc:song.mp3"].map { name in
+            let url = dir.appendingPathComponent(name)
+            try write("kein Audio", to: url)
+            return url
+        }
+        for format in [PlaylistFormat.m3u, .pls, .xspf] {
+            let out = dir.appendingPathComponent("list.\(format.rawValue)")
+            try PlaylistExporter.export(files: files, to: out, format: format)
+            let entries = try PlaylistTool.read(url: out).entries
+            #expect(entries.map(\.resolvedPath) == files.map { $0.standardizedFileURL.path })
+            let allExist = entries.allSatisfy { $0.exists }
+            #expect(allExist)
+        }
+    }
+
+    @Test("Nicht darstellbare Textpfade werden vor dem Überschreiben abgelehnt; XSPF erhält sie")
+    func unrepresentableTextPaths() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for name in ["line\nbreak.mp3", "back\\slash.mp3", "trailing.mp3 "] {
+            let input = dir.appendingPathComponent(name)
+            try write("kein Audio", to: input)
+            for format in [PlaylistFormat.m3u, .pls] {
+                let out = dir.appendingPathComponent("list.\(format.rawValue)")
+                try write("original", to: out)
+                #expect(throws: PlaylistExporter.ExportError.self) {
+                    try PlaylistExporter.export(files: [input], to: out, format: format, overwrite: true)
+                }
+                #expect(try text(of: out) == "original")
+            }
+            let out = dir.appendingPathComponent(UUID().uuidString + ".xspf")
+            try PlaylistExporter.export(files: [input], to: out, format: .xspf)
+            #expect(try PlaylistTool.read(url: out).entries.first?.resolvedPath == input.standardizedFileURL.path)
+        }
+    }
+
     // MARK: - cue apply
 
     @Test("cue apply: Plan, Schreiben, No-op danach; ein Image für mehrere Tracks wird abgelehnt",
