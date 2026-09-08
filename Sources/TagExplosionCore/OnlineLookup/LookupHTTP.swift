@@ -224,12 +224,22 @@ enum LookupJSON {
 
     /// "3:45" → 225000 ms (Discogs schreibt Dauern als mm:ss).
     static func milliseconds(fromClock text: String) -> Int? {
-        let parts = text.split(separator: ":").map { Int($0.trimmingCharacters(in: .whitespaces)) }
-        guard !parts.isEmpty, parts.allSatisfy({ $0 != nil }) else { return nil }
-        let numbers = parts.compactMap { $0 }
+        let parts = text.split(separator: ":", omittingEmptySubsequences: false)
         var seconds = 0
-        for part in numbers { seconds = seconds * 60 + part }
-        return seconds * 1000
+        for part in parts {
+            guard let value = Int(part.trimmingCharacters(in: .whitespaces)), value >= 0 else { return nil }
+            let (scaled, multiplyOverflow) = seconds.multipliedReportingOverflow(by: 60)
+            let (total, addOverflow) = scaled.addingReportingOverflow(value)
+            guard !multiplyOverflow, !addOverflow else { return nil }
+            seconds = total
+        }
+        return milliseconds(fromSeconds: seconds)
+    }
+
+    /// Fremde Dauern müssen auch nach der Einheitenumrechnung darstellbar sein.
+    static func milliseconds(fromSeconds seconds: Int) -> Int? {
+        let (result, overflow) = seconds.multipliedReportingOverflow(by: 1000)
+        return seconds >= 0 && !overflow ? result : nil
     }
 
     /// Query-String mit sauberer Prozentkodierung (auch für `&`, `+`, `:`).

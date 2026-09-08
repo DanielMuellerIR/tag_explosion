@@ -293,11 +293,25 @@ struct OnlineLookupParserTests {
         }
     }
 
+    @Test("AcoustID: übergroße Dauer und Bewertung beenden den Parser nicht")
+    func acoustIDNumericBounds() throws {
+        let input = acoustIDLookupJSON.replacingOccurrences(of: "0.96", with: "1e308")
+            .replacingOccurrences(of: "\"duration\":181", with: "\"duration\":\(Int.max)")
+        let candidates = try AcoustIDClient.parseLookup(Data(input.utf8), coverArtBaseURL: caa)
+        let candidate = try #require(candidates.first)
+        #expect(candidate.score == 100)
+        #expect(candidate.tracks.first?.durationMilliseconds == nil)
+    }
+
     @Test("fpcalc-JSON: Dauer gerundet, Fingerabdruck Pflicht")
     func fpcalc() throws {
         let fp = try Fpcalc.parse(Data(#"{"duration": 181.42, "fingerprint": "AQADtEmSJEmSJ"}"#.utf8))
         #expect(fp == AudioFingerprint(durationSeconds: 181, fingerprint: "AQADtEmSJEmSJ"))
         #expect(throws: (any Error).self) { _ = try Fpcalc.parse(Data(#"{"duration": 1}"#.utf8)) }
+        for duration in ["1e308", "-1", "\"nan\"", "\"inf\""] {
+            let input = "{\"duration\": \(duration), \"fingerprint\": \"AQAD\"}"
+            #expect(throws: (any Error).self) { _ = try Fpcalc.parse(Data(input.utf8)) }
+        }
     }
 
     @Test("Hilfen: mm:ss, Query-Kodierung, führende Zahl, Jahr")
@@ -305,6 +319,9 @@ struct OnlineLookupParserTests {
         #expect(LookupJSON.milliseconds(fromClock: "3:01") == 181000)
         #expect(LookupJSON.milliseconds(fromClock: "1:02:03") == 3723000)
         #expect(LookupJSON.milliseconds(fromClock: "") == nil)
+        for invalid in ["1::2", "-1:20", "1:", "\(Int.max):00", "\(Int.max)"] {
+            #expect(LookupJSON.milliseconds(fromClock: invalid) == nil)
+        }
         #expect(LookupJSON.encodeQuery([("q", "a b&c+d"), ("fmt", "json")]) == "q=a%20b%26c%2Bd&fmt=json")
         #expect(LookupFileInfo.leadingNumber("03/12") == 3)
         #expect(LookupFileInfo.leadingNumber("x") == nil)

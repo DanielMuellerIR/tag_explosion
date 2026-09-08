@@ -70,3 +70,11 @@ für Online-Dienste.
 - In Swift-Strings gilt `„…"` mit geradem Schlusszeichen nicht: Das `"`
   beendet den String. In UI-Texten deshalb `„…“`; in Kommentaren und
   mehrzeiligen `"""`-Strings ist das gerade Zeichen unproblematisch.
+
+## Zahlen aus Antworten
+
+`LookupJSON.milliseconds` prüft Überläufe beim Lesen und Umrechnen von
+Dauern. Unbrauchbare optionale Dauern bleiben unbekannt; `Fpcalc.parse`
+meldet eine unlesbare Antwort, wenn seine Pflichtdauer nicht darstellbar ist.
+AcoustID-Bewertungen werden vor der Ganzzahlumrechnung auf 0–1 begrenzt;
+nicht endliche Werte ergeben null Punkte.

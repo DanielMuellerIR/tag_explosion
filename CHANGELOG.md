@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.55 — 2026-09-08
+
+- Online-Parser prüfen Dauern vor der Umrechnung und behandeln übergroße
+  Werte ohne Prozessabbruch. AcoustID-Bewertungen bleiben zwischen 0 und 100.
+- Discogs-Zeitangaben mit leeren oder negativen Komponenten bleiben ungültig.
+
 ## 0.46.54 — 2026-09-08
 
 - Beim Nachladen einer Online-Trackliste entscheidet die Recording-ID über

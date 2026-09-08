@@ -42,11 +42,12 @@ public enum Fpcalc {
 
     static func parse(_ data: Data) throws -> AudioFingerprint {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let duration = LookupJSON.double(object["duration"]),
+              let duration = LookupJSON.double(object["duration"]), duration >= 0,
+              let seconds = Int(exactly: duration.rounded()),
               let fingerprint = object["fingerprint"] as? String, !fingerprint.isEmpty else {
             throw TagError.toolFailed(name: toolName, exitCode: 0, stderr: "unreadable fpcalc output")
         }
-        return AudioFingerprint(durationSeconds: Int(duration.rounded()), fingerprint: fingerprint)
+        return AudioFingerprint(durationSeconds: seconds, fingerprint: fingerprint)
     }
 }
 
@@ -95,7 +96,8 @@ struct AcoustIDClient: Sendable {
         var seen: Set<String> = []
         for result in LookupJSON.array(object["results"]) {
             let acoustID = LookupJSON.string(result["id"])
-            let score = Int(((LookupJSON.double(result["score"]) ?? 0) * 100).rounded())
+            let confidence = LookupJSON.double(result["score"]) ?? 0
+            let score = confidence.isFinite ? Int((min(1, max(0, confidence)) * 100).rounded()) : 0
             for recording in LookupJSON.array(result["recordings"]) {
                 let recordingID = LookupJSON.string(recording["id"])
                 let recordingTitle = LookupJSON.string(recording["title"])
@@ -103,7 +105,7 @@ struct AcoustIDClient: Sendable {
                 let artistName = artists.map { LookupJSON.string($0["name"]) + LookupJSON.string($0["joinphrase"]) }
                     .joined().trimmingCharacters(in: .whitespaces)
                 let artistID = artists.first.map { LookupJSON.string($0["id"]) }.flatMap { $0.isEmpty ? nil : $0 }
-                let duration = LookupJSON.int(recording["duration"]).map { $0 * 1000 }
+                let duration = LookupJSON.int(recording["duration"]).flatMap { LookupJSON.milliseconds(fromSeconds: $0) }
 
                 // Releases stehen je nach `meta` flach unter dem Recording oder
                 // in den Release-Gruppen — beides einsammeln.
