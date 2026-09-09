@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.74 — 2026-09-09
+
+- Ein laufender Cover-, Kapitel- oder LRC-Export hält Beenden und
+  Fensterschließen auf. Der Export meldet sich vor seinem Hintergrundauftrag
+  an; ⌘Q antwortet erst nach dem atomaren Austausch statt mittendrin.
+- Headless-Regression dazu: Der angehaltene Export bleibt unbeantwortet, bis er
+  fertig ist (131 App-Tests).
+
 ## 0.46.73 — 2026-09-08
 
 - MediaInfo-Prozessleser laufen auf einer Dispatch-Queue. Blockierende

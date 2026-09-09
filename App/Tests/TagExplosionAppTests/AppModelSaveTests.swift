@@ -547,6 +547,68 @@ struct AppModelSaveTests {
         }
     }
 
+    // MARK: - Review-Fund 2026-09-09
+
+    /// Ein Export schreibt an einem Ziel außerhalb der Editor-Puffer. Bleibt er
+    /// unangemeldet, meldet `hasUnfinishedWork` bei sauberen Puffern nichts und
+    /// ⌘Q beendet die App zwischen Sicherung und atomarem Austausch.
+    @Test("Terminierung antwortet erst nach einem laufenden Export")
+    func terminationWaitsForRunningExportBeforeReply() async throws {
+        let model = AppModel()
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-export-terminate-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let target = folder.appendingPathComponent("cover.png")
+        let payload = Data([0x89, 0x50, 0x4E, 0x47])
+
+        let gate = ExportGate()
+        let runningExport = Task { @MainActor in
+            await model.exportData(payload, to: target) { data, url in
+                gate.holdUntilReleased()
+                try data.write(to: url)
+            }
+        }
+        #expect(await Self.waitForRunningExport(in: model))
+        // Der laufende Export allein muss das Beenden schon aufhalten; die
+        // Fenster-Registry reicht genau dieses Prädikat weiter.
+        #expect(model.hasUnfinishedWork)
+
+        var replies: [TerminationDecision] = []
+        let termination = Task { @MainActor in
+            await model.requestTermination { decision in
+                replies.append(decision)
+            }
+        }
+        await Task.yield()
+        #expect(replies.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: target.path))
+
+        gate.release()
+        await runningExport.value
+        await termination.value
+        #expect(replies.count == 1)
+        if case .terminateNow = replies.first {
+            #expect(Bool(true))
+        } else {
+            Issue.record("Terminierung wurde nicht freigegeben")
+        }
+        #expect(!model.hasRunningExports)
+        #expect(try Data(contentsOf: target) == payload)
+        #expect(model.alertMessage == nil)
+    }
+
+    /// Wartet begrenzt auf die Anmeldung des Exports. Begrenzt, damit ein
+    /// unangemeldeter Export den Test scheitern lässt statt ihn hängen zu lassen.
+    private static func waitForRunningExport(in model: AppModel) async -> Bool {
+        var attempts = 0
+        while !model.hasRunningExports, attempts < 5000 {
+            await Task.yield()
+            attempts += 1
+        }
+        return model.hasRunningExports
+    }
+
     @Test("Überlappende Öffnen-Aufträge reservieren Dateien einmal und behalten Auswahl")
     func openReservesInFlightFilesAndKeepsStableSelection() async throws {
         let root = FileManager.default.temporaryDirectory
@@ -929,6 +991,22 @@ private actor SaveGate {
         released = true
         releaseWaiters.forEach { $0.resume() }
         releaseWaiters = []
+    }
+}
+
+/// Hält den synchronen Schreiber eines Exports an. Er läuft in einem
+/// Hintergrund-Task außerhalb des MainActors, deshalb wartet er blockierend auf
+/// die Freigabe aus dem Test.
+private final class ExportGate: @unchecked Sendable {
+    private let releaseSignal = DispatchSemaphore(value: 0)
+
+    /// Aus dem Schreiber heraus aufgerufen: wartet auf `release()`.
+    func holdUntilReleased() {
+        releaseSignal.wait()
+    }
+
+    func release() {
+        releaseSignal.signal()
     }
 }
 

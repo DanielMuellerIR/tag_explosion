@@ -248,13 +248,45 @@ final class AppModel {
         entries.contains { $0.isSaving }
     }
 
+    /// Anzahl der Exporte, die gerade im Hintergrund schreiben. Ein Export
+    /// gehört zu keinem Editor-Puffer, ist aber trotzdem ein laufender
+    /// Schreibauftrag: Zwischen Sicherung, Prüfkopie und atomarem Austausch
+    /// darf die App nicht beendet werden (Review-Fund 2026-09-09).
+    private(set) var runningExportCount = 0
+    private var exportWaiters: [CheckedContinuation<Void, Never>] = []
+
+    var hasRunningExports: Bool { runningExportCount > 0 }
+
+    /// Meldet einen Export an, bevor sein Hintergrundauftrag startet.
+    func beginExport() {
+        runningExportCount += 1
+    }
+
+    /// Meldet ihn wieder ab und weckt alle, die auf sein Ende gewartet haben.
+    func endExport() {
+        guard runningExportCount > 0 else { return }
+        runningExportCount -= 1
+        guard runningExportCount == 0 else { return }
+        let waiters = exportWaiters
+        exportWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    /// Wartet, bis kein Export mehr schreibt. Ohne laufenden Export kehrt der
+    /// Aufruf sofort zurück.
+    func waitUntilExportsFinished() async {
+        guard hasRunningExports else { return }
+        await withCheckedContinuation { exportWaiters.append($0) }
+    }
+
     /// Hat dieses Fenster etwas zu verlieren? Ungespeicherte Änderungen, ein
-    /// laufendes Speichern oder ein offener Dialog — jedes davon muss das
-    /// Beenden aufhalten. Als benannte Eigenschaft, weil `WindowSessions` das
-    /// Prädikat an zwei Stellen braucht (Rundenguard und Schlussabgleich) und
-    /// ein Auseinanderlaufen die App unbeendbar machte (Review-Fund 2026-08-20).
+    /// laufendes Speichern, ein laufender Export oder ein offener Dialog —
+    /// jedes davon muss das Beenden aufhalten. Als benannte Eigenschaft, weil
+    /// `WindowSessions` das Prädikat an zwei Stellen braucht (Rundenguard und
+    /// Schlussabgleich) und ein Auseinanderlaufen die App unbeendbar machte
+    /// (Review-Fund 2026-08-20).
     var hasUnfinishedWork: Bool {
-        hasDirtyEntries || hasSavingEntries || isDestructiveActionLocked
+        hasDirtyEntries || hasSavingEntries || hasRunningExports || isDestructiveActionLocked
     }
 
     func saveAll() async {
@@ -345,8 +377,9 @@ final class AppModel {
     // MARK: - Ungespeicherte Änderungen vor destruktiven Aktionen
 
     /// Startet genau eine geschützte Aktion. Zuerst warten wir auf alle schon
-    /// laufenden Saves derselben Dateien; erst dann entscheiden wir anhand der
-    /// aktuellen Puffer, ob ein Save/Discard/Cancel-Dialog nötig ist.
+    /// laufenden Saves derselben Dateien und auf laufende Exporte; erst dann
+    /// entscheiden wir anhand der aktuellen Puffer, ob ein
+    /// Save/Discard/Cancel-Dialog nötig ist.
     func requestDestructiveAction(
         title: String,
         message: String,
@@ -366,6 +399,10 @@ final class AppModel {
         defer { isPreparingDestructiveAction = false }
         let targets = uniqueEntries(affectedEntries)
         await waitForSaves(in: targets)
+        // Ein Export schreibt an einem Ziel außerhalb der Editor-Puffer und
+        // taucht deshalb in `waitForSaves` nicht auf. Beenden und Schließen
+        // müssen trotzdem auf seinen atomaren Austausch warten.
+        await waitUntilExportsFinished()
 
         let dirty = targets.filter(\.isDirty)
         guard !dirty.isEmpty else {
