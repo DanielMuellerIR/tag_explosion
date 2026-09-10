@@ -256,6 +256,11 @@ struct Parse: ParsableCommand {
     /// Schreibt die geparsten Werte auf dem bestehenden Weg der Medienart:
     /// Lese-Schnappschuss, No-op-Erkennung, Papierkorb-Sicherung, atomarer
     /// Austausch. Liefert die Zahl der geänderten Felder.
+    ///
+    /// `expecting` ist der Stempel, aus dem der Aufrufer geplant hat, und geht
+    /// deshalb in JEDEN Zweig: Ein Schnappschuss, der ihn nicht kennt, liest
+    /// eine inzwischen fremde Datei einfach neu ein und schreibt die aus dem
+    /// alten Stand geplanten Werte hinein (Review-Fund 2026-09-10).
     static func write(fields parsed: [String: String], to url: URL, ruleValues: [String: [String]]? = nil, expecting: FileStamp? = nil, imageReading: ImageCoreReading? = nil) throws -> Int {
         switch MediaFormats.kind(of: url) {
         case .audio:
@@ -310,7 +315,8 @@ struct Parse: ParsableCommand {
             return parsed.count
 
         case .ebook:
-            let snapshot = try EbookTool.readSnapshot(url: url, includeCover: false)
+            let snapshot = try EbookTool.readSnapshot(url: url, includeCover: false,
+                                                      expecting: expecting)
             let original = snapshot.value.fields
             var fields = original
             do {
@@ -338,7 +344,8 @@ struct Parse: ParsableCommand {
             return parsed.count
 
         case .document:
-            let snapshot = try DocumentTool.readSnapshot(url: url, includeCover: false)
+            let snapshot = try DocumentTool.readSnapshot(url: url, includeCover: false,
+                                                         expecting: expecting)
             let original = snapshot.value.fields
             var fields = original
             do {
@@ -367,7 +374,7 @@ struct Parse: ParsableCommand {
         case .sidecar:
             // Nur NFO-Felder haben einen Speicherort; bei Untertiteln steckt
             // die Sprache im Dateinamen selbst (Richtung `rename`).
-            let snapshot = try SidecarTool.readSnapshot(url: url)
+            let snapshot = try SidecarTool.readSnapshot(url: url, expecting: expecting)
             guard case .nfo(let contents) = snapshot.value, !contents.isURLOnly else {
                 throw ValidationError("Not a taggable media file: \(url.path)")
             }

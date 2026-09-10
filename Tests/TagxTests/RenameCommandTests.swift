@@ -5,9 +5,46 @@ import Foundation
 import TagExplosionTestSupport
 import Testing
 import TagExplosionCore
+@testable import tagx
 
 @Suite("tagx rename/parse", .serialized)
 struct RenameCommandTests {
+
+    /// `tagx apply` plant aus einem Lesestand und schreibt danach über
+    /// `Parse.write`. Kennt ein Zweig den Stempel dieser Planung nicht, liest
+    /// er die inzwischen fremde Datei einfach neu ein und schreibt die aus dem
+    /// alten Stand geplanten Werte hinein. Audio und Bild prüften das schon;
+    /// E-Book, Dokument und NFO-Sidecar reichten `expecting` nicht weiter.
+    @Test("write: veralteter Stempel wird in jeder Medienart abgelehnt",
+          .enabled(if: TagxFixtures.isAvailable, "Fixtures fehlen (ffmpeg?)"),
+          arguments: ["book2.epub", "doc.docx", "film.nfo"])
+    func writeRejectsStaleStamp(fixture: String) throws {
+        let target: URL
+        let cleanup: URL
+        if fixture == "film.nfo" {
+            let directory = try makeDirectory("stale-nfo")
+            cleanup = directory
+            target = directory.appendingPathComponent("film.nfo")
+            try "<movie>\n    <title>Alt</title>\n</movie>\n"
+                .write(to: target, atomically: true, encoding: .utf8)
+        } else {
+            target = try MediaTestFixtures.workingCopy(fixture)
+            cleanup = target.deletingLastPathComponent()
+        }
+        defer { try? FileManager.default.removeItem(at: cleanup) }
+
+        let planned = try #require(FileStamp.current(of: target))
+        // Fremde Änderung zwischen Planung und Schreiben.
+        var bytes = try Data(contentsOf: target)
+        bytes.append(contentsOf: [0x20])
+        try bytes.write(to: target)
+        let foreign = try Data(contentsOf: target)
+
+        #expect(throws: TagError.fileChangedOnDisk(path: target.path)) {
+            try Parse.write(fields: ["TITLE": "Neuer Titel"], to: target, expecting: planned)
+        }
+        #expect(try Data(contentsOf: target) == foreign)
+    }
 
     private func makeDirectory(_ label: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory

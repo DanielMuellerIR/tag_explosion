@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.78 — 2026-09-10
+
+- `tagx apply` bricht jetzt auch bei E-Books, Dokumenten und NFO-Sidecars ab,
+  wenn die Datei sich zwischen Regelplanung und Schreiben geändert hat. Bisher
+  las der Schreibweg dieser drei Medienarten die fremde Datei einfach neu ein
+  und schrieb die aus dem alten Stand geplanten Werte hinein; Audio und Bild
+  prüften den Stempel bereits.
+- Regression dazu über alle drei Medienarten (510 Tests).
+
 ## 0.46.77 — 2026-09-10
 
 - Der Bild-Schnappschuss (Dateistempel vor und nach dem Lesen, Prüfung der
