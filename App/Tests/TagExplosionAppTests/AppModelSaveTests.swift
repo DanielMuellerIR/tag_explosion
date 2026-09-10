@@ -632,6 +632,42 @@ struct AppModelSaveTests {
         #expect(model.alertMessage == nil)
     }
 
+    /// Der Playlist-Export ist der heikelste der drei: Eine vorhandene Datei
+    /// wird erst in den Papierkorb gesichert und dann atomar ersetzt. Genau
+    /// dazwischen darf Beenden nicht durchgehen.
+    @Test("Terminierung antwortet erst nach einem laufenden Playlist-Export")
+    func terminationWaitsForRunningPlaylistExport() async throws {
+        let model = AppModel()
+        let target = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-playlist-\(UUID().uuidString).m3u")
+
+        let gate = ExportGate()
+        let runningExport = Task { @MainActor in
+            await model.exportPlaylist(files: [URL(fileURLWithPath: "/tmp/lied.mp3")],
+                                       to: target, format: .m3u,
+                                       absolutePaths: false, title: "") { _, _ in
+                gate.holdUntilReleased()
+                return []
+            }
+        }
+        #expect(await Self.waitForRunningExport(in: model))
+        #expect(model.hasUnfinishedWork)
+
+        var replies: [TerminationDecision] = []
+        let termination = Task { @MainActor in
+            await model.requestTermination { replies.append($0) }
+        }
+        await Task.yield()
+        #expect(replies.isEmpty)
+
+        gate.release()
+        await runningExport.value
+        await termination.value
+        #expect(replies.count == 1)
+        #expect(!model.hasRunningExports)
+        #expect(model.alertMessage == nil)
+    }
+
     /// Wartet begrenzt auf die Anmeldung des Exports. Begrenzt, damit ein
     /// unangemeldeter Export den Test scheitern lässt statt ihn hängen zu lassen.
     private static func waitForRunningExport(in model: AppModel) async -> Bool {

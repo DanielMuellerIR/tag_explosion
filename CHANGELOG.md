@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.76 — 2026-09-10
+
+- Auch der Playlist-Export hält Beenden und Fensterschließen auf. Er sichert
+  eine vorhandene Playlist in den Papierkorb und ersetzt sie atomar; ⌘Q konnte
+  bisher genau dazwischen durchgehen. Damit melden sich alle drei Exportwege
+  (Datei-Export, JSON-Archiv, Playlist) einheitlich als laufende Arbeit an.
+- Headless-Regression dazu (133 App-Tests).
+
 ## 0.46.75 — 2026-09-10
 
 - Auch der JSON-Archivexport hält Beenden und Fensterschließen auf. Er meldet
