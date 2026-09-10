@@ -8,6 +8,19 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.84 — 2026-09-10
+
+- `tagx playlist export --force` sichert eine vorhandene Playlist jetzt
+  wirklich in den Papierkorb. Der Befehl war der einzige ändernde, dem der
+  abgesicherte Modus fehlte; die Sicherung in seinem Schreibweg blieb dadurch
+  wirkungslos, und `--no-backup` fehlte in seiner Hilfe.
+- Der JSON-Export von Tags und der Export der Regeldatei ersetzen ein
+  vorhandenes Ziel nicht mehr mit einem direkten Schreibzugriff, sondern über
+  denselben Weg wie die übrigen Exporte: Sicherung in den Papierkorb, geprüfte
+  Kopie, atomarer Austausch. `tagx export` kennt dafür jetzt `--no-backup`.
+- Ein Test hält fest, dass jeder ersetzende CLI-Befehl den abgesicherten Modus
+  anbietet (513 Tests).
+
 ## 0.46.83 — 2026-09-10
 
 - Wechselt die Auswahl von einem PDF mit E-Rechnung auf eine andere Datei,

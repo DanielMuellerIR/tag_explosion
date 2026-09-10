@@ -227,7 +227,11 @@ public enum TagArchiveIO {
         try validate(archive)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try encoder.encode(archive).write(to: jsonURL, options: .atomic)
+        // Über den gemeinsamen Exportweg: Eine vorhandene Datei am Zielpfad
+        // wird vorher in den Papierkorb gesichert und dann atomar ersetzt. Ein
+        // direkter Data.write ist kein Schreibweg dieses Projekts
+        // (Review-Fund 2026-09-10).
+        try FileExport.write(try encoder.encode(archive), to: jsonURL)
     }
 
     /// Schreibt je betroffenem Ordner ein `tags-backup-<Zeitstempel>.json` mit

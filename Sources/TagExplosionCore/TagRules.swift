@@ -489,7 +489,10 @@ public enum TagRulesIO {
     }
 
     public static func save(_ document: TagRuleDocument, to url: URL) throws {
-        try encode(document).write(to: url, options: .atomic)
+        // Wie jeder andere Export über den gemeinsamen Weg: Eine vorhandene
+        // Regeldatei am Zielpfad wird gesichert und dann atomar ersetzt
+        // (Review-Fund 2026-09-10).
+        try FileExport.write(try encode(document), to: url)
     }
 
     /// Kommentierte Beispiel-Regeldatei (`tagx apply --example`). JSON kennt

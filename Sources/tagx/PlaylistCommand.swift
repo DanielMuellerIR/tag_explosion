@@ -176,8 +176,13 @@ struct PlaylistExport: ParsableCommand {
     @Option(name: .long, help: "Playlist title (#PLAYLIST / xspf title)") var title: String = ""
     @Flag(name: .long, help: "Write absolute paths instead of paths relative to the playlist") var absolute = false
     @Flag(name: .long, help: "Overwrite an existing output file") var force = false
+    @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
+        // Ohne diesen Aufruf bleibt die Sicherung im Exporter still wirkungslos:
+        // der Core sichert per Vorgabe nicht, und nur `apply()` schaltet den
+        // abgesicherten Modus ein (Review-Fund 2026-09-10).
+        safeMode.apply()
         let urls = try files.map(resolveFile)
         let output = URL(fileURLWithPath: out)
         let formatName = format ?? output.pathExtension.lowercased()

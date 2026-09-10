@@ -106,6 +106,14 @@ Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
   `tagx playlist export --force` und das erste `folder.jpg` laufen über
   `TrashBackup` und `AtomicFileRewrite.run`/`.create` — ein direkter
   `Data.write` ist kein Schreibweg dieses Projekts.
+- Die Sicherung greift nur, wenn der abgesicherte Modus eingeschaltet ist, und
+  einschalten tut ihn im CLI **allein** `SafeModeOptions.apply()`. Ein
+  ändernder Unterbefehl ohne `@OptionGroup var safeMode` macht damit jede
+  Sicherung in seinem Schreibweg still wirkungslos und bietet auch
+  `--no-backup` nicht an. Genau so lag es bei `tagx playlist export` und
+  `tagx export`; `Tests/TagxTests/SafeModeCoverageTests.swift` hält die Liste
+  der ersetzenden Befehle jetzt fest. `tagx rename` gehört nicht dazu: Es
+  ersetzt keinen Inhalt und bricht bei vorhandenem Ziel als Konflikt ab.
 
 ## Wenn ein neuer Schreibweg entsteht
 

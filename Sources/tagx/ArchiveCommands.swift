@@ -13,8 +13,10 @@ struct Export: ParsableCommand {
     @Option(name: [.short, .customLong("output")], help: "Target JSON file") var output: String
     @Flag(name: .customLong("without-covers"),
           help: "Omit covers (much smaller file)") var withoutCovers = false
+    @OptionGroup var safeMode: SafeModeOptions
 
     func run() throws {
+        safeMode.apply()
         let urls = paths.map { URL(fileURLWithPath: $0) }
         for url in urls where !FileManager.default.fileExists(atPath: url.path) {
             throw ValidationError("File not found: \(url.path)")
