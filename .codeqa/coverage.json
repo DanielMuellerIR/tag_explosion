@@ -6,7 +6,7 @@
     "token_budget": 4000000,
     "status": "active",
     "started_at": "2026-09-10T06:40:41+02:00",
-    "tokens_spent": 284000
+    "tokens_spent": 1124000
   },
   "campaign_history": [
     {
@@ -80,23 +80,24 @@
         "Sources/TagExplosionCore/SidecarState.swift",
         "Sources/TagExplosionCore/FileState.swift",
         "Sources/TagExplosionCore/FileExport.swift",
-        "Tests/TagExplosionCoreTests/FileExportTests.swift"
+        "Tests/TagExplosionCoreTests/FileExportTests.swift",
+        "Tests/TagxTests/SafeModeCoverageTests.swift"
       ],
       "risk": "critical",
       "priority": 1,
       "reason": "Jeder schreibende Backend-Weg hängt an atomarem Austausch, Plattenstempel und Papierkorb-Sicherung; Fehler gefährden Nutzerdaten.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T05:45:26+02:00",
-        "observed_head": "061ee18229437a96a6883713e8777ba82d98d17e",
-        "content_sha256": "e0bf6361002c0298c1514429105425c7217cb58b5cf15cf8161496b569ebdf3e",
-        "file_count": 10,
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:41:41+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "70c3ca2936d5d3c47ae51945436fa37cbd548f4fbda015791c59f50a72613139",
+        "file_count": 11,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "FileExport und seine Tests aus dem Export-Querschnitt nachgeprüft: vorhandene Bytes atomar ersetzen, neue Ziele exklusiv anlegen, Backupfehler weiterreichen, vollständige Bytes prüfen; bestehende AtomicFileRewrite-Verträge unverändert.",
+        "summary": "Delta ist der ergänzte Abdeckungstest: Er hält fest, dass jeder ersetzende CLI-Befehl den abgesicherten Modus anbietet. Genau diese Verdrahtung fehlte bei tagx playlist export und tagx export und machte die Papierkorb-Sicherung in ihrem Schreibweg still wirkungslos — der Rahmen selbst (AtomicFileRewrite, TrashBackup, FileStamp) war unverändert korrekt. tagx rename steht bewusst nicht auf der Liste: Es ersetzt keinen Inhalt und bricht bei vorhandenem Ziel als Konflikt ab.",
         "tests": [
-          "505 Core-/CLI-Tests in 7,618 s; zwei neue Exporttests bestehen, Ausgangsmechanik vier Fehler."
+          "swift test (Root): 515 Tests/55 Suiten bestanden"
         ]
       }
     },
@@ -198,16 +199,17 @@
       "reason": "Mehrdatei-Import und Backup müssen Pfadgrenzen, Kollisionen und Vorabvalidierung strikt einhalten.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:12:06+02:00",
-        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
-        "content_sha256": "0f2f0d00afd8cc6458ff8358f624e0474a9f5354f92cdd544df11972c588a46e",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:41:02+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "7298bc6ad466884240a4eb6bb027670087bd92609d75634e31453f9b4c01cbce",
         "file_count": 5,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "TagArchive ersetzt seine private Gruppierungsschleife und drei Aufrufe durch TagProperty.valuesByKey. Reihenfolge und leere Werte bleiben identisch; keine Änderung an Archivzielen oder Schreibschutz. Gegen Commit 09293aa geprüft.",
+        "outcome": "improved",
+        "summary": "Drei nachgeprüfte Funde: Der JSON-Export ersetzte ein vorhandenes Ziel mit einem direkten Data.write ohne Papierkorb-Sicherung und ohne Stempelprüfung — jetzt über FileExport.write; tagx export kennt dazu --no-backup. Der Audio-Zweig des Restores lehnte gesicherte Bestandswerte ab, die der eigene Export sichert, und zwar erst im echten Lauf nach angelegter Sicherung, während der Dry-run Erfolg meldete — er setzt jetzt allowingArchivedValues wie der Bildzweig längst. Und die Sicherungen des Imports tragen den Grund import, der bisher definiert, übersetzt, aber nie gesetzt war. Die Vorabprüfung des Archivs auf Serien für PDF bleibt bewusst dort: Sie lehnt das ganze Archiv ab, bevor irgendetwas geschrieben wird.",
         "tests": [
-          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
+          "swift test (Root): 515 Tests/55 Suiten bestanden",
+          "Gegenprobe ohne allowingArchivedValues: Restore scheitert mit invalidFieldValue, Datei behält den Fremdstand"
         ]
       }
     },
@@ -230,15 +232,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260910T064041748803+0200",
-        "completed_at": "2026-09-10T07:35:24+02:00",
-        "observed_head": "18189bf608521ea916ce0f16c8fa3dc5c73f58b6",
-        "content_sha256": "5af72bd6babea2cbbafd1d0dc1e7cbb549b2d220b5b1834adfd90c9dda7f2020",
+        "completed_at": "2026-09-10T09:41:20+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "89b636127f7de69768c084ced60851963dd81ed0d9c9512fd8a2520c5e889533",
         "file_count": 9,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Nachgeprüfter Fund: reloadDiff setzte isLoadingDiff beim frühen Ausstieg ohne Auswahl nicht zurück. Ein laufender Vergleich verwirft sein Ergebnis vorher am Auswahlabgleich, deshalb blieb das Sheet dauerhaft bei „Analysiere …\". Nur Anzeigezustand, kein Schreibweg berührt; headless nicht prüfbar.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta ist ein Kommentar an BackupReason.rename: Umbenennen legt keine Sicherung an, sondern zieht den vorhandenen Journaleintrag über BackupJournal.relocate um — der Wert bleibt nur für ältere Journale. import und chapters haben jetzt Produzenten.",
         "tests": [
-          "swift test (App): 136 Tests/25 Suiten bestanden"
+          "swift test (Root): 515 Tests/55 Suiten bestanden"
         ]
       }
     },
@@ -270,16 +272,16 @@
       "reason": "Einziger TagLib-Schreibzugang; PropertyMap-, Cover- und C-Grenzen wirken auf alle Audio- und editierbaren Videoformate.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:12:06+02:00",
-        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
-        "content_sha256": "bc37da129393b993bb1e5df921a92054deae8decc4e8ebd27350b1c3c9cd2229",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:41:02+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "51e2f034f10477c547019e83e2ae1635945dd26bd83e8c8de55fb55c0fcfa93c",
         "file_count": 21,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Model.swift erhält nur TagProperty.valuesByKey, eine gemeinsame Gruppierung mit erhaltener Reihenfolge, Duplikaten und Leerwerten. Shim und Schreibwege unverändert. Gegen Commit 09293aa geprüft.",
+        "outcome": "improved",
+        "summary": "TagFile.write nimmt allowingArchivedValues entgegen und überspringt damit — nur für den Archiv-Restore — die Wertebereichsprüfung der festen Felder; für alle anderen Aufrufer unverändert. Neuer Fehlerfall seriesUnsupported samt Pfadzuordnung. tagx chapters set sichert mit dem Grund chapters statt ohne.",
         "tests": [
-          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
+          "swift test (Root): 515 Tests/55 Suiten bestanden"
         ]
       }
     },
@@ -367,16 +369,17 @@
       "reason": "EPUB-OPF, PDF/exiftool und Calibre-Schreibwege enthalten formatabhängige Integritätsgrenzen.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:24:30+02:00",
-        "observed_head": "ad1888c4a9c632fbc2db0ed1e4531bf96cb9a2b9",
-        "content_sha256": "145f26029640fb94c04abd1b1afc2e8a171ee30431b556557d8f2c3dab9a1375",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:41:19+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "87faa34602caf5bdf5c4b241a8acc3ffa097bbb24f5994aa9babb3414761452c",
         "file_count": 4,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Delta des Querschnitts tag-error-paths nachgeprüft: gemeinsame typisierte Pfadzuordnung ersetzt formatlokale Kopien, Fehlerdaten und Originalpfad bleiben erhalten.",
+        "summary": "requireStorableSeries lehnt jetzt auch eine Serie in einem Format ohne Speicherort ab. Die Regel lag dreimal einzeln VOR dem Schreibweg (tagx ebook set, parse/apply, Archiv-Vorabprüfung), aber nicht im gemeinsamen EbookTool.write — und damit nicht im Speicherweg der App, den Tags-aus-Dateiname und Batch-Regeln am ausgeblendeten Feld vorbei erreichen. tagx ebook set ordnet den Kern-Fehler weiterhin seinem Eingabefehler mit Exit 64 zu.",
         "tests": [
-          "swift test: 483 Tests grün; exakter Originalpfad bei ZIP-Schreibfehler geprüft."
+          "swift test (Root): 515 Tests/55 Suiten bestanden",
+          "Gegenprobe ohne die Prüfung: PDF wird gesichert, ersetzt und meldet Erfolg, der Wert ist weg"
         ]
       }
     },
@@ -398,16 +401,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260910T064041748803+0200",
-        "completed_at": "2026-09-10T06:55:08+02:00",
-        "observed_head": "212ca87d98a3c491b182f8225ed4f4d28d031290",
-        "content_sha256": "75c82212712412159b64931d6c4495619fe4ebb5a8c781c2e0f5a01d1fa03de5",
+        "completed_at": "2026-09-10T09:41:20+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "895262441c2f01e5f20d93ed76ff0601e73ab4af387dcb5c8709df57dbcb8b62",
         "file_count": 8,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Querschnitts-Blick über alle Medienarten von Parse.write: Der Stempel aus der Regelplanung ging nur in den Audio- und (seit 0.46.71) Bildzweig. E-Book, Dokument und NFO-Sidecar lasen ohne ihn neu und schrieben die aus dem alten Stand geplanten Werte in eine inzwischen fremde Datei. Die drei Core-Schnappschüsse nahmen expecting bereits entgegen; jetzt wird es übergeben, der Vertrag steht an der Signatur.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta ist die Zuordnung des neuen Kern-Fehlers seriesUnsupported in Parse.write: Die dort vorher doppelt formulierte Formatregel entfällt, der Exit-Code 64 bleibt.",
         "tests": [
-          "swift test (Root): 510 Tests/53 Suiten bestanden",
-          "Gegenprobe ohne expecting: alle drei Medienarten schreiben in die fremde Datei, 6 Issues"
+          "swift test (Root): 515 Tests/55 Suiten bestanden"
         ]
       }
     },
@@ -454,15 +456,15 @@
       "state": "completed",
       "last_run": {
         "campaign_id": "20260910T064041748803+0200",
-        "completed_at": "2026-09-10T06:56:00+02:00",
-        "observed_head": "212ca87d98a3c491b182f8225ed4f4d28d031290",
-        "content_sha256": "753ec60168c0a3e7812a5e4714068cef09eae405695c571112d7e63e69af4ec0",
+        "completed_at": "2026-09-10T09:41:20+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "0964488f98e098497ee8151a7faa334ac8de2b7ef03ebb8d61bf6cf5b022d0fc",
         "file_count": 7,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "Delta seit 09293aa: ApplyCommand merkt sich beim Planen den vollständigen Bild-Lesestand und reicht ihn an Parse.write weiter. Geprüft, dass sich die Planungswerte dabei nicht ändern — readPatternFields nutzte für Bilder ohnehin readCoreFields, also denselben aus Datei und XMP-Sidecar zusammengeführten Stand. Querschnitts-Frage, ob die anderen Medienarten ihren Lesestand ebenso mitführen müssten: nein, deren Zustand hängt vollständig am Dateistempel; nur das Bild trägt mit der XMP-Sidecar Zustand außerhalb der Datei. Der App-Weg (TagRulesActions) plant aus den Editor-Puffern und speichert über den gemeinsamen Weg mit Stempel und Sidecar-Zustand.",
+        "outcome": "improved",
+        "summary": "TagRulesIO.save ersetzte eine vorhandene Regeldatei mit einem direkten Data.write; jetzt über FileExport.write mit Papierkorb-Sicherung und atomarem Austausch. Der Aufrufer im Regel-Sheet bleibt unverändert.",
         "tests": [
-          "swift test (Root): 510 Tests/53 Suiten bestanden"
+          "swift test (Root): 515 Tests/55 Suiten bestanden"
         ]
       }
     },
@@ -536,16 +538,17 @@
       "reason": "Playlist-Parser, Cue-Anwendung und Export müssen Texte, Verweise und Fremdinhalte erhalten.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:46:32+02:00",
-        "observed_head": "36225e4ddf8ceb436a99d8642ce897ae6c8cb477",
-        "content_sha256": "77e38d468b08ee5a66ec8e7c840c7a0dcd8af8f24dbc2cded9c0ba0542c457ff",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:41:20+02:00",
+        "observed_head": "b0614a9631f8140c0f64821d9e219a75b9a624bf",
+        "content_sha256": "45752bc6086cfb01f7f8d13e1b7d0272d5d85fc2240509dd96e0778a483fc360",
         "file_count": 11,
-        "review": "full",
+        "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Alle 11 Dateien und App-/CLI-Grenzen vollständig geprüft. Dauerüberläufe, literal/URI-Pfade, unrepräsentierbare Exporte, gemeinsame Cue-Dateiidentitäten und fremde PLS-Abschnitte korrigiert. M3U/PLS-Zeilenänderungen gebündelt, Cue-Dauern linear. Eigenständige Tests parallel; fachliche Roundtrips, CLI-Verträge und Goldentexte bleiben sinnvoll getrennt. Cue-Metadatenmutation bleibt bei kleinen typischen Tracklisten bewusst einfach.",
+        "summary": "Zwei nachgeprüfte Funde: PlaylistExport war der einzige ändernde CLI-Unterbefehl ohne SafeModeOptions, wodurch die Sicherung im Exporter still wirkungslos blieb und --no-backup fehlte. Und CueApply.apply verlor bei einem Fehler die Zahl der schon geschriebenen Dateien; PartialApplyError benennt sie jetzt wie PartialSaveError im App-Speicherweg.",
         "tests": [
-          "496 Core-Tests 6.849 s Exit 0; App 117 Tests 0.480 s (vor letzter interner PLS-Abgrenzung); CLI-Dauerfälle vorher drei Abstürze; Pfade vorher 18 Issues; Cue-Aliasse vorher zwei Issues; PLS-Fremdabschnitt vorher drei Issues. M3U 2.284→0.274 s, PLS 8.163→0.329 s, Cue 6.191→0.177 s mit bytegleichen Ausgaben."
+          "swift test (Root): 515 Tests/55 Suiten bestanden",
+          "Gegenproben: ohne Optionsgruppe meldet der Abdeckungstest den Befehl; ohne PartialApplyError entkommt der nackte readOnly-Fehler"
         ]
       }
     },
@@ -1443,6 +1446,31 @@
           "swift test (Root): 512 Tests/54 Suiten bestanden",
           "swift test (App): 133 Tests/25 Suiten bestanden",
           "Gegenprobe mit Task.detached: nur 13 von 22 Lesern erreichen die Sammelstelle, Test scheitert"
+        ]
+      }
+    },
+    {
+      "id": "export-targets-without-backup",
+      "summary": "Drei Exportziele ersetzen eine vorhandene Datei ohne Papierkorb-Sicherung, entgegen der ausdrücklichen Zusage in knowledge/dateisicherheit-schreibwege.md ('Auch Nebenwege wie tagx playlist export --force ... laufen über TrashBackup und AtomicFileRewrite; ein direkter Data.write ist kein Schreibweg dieses Projekts'). PlaylistExport ist der einzige ändernde CLI-Unterbefehl ohne SafeModeOptions, wodurch der vorhandene backUp-Aufruf im Exporter still wirkungslos bleibt und auch --no-backup fehlt. TagArchive.export und TagRulesIO.save schreiben mit Data.write(options:.atomic) direkt über das Ziel — ohne Sicherung, Stempelprüfung und Journal-Eintrag; das trifft tagx export ebenso wie den JSON-Export der App.",
+      "evidence": [
+        "Sources/tagx/PlaylistCommand.swift",
+        "Sources/TagExplosionCore/TagArchive.swift",
+        "Sources/TagExplosionCore/TagRules.swift"
+      ],
+      "priority": 1,
+      "state": "completed",
+      "noted_at": "2026-09-10T09:28:35+02:00",
+      "campaign_id": "20260910T064041748803+0200",
+      "started_at": "2026-09-10T09:28:50+02:00",
+      "completed": {
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T09:31:40+02:00",
+        "observed_head": "a19470945d918c44e057b5196861148ee597de15",
+        "summary": "PlaylistExport und Export haben jetzt SafeModeOptions und rufen apply(); TagArchive.export und TagRulesIO.save gehen über FileExport.write statt Data.write, also über Stempelprüfung, Papierkorb-Sicherung und atomaren Austausch. Damit sichert auch der JSON-Export der App, der als einziges ihrer vier Export-Panels ohne Sicherung arbeitete. Ein Test hält die Liste der ersetzenden CLI-Befehle fest; die Wissensdatei nennt die Ursache (nur SafeModeOptions.apply schaltet den Modus ein) und die bewusste Ausnahme rename.",
+        "tests": [
+          "swift test (Root): 513 Tests/55 Suiten bestanden",
+          "swift test (App): 136 Tests/25 Suiten bestanden",
+          "Gegenprobe ohne die Optionsgruppe: der neue Test meldet die betroffenen Befehle"
         ]
       }
     }
