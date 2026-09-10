@@ -598,6 +598,39 @@ struct AppModelSaveTests {
         #expect(model.alertMessage == nil)
     }
 
+    /// Jeder andere Schreibweg der App prüft `isDestructiveActionLocked`, bevor
+    /// er loslegt. Beim Verschieben der Cues fehlte die Prüfung: Ein während
+    /// der Vorbereitung von ⌘W gestarteter Zeitversatz taucht in der dortigen
+    /// Entscheidung nicht mehr auf, und das Fenster schlösse mitten im
+    /// Umschreiben der Untertiteldatei.
+    @Test("Zeitversatz startet nicht, während eine destruktive Aktion vorbereitet wird")
+    func subtitleShiftRefusesWhileDestructiveActionIsPending() async {
+        let info = SubtitleInfo(format: .srt, cueCount: 1, firstStartMilliseconds: 0,
+                                lastEndMilliseconds: 1000, spanMilliseconds: 1000,
+                                encoding: "UTF-8", lineEndings: "LF",
+                                languageFromName: nil, flagsFromName: [],
+                                header: SubtitleHeader())
+        let subtitle = FileEntry(
+            url: URL(fileURLWithPath: "/tmp/verschieben-gesperrt.srt"),
+            loaded: .sidecar(.subtitle(SubtitleContents(info: info,
+                                                        fields: SubtitleEditableFields()))),
+            stamp: nil)
+        let dirty = FileEntry(url: URL(fileURLWithPath: "/tmp/verschieben-gesperrt.mp3"),
+                              loaded: .audio(TagData(properties: [], artworks: [], audio: nil)))
+        dirty.properties = [TagProperty(key: "TITLE", value: "Neu")]
+
+        let model = AppModel()
+        model.entries = [subtitle, dirty]
+        // Offener Konfliktdialog = laufende destruktive Aktion.
+        await model.requestDestructiveAction(title: "Test", message: "Test",
+                                             entries: [dirty], perform: {})
+        #expect(model.isDestructiveActionLocked)
+
+        #expect(await model.shiftSubtitle(entry: subtitle, seconds: 1) == false)
+        #expect(!subtitle.isSaving)
+        #expect(subtitle.lastError == nil)
+    }
+
     /// Der JSON-Archivexport ist derselbe Fall: kein Editor-Puffer, aber ein
     /// laufender Schreibauftrag. Ohne Anmeldung sähe `hasUnfinishedWork` nichts.
     @Test("Terminierung antwortet erst nach einem laufenden Archivexport")

@@ -318,7 +318,8 @@ private struct SubtitleShiftSection: View {
                     guard let seconds else { return }
                     Task { await model.shiftSubtitle(entry: entry, seconds: seconds) }
                 }
-                .disabled(seconds == nil || seconds == 0 || entry.isDirty || entry.isSaving)
+                .disabled(seconds == nil || seconds == 0 || entry.isDirty || entry.isSaving
+                          || model.isDestructiveActionLocked)
                 Spacer()
             }
             .padding(8)

@@ -561,7 +561,13 @@ final class AppModel {
     /// atomare Austausch liegen im Core (`SubtitleFile.shift`).
     @discardableResult
     func shiftSubtitle(entry: FileEntry, seconds: Double) async -> Bool {
-        guard entry.kind == .sidecar, !entry.isSaving, !entry.isDirty else { return false }
+        // `isDestructiveActionLocked` gehört wie bei jedem anderen Schreibweg
+        // dazu: `requestDestructiveAction` wartet auf laufende Saves und
+        // entscheidet danach anhand der Puffer. Ein erst in diesem Fenster
+        // gestarteter Schreibvorgang taucht dort nicht mehr auf, und das
+        // Fenster schlösse mitten im Umschreiben (Review-Fund 2026-09-10).
+        guard entry.kind == .sidecar, !entry.isSaving, !entry.isDirty,
+              !isDestructiveActionLocked else { return false }
         let url = entry.url
         let stamp = entry.diskStamp
         // Bereichsprüfung im Core (endlich, höchstens 1000 Stunden) — ein zu

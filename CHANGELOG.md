@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.81 — 2026-09-10
+
+- Der Zeitversatz für Untertitel startet nicht mehr, während ein Dialog oder
+  eine Fensteraktion läuft. Er war der einzige Schreibweg ohne diese Sperre;
+  ein in diesem Zeitfenster gestarteter Versatz tauchte in der Entscheidung von
+  ⌘W nicht mehr auf, und das Fenster schloss mitten im Umschreiben.
+
 ## 0.46.80 — 2026-09-10
 
 - ⌘Q antwortet auch dann, wenn ein Fenster verschwunden ist, ohne sich bei der
