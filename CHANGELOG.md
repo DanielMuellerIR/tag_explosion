@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.79 — 2026-09-10
+
+- Das Öffnen mehrerer Dateien liest wieder wirklich acht Dateien gleichzeitig.
+  Die Leser warten auf TagLib, exiftool und mediainfo und belegten dabei
+  Threads des Swift-Executors, dessen Breite die Kernzahl ist; auf Maschinen
+  mit weniger als acht Kernen lief der Fächer entsprechend schmaler, und die
+  übrige Hintergrundarbeit reihte sich dahinter ein.
+- Der Kniff dafür liegt jetzt als `BlockingWork` an einer Stelle im Core, mit
+  Messwerten und einem Test über `Kerne + 4` gleichzeitige Leser (512 Tests).
+
 ## 0.46.78 — 2026-09-10
 
 - `tagx apply` bricht jetzt auch bei E-Books, Dokumenten und NFO-Sidecars ab,

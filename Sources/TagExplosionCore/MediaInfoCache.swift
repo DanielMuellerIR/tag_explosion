@@ -66,14 +66,19 @@ public actor MediaInfoCache {
                     // Der synchrone Prozessleser blockiert bis zum Ende des
                     // Werkzeugs. Er darf dabei keinen Swift-Task-Thread belegen,
                     // den die Abbruch- und Abonnenten-Tasks selbst benötigen.
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        let result = Result {
-                            let report = try reader(url, output, cancellation)
-                            try FileStamp.requireUnchanged(key.stamp, at: url)
-                            try cancellation.check()
-                            return report
+                    Task {
+                        let result: Result<MediaInfoReport, Error>
+                        do {
+                            result = .success(try await BlockingWork.run {
+                                let report = try reader(url, output, cancellation)
+                                try FileStamp.requireUnchanged(key.stamp, at: url)
+                                try cancellation.check()
+                                return report
+                            })
+                        } catch {
+                            result = .failure(error)
                         }
-                        Task { await self.complete(id, key: key, result: result) }
+                        await self.complete(id, key: key, result: result)
                     }
                 }
             }

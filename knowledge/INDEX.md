@@ -2,6 +2,11 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [blockierende-arbeit-und-executor.md](blockierende-arbeit-und-executor.md) —
+  Bei Lesern, die auf externe Werkzeuge oder TagLib warten: `BlockingWork.run`
+  statt `Task.detached`, Messwerte, und warum eine neue Core-Datei im
+  App-Paket erst nach gelöschtem Bauplan gefunden wird.
+
 - [test-prozessausfuehrung.md](test-prozessausfuehrung.md) — Bei CLI-/Core-
   Integrationstests: gemeinsamer Prozessstarter, richtiges Binary je
   Testkonfiguration, große Ausgaben, Fristen und Umgebungswerte.
