@@ -279,12 +279,10 @@ struct Parse: ParsableCommand {
 
         case .image:
             // Regeln haben bereits aus diesen Werten geplant. Ihr vollständiger
-            // Lesestand darf nicht durch ein erneutes Lesen ersetzt werden.
-            let snapshot = try FileSnapshot.capture(at: url, expecting: expecting) {
-                let reading = try imageReading ?? ExifTool.readCoreReading(url: url)
-                try reading.requireUnchangedSidecar(for: url)
-                return reading
-            }
+            // Lesestand darf nicht durch ein erneutes Lesen ersetzt werden;
+            // Stempel- und Sidecar-Prüfung bleiben die des Core-Schnappschusses.
+            let snapshot = try ExifTool.readCoreFieldsSnapshot(
+                url: url, expecting: expecting, reading: imageReading)
             let original = snapshot.value.fields
             var fields = original
             do {

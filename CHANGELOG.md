@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.77 — 2026-09-10
+
+- Der Bild-Schnappschuss (Dateistempel vor und nach dem Lesen, Prüfung der
+  XMP-Sidecar) liegt wieder an genau einer Stelle. `tagx apply` baute ihn seit
+  0.46.71 selbst nach, um den Lesestand der Regelplanung zu behalten; der
+  Core-Schnappschuss nimmt diesen Stand jetzt selbst entgegen. Verhalten
+  unverändert (509 Tests).
+
 ## 0.46.76 — 2026-09-10
 
 - Auch der Playlist-Export hält Beenden und Fensterschließen auf. Er sichert

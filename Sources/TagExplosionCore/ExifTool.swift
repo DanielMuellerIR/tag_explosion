@@ -311,11 +311,17 @@ public enum ExifTool {
     /// Kernfelder (samt Sidecar-Zustand) und Dateistempel des Bildes als einen
     /// konsistenten Schnappschuss lesen. Eine Ersetzung während des
     /// exiftool-Aufrufs wird erkannt, auch wenn der Pfad gleich bleibt.
+    ///
+    /// `reading` übergibt einen bereits vorliegenden Lesestand — etwa den, aus
+    /// dem die Batch-Regeln geplant haben. Er wird dann nicht neu gelesen, aber
+    /// denselben Stempel- und Sidecar-Prüfungen unterworfen; ein erneutes Lesen
+    /// würde die Planungsgrundlage stillschweigend austauschen.
     public static func readCoreFieldsSnapshot(
         url: URL,
-        expecting stamp: FileStamp? = nil
+        expecting stamp: FileStamp? = nil,
+        reading: ImageCoreReading? = nil
     ) throws -> FileSnapshot<ImageCoreReading> {
-        try readCoreFieldsSnapshot(url: url, expecting: stamp, afterRead: {})
+        try readCoreFieldsSnapshot(url: url, expecting: stamp, reading: reading, afterRead: {})
     }
 
     /// Testbarer Kern des Schnappschusses. `afterRead` erlaubt eine gezielte
@@ -323,10 +329,11 @@ public enum ExifTool {
     static func readCoreFieldsSnapshot(
         url: URL,
         expecting stamp: FileStamp? = nil,
+        reading known: ImageCoreReading? = nil,
         afterRead: () throws -> Void
     ) throws -> FileSnapshot<ImageCoreReading> {
         try FileSnapshot.capture(at: url, expecting: stamp) {
-            let reading = try readCoreReading(url: url)
+            let reading = try known ?? readCoreReading(url: url)
             try afterRead()
             try reading.requireUnchangedSidecar(for: url)
             return reading
