@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.80 — 2026-09-10
+
+- ⌘Q antwortet auch dann, wenn ein Fenster verschwunden ist, ohne sich bei der
+  Registry abzumelden. Ein solches Modell kam mit seinen ungespeicherten
+  Änderungen weiter in der Fragerunde dran; sein Dialog erschien nirgends, und
+  die App ließ sich nur noch über „Sofort beenden" schließen. Die Runde wendet
+  jetzt dasselbe Sicherheitsnetz an wie An- und Abmelden.
+- Headless-Regression dazu, die ohne den Fix scheitert statt zu hängen
+  (134 App-Tests).
+
 ## 0.46.79 — 2026-09-10
 
 - Das Öffnen mehrerer Dateien liest wieder wirklich acht Dateien gleichzeitig.

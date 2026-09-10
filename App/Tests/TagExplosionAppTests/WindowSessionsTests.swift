@@ -362,6 +362,43 @@ struct WindowSessionsTests {
         #expect(model.pendingConflict == nil)
     }
 
+    /// `windowWillClose` erreicht die Registry nur, solange die Fensterbrücke
+    /// noch der Delegate ist. Bleibt die Abmeldung aus, stand ein Modell ohne
+    /// Fenster weiter in `models`; mit ungespeicherten Änderungen kam es in der
+    /// Runde dran, sein Dialog erschien nirgends, und ⌘Q wartete für immer auf
+    /// eine Antwort, die niemand mehr geben konnte.
+    @Test("Beenden hängt nicht an einem Fenster, das sich nie abgemeldet hat")
+    func terminationDropsWindowThatNeverUnregistered() async {
+        let harness = Harness()
+        let model = harness.addWindow()
+        model.entries = [Self.changedEntry()]
+        // Fenster weg, aber ohne `unregister` — genau der Fall, gegen den
+        // `pruneClosedWindows` gebaut ist.
+        harness.visible.remove(ObjectIdentifier(model))
+        harness.closed.insert(ObjectIdentifier(model))
+
+        // Bewusst NICHT `await termination.value`: Ohne den Fix wird die
+        // Continuation in `confirmTermination` nie fortgesetzt, und der Test
+        // hinge statt zu scheitern.
+        let answer = Answer()
+        let termination = Task { @MainActor in
+            answer.value = await harness.sessions.confirmTermination()
+        }
+        defer { termination.cancel() }
+        var attempts = 0
+        while answer.value == nil, attempts < 5000 {
+            await Task.yield()
+            attempts += 1
+        }
+        #expect(answer.value == true)
+        #expect(model.pendingConflict == nil)
+    }
+
+    /// Auffangbehälter für eine Antwort, auf die der Test nur begrenzt wartet.
+    @MainActor private final class Answer {
+        var value: Bool?
+    }
+
     /// Wartet auf die Rückfrage eines Fensters, ohne feste Wartezeit.
     private static func waitForConflict(in model: AppModel) async -> Bool {
         var attempts = 0

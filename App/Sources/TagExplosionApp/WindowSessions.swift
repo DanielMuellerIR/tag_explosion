@@ -258,15 +258,22 @@ final class WindowSessions {
     /// anschließend mitsamt diesen Änderungen (Review-Fund 2026-08-18).
     func confirmTermination() async -> Bool {
         for _ in 0..<maxTerminationRounds {
+            // Dasselbe Sicherheitsnetz wie beim An- und Abmelden, und hier am
+            // nötigsten: Bleibt `windowWillClose` einmal aus, steht ein Modell
+            // ohne Fenster weiter in der Registry. Mit ungespeicherten
+            // Änderungen käme es unten dran, sein Dialog erschiene nirgends,
+            // und ⌘Q hinge ohne Antwort an AppKit (Review-Fund 2026-09-10).
+            pruneClosedWindows()
             for model in models {
                 // Saubere Fenster werden nicht behelligt — in einer
                 // Wiederholungsrunde sind das fast alle.
                 guard model.hasUnfinishedWork else { continue }
-                // Und Fenster, die sich WÄHREND der Runde abgemeldet haben,
-                // erst recht nicht: Ihr Dialog erschiene nirgends mehr, die
-                // Continuation unten würde nie fortgesetzt und ⌘Q hinge ohne
-                // Antwort an AppKit (Review-Fund 2026-08-20).
-                guard models.contains(where: { $0 === model }) else { continue }
+                // Und Fenster, die sich WÄHREND der Runde abgemeldet haben
+                // oder deren Fenster dabei verschwunden ist, erst recht nicht:
+                // Ihr Dialog erschiene nirgends mehr, die Continuation unten
+                // würde nie fortgesetzt (Review-Fund 2026-08-20).
+                guard models.contains(where: { $0 === model }),
+                      statusOf(model).exists else { continue }
                 // Nach vorn nur, wenn der Nutzer dort auch etwas zu sehen
                 // bekommt: die eigene Rückfrage (ungespeicherte Änderungen)
                 // oder den bereits offenen Dialog, an dem ⌘Q gerade scheitert.
