@@ -598,6 +598,40 @@ struct AppModelSaveTests {
         #expect(model.alertMessage == nil)
     }
 
+    /// Der JSON-Archivexport ist derselbe Fall: kein Editor-Puffer, aber ein
+    /// laufender Schreibauftrag. Ohne Anmeldung sähe `hasUnfinishedWork` nichts.
+    @Test("Terminierung antwortet erst nach einem laufenden Archivexport")
+    func terminationWaitsForRunningArchiveExport() async throws {
+        let model = AppModel()
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/archiv-export.mp3"),
+                              loaded: .audio(TagData(properties: [], artworks: [], audio: nil)))
+        let target = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-archive-\(UUID().uuidString).json")
+
+        let gate = ExportGate()
+        let runningExport = Task { @MainActor in
+            await model.exportEntries([entry], to: target) { _, _ in
+                gate.holdUntilReleased()
+            }
+        }
+        #expect(await Self.waitForRunningExport(in: model))
+        #expect(model.hasUnfinishedWork)
+
+        var replies: [TerminationDecision] = []
+        let termination = Task { @MainActor in
+            await model.requestTermination { replies.append($0) }
+        }
+        await Task.yield()
+        #expect(replies.isEmpty)
+
+        gate.release()
+        await runningExport.value
+        await termination.value
+        #expect(replies.count == 1)
+        #expect(!model.hasRunningExports)
+        #expect(model.alertMessage == nil)
+    }
+
     /// Wartet begrenzt auf die Anmeldung des Exports. Begrenzt, damit ein
     /// unangemeldeter Export den Test scheitern lässt statt ihn hängen zu lassen.
     private static func waitForRunningExport(in model: AppModel) async -> Bool {

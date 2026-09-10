@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.75 — 2026-09-10
+
+- Auch der JSON-Archivexport hält Beenden und Fensterschließen auf. Er meldet
+  sich wie die übrigen Exporte vor seinem Hintergrundauftrag an; ⌘Q antwortete
+  bisher sofort und beendete die App mitten im Sammeln und Schreiben.
+- Headless-Regression dazu: Die Terminierung bleibt unbeantwortet, bis der
+  angehaltene Archivexport fertig ist (132 App-Tests).
+
 ## 0.46.74 — 2026-09-09
 
 - Ein laufender Cover-, Kapitel- oder LRC-Export hält Beenden und

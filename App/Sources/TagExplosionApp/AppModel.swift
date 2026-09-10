@@ -597,6 +597,19 @@ final class AppModel {
     /// E-Rechnungen sind reine Anzeige und werden nicht mitgezählt — sonst
     /// entstünde ein Archiv, das weniger Dateien enthält als versprochen.
     func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
+        await self.exportEntries(exportEntries, to: url) { files, target in
+            try TagArchiveIO.export(files: files, to: target, includeCovers: true)
+        }
+    }
+
+    /// Variante mit austauschbarem Schreiber für headless Tests — dieselbe
+    /// Form, die `exportData` schon verwendet. Anmeldung, Hintergrundstart und
+    /// Fehleranzeige bleiben identisch zur App.
+    func exportEntries(
+        _ exportEntries: [FileEntry],
+        to url: URL,
+        export: @escaping @Sendable ([URL], URL) throws -> Void
+    ) async {
         let files = exportEntries
             .filter { MediaFormats.isArchivable(url: $0.url) }
             .map(\.url)
@@ -605,9 +618,14 @@ final class AppModel {
                 "Nichts zu exportieren: E-Rechnungen sind reine Anzeige und tragen keine editierbaren Tags.")
             return
         }
+        // Wie jeder Export ein laufender Schreibauftrag ohne Editor-Puffer:
+        // ohne Anmeldung sieht `hasUnfinishedWork` nichts und die App beendet
+        // sich mitten im Sammeln und Schreiben des Archivs.
+        beginExport()
+        defer { endExport() }
         do {
             try await Task.detached(priority: .userInitiated) {
-                try TagArchiveIO.export(files: files, to: url, includeCovers: true)
+                try export(files, url)
             }.value
         } catch {
             alertMessage = String(localized: "Export fehlgeschlagen:") + "\n" + error.localizedDescription
