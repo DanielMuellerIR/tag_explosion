@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.83 — 2026-09-10
+
+- Wechselt die Auswahl von einem PDF mit E-Rechnung auf eine andere Datei,
+  erscheint dort kein E-Rechnungs-Tab mehr mit den Daten des vorigen Dokuments.
+  Der abgebrochene Hintergrundleser schrieb sein Ergebnis in den bereits
+  umgeschalteten Zustand.
+- Die Versionshistorie bleibt nicht mehr bei „Analysiere …" stehen, wenn die
+  Auswahl während des Feldvergleichs aufgehoben wird.
+
 ## 0.46.82 — 2026-09-10
 
 - Melden zwei Dateien im selben Speicherlauf eine fremde Änderung, erscheint die

@@ -54,9 +54,15 @@ struct EbookEditorView: View {
             tab = .metadata
             guard entry.url.pathExtension.lowercased() == "pdf" else { return }
             let target = entry.url
-            invoiceDocument = await Task.detached(priority: .utility) {
+            let found = await Task.detached(priority: .utility) {
                 try? EInvoiceReader.read(url: target)
             }.value
+            // Der Hintergrundleser läuft auch nach einem Abbruch zu Ende. Ohne
+            // diese Prüfung setzte er das Dokument der VORHERIGEN Datei in den
+            // schon umgeschalteten Zustand, und die neue Datei bekäme einen
+            // E-Rechnungs-Tab mit fremden Daten (Review-Fund 2026-09-10).
+            guard !Task.isCancelled else { return }
+            invoiceDocument = found
         }
     }
 

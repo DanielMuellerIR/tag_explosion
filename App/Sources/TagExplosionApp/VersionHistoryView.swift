@@ -160,6 +160,10 @@ struct VersionHistorySheet: View {
         guard let version = selectedVersion else {
             changes = []
             diffError = nil
+            // Ein noch laufender Vergleich verwirft sein Ergebnis gleich beim
+            // Auswahlabgleich und setzt den Merker dann nicht mehr zurück; ohne
+            // das hier bliebe „Analysiere …" stehen (Review-Fund 2026-09-10).
+            isLoadingDiff = false
             return
         }
         let url = entry.url
