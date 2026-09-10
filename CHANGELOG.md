@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.86 — 2026-09-10
+
+- Ein Tag-Backup lässt sich jetzt auch bei Audio vollständig zurückspielen.
+  Werte, die ältere Werkzeuge hinterlassen haben (etwa ein ReplayGain-Wert
+  außerhalb von −60…+60 dB), sichert der Export — der Import lehnte genau sie
+  ab, sobald sich die Zieldatei seit dem Export geändert hatte. Für Bilder galt
+  die Ausnahme längst.
+- Vorschau und echter Lauf stimmen dabei wieder überein: Die Prüfung saß im
+  Schreibweg statt in der Eintragsprüfung, deshalb meldete `--dry-run`
+  „WOULD CHANGE" und der echte Lauf danach einen Fehler (515 Tests).
+
 ## 0.46.85 — 2026-09-10
 
 - Eine Serie für ein PDF wird jetzt überall abgelehnt statt still verworfen.

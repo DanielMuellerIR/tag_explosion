@@ -422,7 +422,8 @@ public final class TagFile {
         lyricsLanguage: String? = nil,
         to url: URL,
         expecting stamp: FileStamp? = nil,
-        id3Version: ID3Version = .v24
+        id3Version: ID3Version = .v24,
+        allowingArchivedValues: Bool = false
     ) throws {
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
@@ -433,7 +434,12 @@ public final class TagFile {
             guard before.supportsChapters else { throw TagError.chaptersUnsupported(path: url.path) }
             try ChapterList.validate(chapters)
         }
-        if let properties {
+        // `allowingArchivedValues` setzt nur der Archiv-Restore, wie schon beim
+        // Bildweg: Ein gesicherter Bestandswert muss in die Datei zurück, aus
+        // der er stammt. Sonst lehnt der Import genau die Werte ab, die der
+        // eigene Export sichert — ein Backup, das sich nicht wiederherstellen
+        // lässt (Review-Fund 2026-09-10).
+        if let properties, !allowingArchivedValues {
             try FixedFields.validate(properties, changedFrom: before.properties)
         }
         if let syncedLyrics {

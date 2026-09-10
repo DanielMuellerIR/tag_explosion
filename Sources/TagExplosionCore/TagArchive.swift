@@ -461,7 +461,8 @@ public enum TagArchiveIO {
                 try backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
                                   artworks: targetArtworks ?? current.artworks, to: url,
-                                  expecting: snapshot.stamp)
+                                  expecting: snapshot.stamp,
+                                  allowingArchivedValues: true)
             }
             return true
         case .image:

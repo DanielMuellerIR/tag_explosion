@@ -27,6 +27,42 @@ struct TagArchiveTests {
         return dir
     }
 
+    /// Der Export sichert den Bestand, auch fachfremde Altwerte — deshalb muss
+    /// der Import sie zurückschreiben können. Für Bilder gilt das schon
+    /// ausdrücklich; beim Audio-Zweig lehnte die Wertebereichsprüfung in
+    /// `TagFile.write` genau die Werte ab, die das eigene Backup enthielt
+    /// (Review-Fund 2026-09-10).
+    @Test("Ein gesicherter Altwert außerhalb des Wertebereichs lässt sich zurückspielen")
+    func archiveRestoresArchivedOutOfRangeValue() throws {
+        let dir = try makeFolder(["sample.flac"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let flac = dir.appendingPathComponent("sample.flac")
+        let json = dir.appendingPathComponent("backup.json")
+
+        // Bestand, wie ihn ältere ReplayGain-Werkzeuge hinterlassen: außerhalb
+        // des von uns geprüften Bereichs −60…+60 dB.
+        let legacy = TagProperty(key: FixedFields.replayGainTrackGain, value: "-99.00 dB")
+        var properties = try TagFile.read(at: flac).properties
+        properties.append(legacy)
+        try TagFile.write(properties: properties, to: flac, allowingArchivedValues: true)
+
+        try TagArchiveIO.export(files: [flac], to: json, includeCovers: false)
+        let archive = try TagArchiveIO.load(json)
+
+        // Fremdänderung: Der Wert verschwindet aus der Datei.
+        let without = try TagFile.read(at: flac).properties.filter { $0.key != legacy.key }
+        try TagFile.write(properties: without, to: flac)
+        #expect(!(try TagFile.read(at: flac).properties.contains(legacy)))
+
+        // Vorschau und echter Lauf müssen übereinstimmen.
+        let preview = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: true)
+        #expect(preview.applied.count == 1)
+        #expect(preview.failed.isEmpty)
+        let report = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
+        #expect(report.failed.isEmpty)
+        #expect(try TagFile.read(at: flac).properties.contains(legacy))
+    }
+
     @Test("Eine schreibgeschützte Datei stoppt den Batch nicht")
     func batchContinuesAfterOneFailure() throws {
         let dir = try makeFolder(["sample.mp3", "sample.flac"])

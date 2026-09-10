@@ -29,6 +29,14 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   WebP gehört erst seit EPUB 3.3 zu den Kernformaten. Das OPF-Attribut bleibt
   auch dort `version="3.0"`; der Schreibweg kann daher nur EPUB 2 von der
   aktuellen EPUB-3-Fassung unterscheiden.
+- Beim Audio-Zweig gilt dasselbe seit 2026-09-10: `TagFile.write` bekommt vom
+  Archiv-Restore `allowingArchivedValues: true` und überspringt damit
+  `FixedFields.validate`. Vorher lehnte der Import genau die Bestandswerte ab,
+  die der eigene Export sichert (etwa `REPLAYGAIN_TRACK_GAIN` mit −99.00 dB aus
+  älteren Scannern, ebenso R128, `TVSEASON`/`TVEPISODE`, `PODCASTURL`), und
+  zwar erst im echten Lauf: Der Dry-run meldete „WOULD CHANGE", weil die
+  Prüfung nicht in `applyEntry`, sondern erst im Schreibweg saß. Das Auto-Backup
+  der App vor jedem Mehrfach-Speichern verwendet denselben Export.
 - Bei Bildwerten schreibt der Archivweg den Sollwert schon für Dry-run und
   Import auf die Geschwisterkopie von `AtomicFileRewrite` und liest ihn dort
   exakt zurück. Normalisiert exiftool beispielsweise `48.1000` zu `48.1`,
