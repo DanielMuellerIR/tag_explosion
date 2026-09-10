@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.82 — 2026-09-10
+
+- Melden zwei Dateien im selben Speicherlauf eine fremde Änderung, erscheint die
+  zweite Frage erst, wenn die erste Entscheidung ausgeführt ist. Vorher stand
+  sie sofort da, nahm aber keinen Klick an und präsentierte sich nach jedem
+  Klick erneut.
+
 ## 0.46.81 — 2026-09-10
 
 - Der Zeitversatz für Untertitel startet nicht mehr, während ein Dialog oder

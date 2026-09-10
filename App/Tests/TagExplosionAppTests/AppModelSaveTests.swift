@@ -956,6 +956,44 @@ struct AppModelSaveTests {
         #expect(second.isDirty)
     }
 
+    /// Solange eine beansprucht Entscheidung noch läuft — sie kann auf das Ende
+    /// des seriellen Batches warten —, darf kein zweiter Dialog erscheinen:
+    /// `claimStaleWrite` nähme dessen Klick nicht an, der Alert schlösse sich
+    /// und käme sofort wieder (Review-Fund 2026-09-10).
+    @Test("Der zweite Konflikt wartet, bis die beanspruchte Entscheidung fertig ist")
+    func secondStaleConflictWaitsForTheClaimedDecision() async {
+        let first = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-claim-1.mp3"), changedTitle: "Puffer 1")
+        let second = dirtyAudioEntry(
+            url: URL(fileURLWithPath: "/tmp/stale-claim-2.mp3"), changedTitle: "Puffer 2")
+        let model = AppModel()
+        model.entries = [first, second]
+
+        await model.save(entry: first, staleCandidate: first) { _ in
+            throw TagError.fileChangedOnDisk(path: first.url.path)
+        }
+        #expect(model.pendingStaleWrite?.fileName == "stale-claim-1.mp3")
+        #expect(model.claimStaleWrite(write: true))
+        #expect(model.pendingStaleWrite == nil)
+
+        // Die zweite Datei meldet ihren Konflikt, während die erste
+        // Entscheidung noch aussteht.
+        await model.save(entry: second, staleCandidate: second) { _ in
+            throw TagError.fileChangedOnDisk(path: second.url.path)
+        }
+        #expect(model.pendingStaleWrite == nil)
+
+        var savedNames: [String] = []
+        await model.resolveClaimedStaleWrite { entry in
+            savedNames.append(entry.url.lastPathComponent)
+            return true
+        }
+        #expect(savedNames == ["stale-claim-1.mp3"])
+        // Jetzt erst — und jetzt nimmt der Dialog auch einen Klick an.
+        #expect(model.pendingStaleWrite?.fileName == "stale-claim-2.mp3")
+        #expect(model.claimStaleWrite(write: false))
+    }
+
     @Test("Bestätigtes Überschreiben übersteht den sofort folgenden Dialog-Dismiss")
     func claimedStaleWriteSurvivesTheDismissCallback() async {
         // SwiftUI ruft nach dem Button-Callback sofort den Dismiss-Callback des

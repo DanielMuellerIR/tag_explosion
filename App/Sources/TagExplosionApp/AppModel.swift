@@ -968,6 +968,17 @@ final class AppModel {
             .map { PendingStaleWrite(fileName: $0.url.lastPathComponent) }
     }
 
+    /// Den nächsten Konflikt nur zeigen, wenn gerade keiner offen ist UND
+    /// keine beanspruchte Entscheidung noch läuft. Eine bestätigte Entscheidung
+    /// kann auf das Ende des seriellen Batches warten; ein währenddessen
+    /// gezeigter zweiter Dialog nähme über `claimStaleWrite` keinen Klick mehr
+    /// an und präsentierte sich nach jedem Klick erneut (Review-Fund
+    /// 2026-09-10). Nach dem Abschluss zeigt `resolveClaimedStaleWrite` ihn.
+    private func showNextStaleWriteIfIdle() {
+        guard pendingStaleWrite == nil, claimedStaleWrite == nil else { return }
+        refreshPendingStaleWrite()
+    }
+
     /// Gemeinsame Save-Steuerung. Der austauschbare Schreibblock ermöglicht
     /// einen headless Regressionstest, der einen laufenden Save exakt anhalten
     /// kann, ohne echte UI- oder Dateitiming-Rennen zu brauchen.
@@ -986,7 +997,7 @@ final class AppModel {
             entry.lastError = error.localizedDescription
             if case TagError.fileChangedOnDisk = error.underlying, let staleCandidate {
                 if !staleEntries.contains(where: { $0 === staleCandidate }) { staleEntries.append(staleCandidate) }
-                if pendingStaleWrite == nil { refreshPendingStaleWrite() }
+                showNextStaleWriteIfIdle()
             }
             if !isBatchSaving { alertMessage = error.localizedDescription }
             return false
@@ -998,7 +1009,7 @@ final class AppModel {
                !staleEntries.contains(where: { $0 === staleCandidate }) {
                 staleEntries.append(staleCandidate)
             }
-            if pendingStaleWrite == nil { refreshPendingStaleWrite() }
+            showNextStaleWriteIfIdle()
             return false
         } catch {
             // Der Puffer und das letzte gute Original bleiben unverändert.
