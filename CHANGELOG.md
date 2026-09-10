@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.85 — 2026-09-10
+
+- Eine Serie für ein PDF wird jetzt überall abgelehnt statt still verworfen.
+  Die CLI und der Archiv-Import taten das schon; in der App kamen „Tags aus
+  Dateiname" und Batch-Regeln an dem ausgeblendeten Feld vorbei, die Datei
+  wurde gesichert und durch eine inhaltsgleiche Kopie ersetzt, und das
+  Speichern meldete Erfolg, obwohl der Wert nirgends landete.
+- Die Prüfung liegt jetzt im gemeinsamen Schreibweg; die CLI macht daraus
+  weiterhin einen Eingabefehler mit Exit-Code 64 (514 Tests).
+
 ## 0.46.84 — 2026-09-10
 
 - `tagx playlist export --force` sichert eine vorhandene Playlist jetzt

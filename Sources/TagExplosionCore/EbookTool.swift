@@ -301,6 +301,16 @@ public enum EbookTool {
         guard backend(for: url) != .epub else { return }
         let seriesChanged = fields.series != original.series
             || fields.seriesIndex != original.seriesIndex
+        // Kein Speicherort im Format: Das Backend ignoriert die Serienfelder
+        // still, und ohne diese Ablehnung sicherte der Schreibweg die Datei in
+        // den Papierkorb, ersetzte sie durch eine inhaltsgleiche Kopie und
+        // meldete Erfolg — der eingegebene Wert war weg. Die Prüfung gehört
+        // hierher und nicht nur zu den einzelnen Aufrufern: Die App erreicht
+        // die Serienfelder über „Tags aus Dateiname" und über Batch-Regeln
+        // auch dann, wenn der Editor sie ausblendet (Review-Fund 2026-09-10).
+        if seriesChanged, !supportsSeries(url: url) {
+            throw TagError.seriesUnsupported(path: url.path)
+        }
         guard seriesChanged, fields.series.isEmpty, !fields.seriesIndex.isEmpty else { return }
         throw TagError.seriesIndexWithoutSeries
     }

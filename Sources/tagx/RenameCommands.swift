@@ -324,12 +324,10 @@ struct Parse: ParsableCommand {
             } catch let error as PatternFields.ApplyError {
                 throw ValidationError(error.localizedDescription)
             }
-            if !EbookTool.supportsSeries(url: url),
-               fields.series != original.series || fields.seriesIndex != original.seriesIndex {
-                throw ValidationError("This format cannot store a series (PDF).")
-            }
             do {
                 try EbookTool.requireStorableSeries(fields, original: original, url: url)
+            } catch TagError.seriesUnsupported {
+                throw ValidationError("This format cannot store a series (PDF).")
             } catch TagError.seriesIndexWithoutSeries {
                 throw ValidationError("A series index needs a series name (%{series}).")
             }

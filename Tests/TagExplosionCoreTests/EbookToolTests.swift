@@ -650,6 +650,37 @@ struct EbookToolTests {
 
     // MARK: - Abgelehnte Zustände
 
+    /// PDF hat für eine Serie keinen Speicherort; `writePdf` bildet die Felder
+    /// gar nicht ab. Ohne Ablehnung im gemeinsamen Kern sicherte der Schreibweg
+    /// die Datei in den Papierkorb, ersetzte sie durch eine inhaltsgleiche
+    /// Kopie und meldete Erfolg — der Wert war still weg. Die App erreicht die
+    /// Felder über „Tags aus Dateiname" und Batch-Regeln auch dann, wenn der
+    /// Editor sie ausblendet (Review-Fund 2026-09-10).
+    @Test("PDF lehnt eine Serie im Schreibweg ab, statt sie still zu verwerfen")
+    func pdfRejectsSeriesInsteadOfDroppingIt() throws {
+        let url = try Fixtures.workingCopy("book.pdf")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let before = try Data(contentsOf: url)
+        let original = try EbookTool.readCoreFields(url: url)
+        var withSeries = original
+        withSeries.series = "Die Reihe"
+        withSeries.seriesIndex = "2"
+
+        #expect(throws: TagError.seriesUnsupported(path: url.path)) {
+            try EbookTool.write(url: url, fields: withSeries, original: original,
+                                coverUpdate: .unchanged)
+        }
+        // Weder Sicherung noch Austausch: Die Datei ist unangetastet.
+        #expect(try Data(contentsOf: url) == before)
+
+        // Andere Felder bleiben bei PDF selbstverständlich schreibbar.
+        var titleOnly = original
+        titleOnly.title = "Anderer Titel"
+        #expect(throws: Never.self) {
+            try EbookTool.requireStorableSeries(titleOnly, original: original, url: url)
+        }
+    }
+
     @Test("Serienindex ohne Serie: EPUB speichert ihn, andere Formate lehnen ab")
     func seriesIndexWithoutSeriesIsBackendSpecific() throws {
         let url = try Fixtures.workingCopy("book2.epub")

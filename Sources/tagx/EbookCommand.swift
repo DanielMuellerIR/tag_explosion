@@ -104,14 +104,13 @@ struct EbookSet: ParsableCommand {
         if let date { fields.date = date }
         if let subjects { fields.subjects = subjects.splitCommaList() }
 
-        if !EbookTool.supportsSeries(url: url),
-           fields.series != original.series || fields.seriesIndex != original.seriesIndex {
-            throw ValidationError("This format cannot store a series (PDF).")
-        }
-        // Ein Index ohne Serie hätte außerhalb von EPUB keinen Speicherort —
-        // vor Sicherung und Schreibweg ablehnen statt hinterher "OK" zu melden.
+        // Serie ohne Speicherort im Format und Index ohne Serie: beides prüft
+        // der Kern; hier wird es nur zum Eingabefehler (Exit 64) statt zum
+        // Schreibfehler gemacht.
         do {
             try EbookTool.requireStorableSeries(fields, original: original, url: url)
+        } catch TagError.seriesUnsupported {
+            throw ValidationError("This format cannot store a series (PDF).")
         } catch TagError.seriesIndexWithoutSeries {
             throw ValidationError("A series index needs a series name (--series).")
         }

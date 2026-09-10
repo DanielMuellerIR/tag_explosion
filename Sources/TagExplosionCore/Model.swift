@@ -289,6 +289,9 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case seriesIndexWithoutSeries
     /// Das Format der Datei kennt keine Kapitel (nur MP3, MP4 und Matroska).
     case chaptersUnsupported(path: String)
+    /// Das Format kennt keinen Speicherort für eine Serie (PDF). Ohne diese
+    /// Ablehnung meldete das Schreiben Erfolg, während der Wert still verfiel.
+    case seriesUnsupported(path: String)
     /// Eine Kapitelliste ist in sich unstimmig (Ende vor Beginn, Überlappung,
     /// negative Zeit) oder eine Import-Datei ließ sich nicht lesen.
     case invalidChapters(reason: String)
@@ -336,6 +339,7 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
                 throw TagError.notEnoughSpace(path: url.path, needBytes: needBytes,
                                               freeBytes: freeBytes)
             case .chaptersUnsupported: throw TagError.chaptersUnsupported(path: url.path)
+            case .seriesUnsupported: throw TagError.seriesUnsupported(path: url.path)
             case .syncedLyricsUnsupported: throw TagError.syncedLyricsUnsupported(path: url.path)
             case .layerUnsupported(_, let layer):
                 throw TagError.layerUnsupported(path: url.path, layer: layer)
@@ -379,6 +383,8 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "A series index cannot be stored without a series name"
         case .chaptersUnsupported(let path):
             return "Chapters are not supported for this file format (MP3, MP4, Matroska only): \(path)"
+        case .seriesUnsupported(let path):
+            return "This file format cannot store a series (PDF): \(path)"
         case .invalidChapters(let reason):
             return "Invalid chapter list: \(reason)"
         case .unsupportedDocumentField(let name):
