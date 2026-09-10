@@ -2,13 +2,11 @@
   "schema_version": 2,
   "project": "tag_explosion",
   "campaign": {
-    "id": "20260908T002532864338+0200",
-    "token_budget": 8000000,
-    "status": "complete",
-    "started_at": "2026-09-08T00:25:32+02:00",
-    "tokens_spent": 3004295,
-    "finished_at": "2026-09-08T06:04:30+02:00",
-    "finish_reason": "all-current"
+    "id": "20260910T064041748803+0200",
+    "token_budget": 4000000,
+    "status": "active",
+    "started_at": "2026-09-10T06:40:41+02:00",
+    "tokens_spent": 224000
   },
   "campaign_history": [
     {
@@ -35,6 +33,15 @@
       "status": "complete",
       "started_at": "2026-08-30T09:33:46+02:00",
       "finished_at": "2026-08-30T09:36:28+02:00",
+      "finish_reason": "all-current"
+    },
+    {
+      "id": "20260908T002532864338+0200",
+      "token_budget": 8000000,
+      "status": "complete",
+      "started_at": "2026-09-08T00:25:32+02:00",
+      "tokens_spent": 3004295,
+      "finished_at": "2026-09-08T06:04:30+02:00",
       "finish_reason": "all-current"
     }
   ],
@@ -107,16 +114,16 @@
       "reason": "Zentrale Nebenläufigkeit für Save, Dirty-Konflikte, Import, Schließen und Terminierung; breite Zustandswirkung.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T01:40:52+02:00",
-        "observed_head": "7c00e23b168507b0a26af9f70f084420bf2c86cd",
-        "content_sha256": "2645f55fb709313a9ffecf9e87f16fbd7150a13d939573f3b04322380ee5dea8",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:49:19+02:00",
+        "observed_head": "8c328adfa9e44dca1863f774b26abaa2c3e810c6",
+        "content_sha256": "169a88b5e2de86f5330516954a3c115933e21569fb91025291f785a1bc7001e5",
         "file_count": 5,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "Seit Bereichsabschluss nur die geprüften Audio-Sidecar-Themen: gemeinsame Vorprüfung, Sicherung, Schreiben und Teilerfolgsmeldung; beide Speicherzweige und Konfliktweitergabe geprüft.",
+        "summary": "Nachbuchung nach dem Querschnitts-Fund: Delta ist genau der soeben verifizierte Theme-Diff (ein weiterer Test in AppModelSaveTests, der die Export-Anmeldung des Playlist-Wegs prüft). Keine Änderung an der Speicherkoordination selbst.",
         "tests": [
-          "Root vollständig 476 Tests/51 Suiten; App vollständig 115 Tests/22 Suiten; finale Historienprüfung 14 Tests bestanden. Querschnittsänderungen bis 7c00e23 geprüft."
+          "swift test (App): 133 Tests/25 Suiten bestanden"
         ]
       }
     },
@@ -389,16 +396,17 @@
       "reason": "Umbenennungen mit Sidecars, Kollisionen und Rollback; gemeinsame Muster zwischen App und CLI.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T04:28:07+02:00",
-        "observed_head": "8f1f5bdfb144a86a208f36291bc6571afcf433eb",
-        "content_sha256": "9d525f68a81625252b06901d38dbbf99fccbf721acdd56cb87bcdff9fa680d32",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:55:08+02:00",
+        "observed_head": "212ca87d98a3c491b182f8225ed4f4d28d031290",
+        "content_sha256": "75c82212712412159b64931d6c4495619fe4ebb5a8c781c2e0f5a01d1fa03de5",
         "file_count": 8,
         "review": "delta-plus-boundaries",
-        "outcome": "reviewed-clean",
-        "summary": "FilenameActions baut SubtitleContents für Muster aus dem aktuellen Titelpuffer; Sprache/Flags stammen weiterhin aus dem tatsächlichen Dateinamen. Gemeinsame PatternFields-Grenze und SidecarEntry-Test geprüft.",
+        "outcome": "improved",
+        "summary": "Querschnitts-Blick über alle Medienarten von Parse.write: Der Stempel aus der Regelplanung ging nur in den Audio- und (seit 0.46.71) Bildzweig. E-Book, Dokument und NFO-Sidecar lasen ohne ihn neu und schrieben die aus dem alten Stand geplanten Werte in eine inzwischen fremde Datei. Die drei Core-Schnappschüsse nahmen expecting bereits entgegen; jetzt wird es übergeben, der Vertrag steht an der Signatur.",
         "tests": [
-          "118 App-Tests 0.518 s Exit 0; TITLE-Puffer und unveränderte LANG-/FLAGS-Semantik geprüft"
+          "swift test (Root): 510 Tests/53 Suiten bestanden",
+          "Gegenprobe ohne expecting: alle drei Medienarten schreiben in die fremde Datei, 6 Issues"
         ]
       }
     },
@@ -415,16 +423,16 @@
       "reason": "Bildmetadaten werden über einen externen Prozess geschrieben; Feldsemantik, Argumente und atomarer Rahmen müssen konsistent bleiben.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T02:49:34+02:00",
-        "observed_head": "97403e3db61a524f68000c551cbf031bdb6accf8",
-        "content_sha256": "fa014f45d2b6302dbbcbc2ab38aa5568d6f558786f0bbd5bb2678d8bf34500db",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:53:18+02:00",
+        "observed_head": "90e678a5c697ba6e28d64df50480de7fc20ac2ec",
+        "content_sha256": "921b2d229a3e1cc35afa14b790637ddf4e230049f7115db198b631e3c470a8fb",
         "file_count": 4,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Vier Dateien gegen 269f0150 plus Core-/CLI-Aufrufgrenzen geprüft. Fünf reproduzierte Probleme bei Sidecar-Lesestand und spätem Bildwechsel behoben; gemeinsame FileState-Prüfung ersetzt doppelte Anlegen-/Ersetzen-Zweige. ExifTool-Tests sind unabhängig: Serialisierung entfernt und Arbeitskopien bereinigt, gezielt 3.816 auf 0.670 s. Dateinamen-CLI-No-op am Bildzweig ebenfalls abgesichert. Commit 97403e3. Budgetdelta aus uncached input plus output des Root-Transkripts; neuer kumulierter Root-Basiswert 1336306, vorher 1031093.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta seit 97403e3 ist der Theme-Diff: readCoreFieldsSnapshot nimmt einen vorliegenden Lesestand entgegen. Der Parameter hat einen Vorgabewert, alle bisherigen Aufrufer (ExifCommand, ApplyCommand, TagArchive, Tests) verhalten sich unverändert; der übergebene Stand durchläuft dieselbe Stempel- und Sidecar-Prüfung. Querschnitts-Blick ergab, dass Parse.write den übergebenen Stempel bei E-Book, Dokument und NFO-Sidecar nicht weiterreicht — das ist ein Fund im Bereich file-renaming, nicht hier.",
         "tests": [
-          "swift test: 490 Tests, 6.623 s; App swift test: 117 Tests, 0.473 s; gezielte ExifTool-Fehlerproben vor Korrektur fünf Probleme, danach 20 Tests bestanden"
+          "swift test (Root): 509 Tests/53 Suiten bestanden"
         ]
       }
     },
@@ -444,16 +452,16 @@
       "reason": "Regelplanung und Werteprüfung vor Batch-Mutation; Änderbarkeit von Regeltypen und Eingaben.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T03:12:07+02:00",
-        "observed_head": "09293aa01ab6788cf3d90bc9f98ccd7d032cc56f",
-        "content_sha256": "b6edb699921191dc84764340d9a8ce1f091dbd7e30bce82971638217ed5c9c41",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:56:00+02:00",
+        "observed_head": "212ca87d98a3c491b182f8225ed4f4d28d031290",
+        "content_sha256": "753ec60168c0a3e7812a5e4714068cef09eae405695c571112d7e63e69af4ec0",
         "file_count": 7,
         "review": "delta-plus-boundaries",
         "outcome": "reviewed-clean",
-        "summary": "TagRuleFields.values bleibt als kompatible Weiterleitung auf TagProperty.valuesByKey. CLI-Apply und App-Regelplanung verwenden dieselbe Modellfunktion direkt; Listen- und Filtersemantik bleiben unverändert. Gegen Commit 09293aa geprüft.",
+        "summary": "Delta seit 09293aa: ApplyCommand merkt sich beim Planen den vollständigen Bild-Lesestand und reicht ihn an Parse.write weiter. Geprüft, dass sich die Planungswerte dabei nicht ändern — readPatternFields nutzte für Bilder ohnehin readCoreFields, also denselben aus Datei und XMP-Sidecar zusammengeführten Stand. Querschnitts-Frage, ob die anderen Medienarten ihren Lesestand ebenso mitführen müssten: nein, deren Zustand hängt vollständig am Dateistempel; nur das Bild trägt mit der XMP-Sidecar Zustand außerhalb der Datei. Der App-Weg (TagRulesActions) plant aus den Editor-Puffern und speichert über den gemeinsamen Weg mit Stempel und Sidecar-Zustand.",
         "tests": [
-          "Core/CLI 490 Tests in 8.184 s; App 117 Tests in 0.510 s."
+          "swift test (Root): 510 Tests/53 Suiten bestanden"
         ]
       }
     },
@@ -583,16 +591,16 @@
       "reason": "Abbrechbares Laden, Dateiidentität und Listenansicht sollen bei großen Sammlungen skalieren.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T04:37:41+02:00",
-        "observed_head": "f006bd08a9126bf889303a8f2d6058bc77be835e",
-        "content_sha256": "f99561c3a071cb8b64dcca322ba47b504f79037943f0d5045dff52dd3680a889",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T07:04:07+02:00",
+        "observed_head": "efea9bd71c42b72360540427038a7894edb114ce",
+        "content_sha256": "3c87324930ba5e19eef9672c7dcf45a64449f4864616ae2e36c7754ba5fac67e",
         "file_count": 4,
-        "review": "full",
-        "outcome": "improved",
-        "summary": "Alle vier Dateien einschließlich Datei-/Auswahlgrenzen vollständig geprüft. Abgebrochene Ladeaufträge besitzen eigene Reservierungen, Fortschritt und Fehler; unmittelbarer Neustart funktioniert. Reihenfolge und Puffer im bestehenden Test verstärkt; unabhängige Tests parallel. Dateiliste bereits über Theme aktualisiert. Direkte Einfügesuche bleibt wegen möglicher paralleler Listenänderungen und gemessener 1000-Dateien-Laufzeit bewusst einfach.",
+        "review": "delta-plus-boundaries",
+        "outcome": "reviewed-clean",
+        "summary": "Delta seit f006bd0 ist genau der Theme-Diff: Der Leser des Ladefächers läuft über BlockingWork.run statt Task.detached. Abbruchverhalten unverändert — schon vorher lief ein gestarteter Leser bei Abbruch zu Ende, und die Gruppe prüft Task.isCancelled zwischen den Ergebnissen; Priorität bleibt userInitiated. Reservierung, Einfügereihenfolge und Auswahl unberührt.",
         "tests": [
-          "119 App-Tests 0.406 s Exit 0; Neustarttest vorher fünf Issues, danach erfolgreich; 1000 echte generierte FLAC-Dateien: erstes Ergebnis 55 ms, vollständig 238 ms"
+          "swift test (App): 133 Tests/25 Suiten bestanden"
         ]
       }
     },
@@ -630,23 +638,26 @@
         "Sources/TagExplosionCore/ExternalToolRunner.swift",
         "Sources/TagExplosionCore/ExternalToolText.swift",
         "Sources/TagExplosionCore/MediaInfoCache.swift",
-        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift",
+        "Sources/TagExplosionCore/BlockingWork.swift",
+        "Tests/TagExplosionCoreTests/BlockingWorkTests.swift"
       ],
       "risk": "medium",
       "priority": 10,
       "reason": "Externe Prozessausgabe, Encoding-Reparatur und vollständiges Pipe-Leeren bestimmen die technische Anzeige und Hängerfreiheit.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T05:05:38+02:00",
-        "observed_head": "c4f420b64ee2d59514a69a2ce1d9272c6779250d",
-        "content_sha256": "a85489cf0dff1e7c31cd9e4183df6d07e58bfe0b5ce8d739a36fbc4b4149a382",
-        "file_count": 7,
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T07:04:08+02:00",
+        "observed_head": "efea9bd71c42b72360540427038a7894edb114ce",
+        "content_sha256": "8fdf58dd7850dcf3d737eb54cd4b01f62e45b7a0a031199f543078c726c2438b",
+        "file_count": 9,
         "review": "delta-plus-boundaries",
         "outcome": "improved",
-        "summary": "Linux-Nachprüfung: Kindprozess-Abbruchtests konsolidiert, Bereitschaftsabfrage gemeinsam, echte PID-Beendigung statt knapper Scheduler-Annahmen. Prozessstarter unverändert.",
+        "summary": "Nachbuchung des Theme-Diffs plus die beiden neu zugeordneten Dateien: BlockingWork.swift und sein Test gehören seither zu diesem Bereich. MediaInfoCache verwendet die benannte Hilfe statt einer eigenen GCD-Queue; der Abschluss läuft weiterhin über den Aktor, Abbruch und Abonnentenverwaltung sind unverändert.",
         "tests": [
-          "495 Linux-Tests bestanden; anschließend fünf betroffene Cache-/Abbruchtests lokal in 0,354 s bestanden."
+          "swift test (Root): 512 Tests/54 Suiten bestanden",
+          "Gegenprobe mit Task.detached: 13 von 22 Lesern, Test scheitert"
         ]
       }
     },
@@ -803,16 +814,16 @@
       "reason": "Editor-Puffer, Batch-Semantik, Cover-Interaktion und lokalisierte sichtbare Oberfläche bilden einen gemeinsamen UI-Mechanismus.",
       "state": "completed",
       "last_run": {
-        "campaign_id": "20260908T002532864338+0200",
-        "completed_at": "2026-09-08T05:46:49+02:00",
-        "observed_head": "2260e138a46db7bd1a6f9fc04f495225e4a18096",
-        "content_sha256": "2e5f6532dcc37cd8d6e5ff3b5cd8041edf03a2d3fe3aa67b3adb6a87f6f25954",
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T07:05:14+02:00",
+        "observed_head": "efea9bd71c42b72360540427038a7894edb114ce",
+        "content_sha256": "5a835ca2072fee78d10fce3e3a4d0e28484af3ce832ade4b0071a0e847bc607e",
         "file_count": 24,
         "review": "delta-plus-boundaries",
-        "outcome": "improved",
-        "summary": "Export-Querschnitt in drei Panels und gemeinsamem AppModel-Aufruf nachgebucht. Zusätzlich Cover-Endung anhand echter Bildbytes statt möglicher falscher MIME-Angabe; Fehleranzeige headless geprüft.",
+        "outcome": "reviewed-clean",
+        "summary": "Delta seit 2260e13: Export-Anmeldung in SharedFormControls und die Playlist-Variante aus dem Querschnitts-Fund. Beide Schreibwege melden sich vor dem Hintergrundstart an und ab, auch im Fehlerfall. Grenzen geprüft: Die drei Exportknöpfe (Cover, Kapitel, LRC) laufen alle über model.exportData; ihre NSSavePanel-Vorbereitung unterscheidet sich in Typ, Name, Meldung und Fehlerbehandlung — eine gemeinsame Hülle würde nur drei Zeilen sparen und die Unterschiede verstecken, deshalb bewusst nicht zusammengezogen. Die lesenden Editor-Tasks (Bild, Bildstapel, E-Book) starten je einen einzelnen Werkzeugaufruf ohne Fächer und bleiben deshalb beim Executor.",
         "tests": [
-          "129 App-Tests in 0,564 s; nach Endungskorrektur vier CoverDrop-/Exporttests in 0,003 s; PNG als JPEG zuvor reproduziert."
+          "swift test (App): 133 Tests/25 Suiten bestanden"
         ]
       }
     },
@@ -1359,6 +1370,77 @@
         "summary": "Drei direkte Exporte durch gemeinsamen FileExport-Core-Weg mit bytegenauer Prüfung, Stempel, Backup und atomarem Austausch/Neuanlage ersetzt; AppModel.exportData führt IO im Hintergrund aus und meldet Fehler.",
         "tests": [
           "505 Core-/CLI-Tests in 7,618 s; 129 App-Tests in 0,564 s. Alte Schreibmechanik zeigte vier Fehler; neuer Weg hält Sicherung und Hardlink-Altstand, Backupfehler unverändert, App-Fehler sichtbar."
+        ]
+      }
+    },
+    {
+      "id": "unregistered-export-writes",
+      "summary": "Exporte außerhalb der Editor-Puffer melden sich uneinheitlich als laufende Schreibarbeit an: exportPlaylist schreibt nach TrashBackup-Sicherung per AtomicFileRewrite im Hintergrund, ohne beginExport/endExport — genau das Fenster zwischen Sicherung und Austausch, das der Fund vom 2026-09-09 für exportData geschlossen hat. CoverToolsMenu.exportToFolder schreibt stattdessen synchron auf dem MainActor und blockiert die Oberfläche. Gemeinsame Anmeldung für alle Export-Schreibwege prüfen.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
+        "App/Sources/TagExplosionApp/CoverToolsMenu.swift"
+      ],
+      "priority": 2,
+      "state": "completed",
+      "noted_at": "2026-09-10T06:45:22+02:00",
+      "campaign_id": "20260910T064041748803+0200",
+      "started_at": "2026-09-10T06:47:41+02:00",
+      "completed": {
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:49:08+02:00",
+        "observed_head": "8c328adfa9e44dca1863f774b26abaa2c3e810c6",
+        "summary": "Alle Hintergrund-Schreibwege der App geprüft: exportData, exportEntries und exportPlaylist melden sich jetzt einheitlich über beginExport/endExport an. Rename, Archivimport, Versionswiederherstellung und Untertitelverschiebung waren bereits über requestDestructiveAction bzw. entry.isSaving gedeckt. CoverToolsMenu.exportToFolder und TagRulesIO.save bleiben bewusst unverändert: sie schreiben synchron auf dem MainActor, dort kann sich kein Beenden dazwischenschieben.",
+        "tests": [
+          "swift test (App): 133 Tests/25 Suiten bestanden",
+          "Gegenprobe ohne beginExport/endExport: neuer Playlist-Test scheitert mit 3 Issues"
+        ]
+      }
+    },
+    {
+      "id": "image-snapshot-duplication",
+      "summary": "Parse.write baut den Bild-Schnappschuss seit 0.46.71 selbst nach: FileSnapshot.capture mit expecting, readCoreReading, requireUnchangedSidecar — Zeile für Zeile derselbe Ablauf wie ExifTool.readCoreFieldsSnapshot. Der einzige Unterschied ist der schon vorhandene Lesestand aus der Regelplanung. Eine künftige Verschärfung der Stempel- oder Sidecar-Prüfung im Core erreicht den Regelweg dadurch nicht. Vorgelesenen Lesestand als Parameter des Core-Schnappschusses prüfen und den CLI-Nachbau entfernen.",
+      "evidence": [
+        "Sources/tagx/RenameCommands.swift",
+        "Sources/TagExplosionCore/ExifTool.swift"
+      ],
+      "priority": 4,
+      "state": "completed",
+      "noted_at": "2026-09-10T06:50:34+02:00",
+      "campaign_id": "20260910T064041748803+0200",
+      "started_at": "2026-09-10T06:50:48+02:00",
+      "completed": {
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T06:52:09+02:00",
+        "observed_head": "90e678a5c697ba6e28d64df50480de7fc20ac2ec",
+        "summary": "readCoreFieldsSnapshot nimmt einen vorliegenden ImageCoreReading entgegen und prüft ihn wie einen frisch gelesenen; der Nachbau in Parse.write entfällt. Damit liegt die Abfolge Stempel-vor-Lesen, Lesen, Sidecar-Prüfung, Stempel-nach-Lesen wieder nur im Core. Verhalten unverändert.",
+        "tests": [
+          "swift test (Root): 509 Tests/53 Suiten bestanden",
+          "Gegenprobe: ignoriert der Core den übergebenen Lesestand, scheitert der Regelplan-Test in beiden Varianten und überschreibt die fremde Sidecar"
+        ]
+      }
+    },
+    {
+      "id": "blocking-readers-on-executor",
+      "summary": "Blockierende Werkzeugaufrufe belegen Threads des Swift-Executors, dessen Breite die Kernzahl ist. MediaInfoCache wurde deshalb in 0.46.73 auf eine GCD-Queue verlegt, die Tests haben sich dafür ein eigenes runOffExecutor gebaut. Der Ladefächer der App startet weiterhin bis zu 8 gleichzeitige Task.detached-Leser, die auf TagLib, exiftool und mediainfo warten: Auf einer Maschine mit weniger als 8 Kernen ist der angekündigte Fächer still auf die Kernzahl gedeckelt, und Aktorarbeit reiht sich dahinter ein. Gemessen mit 64 blockierenden Lesern auf 18 Kernen: 1,23 s über den Executor gegen 0,31 s über eine GCD-Queue; mit einem einzigen Executor-Thread 19,62 s gegen 0,31 s. Eine benannte gemeinsame Hilfe prüfen und die drei Stellen darauf umstellen.",
+      "evidence": [
+        "App/Sources/TagExplosionApp/AppModel+Loading.swift",
+        "Sources/TagExplosionCore/MediaInfoCache.swift",
+        "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift"
+      ],
+      "priority": 6,
+      "state": "completed",
+      "noted_at": "2026-09-10T06:59:06+02:00",
+      "campaign_id": "20260910T064041748803+0200",
+      "started_at": "2026-09-10T07:00:08+02:00",
+      "completed": {
+        "campaign_id": "20260910T064041748803+0200",
+        "completed_at": "2026-09-10T07:03:41+02:00",
+        "observed_head": "efea9bd71c42b72360540427038a7894edb114ce",
+        "summary": "BlockingWork.run im Core bündelt die Ausführung blockierender Arbeit außerhalb des Executors samt Begründung und Messwerten. MediaInfoCache, der Ladefächer der App und die Testhilfe nutzen jetzt dieselbe Stelle; der Ladefächer läuft dadurch auf jeder Maschine wirklich achtfach. Begleitende Wissensnotiz hält auch die SwiftPM-Falle fest, dass eine neue Core-Datei erst nach gelöschtem App-Bauplan gefunden wird.",
+        "tests": [
+          "swift test (Root): 512 Tests/54 Suiten bestanden",
+          "swift test (App): 133 Tests/25 Suiten bestanden",
+          "Gegenprobe mit Task.detached: nur 13 von 22 Lesern erreichen die Sammelstelle, Test scheitert"
         ]
       }
     }
