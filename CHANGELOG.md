@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.87 — 2026-09-10
+
+- `tagx cue apply` nennt beim Abbruch die Dateien, die schon geschrieben sind.
+  Bisher sah man nur den Fehler zur abbrechenden Datei und wusste nicht, dass
+  die Tracks davor bereits geändert waren.
+- Die Versionshistorie beschriftet Sicherungen aus einem Archiv-Import mit
+  „Import" und aus `tagx chapters set` mit „Kapitel" statt beide mit
+  „Speichern". Die Auslöser waren definiert und übersetzt, wurden aber nie
+  gesetzt (515 Tests).
+
 ## 0.46.86 — 2026-09-10
 
 - Ein Tag-Backup lässt sich jetzt auch bei Audio vollständig zurückspielen.

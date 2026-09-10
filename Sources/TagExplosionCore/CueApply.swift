@@ -111,25 +111,54 @@ public enum CueApply {
 
     // MARK: - Schreiben
 
+    /// Ein Fehler, nachdem schon Dateien geändert wurden. Ohne diese Angabe
+    /// sähe der Aufrufer nur den Fehler zur abbrechenden Datei und erführe
+    /// nicht, dass die vorherigen bereits geschrieben sind
+    /// (Review-Fund 2026-09-10).
+    public struct PartialApplyError: LocalizedError, Equatable {
+        public let written: [String]
+        public let failed: String
+        public let reason: String
+
+        public init(written: [String], failed: String, reason: String) {
+            self.written = written
+            self.failed = failed
+            self.reason = reason
+        }
+
+        public var errorDescription: String? {
+            "\(failed): \(reason)\nAlready changed before this file: "
+                + written.map { URL(fileURLWithPath: $0).lastPathComponent }
+                    .joined(separator: ", ")
+        }
+    }
+
     /// Schreibt alle Dateien mit Änderungen; liefert deren Zahl. Jede Datei
     /// läuft einzeln über Schnappschuss, Sicherung und atomaren Austausch —
-    /// ein Fehler stoppt vor der nächsten Datei.
+    /// ein Fehler stoppt vor der nächsten Datei und nennt die schon
+    /// geschriebenen.
     @discardableResult
     public static func apply(_ plan: Plan) throws -> Int {
-        var written = 0
+        var written: [String] = []
         for item in plan.changingItems {
             let url = URL(fileURLWithPath: item.file)
-            let snapshot = try FileSnapshot.capture(at: url) { try TagFile.read(at: url) }
-            var properties = snapshot.value.properties
-            for (key, value) in item.properties.sorted(by: { $0.key < $1.key }) {
-                properties.removeAll { $0.key == key }
-                properties.append(TagProperty(key: key, value: value))
+            do {
+                let snapshot = try FileSnapshot.capture(at: url) { try TagFile.read(at: url) }
+                var properties = snapshot.value.properties
+                for (key, value) in item.properties.sorted(by: { $0.key < $1.key }) {
+                    properties.removeAll { $0.key == key }
+                    properties.append(TagProperty(key: key, value: value))
+                }
+                try snapshot.requireCurrent(at: url)
+                try TrashBackup.shared.backUp(url)
+                try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp)
+            } catch {
+                guard !written.isEmpty else { throw error }
+                throw PartialApplyError(written: written, failed: item.file,
+                                        reason: error.localizedDescription)
             }
-            try snapshot.requireCurrent(at: url)
-            try TrashBackup.shared.backUp(url)
-            try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp)
-            written += 1
+            written.append(item.file)
         }
-        return written
+        return written.count
     }
 }

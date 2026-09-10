@@ -95,7 +95,7 @@ struct ChaptersSet: ParsableCommand {
             return
         }
         try snapshot.requireCurrent(at: url)
-        try TrashBackup.shared.backUp(url)
+        try TrashBackup.shared.backUp(url, reason: BackupReason.chapters)
         try TagFile.write(chapters: chapters, to: url, expecting: snapshot.stamp)
         print("OK \(url.lastPathComponent): \(chapters.count) chapter(s) written")
     }
@@ -121,7 +121,7 @@ struct ChaptersClear: ParsableCommand {
             return
         }
         try snapshot.requireCurrent(at: url)
-        try TrashBackup.shared.backUp(url)
+        try TrashBackup.shared.backUp(url, reason: BackupReason.chapters)
         try TagFile.write(chapters: [], to: url, expecting: snapshot.stamp)
         print("OK \(url.lastPathComponent): chapters removed")
     }

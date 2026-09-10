@@ -564,6 +564,22 @@ struct PlaylistTests {
 
         """, to: cue)
 
+        let partialPlan = try CueApply.plan(cueURL: cue)
+        // Zweite Datei schreibgeschützt: Der Abbruch muss die erste, bereits
+        // geschriebene Datei benennen (Review-Fund 2026-09-10).
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: flac.path)
+        do {
+            _ = try CueApply.apply(partialPlan)
+            Issue.record("Der schreibgeschützte Track hätte den Lauf stoppen müssen")
+        } catch let error as CueApply.PartialApplyError {
+            #expect(error.written == [mp3.path])
+            #expect(error.failed == flac.path)
+            #expect(error.errorDescription?.contains("01.mp3") == true)
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: flac.path)
+        // Für den folgenden Teil den Ausgangsstand der ersten Datei wiederherstellen.
+        try TagFile.write(properties: [], to: mp3)
+
         let plan = try CueApply.plan(cueURL: cue)
         #expect(plan.items.count == 2)
         #expect(plan.items[0].changedKeys == ["ALBUM", "ALBUMARTIST", "ARTIST", "DATE", "TITLE", "TRACKNUMBER"])

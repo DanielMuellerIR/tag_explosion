@@ -320,7 +320,7 @@ public enum TagArchiveIO {
             approvedTargets: approvedTargets,
             allowExternalTargets: allowExternalTargets, afterValidation: {},
             beforeNoopReturn: { _ in },
-            backUp: { try TrashBackup.shared.backUp($0) })
+            backUp: { try TrashBackup.shared.backUp($0, reason: BackupReason.import) })
     }
 
     /// Testbarer Kern: Der Hook liegt exakt nach Ziel-/Identitätsprüfung und
@@ -334,7 +334,7 @@ public enum TagArchiveIO {
         allowExternalTargets: Bool = false,
         afterValidation: () throws -> Void,
         beforeNoopReturn: (URL) throws -> Void = { _ in },
-        backUp: (URL) throws -> Void = { try TrashBackup.shared.backUp($0) }
+        backUp: (URL) throws -> Void = { try TrashBackup.shared.backUp($0, reason: BackupReason.import) }
     ) throws -> TagArchiveReport {
         // Die gesamte Datei wird vor der Schleife geprüft. Damit kann kein
         // fehlerhafter Eintrag nach einer schon geschriebenen Datei auffallen.

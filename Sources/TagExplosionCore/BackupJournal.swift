@@ -71,6 +71,10 @@ public enum BackupReason {
     public static let chapters = "chapters"
     public static let layers = "layers"
     public static let `import` = "import"
+    /// Nur für alte Journale: Umbenennen legt keine Sicherung an, sondern
+    /// zieht den vorhandenen Journaleintrag über `BackupJournal.relocate` auf
+    /// den neuen Pfad um. Der Wert bleibt, damit die Historie ihn weiterhin
+    /// übersetzt, wenn er in einem älteren Journal steht.
     public static let rename = "rename"
     public static let sidecar = "sidecar"
     public static let playlist = "playlist"
