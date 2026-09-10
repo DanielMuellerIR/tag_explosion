@@ -86,6 +86,13 @@ projekteigene Schlüssel existiert bereits — es gibt also auch nichts zu spare
    /Applications-Symlink und Hintergrundbild (Finder-Layout per AppleScript;
    auf headless-Maschinen `--no-finder-layout`), signiert, notarisiert und
    stapelt auch das DMG und erzeugt `TagExplosion-<version>.dmg`.
+   Bricht der Lauf nach der Notarisierung mit
+   `„Finder" hat einen Fehler erhalten: „disk "Tag Explosion"" kann nicht
+   gelesen werden. (-1728)` ab, dann kannte der Finder das gerade eingehängte
+   Volume noch nicht. `build.sh` wartet seit 0.46.88 darauf; ohne dieses Warten
+   entscheidet reines Timing, und ein Fehlschlag kostet die komplette
+   Notarisierung erneut. Auf einer Maschine ohne Finder-Sitzung stattdessen
+   `--no-finder-layout` verwenden.
 3. Ein GitHub Release als Entwurf anlegen, genau ein DMG anhängen, Release
    Notes eintragen und erst danach veröffentlichen.
 4. `.github/workflows/publish-appcast.yml` lädt dieses DMG, erzeugt mit

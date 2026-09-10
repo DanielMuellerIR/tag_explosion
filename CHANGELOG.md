@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.88 — 2026-09-10
+
+- `build.sh` wartet vor dem DMG-Layout darauf, dass der Finder das frisch
+  eingehängte Volume kennt. Ein direkt nach `hdiutil attach` folgendes
+  `tell disk` scheiterte mit „kann nicht gelesen werden" (−1728) und brach
+  damit den ganzen Release-Lauf nach der Notarisierung ab.
+
 ## 0.46.87 — 2026-09-10
 
 - `tagx cue apply` nennt beim Abbruch die Dateien, die schon geschrieben sind.

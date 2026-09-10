@@ -405,6 +405,16 @@ chflags hidden "$mount_dir/.background"
 #    im fertigen DMG erhalten. Öffnet kurz ein Finder-Fenster —
 #    mit --no-finder-layout überspringbar.
 if [ "$finder_layout" = "1" ]; then
+    # Der Finder kennt ein frisch eingehängtes Volume nicht sofort: Ein direkt
+    # nach `hdiutil attach` folgendes `tell disk` scheitert mit -1728 („kann
+    # nicht gelesen werden"), zwei Sekunden später ist dasselbe Volume da
+    # (belegt 2026-09-10 mit einem Wegwerf-Image). Deshalb warten, bis der
+    # Finder es kennt, statt sich auf glückliches Timing zu verlassen.
+    for _ in $(seq 1 20); do
+        osascript -e "tell application \"Finder\" to get name of disk \"$vol_name\"" \
+            >/dev/null 2>&1 && break
+        sleep 0.5
+    done
     osascript <<EOF
 tell application "Finder"
     tell disk "$vol_name"
