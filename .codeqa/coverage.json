@@ -891,13 +891,13 @@
     }
   ],
   "architecture": {
-    "campaign_id": "20260908T002532864338+0200",
-    "recorded_at": "2026-09-08T06:03:06+02:00",
-    "observed_head": "acbc1587350568e626909143536ca0d9c040cd00",
-    "summary": "AppModel koordiniert Fensteraktionen, FileEntry hält Editierpuffer und unveränderliche Speicheraufträge, AppFileIO kapselt Core-Aufrufe; CLI und App teilen portable Formatdienste. FileEntry übernimmt gelesene Metadaten zentral. Gemeinsame Fixture- und Prozesshilfen ersetzen doppelte Testmechanik. Validierte Formulareingaben und Online-Detailanfragen besitzen getrennt testbare Zustände; sichere Exporte teilen einen Core-Schreibweg.",
+    "campaign_id": "20260910T064041748803+0200",
+    "recorded_at": "2026-09-10T07:07:22+02:00",
+    "observed_head": "6c75b5a4acc8571dab9402bea3bad8d52c032418",
+    "summary": "Unverändert gegenüber der Vorkampagne: AppModel koordiniert Fensteraktionen, FileEntry hält Editierpuffer und unveränderliche Speicheraufträge, AppFileIO kapselt Core-Aufrufe; CLI und App teilen portable Formatdienste. Neu in dieser Kampagne: Alle Exporte ohne Editor-Puffer melden sich über einen Zähler im AppModel als laufende Arbeit an, der Bild-Schnappschuss samt Stempel- und Sidecar-Prüfung liegt wieder nur im Core, und blockierende Werkzeugaufrufe laufen über BlockingWork außerhalb des Swift-Executors. Das sind Verdichtungen innerhalb der Schichten, keine Verschiebung zwischen ihnen.",
     "paradigm": "Schichtenmodell mit SwiftUI-Beobachtungsmodell pro Fenster, Fensterkoordinator und CLI-Adaptern",
     "fit": "passt",
-    "recommendation": "Schichtenmodell beibehalten. Neue Formatfelder mit Lese-, Bearbeitungs-, Speicher- und Fehlerfällen durch alle bestehenden Grenzen führen; vorhandene Formbausteine bei optischen Änderungen nutzen. Weitere AppModel-Ausgliederungen nur anhand zusammenhängender neuer Funktionen vornehmen. Ein vollständiger Architekturwechsel würde breite Migration und neue Fehlerrisiken verursachen, ohne einen in dieser Prüfung belegten Zusatznutzen."
+    "recommendation": "Schichtenmodell beibehalten. Die drei Verdichtungen dieser Kampagne zeigen das wiederkehrende Muster: Wenn ein Weg eine schichtübergreifende Regel selbst nachbaut (Anmeldung laufender Arbeit, Schnappschuss-Prüfung, Ausweichen vom Executor), gehört die Regel benannt in die untere Schicht und der Aufrufer ruft sie. Für neue Formatfelder weiterhin Lese-, Bearbeitungs-, Speicher- und Fehlerfall durch alle bestehenden Grenzen führen. Ein Paradigmenwechsel bringt keinen in dieser Prüfung belegten Zusatznutzen und bräuchte ohnehin einen eigenen Auftrag."
   },
   "themes": [
     {
