@@ -33,6 +33,22 @@ struct FileExportTests {
         }
     }
 
+    @Test("Exklusive Neuanlage sichert keinen leeren Platzhalter")
+    func exclusiveCreateDoesNotCreateBackupVersion() throws {
+        try withDirectory { root in
+            let target = root.appendingPathComponent("backup.json")
+            let data = Data("vollstaendig".utf8)
+
+            try FileExport.create(data, at: target)
+
+            #expect(try Data(contentsOf: target) == data)
+            #expect(throws: TagError.self) {
+                try FileExport.create(Data("anders".utf8), at: target)
+            }
+            #expect(try Data(contentsOf: target) == data)
+        }
+    }
+
     @Test("Fehlgeschlagene Sicherung lässt das Exportziel unverändert")
     func backupFailure() throws {
         try withDirectory { root in

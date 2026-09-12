@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.89 — 2026-09-12
+
+- Schließen und Beenden sperren jetzt neue Exportaufträge, sobald sie auf
+  bereits laufende Exporte warten. Ein später geplanter Export kann dadurch
+  nicht mehr nach der letzten Zählerprüfung starten.
+- Automatische Tag-Backups werden direkt als vollständige neue Datei
+  veröffentlicht. Die frühere leere Namensreservierung erzeugte im
+  abgesicherten Modus eine unbrauchbare Papierkorbversion samt Journaleintrag.
+
 ## 0.46.88 — 2026-09-10
 
 - `build.sh` wartet vor dem DMG-Layout darauf, dass der Finder das frisch

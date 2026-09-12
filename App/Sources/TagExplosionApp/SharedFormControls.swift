@@ -64,7 +64,7 @@ extension AppModel {
         to url: URL,
         write: @escaping @Sendable (Data, URL) throws -> Void
     ) async {
-        beginExport()
+        guard beginExport() else { return }
         defer { endExport() }
         do {
             try await Task.detached(priority: .userInitiated) {

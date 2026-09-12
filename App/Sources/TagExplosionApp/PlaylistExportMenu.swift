@@ -85,7 +85,7 @@ extension AppModel {
         absolutePaths: Bool, title: String,
         write: @escaping @Sendable ([URL], URL) throws -> [URL]
     ) async {
-        beginExport()
+        guard beginExport() else { return }
         defer { endExport() }
         do {
             // Rückgabe ist die Liste der Dateien ohne lesbare Tags; nur sie

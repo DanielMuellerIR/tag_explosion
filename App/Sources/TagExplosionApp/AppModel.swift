@@ -258,8 +258,13 @@ final class AppModel {
     var hasRunningExports: Bool { runningExportCount > 0 }
 
     /// Meldet einen Export an, bevor sein Hintergrundauftrag startet.
-    func beginExport() {
+    /// Während Schließen/Beenden schon vorbereitet wird, darf kein später
+    /// geplanter Export mehr durch die gerade geschlossene Warteschranke.
+    @discardableResult
+    func beginExport() -> Bool {
+        guard !isDestructiveActionLocked else { return false }
         runningExportCount += 1
+        return true
     }
 
     /// Meldet ihn wieder ab und weckt alle, die auf sein Ende gewartet haben.
@@ -627,7 +632,7 @@ final class AppModel {
         // Wie jeder Export ein laufender Schreibauftrag ohne Editor-Puffer:
         // ohne Anmeldung sieht `hasUnfinishedWork` nichts und die App beendet
         // sich mitten im Sammeln und Schreiben des Archivs.
-        beginExport()
+        guard beginExport() else { return }
         defer { endExport() }
         do {
             try await Task.detached(priority: .userInitiated) {

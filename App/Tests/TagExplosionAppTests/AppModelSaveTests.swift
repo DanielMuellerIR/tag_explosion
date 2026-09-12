@@ -598,6 +598,43 @@ struct AppModelSaveTests {
         #expect(model.alertMessage == nil)
     }
 
+    @Test("Während der Beenden-Vorbereitung startet kein zweiter Export")
+    func terminationRejectsExportAdmittedAfterWaitingStarted() async throws {
+        let model = AppModel()
+        let firstGate = ExportGate()
+        let firstExport = Task { @MainActor in
+            await model.exportData(Data([1]), to: URL(fileURLWithPath: "/tmp/erster-export")) {
+                _, _ in firstGate.holdUntilReleased()
+            }
+        }
+        #expect(await Self.waitForRunningExport(in: model))
+
+        let actions = CallCounter()
+        let termination = Task { @MainActor in
+            await model.requestDestructiveAction(title: "Test", message: "Test",
+                                                 entries: [],
+                                                 perform: { await actions.increment() })
+        }
+        var attempts = 0
+        while !model.isEditorInteractionLocked, attempts < 5000 {
+            await Task.yield()
+            attempts += 1
+        }
+        #expect(model.isEditorInteractionLocked)
+
+        await model.exportData(Data([2]), to: URL(fileURLWithPath: "/tmp/spaeter-export")) {
+            _, _ in throw ConflictTestError.expectedSaveFailure
+        }
+        #expect(model.alertMessage == nil)
+        #expect(model.runningExportCount == 1)
+
+        firstGate.release()
+        await firstExport.value
+        await termination.value
+        #expect(await actions.value == 1)
+        #expect(!model.hasRunningExports)
+    }
+
     /// Jeder andere Schreibweg der App prüft `isDestructiveActionLocked`, bevor
     /// er loslegt. Beim Verschieben der Cues fehlte die Prüfung: Ein während
     /// der Vorbereitung von ⌘W gestarteter Zeitversatz taucht in der dortigen

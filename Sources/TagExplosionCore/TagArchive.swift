@@ -213,6 +213,18 @@ public enum TagArchiveIO {
 
     /// Baut das Archiv und schreibt es atomar als JSON.
     public static func export(files: [URL], to jsonURL: URL, includeCovers: Bool) throws {
+        let data = try encodedArchive(files: files, relativeTo: jsonURL,
+                                      includeCovers: includeCovers)
+        // Über den gemeinsamen Exportweg: Eine vorhandene Datei am Zielpfad
+        // wird vorher in den Papierkorb gesichert und dann atomar ersetzt. Ein
+        // direkter Data.write ist kein Schreibweg dieses Projekts
+        // (Review-Fund 2026-09-10).
+        try FileExport.write(data, to: jsonURL)
+    }
+
+    /// Kodiert erst vollständig, bevor irgendein Zielname angelegt wird.
+    private static func encodedArchive(files: [URL], relativeTo jsonURL: URL,
+                                       includeCovers: Bool) throws -> Data {
         try validateExportDestination(files: files, destination: jsonURL)
         let archive = try build(files: files,
                                 baseDirectory: jsonURL.deletingLastPathComponent(),
@@ -227,11 +239,7 @@ public enum TagArchiveIO {
         try validate(archive)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        // Über den gemeinsamen Exportweg: Eine vorhandene Datei am Zielpfad
-        // wird vorher in den Papierkorb gesichert und dann atomar ersetzt. Ein
-        // direkter Data.write ist kein Schreibweg dieses Projekts
-        // (Review-Fund 2026-09-10).
-        try FileExport.write(try encoder.encode(archive), to: jsonURL)
+        return try encoder.encode(archive)
     }
 
     /// Schreibt je betroffenem Ordner ein `tags-backup-<Zeitstempel>.json` mit
@@ -248,44 +256,38 @@ public enum TagArchiveIO {
 
         var written: [URL] = []
         for (folder, urls) in Dictionary(grouping: files, by: { $0.deletingLastPathComponent() }) {
-            // Der Zeitstempel ist nur sekundengenau: Zwei Backups desselben
-            // Ordners innerhalb einer Sekunde wählen sonst denselben Namen und
-            // der atomare Export überschriebe still den ersten Stand. Deshalb
-            // wird der Name exklusiv reserviert (O_EXCL) und bei Kollision
-            // hochgezählt.
-            let target = try reserveBackupFile(in: folder, stamp: stamp)
-            do {
-                try export(files: urls, to: target, includeCovers: true)
-            } catch {
-                // Die leere Reservierung wieder entfernen — eine 0-Byte-Datei
-                // wäre sonst ein scheinbares, aber unbrauchbares Backup.
-                try? FileManager.default.removeItem(at: target)
-                throw error
-            }
+            let firstTarget = backupURL(in: folder, stamp: stamp, counter: 1)
+            let data = try encodedArchive(files: urls, relativeTo: firstTarget,
+                                          includeCovers: true)
+            let target = try writeBackup(data, in: folder, stamp: stamp)
             written.append(target)
         }
         return written
     }
 
-    /// Reserviert exklusiv einen freien Backup-Dateinamen im Ordner
-    /// (`tags-backup-<stamp>.json`, bei Kollision `…-2.json`, `…-3.json` …).
-    private static func reserveBackupFile(in folder: URL, stamp: String) throws -> URL {
-        var counter = 1
-        while counter <= 1000 {
-            let name = counter == 1
-                ? "tags-backup-\(stamp).json"
-                : "tags-backup-\(stamp)-\(counter).json"
-            let candidate = folder.appendingPathComponent(name)
+    /// Schreibt das fertige Archiv direkt unter einen exklusiv belegten Namen.
+    /// So existiert nie eine leere Platzhalterdatei, die `TrashBackup` als
+    /// vermeintliche Benutzerversion journalisieren koennte.
+    private static func writeBackup(_ data: Data, in folder: URL,
+                                    stamp: String) throws -> URL {
+        for counter in 1...1000 {
+            let candidate = backupURL(in: folder, stamp: stamp, counter: counter)
             do {
-                // .withoutOverwriting = O_EXCL: legt die Datei nur an, wenn es
-                // sie noch nicht gibt — atomar, auch gegenüber Fremdprozessen.
-                try Data().write(to: candidate, options: .withoutOverwriting)
+                try FileExport.create(data, at: candidate)
                 return candidate
-            } catch CocoaError.fileWriteFileExists {
-                counter += 1
+            } catch TagError.fileChangedOnDisk {
+                continue
             }
         }
         throw TagError.saveFailed(path: folder.path)
+    }
+
+    private static func backupURL(in folder: URL, stamp: String,
+                                  counter: Int) -> URL {
+        let name = counter == 1
+            ? "tags-backup-\(stamp).json"
+            : "tags-backup-\(stamp)-\(counter).json"
+        return folder.appendingPathComponent(name)
     }
 
     // MARK: - Importieren
