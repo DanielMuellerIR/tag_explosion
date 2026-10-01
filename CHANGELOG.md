@@ -8,6 +8,10 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.90 — 2026-10-01
+
+- Deutsche und englische Screenshots für Audio, Bilder und E-Books mit neutralen Beispieldateien und Ablagepfaden erneuert.
+
 ## 0.46.89 — 2026-09-12
 
 - Schließen und Beenden sperren jetzt neue Exportaufträge, sobald sie auf
