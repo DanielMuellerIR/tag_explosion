@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.92 — 2026-10-02
+
+- Automatische Tag-Backups berücksichtigen jetzt auch den Linux-Fehlercode für
+  fehlende Hardlinks auf exFAT. Vorhandene Ziele bleiben geschützt.
+
 ## 0.46.91 — 2026-10-02
 
 - Automatische Tag-Backups funktionieren wieder auf Dateisystemen ohne Hardlinks.

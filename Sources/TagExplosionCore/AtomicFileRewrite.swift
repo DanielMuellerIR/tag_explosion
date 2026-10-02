@@ -130,7 +130,9 @@ enum AtomicFileRewrite {
 
         try beforeReplace()
         guard linkFile(temp.path, destination.path) == 0 else {
-            if allowStreamingBackup && (errno == ENOTSUP || errno == EOPNOTSUPP) {
+            // Linux meldet fehlende Hardlinks (etwa exFAT) auch als EPERM.
+            // open prüft die Schreibrechte erneut und bleibt exklusiv.
+            if allowStreamingBackup && (errno == ENOTSUP || errno == EOPNOTSUPP || errno == EPERM) {
                 try createExclusiveBackup(from: temp, at: destination)
                 return
             }

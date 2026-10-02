@@ -182,8 +182,14 @@ Tests prüfen Neuanlage, erhaltenen Hardlink auf den alten Stand, Sicherung,
 Backupfehler und sichtbare Fehleranzeige ohne echte Fenster.
 
 - **Automatische Archive auf exFAT (2026-10-02):** Nur Auto-Backups dürfen nach
-  `link=ENOTSUP` auf ein exklusives `open(O_CREAT|O_EXCL)` mit vollständigem Write
-  und fsync ausweichen. Der Batch wartet auf den erfolgreichen Abschluss. Während
+  `link=ENOTSUP`, `EOPNOTSUPP` oder `EPERM` auf ein exklusives
+  `open(O_CREAT|O_EXCL)` mit vollständigem Write und fsync ausweichen. Linux
+  liefert bei fehlender Link-Operation `EPERM` (etwa exFAT; siehe
+  [vfs_link](https://github.com/torvalds/linux/blob/v6.8/fs/namei.c#L4322) und
+  [exFAT-Operationen](https://github.com/torvalds/linux/blob/v6.8/fs/exfat/namei.c#L1299)).
+  Der Fehlerpfad ist per injiziertem Fehlercode geprüft, nicht auf einem echten
+  Linux-exFAT-Volume. `open` prüft die Schreibrechte weiterhin selbst. Der Batch
+  wartet auf den erfolgreichen Abschluss. Während
   des Schreibens ist die Datei sichtbar; ein Prozess-/Stromabbruch kann ein
   unvollständiges Archiv hinterlassen, startet aber keinen Medien-Save. Normale
   Exporte und Sidecars behalten den atomaren Vertrag. Fehlgeschlagene eigene

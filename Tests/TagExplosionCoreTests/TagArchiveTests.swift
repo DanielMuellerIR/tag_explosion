@@ -1031,8 +1031,9 @@ struct TagArchiveTests {
         #expect(try Data(contentsOf: mp3) == bytesBefore)
     }
 
-    @Test("Backup-Fallback ersetzt auch bei nachträglicher Kollision keine fremde Datei")
-    func backupFallbackKeepsConcurrentDestination() throws {
+    @Test("Backup-Fallback ersetzt auch bei nachträglicher Kollision keine fremde Datei",
+          arguments: [ENOTSUP, EOPNOTSUPP, EPERM])
+    func backupFallbackKeepsConcurrentDestination(linkError: Int32) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -1041,7 +1042,7 @@ struct TagArchiveTests {
         #expect(throws: TagError.self) {
             try FileExport.createArchiveBackup(Data("vollständiges Archiv".utf8), at: target, linkFile: { _, _ in
                 try! foreign.write(to: target)
-                errno = ENOTSUP
+                errno = linkError
                 return -1
             })
         }
@@ -1049,8 +1050,9 @@ struct TagArchiveTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["backup.json"])
     }
 
-    @Test("Auto-Backup funktioniert ohne Hardlinks und überspringt belegte Medien-Aliase")
-    func backupWithoutHardlinksPreservesAliasAndCompleteArchive() throws {
+    @Test("Auto-Backup funktioniert ohne Hardlinks und überspringt belegte Medien-Aliase",
+          arguments: [ENOTSUP, EOPNOTSUPP, EPERM])
+    func backupWithoutHardlinksPreservesAliasAndCompleteArchive(linkError: Int32) throws {
         let dir = try makeFolder(["sample.mp3"])
         defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
@@ -1058,7 +1060,7 @@ struct TagArchiveTests {
         let alias = dir.appendingPathComponent("tags-backup-fixture.json")
         try FileManager.default.linkItem(at: mp3, to: alias)
         let written = try TagArchiveIO.writeBackups(files: [mp3], stamp: "fixture", linkFile: { _, _ in
-            errno = ENOTSUP
+            errno = linkError
             return -1
         })
         #expect(written.count == 1)
@@ -1066,6 +1068,23 @@ struct TagArchiveTests {
         #expect(try TagArchiveIO.load(written[0]).files.map(\.path) == ["sample.mp3"])
         #expect(try Data(contentsOf: alias) == original)
         #expect(try Data(contentsOf: mp3) == original)
+    }
+
+    @Test("Normale Neuanlagen erlauben keinen Backup-Fallback",
+          arguments: [ENOTSUP, EOPNOTSUPP, EPERM])
+    func normalCreationRejectsStreamingFallback(linkError: Int32) throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appendingPathComponent("export.json")
+        #expect(throws: TagError.saveFailed(path: target.path)) {
+            try AtomicFileRewrite.create(url: target, replacingOriginal: true,
+                                         linkFile: { _, _ in errno = linkError; return -1 },
+                                         beforeReplace: {},
+                                         mutate: { try Data("Export".utf8).write(to: $0) },
+                                         validate: { _ in })
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
     }
 
     @Test("Schnell aufeinanderfolgende Backups überschreiben sich nicht")
