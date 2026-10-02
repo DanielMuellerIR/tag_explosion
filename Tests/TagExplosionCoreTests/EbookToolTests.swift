@@ -656,7 +656,10 @@ struct EbookToolTests {
     /// Kopie und meldete Erfolg — der Wert war still weg. Die App erreicht die
     /// Felder über „Tags aus Dateiname" und Batch-Regeln auch dann, wenn der
     /// Editor sie ausblendet (Review-Fund 2026-09-10).
-    @Test("PDF lehnt eine Serie im Schreibweg ab, statt sie still zu verwerfen")
+    @Test("PDF lehnt eine Serie im Schreibweg ab, statt sie still zu verwerfen",
+          .enabled(if: FileManager.default.fileExists(
+              atPath: Fixtures.directory.appendingPathComponent("book.pdf").path),
+              "PDF-Fixture fehlt (braucht sips)"))
     func pdfRejectsSeriesInsteadOfDroppingIt() throws {
         let url = try Fixtures.workingCopy("book.pdf")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

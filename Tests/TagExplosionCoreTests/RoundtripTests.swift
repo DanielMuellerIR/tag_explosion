@@ -322,18 +322,23 @@ struct TrackerFormatTests {
     }
 }
 
-/// Sun-AU und Ogg-Video haben in TagLib keinen Leser: Der Tag-Weg meldet das
-/// klar, die Technik-Anzeige über mediainfo funktioniert trotzdem.
+/// Sun-AU hat keinen TagLib-Leser. Ogg-Video bleibt unabhängig von der
+/// TagLib-Version ein reines Anzeigeformat; mediainfo liefert die Technikdaten.
 @Suite("Nur-Anzeige-Formate")
 struct DisplayOnlyFormatTests {
 
-    @Test("TagLib lehnt die Datei ab, die App darf sie trotzdem öffnen",
-          arguments: displayOnlyFormats)
-    func tagLibCannotOpen(format: String) throws {
-        let url = try Fixtures.workingCopy(format)
+    @Test("TagLib lehnt Sun-AU ab, die App darf es trotzdem öffnen")
+    func tagLibCannotOpenSunAU() throws {
+        let url = try Fixtures.workingCopy("sample.au")
         #expect(throws: TagError.cannotOpen(path: url.path)) {
             _ = try TagFile.read(at: url)
         }
+    }
+
+    @Test("Anzeigeformate behalten ihren Vertrag auch mit einem TagLib-Leser",
+          arguments: displayOnlyFormats)
+    func displayOnlyClassification(format: String) throws {
+        let url = try Fixtures.workingCopy(format)
         #expect(MediaFormats.kind(of: url) == .audio)
         #expect(MediaFormats.toleratesMissingTagReader(url))
         #expect(!MediaFormats.supportsEmbeddedArtwork(url))
