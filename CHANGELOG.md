@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.95 — 2026-10-02
+
+- Auch Element-Namensräume werden unter Linux anhand ihrer tatsächlichen
+  Präfixbindung aufgelöst. ComicInfo-Felder bleiben dadurch sichtbar, und neu
+  angelegte DOCX-Datumsfelder erhalten den vorgeschriebenen Typ.
+
 ## 0.46.94 — 2026-10-02
 
 - XML-Attribute werden auch unter Linux sicher nach ihrem Namensraum ausgewählt.

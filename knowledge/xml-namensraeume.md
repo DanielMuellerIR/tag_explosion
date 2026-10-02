@@ -15,6 +15,13 @@ Element über `resolveNamespace(forName:)` auflösen; unpräfigierte Attribute
 liefern ausdrücklich die leere URI. Der Linux-CI-Lauf für 0.46.93 belegte den
 Absturz beim Lesen einer gewöhnlichen EPUB-Datei; 0.46.94 umgeht diesen Zugriff.
 
+Bei Elementen ist `.uri` unter derselben FoundationXML-Version ebenfalls
+ungeeignet: Ohne eigene Bindung liefert der C-Unterbau ersatzweise die erste
+Namespace-Deklaration (`nsDef`), etwa `xsi` am namespacefreien ComicInfo-Knoten.
+Neu angelegte präfigierte Knoten liefern dagegen vor dem Serialisieren teils
+keine URI. Seit 0.46.95 verwendet auch die Elementauswahl die tatsächliche
+Präfixbindung. Beleg im [FoundationXML-Unterbau](https://github.com/swiftlang/swift-corelibs-foundation/blob/swift-6.0.3-RELEASE/Sources/_CFXMLInterface/CFXMLInterface.c#L375).
+
 Neue Elemente brauchen ebenfalls den richtigen Namensraum. Ein bloßes
 `XMLElement(name: "meta")` ist in einem vollständig präfigierten OPF ohne
 Standardnamensraum falsch. Dasselbe gilt für DOCX-Registrierungseinträge

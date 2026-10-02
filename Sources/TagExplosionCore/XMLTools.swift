@@ -20,7 +20,13 @@ enum XMLTools {
     static func elements(named name: String, in parent: XMLElement, namespaceURI: String? = nil) -> [XMLElement] {
         (parent.children ?? [])
             .compactMap { $0 as? XMLElement }
-            .filter { localName($0) == name && ($0.uri ?? "") == (namespaceURI ?? parent.uri ?? "") }
+            .filter { localName($0) == name && namespace(of: $0) == (namespaceURI ?? namespace(of: parent)) }
+    }
+
+    // FoundationXML liefert unter Linux über .uri teils nur die erste
+    // Namespace-Deklaration und erkennt neu angelegte präfigierte Knoten nicht.
+    static func namespace(of element: XMLElement) -> String {
+        element.resolveNamespace(forName: element.name ?? "")?.stringValue ?? ""
     }
 
     static func firstElement(named name: String, in parent: XMLElement?, namespaceURI: String? = nil) -> XMLElement? {

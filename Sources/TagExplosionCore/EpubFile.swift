@@ -670,9 +670,7 @@ enum EpubFile {
     }
 
     private static func elements(named name: String, in parent: XMLElement, namespaceURI: String = opfURI) -> [XMLElement] {
-        (parent.children ?? [])
-            .compactMap { $0 as? XMLElement }
-            .filter { localName($0) == name && $0.uri == namespaceURI }
+        XMLTools.elements(named: name, in: parent, namespaceURI: namespaceURI)
     }
 
     private static func firstElement(named name: String, in parent: XMLElement?) -> XMLElement? {
@@ -691,7 +689,7 @@ enum EpubFile {
         guard let parent else { return [] }
         var result: [XMLElement] = []
         for child in (parent.children ?? []).compactMap({ $0 as? XMLElement }) {
-            if localName(child) == name && child.uri == "urn:oasis:names:tc:opendocument:xmlns:container" { result.append(child) }
+            if localName(child) == name && XMLTools.namespace(of: child) == "urn:oasis:names:tc:opendocument:xmlns:container" { result.append(child) }
             result.append(contentsOf: descendants(named: name, in: child))
         }
         return result

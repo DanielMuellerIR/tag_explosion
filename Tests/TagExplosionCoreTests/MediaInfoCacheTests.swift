@@ -197,7 +197,9 @@ struct MediaInfoCacheTests {
         let cancellation = ExternalToolRunner.Cancellation()
         defer { cancellation.cancel() }
         let task = Task {
-            try await BlockingWork.run { try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 5, cancellation: cancellation) }
+            // Unter CI-Last kann die Test-Task erst nach mehr als fünf Sekunden
+            // abbrechen. Das Notlimit darf den geprüften Abbruch nicht überholen.
+            try await BlockingWork.run { try ExternalToolRunner.run("/usr/bin/python3", [script.path, ready.path], processTimeout: 30, cancellation: cancellation) }
         }
         let pid = try await waitForPID(at: ready)
         cancellation.cancel()
