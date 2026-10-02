@@ -180,3 +180,11 @@ Die drei Panels rufen `AppModel.exportData` auf: IO im Hintergrund, Fehler
 im App-Dialog. Ein Export darf Fehler nicht per `try?` verschlucken.
 Tests prüfen Neuanlage, erhaltenen Hardlink auf den alten Stand, Sicherung,
 Backupfehler und sichtbare Fehleranzeige ohne echte Fenster.
+
+- **Automatische Archive auf exFAT (2026-10-02):** Nur Auto-Backups dürfen nach
+  `link=ENOTSUP` auf ein exklusives `open(O_CREAT|O_EXCL)` mit vollständigem Write
+  und fsync ausweichen. Der Batch wartet auf den erfolgreichen Abschluss. Während
+  des Schreibens ist die Datei sichtbar; ein Prozess-/Stromabbruch kann ein
+  unvollständiges Archiv hinterlassen, startet aber keinen Medien-Save. Normale
+  Exporte und Sidecars behalten den atomaren Vertrag. Fehlgeschlagene eigene
+  Zwischenstände werden nur bei weiterhin identischer Inode entfernt.

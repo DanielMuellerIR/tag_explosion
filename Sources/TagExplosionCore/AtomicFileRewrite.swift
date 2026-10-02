@@ -107,6 +107,8 @@ enum AtomicFileRewrite {
     static func create(
         url: URL,
         replacingOriginal: Bool,
+        allowStreamingBackup: Bool = false,
+        linkFile: (String, String) -> Int32 = { link($0, $1) },
         beforeReplace: () throws -> Void,
         mutate: (URL) throws -> Void,
         validate: (URL) throws -> Void
@@ -127,7 +129,11 @@ enum AtomicFileRewrite {
         guard replacingOriginal else { return }
 
         try beforeReplace()
-        guard link(temp.path, destination.path) == 0 else {
+        guard linkFile(temp.path, destination.path) == 0 else {
+            if allowStreamingBackup && (errno == ENOTSUP || errno == EOPNOTSUPP) {
+                try createExclusiveBackup(from: temp, at: destination)
+                return
+            }
             // EEXIST: Jemand anderes hat die Datei gerade angelegt — dessen
             // Stand bleibt unangetastet, der Aufrufer liest neu.
             if errno == EEXIST {
@@ -135,6 +141,45 @@ enum AtomicFileRewrite {
             }
             throw TagError.saveFailed(path: url.path)
         }
+    }
+
+    // Nur automatische Archive dürfen auf Dateisystemen ohne Hardlinks direkt
+    // exklusiv angelegt werden. Der Batch beginnt erst nach vollständigem Write
+    // und fsync; keine leere Datei läuft durch TrashBackup oder das Journal.
+    static func createExclusiveBackup(from source: URL, at destination: URL) throws {
+        let data = try Data(contentsOf: source)
+        let fd = open(destination.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        guard fd >= 0 else {
+            if errno == EEXIST { throw TagError.fileChangedOnDisk(path: destination.path) }
+            throw TagError.saveFailed(path: destination.path)
+        }
+        var own = stat()
+        guard fstat(fd, &own) == 0 else {
+            close(fd)
+            throw TagError.saveFailed(path: destination.path)
+        }
+        var complete = false
+        defer {
+            close(fd)
+            if !complete {
+                var current = stat()
+                if lstat(destination.path, &current) == 0
+                    && current.st_dev == own.st_dev && current.st_ino == own.st_ino {
+                    unlink(destination.path)
+                }
+            }
+        }
+        try data.withUnsafeBytes { buffer in
+            var offset = 0
+            while offset < buffer.count {
+                let count = write(fd, buffer.baseAddress!.advanced(by: offset), buffer.count - offset)
+                if count < 0 && errno == EINTR { continue }
+                guard count > 0 else { throw TagError.saveFailed(path: destination.path) }
+                offset += count
+            }
+        }
+        guard fsync(fd) == 0 else { throw TagError.saveFailed(path: destination.path) }
+        complete = true
     }
 
     private static func siblingTempURL(for url: URL) -> URL {

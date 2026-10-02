@@ -3,6 +3,11 @@
 // (PropertyMap + Cover), Bild (Kernfelder) und EPUB ab, dazu die Meldungen
 // für fehlende/zusätzliche Dateien und --dry-run.
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
@@ -1024,6 +1029,43 @@ struct TagArchiveTests {
             try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
         }
         #expect(try Data(contentsOf: mp3) == bytesBefore)
+    }
+
+    @Test("Backup-Fallback ersetzt auch bei nachträglicher Kollision keine fremde Datei")
+    func backupFallbackKeepsConcurrentDestination() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appendingPathComponent("backup.json")
+        let foreign = Data("fremder Stand".utf8)
+        #expect(throws: TagError.self) {
+            try FileExport.createArchiveBackup(Data("vollständiges Archiv".utf8), at: target, linkFile: { _, _ in
+                try! foreign.write(to: target)
+                errno = ENOTSUP
+                return -1
+            })
+        }
+        #expect(try Data(contentsOf: target) == foreign)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["backup.json"])
+    }
+
+    @Test("Auto-Backup funktioniert ohne Hardlinks und überspringt belegte Medien-Aliase")
+    func backupWithoutHardlinksPreservesAliasAndCompleteArchive() throws {
+        let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        let original = try Data(contentsOf: mp3)
+        let alias = dir.appendingPathComponent("tags-backup-fixture.json")
+        try FileManager.default.linkItem(at: mp3, to: alias)
+        let written = try TagArchiveIO.writeBackups(files: [mp3], stamp: "fixture", linkFile: { _, _ in
+            errno = ENOTSUP
+            return -1
+        })
+        #expect(written.count == 1)
+        #expect(written[0].lastPathComponent == "tags-backup-fixture-2.json")
+        #expect(try TagArchiveIO.load(written[0]).files.map(\.path) == ["sample.mp3"])
+        #expect(try Data(contentsOf: alias) == original)
+        #expect(try Data(contentsOf: mp3) == original)
     }
 
     @Test("Schnell aufeinanderfolgende Backups überschreiben sich nicht")

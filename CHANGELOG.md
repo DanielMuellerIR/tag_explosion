@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.91 — 2026-10-02
+
+- Automatische Tag-Backups funktionieren wieder auf Dateisystemen ohne Hardlinks.
+  Archive werden dort exklusiv vollständig geschrieben und synchronisiert, bevor
+  der Batch beginnt; vorhandene Ziele und Medien-Aliase bleiben erhalten.
+- Ein bereits belegter Backupname blockiert den Batch nicht mehr, wenn die nächste
+  Namensvariante frei ist.
+
 ## 0.46.90 — 2026-10-01
 
 - Deutsche und englische Screenshots für Audio, Bilder und E-Books mit neutralen Beispieldateien und Ablagepfaden erneuert.

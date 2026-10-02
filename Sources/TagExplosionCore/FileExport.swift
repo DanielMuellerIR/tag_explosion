@@ -18,6 +18,18 @@ public enum FileExport {
                                      validate: validate)
     }
 
+    static func createArchiveBackup(_ data: Data, at url: URL,
+                                    linkFile: (String, String) -> Int32) throws {
+        try AtomicFileRewrite.create(url: url, replacingOriginal: true,
+                                     allowStreamingBackup: true, linkFile: linkFile,
+                                     beforeReplace: {}, mutate: { try data.write(to: $0) },
+                                     validate: { temporary in
+            guard try Data(contentsOf: temporary) == data else {
+                throw TagError.saveFailed(path: url.path)
+            }
+        })
+    }
+
     /// Erst eine geprüfte Geschwisterdatei erzeugen, dann das bestätigte Ziel
     /// ersetzen. Eine inzwischen angelegte oder geänderte Datei bleibt erhalten.
     public static func write(_ data: Data, to url: URL, backup: TrashBackup = .shared) throws {

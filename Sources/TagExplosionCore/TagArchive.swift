@@ -4,6 +4,11 @@
 // Kernfelder, Cover Base64-eingebettet. Ausschließlich JSONEncoder/JSONDecoder
 // (korrektes Escaping garantiert).
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 
 /// Der Inhalt einer Export-/Backup-Datei.
 public struct TagArchive: Codable, Sendable, Equatable {
@@ -254,26 +259,34 @@ public enum TagArchiveIO {
         formatter.dateFormat = "yyyy-MM-dd'T'HHmmss"
         let stamp = formatter.string(from: Date())
 
+        return try writeBackups(files: files, stamp: stamp, linkFile: { link($0, $1) })
+    }
+
+    static func writeBackups(files: [URL], stamp: String,
+                             linkFile: (String, String) -> Int32) throws -> [URL] {
         var written: [URL] = []
         for (folder, urls) in Dictionary(grouping: files, by: { $0.deletingLastPathComponent() }) {
-            let firstTarget = backupURL(in: folder, stamp: stamp, counter: 1)
-            let data = try encodedArchive(files: urls, relativeTo: firstTarget,
-                                          includeCovers: true)
-            let target = try writeBackup(data, in: folder, stamp: stamp)
+            let target = try writeBackup(files: urls, in: folder, stamp: stamp,
+                                         linkFile: linkFile)
             written.append(target)
         }
         return written
     }
 
-    /// Schreibt das fertige Archiv direkt unter einen exklusiv belegten Namen.
-    /// So existiert nie eine leere Platzhalterdatei, die `TrashBackup` als
-    /// vermeintliche Benutzerversion journalisieren koennte.
-    private static func writeBackup(_ data: Data, in folder: URL,
-                                    stamp: String) throws -> URL {
+    /// Belegte Namen vor der Zielprüfung überspringen; die Veröffentlichung
+    /// bleibt exklusiv und erkennt auch nachträgliche Kollisionen.
+    private static func writeBackup(files: [URL], in folder: URL,
+                                    stamp: String,
+                                    linkFile: (String, String) -> Int32) throws -> URL {
         for counter in 1...1000 {
             let candidate = backupURL(in: folder, stamp: stamp, counter: counter)
+            if FileStamp.current(of: candidate) != nil
+                || (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
+                continue
+            }
             do {
-                try FileExport.create(data, at: candidate)
+                let data = try encodedArchive(files: files, relativeTo: candidate, includeCovers: true)
+                try FileExport.createArchiveBackup(data, at: candidate, linkFile: linkFile)
                 return candidate
             } catch TagError.fileChangedOnDisk {
                 continue
