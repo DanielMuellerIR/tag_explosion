@@ -714,19 +714,10 @@ enum EpubFile {
     /// EPUB 2 qualifiziert role/scheme mit OPF; die übrigen Attribute sind namespacefrei.
     private static func attribute(_ element: XMLElement, _ name: String) -> String? {
         let uri = ["role", "scheme"].contains(name) ? opfURI : ""
-        return (element.attributes ?? [])
-            .first { localName($0) == name && ($0.uri ?? "") == uri }?
-            .stringValue
+        return XMLTools.attribute(element, name, namespaceURI: uri)
     }
 
     private static func setAttribute(_ element: XMLElement, _ name: String, _ value: String) {
-        if let existing = (element.attributes ?? []).first(where: { localName($0) == name && ($0.uri ?? "").isEmpty }) {
-            existing.stringValue = value
-            return
-        }
-        let node = XMLNode(kind: .attribute)
-        node.name = name
-        node.stringValue = value
-        element.addAttribute(node)
+        XMLTools.setAttribute(element, name, value)
     }
 }

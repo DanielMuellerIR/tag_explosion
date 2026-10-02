@@ -48,14 +48,23 @@ enum XMLTools {
     /// Attributwert nach lokalem Namen und URI; ohne Angabe nur namespacefreie Attribute.
     static func attribute(_ element: XMLElement, _ name: String, namespaceURI: String = "") -> String? {
         (element.attributes ?? [])
-            .first { localName($0) == name && ($0.uri ?? "") == namespaceURI }?
+            .first { localName($0) == name && attributeNamespace($0.name ?? "", in: element) == namespaceURI }?
             .stringValue
+    }
+
+    // XMLNode.uri stürzt bei Attributen unter Linux/Swift 6.0 in FoundationXML
+    // ab. Präfixe stattdessen am besitzenden Element auflösen; der Standard-
+    // namensraum gilt nicht für unpräfigierte Attribute.
+    private static func attributeNamespace(_ name: String, in element: XMLElement) -> String {
+        name.contains(":") ? element.resolveNamespace(forName: name)?.stringValue ?? "" : ""
     }
 
     static func setAttribute(_ element: XMLElement, _ name: String, _ value: String) {
         let local = name.split(separator: ":").last.map(String.init) ?? name
-        let uri = name.contains(":") ? element.resolveNamespace(forName: name)?.stringValue ?? "" : ""
-        if let existing = (element.attributes ?? []).first(where: { localName($0) == local && ($0.uri ?? "") == uri }) {
+        let uri = attributeNamespace(name, in: element)
+        if let existing = (element.attributes ?? []).first(where: {
+            localName($0) == local && attributeNamespace($0.name ?? "", in: element) == uri
+        }) {
             existing.stringValue = value
             return
         }

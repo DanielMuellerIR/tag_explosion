@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.94 — 2026-10-02
+
+- XML-Attribute werden auch unter Linux sicher nach ihrem Namensraum ausgewählt.
+  Der direkte URI-Zugriff der vorherigen Korrektur löste dort einen Absturz
+  in FoundationXML aus; die Auflösung erfolgt jetzt am besitzenden Element.
+
 ## 0.46.93 — 2026-10-02
 
 - Eingaben während Untertitelverschiebung, Tag-Schichtentfernung und

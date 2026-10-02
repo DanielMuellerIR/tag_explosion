@@ -9,6 +9,12 @@ Seit 0.46.93 vergleichen die Auswahlhelfer lokale Namen und Namespace-URI.
 Attribute sind ohne explizite URI namespacefrei. Ein Standardnamensraum gilt
 für Elemente, nicht für unpräfigierte Attribute.
 
+Unter Linux mit Swift 6.0 stürzt `XMLNode.uri` für Attribute in
+`_CFXMLNodeCopyURI` ab. Deshalb deren qualifizierten Namen am besitzenden
+Element über `resolveNamespace(forName:)` auflösen; unpräfigierte Attribute
+liefern ausdrücklich die leere URI. Der Linux-CI-Lauf für 0.46.93 belegte den
+Absturz beim Lesen einer gewöhnlichen EPUB-Datei; 0.46.94 umgeht diesen Zugriff.
+
 Neue Elemente brauchen ebenfalls den richtigen Namensraum. Ein bloßes
 `XMLElement(name: "meta")` ist in einem vollständig präfigierten OPF ohne
 Standardnamensraum falsch. Dasselbe gilt für DOCX-Registrierungseinträge
