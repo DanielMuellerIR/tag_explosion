@@ -13,6 +13,52 @@ import ZIPFoundation
 @Suite("EbookTool", .serialized)
 struct EbookToolTests {
 
+    @Test("EPUB-Metadaten bewahren gleichnamige Fremdelemente")
+    func foreignEpubMetadataSurvives() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let path = "OEBPS/content.opf"
+        try rewriteOpf(in: url, path: path) { xml in
+            xml.replacingOccurrences(of: "<dc:title>", with:
+                "<vendor:title xmlns:vendor=\"urn:test:vendor\">Fremder Titel</vendor:title>"
+                + "<vendor:creator xmlns:vendor=\"urn:test:vendor\">Fremder Autor</vendor:creator><dc:title>")
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        #expect(original.title != "Fremder Titel")
+        #expect(!original.authors.contains("Fremder Autor"))
+        var edited = original
+        edited.title = ""
+        edited.authors = ["Neuer Autor"]
+        try EbookTool.writeCoreFields(url: url, fields: edited, original: original)
+        let xml = try opfContents(of: url, path: path)
+        #expect(xml.contains("Fremder Titel"))
+        #expect(xml.contains("Fremder Autor"))
+        #expect(try EbookTool.readCoreFields(url: url) == edited)
+    }
+
+    @Test("Präfigierte OPF erhält neue Serien- und Coverelemente im OPF-Namensraum")
+    func prefixedOPFCreatesMetadata() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let path = "OEBPS/content.opf"
+        try rewriteOpf(in: url, path: path) { xml in
+            var result = xml.replacingOccurrences(of: "xmlns=\"http://www.idpf.org/2007/opf\"",
+                                                   with: "")
+            for name in ["package", "metadata", "manifest", "item", "spine", "itemref", "meta", "guide", "reference"] {
+                result = result.replacingOccurrences(of: "(<[/]?)" + name + "(?=[ > /])", with: "$1opf:" + name,
+                                                     options: .regularExpression)
+            }
+            return result
+        }
+        let original = try EbookTool.readCoreFields(url: url)
+        var edited = original
+        edited.series = "Neue Reihe"
+        edited.seriesIndex = "4"
+        try EbookTool.write(url: url, fields: edited, original: original, coverUpdate: .remove)
+        let cover = try Data(contentsOf: Fixtures.directory.appendingPathComponent("cover.jpg"))
+        try EbookTool.write(url: url, fields: edited, original: edited, coverUpdate: .set(cover))
+        #expect(try EbookTool.readCoreFields(url: url) == edited)
+        #expect(try EbookTool.readCover(url: url)?.data == cover)
+    }
+
     /// Testing überspringt die optionalen Calibre-Prüfungen sichtbar statt sie
     /// mit `guard { return }` still grün erscheinen zu lassen.
     private static let calibreFixtureAvailable = EbookTool.calibreAvailable

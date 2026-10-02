@@ -131,6 +131,12 @@ Vergleich muss dann die damaligen Originalwerte verwenden. Ein bedingungsloses
 Übernehmen bei `nil` verwirft Lyrics, deren Sprache und Video-NFO-Felder, die
 erst während des laufenden Speicherns eingegeben wurden.
 
+Dasselbe gilt für direkte Dateiaktionen: Untertitel verschieben,
+Tag-Schichten entfernen und Versionen wiederherstellen verwenden
+`AppModel.reloadAfterMutation`. Es erfasst auch saubere Puffer vor dem
+asynchronen Auftrag und übernimmt anschließend nur noch unveränderte Puffer.
+Rechnungen haben keine editierbaren Puffer und werden direkt neu übernommen.
+
 `AppModelSaveTests.optionalAudioChangesDuringSave` hält den Schreibauftrag
 gezielt an und prüft vier Kombinationen: schon beim Start geändert oder noch
 unverändert, anschließend weiterbearbeitet oder nicht. Ohne Korrektur gehen

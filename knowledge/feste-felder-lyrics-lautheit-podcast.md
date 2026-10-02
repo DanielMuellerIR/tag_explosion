@@ -1,4 +1,4 @@
-# Feste Felder: Lyrics, Lautheit, Podcast (Stand 2026-09-02, TagLib 2.3.1)
+# Feste Felder: Lyrics, Lautheit, Podcast (Stand 2026-10-02, TagLib 2.3.1)
 
 Konsultieren bei Arbeit an `FixedFields`, `LyricsFormats`, den Lyrics-/
 Native-Feld-Funktionen im Shim, `tagx lyrics` oder den Editor-Abschnitten
@@ -33,9 +33,15 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
 
 ## Lyrics
 
-- Nach jedem Textwechsel legt TagLib ein **neues USLT mit Sprache "XXX"** an.
-  `TagFile.write` setzt deshalb die bisherige (oder übergebene) Sprache nach
-  `setProperties` erneut. Sprache leer = "XXX" = unbekannt.
+- Nach einem Textwechsel kann TagLib ein **neues USLT mit Sprache "XXX"**
+  anlegen. Der Shim erhält deshalb vor `setProperties` Beschreibung, Text
+  und Sprache der Frames und stellt eindeutig zuordenbare Sprachen wieder
+  her. `TagFile.write` setzt alle Sprachen nur bei ausdrücklicher Sprachwahl.
+  Sprache leer = "XXX" = unbekannt.
+- Mehrere USLT-Sprachen unter derselben Beschreibung passen nicht verlustfrei
+  in die PropertyMap: TagLib kann daraus bei einer bloßen Titeländerung TXXX
+  machen. Der Shim lehnt solche Property-Änderungen vorab ab; das Original
+  bleibt unverändert. Tests prüfen rohe ID3-Frames unabhängig vom eigenen Leser.
 - SYLT (`tx_set_synced_lyrics`) schreibt immer Millisekunden-Zeitstempel
   (Format 2) und Typ „Lyrics"; SYLT-Frames mit MPEG-Frame-Zeitstempeln
   (Format 1) werden gelesen als „keine Zeilen", weil die Umrechnung die
@@ -50,6 +56,10 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
   **nicht auf die Zeiten angewendet** — Player deuten das Vorzeichen
   unterschiedlich. Wort-Zeitstempel `<mm:ss.xx>` (Enhanced LRC) werden
   entfernt; mehrere `[..]` vor einer Zeile ergeben mehrere Zeilen.
+- Beim Bearbeiten einer vorhandenen LRC-Sidecar die Metadaten unter derselben
+  Stempelprüfung mitlesen und erhalten. Nur neue Zeilen zu rendern entfernt
+  unter anderem den Zeitversatz. Die Validierung prüft Zeilen und Metadaten;
+  direktes Schreiben auf die Geschwisterkopie erhält deren Dateirechte.
 - Sidecar `<name>.lrc`: In der App nur für Formate ohne ID3v2 (FLAC, Ogg,
   Opus, MP4, Matroska …); `readLoaded` liest sie in `syncedLyrics` ein und
   merkt sich ihren Stempel (`AudioSidecars.lrcStamp`). Ändert sich nur die

@@ -390,6 +390,7 @@ struct PlaylistTests {
         try write("""
         <?xml version="1.0" encoding="UTF-8"?>
         <playlist version="1" xmlns="http://xspf.org/ns/0/">
+          <x:title xmlns:x="urn:vendor">Fremder Listentitel</x:title>
           <title>Liste</title>
           <annotation>Notiz</annotation>
           <trackList>
@@ -426,6 +427,7 @@ struct PlaylistTests {
         try PlaylistTool.write(url: url, fields: edited, original: contents.fields)
         #expect(try PlaylistTool.read(url: url).fields == edited)
         let result = try text(of: url)
+        #expect(result.contains("Fremder Listentitel"))
         #expect(result.contains("<annotation>Notiz</annotation>"))
         #expect(result.contains("<extension application=\"http://example.org/\">"))
         #expect(result.contains("<creator>Kuratorin</creator>"))

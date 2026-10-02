@@ -171,12 +171,13 @@ struct SidecarTests {
     @Test("NFO erhält fremde Namensräume und XML-Verarbeitungsanweisungen", arguments: [
         "    <custom><?keep data?></custom>",
         "    <custom>before<?keep data?>after</custom>",
-        "    <x:custom xmlns:x=\"urn:x\" x:id=\"1\">Text</x:custom>"
+        "    <x:custom xmlns:x=\"urn:x\" x:id=\"1\">Text</x:custom>",
+        "    <x:title xmlns:x=\"urn:x\">Fremder Titel</x:title>"
     ])
     func nfoForeignXML(foreign: String) throws {
         let dir = try makeDir()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let text = "<movie>\n    <title>A</title>\n" + foreign + "\n</movie>\n"
+        let text = "<movie>\n" + foreign + "\n    <title>A</title>\n</movie>\n"
         let url = try writeFile("foreign.nfo", text, in: dir)
         let original = try KodiNFOFile.read(url: url).fields
         var edited = original

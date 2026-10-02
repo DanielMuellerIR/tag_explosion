@@ -29,6 +29,8 @@ final class WindowSessions {
     /// nächste Fenster — beim Kaltstart aus dem Finder ebenso wie nach dem
     /// Schließen des letzten Fensters.
     private var pendingURLs: [URL] = []
+    /// Eine explizite Fensteraktion entspricht genau einem eigenen Dateisatz.
+    private var pendingWindowURLs: [[URL]] = []
     /// Zustand einer laufenden Fensteranforderung. Merker, Versuchszähler und
     /// Watchdog gehören zusammen und liegen deshalb in EINEM Wert: Als drei
     /// unabhängige Variablen liefen sie auseinander — der Watchdog einer längst
@@ -144,7 +146,7 @@ final class WindowSessions {
     /// Fenster danach selbst über SwiftUIs `openWindow`; `register` liefert
     /// die Dateien dann über den gewohnten Öffnen-Weg des Modells aus.
     func queueForNextWindow(urls: [URL]) {
-        pendingURLs.append(contentsOf: urls)
+        pendingWindowURLs.append(urls)
     }
 
     /// Öffnen-Dialog aus dem Menü. Er funktioniert auch ohne Fenster — dann
@@ -207,9 +209,10 @@ final class WindowSessions {
     }
 
     private func deliverPending(to model: AppModel) {
-        guard !pendingURLs.isEmpty else { return }
-        let urls = pendingURLs
+        let explicit = pendingWindowURLs.isEmpty ? [] : pendingWindowURLs.removeFirst()
+        let urls = explicit + pendingURLs
         pendingURLs = []
+        guard !urls.isEmpty else { return }
         openInModel(model, urls)
     }
 

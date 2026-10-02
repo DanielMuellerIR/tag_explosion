@@ -87,6 +87,62 @@ struct FixedFieldsTests {
         }
     }
 
+    @Test("Tag- und Textänderungen erhalten die Sprachen mehrerer USLT-Frames", arguments: [false, true], [false, true])
+    func independentTagEditPreservesLyricsLanguages(editLyrics: Bool, sharedDescription: Bool) throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let originalBytes = [UInt8](try Data(contentsOf: url))
+        func synchsafe(_ value: Int) -> [UInt8] {
+            [21, 14, 7, 0].map { UInt8((value >> $0) & 0x7f) }
+        }
+        func decodedSize(_ bytes: ArraySlice<UInt8>) -> Int {
+            bytes.reduce(0) { ($0 << 7) | Int($1) }
+        }
+        func frame(language: String, description: String, text: String) -> [UInt8] {
+            let content = [UInt8(0)] + Array(language.utf8) + Array(description.utf8) + [0] + Array(text.utf8)
+            return Array("USLT".utf8) + synchsafe(content.count) + [0, 0] + content
+        }
+        let frames = frame(language: "deu", description: "A", text: "Deutsch")
+            + frame(language: "eng", description: sharedDescription ? "A" : "B", text: "English")
+        let oldTagSize = Array(originalBytes.prefix(3)) == Array("ID3".utf8)
+            ? 10 + decodedSize(originalBytes[6..<10]) : 0
+        let bytes = Array("ID3".utf8) + [4, 0, 0] + synchsafe(frames.count) + frames
+            + Array(originalBytes.dropFirst(oldTagSize))
+        try Data(bytes).write(to: url)
+        let before = try TagFile.read(at: url)
+        var properties = before.properties
+        properties.append(TagProperty(key: "TITLE", value: "Neuer Titel"))
+        if editLyrics {
+            properties = properties.map {
+                $0.key == "LYRICS:A" && $0.value == "Deutsch"
+                    ? TagProperty(key: $0.key, value: "Neuer deutscher Text") : $0
+            }
+        }
+        if sharedDescription {
+            #expect(throws: TagError.propertiesRejected(count: 1)) { try TagFile.write(properties: properties, to: url) }
+            #expect(try Data(contentsOf: url) == Data(bytes))
+            return
+        }
+        try TagFile.write(properties: properties, to: url)
+        let after = [UInt8](try Data(contentsOf: url))
+        var offset = 10
+        var languages: [String: String] = [:]
+        while offset + 10 <= after.count, after[offset] != 0 {
+            let size = decodedSize(after[(offset + 4)..<(offset + 8)])
+            guard size > 0, offset + 10 + size <= after.count else { break }
+            if String(decoding: after[offset..<(offset + 4)], as: UTF8.self) == "USLT", size >= 4 {
+                let language = String(decoding: after[(offset + 11)..<(offset + 14)], as: UTF8.self)
+                let description = after[(offset + 14)..<(offset + 10 + size)].prefix { $0 != 0 }
+                languages[String(decoding: description, as: UTF8.self)] = language
+            }
+            offset += 10 + size
+        }
+        #expect(languages == ["A": "deu", "B": "eng"])
+        if editLyrics {
+            #expect(try TagFile.read(at: url).firstValue(for: "LYRICS:A") == "Neuer deutscher Text")
+        }
+        #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Neuer Titel")
+    }
+
     static let syncedSample = [
         SyncedLyricLine(milliseconds: 0, text: "Intro"),
         SyncedLyricLine(milliseconds: 1250, text: "Zeile mit Ümläuten"),
@@ -353,6 +409,25 @@ struct FixedFieldsTests {
         #expect(rendered == "[ti:Titel]\n[00:00.00]A\n[01:01.25]B — Ümläute\n[01:01.251]C\n[60:00.00]\n")
         #expect(try LRC.parse(rendered).lines == lines)
         #expect(LRC.render([]) == "")
+    }
+
+    @Test("LRC-Zeilenänderung erhält Metadaten, Zeitversatz und Dateirechte")
+    func sidecarPreservesMetadata() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let media = directory.appendingPathComponent("track.flac")
+        let sidecar = LRC.sidecarURL(for: media)
+        let original = "[ar:Interpret]\n[ti:Titel]\n[offset:+500]\n[00:01.00]Alt\n"
+        try Data(original.utf8).write(to: sidecar)
+        try FileManager.default.setAttributes([.posixPermissions: 0o640], ofItemAtPath: sidecar.path)
+        let before = try LRC.load(from: sidecar)
+        let replacement = [SyncedLyricLine(milliseconds: 1500, text: "Neu")]
+        try LRC.writeSidecar(replacement, for: media, expecting: SidecarState.current(of: sidecar))
+        let after = try LRC.load(from: sidecar)
+        #expect(after == LRC.Document(lines: replacement, metadata: before.metadata))
+        let mode = try FileManager.default.attributesOfItem(atPath: sidecar.path)[.posixPermissions] as? NSNumber
+        #expect(mode?.intValue == 0o640)
     }
 
     @Test("Sidecar <name>.lrc neben der Datei: anlegen, lesen, ersetzen, löschen")

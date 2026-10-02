@@ -70,6 +70,22 @@ struct WindowSessionsTests {
         #expect(harness.opened.first?.1 == [file])
     }
 
+    @Test("Mehrere neue Fenster erhalten jeweils ihren eigenen Dateisatz")
+    func queuedWindowsKeepSeparateFiles() {
+        let harness = Harness()
+        _ = harness.addWindow()
+        let secondFile = URL(fileURLWithPath: "/tmp/second-window.mp3")
+        harness.sessions.queueForNextWindow(urls: [file])
+        harness.sessions.queueForNextWindow(urls: [secondFile])
+        let first = harness.addWindow()
+        let second = harness.addWindow()
+        #expect(harness.opened.count == 2)
+        #expect(harness.opened.first?.0 === first)
+        #expect(harness.opened.first?.1 == [file])
+        #expect(harness.opened.last?.0 === second)
+        #expect(harness.opened.last?.1 == [secondFile])
+    }
+
     @Test("Datei-Drops behalten ihre Reihenfolge trotz verspäteter Antworten")
     func dropOrderFollowsInput() {
         let first = URL(fileURLWithPath: "/tmp/first.mp3")

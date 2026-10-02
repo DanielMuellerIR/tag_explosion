@@ -1476,5 +1476,179 @@
         ]
       }
     }
+  ],
+  "timeboxed_reviews": [
+    {
+      "id": "2026-10-02-hour-review",
+      "started_at": "2026-10-02T15:59:20+02:00",
+      "finished_at": "2026-10-02T16:43:08+02:00",
+      "budget_seconds": 3600,
+      "status": "completed",
+      "review_depth": "risk-based-cross-project",
+      "base_head": "993a7899b1fac99af9b42d24b01643ecec7ac521",
+      "result_version": "0.46.93",
+      "report": "docs/CODE-REVIEW-2026-10-02.md",
+      "fixed_finding_groups": 9,
+      "architecture": {
+        "paradigm": "Schichtenmodell mit portablem Core, CLI und SwiftUI-Beobachtungsmodell pro Fenster",
+        "fit": "passt",
+        "recommendation": "Gemeinsame XML- und Puffergrenzen stärken; kein Architekturwechsel begründet."
+      },
+      "coverage": [
+        {
+          "area": "Dateisicherheit und Backups",
+          "depth": "Schreibwege, Stempel, Papierkorb, Journal, Restore, Export, Umbenennen und Archivgrenzen vertieft"
+        },
+        {
+          "area": "App-Zustand und Fenster",
+          "depth": "Laden, Speichern, Puffer, Historie und Fensterrouting vertieft; größere Views teilweise"
+        },
+        {
+          "area": "Audio und Formate",
+          "depth": "TagFile, zentrale Shim-Wege, Dokument-, EPUB-, Playlist- und Sidecar-Backends vertieft; ExifTool und Modell teilweise"
+        },
+        {
+          "area": "E-Rechnungen und Online-Suche",
+          "depth": "Parsergrenzen, UBL, dynamische Zuordnung, Validierung und Suchplanung vertieft; CII-/Order-Feldtabellen teilweise"
+        },
+        {
+          "area": "CLI, Build und Entwicklung",
+          "depth": "Mutierende Aufrufer, Prozessausführung und Build-/Installations-/Releasegrenzen geprüft; Hilfsprogramme teilweise"
+        }
+      ],
+      "validation": {
+        "baseline": {
+          "core_tests": 459,
+          "cli_tests": 61,
+          "app_tests": 137,
+          "result": "passed"
+        },
+        "final": {
+          "core_tests": 468,
+          "cli_tests": 61,
+          "app_tests": 140,
+          "result": "passed"
+        },
+        "shell_tests": [
+          "install-verified-app-tests.sh",
+          "shell-test-support-tests.sh",
+          "taglib-refs-tests.sh",
+          "verify-macos-minimums-tests.sh",
+          "icon-generator-tests.sh",
+          "build-plist-tests.sh"
+        ],
+        "diff_review": "Alle Produktänderungen unabhängig nachgeprüft; bestätigte Nachprüfungsbefunde korrigiert.",
+        "regressions": "Gezielte Gegenproben und Tests für Datenverlust, Namensraumkollisionen, konkurrierende Eingaben und sichere Ablehnung."
+      },
+      "limitations": [
+        "Keine vollständige Quellzeilenabdeckung; Bericht nennt Prüftiefe und Lücken.",
+        "Keine Linux-Ausführung, GUI-Läufe, Live-Online-Abfragen, Notarisierung, Installation oder Sparkle-Updates.",
+        "USLT mit gleicher Beschreibung und verschiedenen Sprachen: Property-Änderungen werden vor Mutation abgelehnt.",
+        "Verwaiste Installations-Übernahme-Hilfssperren benötigen nach Prüfung laufender Installationen manuelle Bereinigung.",
+        "Lokale Homebrew-TagLib meldet bereits im Ausgangszustand eine neuere macOS-Mindestversion als das Projektziel."
+      ],
+      "reviewed_change_files": [
+        {
+          "path": "App/Sources/TagExplosionApp/AppModel+VersionHistory.swift",
+          "sha256": "fb7764475fead169795277072a09a2368c0458478e8318d559db90b2d5c5e1d7"
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/AppModel.swift",
+          "sha256": "848c067414dd416f96b226f154be8598897cba8b8f7ad4512cba910c88a9e821"
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FileEntry.swift",
+          "sha256": "cc2a03f3ac80171642359fa583b484438224bcd537a85d7f7ff296c2c9b0535a"
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/WindowSessions.swift",
+          "sha256": "bd54619eda62896c271b3d0d3f9904f36ac8f99b10ab66c25491f95ad66e2ee0"
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/AppModelSaveTests.swift",
+          "sha256": "6dd6c7b53547959758d6ae7e7d931bc768a1ac2acdba76fcaccc6f4fc5d24ae8"
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift",
+          "sha256": "be13a2af19e49d8e305825a45c44172044ab1dae91535275cd42ec2826751a91"
+        },
+        {
+          "path": "Sources/CTagShim/shim.cpp",
+          "sha256": "7979053df1c76dee400161d8c756967226c4519b63e320bdeb320b2db53245af"
+        },
+        {
+          "path": "Sources/EInvoiceCore/XMLTree.swift",
+          "sha256": "cccf7241a9a3104c8de93e6534a368a4284458025533aae3a36d6083935c5b30"
+        },
+        {
+          "path": "Sources/TagExplosionCore/DocumentTool.swift",
+          "sha256": "40a6c029b6d9ee8a1db3ec6437ef759017b126c2a0a46bf0f6613444b4996cc6"
+        },
+        {
+          "path": "Sources/TagExplosionCore/EpubFile.swift",
+          "sha256": "cd5d6c045fd74c3922964b5f67d7a1cebd2627e7ca8119bbda2a482cf6aecab7"
+        },
+        {
+          "path": "Sources/TagExplosionCore/LyricsFormats.swift",
+          "sha256": "80edd87c87296e0c6609f24f4ef1646173c398f44a342a1cbf92a51e1e6be4d2"
+        },
+        {
+          "path": "Sources/TagExplosionCore/OfficeDocumentFile.swift",
+          "sha256": "71c8a920408cb660d198fe655899cee0069913fbec08f88a516c18f70c1fd47c"
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/LookupPlanner.swift",
+          "sha256": "94ba886e7464d4ad057851e9ce10d8ccb0793f6de851a49bdec44df57721e699"
+        },
+        {
+          "path": "Sources/TagExplosionCore/OpenDocumentFile.swift",
+          "sha256": "32358cfb67075d2f13bc7c81d50eb037c05b9c1f5f6ec2490c95285218e86701"
+        },
+        {
+          "path": "Sources/TagExplosionCore/TagFile.swift",
+          "sha256": "ab81b8d86ffd7583c8a956c7982bcfa4791eac0b1e48d82aecf772615c8fd08b"
+        },
+        {
+          "path": "Sources/TagExplosionCore/XMLTools.swift",
+          "sha256": "6f3ef8bff144359a594e5fbc9774f7da26b56b7b6d678062ca409476cda62225"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/DocumentToolTests.swift",
+          "sha256": "a530f3d0c22cdde2f6c584502fd824b44f197833af7a3c5967339e4581cc4dc2"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/EInvoiceTests.swift",
+          "sha256": "4adc96a7ee3492dd801d0c16606699464a2c558eb5d8f6bb715957690937db78"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/EbookToolTests.swift",
+          "sha256": "39212f89f9d8eee3a802f370e388be0d891200667e1d7133306e12829ed8e92c"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+          "sha256": "f34d9f61e540a5d892e129b5bca972c96409e33638ca0f36c68b7a3c4cf8e35b"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/OnlineLookupTests.swift",
+          "sha256": "d032d8b110257cb0283911927fb102350b724224faf99e719e0dfa58004687a9"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/PlaylistTests.swift",
+          "sha256": "27485800eea09facd2951eacbdc3770f0259b8e00508d98205eec346345373ee"
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/SidecarTests.swift",
+          "sha256": "297c4b431221e324c122a1f69b9d3c5034a9fb09653852e454b795f7d2cadac0"
+        },
+        {
+          "path": "Tests/install-verified-app-tests.sh",
+          "sha256": "417de539d2b50ba566b18c2d42552f3cc9f26d0ad4dbeb88407da0d624fef66b"
+        },
+        {
+          "path": "scripts/install-verified-app.sh",
+          "sha256": "99a037e2a300ebc992ef03ec7dde2dc95762815b52d2edc2053e3430d93848d6"
+        }
+      ]
+    }
   ]
 }

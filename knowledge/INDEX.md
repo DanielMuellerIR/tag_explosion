@@ -2,6 +2,10 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [xml-namensraeume.md](xml-namensraeume.md) — Bei XML-Metadaten und
+  Rechnungszuordnungen: URI statt lokalem Namen, Fremdfelder erhalten,
+  lokale Präfixumbindung und neue Elemente in präfigierten Paketdateien.
+
 - [blockierende-arbeit-und-executor.md](blockierende-arbeit-und-executor.md) —
   Bei Lesern, die auf externe Werkzeuge oder TagLib warten: `BlockingWork.run`
   statt `Task.detached`, Messwerte, und warum eine neue Core-Datei im

@@ -98,7 +98,9 @@ public enum LookupPlanner {
             let total = candidate.tracks.filter { $0.discNumber == track.discNumber }.count
             desired.append(("TRACKNUMBER", total > 0 ? "\(track.number)/\(total)" : "\(track.number)"))
             let discs = Set(candidate.tracks.map(\.discNumber)).count
-            if discs > 1 {
+            let replacesSingleDisc = candidate.hasFullTracklist && discs == 1
+                && existing.contains { $0.key == "DISCNUMBER" }
+            if discs > 1 || replacesSingleDisc {
                 desired.append(("DISCNUMBER", "\(track.discNumber)/\(discs)"))
             }
         } else {

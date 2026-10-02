@@ -51,19 +51,19 @@ enum OfficeDocumentFile: DocumentBackend {
         if let coreData = try ZipContainer.data(at: corePath(in: archive), in: archive) {
             let document = try XMLTools.document(from: coreData, path: url.path)
             guard let root = document.rootElement() else { throw TagError.cannotOpen(path: url.path) }
-            fields.title = XMLTools.text(of: "title", in: root)
+            fields.title = XMLTools.text(of: "title", in: root, namespaceURI: dcURI)
             fields.authors = DocumentTool.splitList(
-                XMLTools.text(of: "creator", in: root), separators: [";"])
-            fields.subject = XMLTools.text(of: "subject", in: root)
-            fields.description = XMLTools.text(of: "description", in: root)
+                XMLTools.text(of: "creator", in: root, namespaceURI: dcURI), separators: [";"])
+            fields.subject = XMLTools.text(of: "subject", in: root, namespaceURI: dcURI)
+            fields.description = XMLTools.text(of: "description", in: root, namespaceURI: dcURI)
             fields.keywords = DocumentTool.splitList(
-                XMLTools.text(of: "keywords", in: root), separators: [",", ";"])
-            fields.language = XMLTools.text(of: "language", in: root)
-            fields.category = XMLTools.text(of: "category", in: root)
-            fields.created = XMLTools.text(of: "created", in: root)
-            fields.modified = XMLTools.text(of: "modified", in: root)
-            fields.setCustom("lastModifiedBy", XMLTools.text(of: "lastModifiedBy", in: root))
-            fields.setCustom("revision", XMLTools.text(of: "revision", in: root))
+                XMLTools.text(of: "keywords", in: root, namespaceURI: cpURI), separators: [",", ";"])
+            fields.language = XMLTools.text(of: "language", in: root, namespaceURI: dcURI)
+            fields.category = XMLTools.text(of: "category", in: root, namespaceURI: cpURI)
+            fields.created = XMLTools.text(of: "created", in: root, namespaceURI: dctermsURI)
+            fields.modified = XMLTools.text(of: "modified", in: root, namespaceURI: dctermsURI)
+            fields.setCustom("lastModifiedBy", XMLTools.text(of: "lastModifiedBy", in: root, namespaceURI: cpURI))
+            fields.setCustom("revision", XMLTools.text(of: "revision", in: root, namespaceURI: cpURI))
         }
         return (fields, try readInfo(url: url, archive: archive))
     }
@@ -162,7 +162,7 @@ enum OfficeDocumentFile: DocumentBackend {
     /// Attribut lehnt Word das Dokument ab.
     private static func setDate(_ name: String, prefix: String, _ value: String, in root: XMLElement) {
         XMLTools.setSingle(root, name, prefix: prefix, value: value)
-        guard !value.isEmpty, let element = XMLTools.firstElement(named: name, in: root) else { return }
+        guard !value.isEmpty, let element = XMLTools.firstElement(named: name, in: root, namespaceURI: dctermsURI) else { return }
         let xsi = XMLTools.prefix(for: xsiURI, preferred: "xsi", in: root)
         XMLTools.setAttribute(element, "\(xsi):type", "\(prefix):W3CDTF")
     }
@@ -187,7 +187,7 @@ enum OfficeDocumentFile: DocumentBackend {
         guard let data = try? ZipContainer.data(at: "_rels/.rels", in: archive),
               let document = try? XMLDocument(data: data),
               let root = document.rootElement() else { return nil }
-        for relationship in XMLTools.elements(named: "Relationship", in: root)
+        for relationship in XMLTools.elements(named: "Relationship", in: root, namespaceURI: "http://schemas.openxmlformats.org/package/2006/relationships")
         where XMLTools.attribute(relationship, "Type") == type {
             guard let target = XMLTools.attribute(relationship, "Target") else { continue }
             // Ziele sind paketrelativ; ein führender Schrägstrich ist erlaubt.
@@ -213,11 +213,13 @@ enum OfficeDocumentFile: DocumentBackend {
         let document = try XMLTools.document(from: data, path: url.path)
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: url.path) }
         let partName = "/" + partPath
-        if XMLTools.elements(named: "Override", in: root)
+        if XMLTools.elements(named: "Override", in: root, namespaceURI: "http://schemas.openxmlformats.org/package/2006/content-types")
             .contains(where: { XMLTools.attribute($0, "PartName") == partName }) {
             return data
         }
-        let override = XMLElement(name: "Override")
+        let typePrefix = XMLTools.prefix(for: "http://schemas.openxmlformats.org/package/2006/content-types",
+                                         preferred: "ct", in: root)
+        let override = XMLElement(name: "\(typePrefix):Override")
         XMLTools.setAttribute(override, "PartName", partName)
         XMLTools.setAttribute(override, "ContentType", coreContentType)
         root.addChild(override)
@@ -231,7 +233,7 @@ enum OfficeDocumentFile: DocumentBackend {
         }
         let document = try XMLTools.document(from: data, path: url.path)
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: url.path) }
-        let relationships = XMLTools.elements(named: "Relationship", in: root)
+        let relationships = XMLTools.elements(named: "Relationship", in: root, namespaceURI: "http://schemas.openxmlformats.org/package/2006/relationships")
         if relationships.contains(where: { XMLTools.attribute($0, "Type") == coreRelationshipType }) {
             return data
         }
@@ -242,7 +244,9 @@ enum OfficeDocumentFile: DocumentBackend {
             counter += 1
             id = "rId\(counter)"
         }
-        let relationship = XMLElement(name: "Relationship")
+        let relationshipPrefix = XMLTools.prefix(for: "http://schemas.openxmlformats.org/package/2006/relationships",
+                                                 preferred: "r", in: root)
+        let relationship = XMLElement(name: "\(relationshipPrefix):Relationship")
         XMLTools.setAttribute(relationship, "Id", id)
         XMLTools.setAttribute(relationship, "Type", coreRelationshipType)
         XMLTools.setAttribute(relationship, "Target", partPath)

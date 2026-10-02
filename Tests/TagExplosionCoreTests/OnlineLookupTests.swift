@@ -444,6 +444,17 @@ struct OnlineLookupMatchingTests {
         #expect(!fillOnly.changes.contains { $0.key.hasPrefix("MUSICBRAINZ") })
         #expect(fillOnly.coverURL == nil)
 
+        let staleDisc = existing + [TagProperty(key: "DISCNUMBER", value: "2/2")]
+        let corrected = LookupPlanner.plan(for: url, existing: staleDisc, candidate: candidate, track: track)
+        #expect(corrected.changes.first { $0.key == "DISCNUMBER" }?.newValue == "1/1")
+        let keepDisc = LookupPlanner.plan(for: url, existing: staleDisc, candidate: candidate, track: track,
+                                         options: LookupPlanOptions(overwriteExisting: false))
+        #expect(!keepDisc.changes.contains { $0.key == "DISCNUMBER" })
+        var incomplete = candidate
+        incomplete.hasFullTracklist = false
+        let unknownDiscs = LookupPlanner.plan(for: url, existing: staleDisc, candidate: incomplete, track: track)
+        #expect(!unknownDiscs.changes.contains { $0.key == "DISCNUMBER" })
+
         // Ohne zugeordneten Titel: nur Album-Felder, kein Titel/keine Nummer.
         let albumOnly = LookupPlanner.plan(for: url, existing: [], candidate: candidate, track: nil)
         #expect(!albumOnly.changes.contains { $0.key == "TITLE" || $0.key == "TRACKNUMBER" || $0.key == "MUSICBRAINZ_TRACKID" })

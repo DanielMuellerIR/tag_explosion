@@ -1,11 +1,8 @@
-// Kleine, namespace-tolerante XML-Helfer für die Dokument-Backends (OOXML
-// core.xml, OpenDocument meta.xml, ComicInfo.xml). Verglichen wird über den
-// lokalen Namen ("dc:title" → "title"), damit ein abweichendes Präfix in
-// fremden Dateien keine Rolle spielt. Zum Anlegen neuer Elemente wird das im
-// Dokument deklarierte Präfix des Namensraums wiederverwendet.
+// XML-Helfer für Dokument-Backends. Namensräume werden über ihre URI
+// verglichen, damit abweichende Präfixe funktionieren und gleichnamige
+// Fremdfelder beim Schreiben erhalten bleiben.
 //
-// EpubFile hält aus historischen Gründen eigene, gleichartige Helfer; sie
-// bleiben dort unangetastet (EPUB-Verhalten unverändert).
+// EpubFile nutzt eigene, auf OPF und Dublin Core begrenzte Auswahlhelfer.
 import Foundation
 #if canImport(FoundationXML)
 import FoundationXML
@@ -19,21 +16,21 @@ enum XMLTools {
         return name.split(separator: ":").last.map(String.init) ?? name
     }
 
-    /// Direkte Kindelemente mit diesem lokalen Namen.
-    static func elements(named name: String, in parent: XMLElement) -> [XMLElement] {
+    /// Direkte Kinder im angegebenen Namensraum, sonst im Namensraum des Elternknotens.
+    static func elements(named name: String, in parent: XMLElement, namespaceURI: String? = nil) -> [XMLElement] {
         (parent.children ?? [])
             .compactMap { $0 as? XMLElement }
-            .filter { localName($0) == name }
+            .filter { localName($0) == name && ($0.uri ?? "") == (namespaceURI ?? parent.uri ?? "") }
     }
 
-    static func firstElement(named name: String, in parent: XMLElement?) -> XMLElement? {
+    static func firstElement(named name: String, in parent: XMLElement?, namespaceURI: String? = nil) -> XMLElement? {
         guard let parent else { return nil }
-        return elements(named: name, in: parent).first
+        return elements(named: name, in: parent, namespaceURI: namespaceURI).first
     }
 
     /// Text des ersten Kindelements mit diesem Namen ("" wenn keins).
-    static func text(of name: String, in parent: XMLElement) -> String {
-        elements(named: name, in: parent).first?.stringValue?
+    static func text(of name: String, in parent: XMLElement, namespaceURI: String? = nil) -> String {
+        elements(named: name, in: parent, namespaceURI: namespaceURI).first?.stringValue?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
@@ -48,15 +45,17 @@ enum XMLTools {
         return result
     }
 
-    /// Attributwert über den lokalen Namen ("meta:page-count" → "page-count").
-    static func attribute(_ element: XMLElement, _ name: String) -> String? {
+    /// Attributwert nach lokalem Namen und URI; ohne Angabe nur namespacefreie Attribute.
+    static func attribute(_ element: XMLElement, _ name: String, namespaceURI: String = "") -> String? {
         (element.attributes ?? [])
-            .first { localName($0) == name }?
+            .first { localName($0) == name && ($0.uri ?? "") == namespaceURI }?
             .stringValue
     }
 
     static func setAttribute(_ element: XMLElement, _ name: String, _ value: String) {
-        if let existing = (element.attributes ?? []).first(where: { localName($0) == name }) {
+        let local = name.split(separator: ":").last.map(String.init) ?? name
+        let uri = name.contains(":") ? element.resolveNamespace(forName: name)?.stringValue ?? "" : ""
+        if let existing = (element.attributes ?? []).first(where: { localName($0) == local && ($0.uri ?? "") == uri }) {
             existing.stringValue = value
             return
         }
@@ -66,8 +65,8 @@ enum XMLTools {
         element.addAttribute(node)
     }
 
-    /// Präfix eines Namensraums, wie ihn das Wurzelelement deklariert. Fehlt
-    /// die Deklaration, wird `preferred` am Wurzelelement nachgetragen — so
+    /// Präfix eines Namensraums im Gültigkeitsbereich des Knotens. Fehlt
+    /// die Deklaration, wird `preferred` am Knoten nachgetragen — so
     /// bleibt ein neu angelegtes Element auch für strenge Leser gültig.
     static func prefix(for namespaceURI: String, preferred: String,
                        in root: XMLElement) -> String {
@@ -101,7 +100,9 @@ enum XMLTools {
     /// `insert` bestimmt, wo ein neues Element landet (Standard: am Ende).
     static func setSingle(_ parent: XMLElement, _ name: String, prefix: String,
                           value: String, insert: ((XMLElement) -> Void)? = nil) {
-        let existing = elements(named: name, in: parent)
+        let qualified = prefix.isEmpty ? name : "\(prefix):\(name)"
+        let uri = parent.resolveNamespace(forName: qualified)?.stringValue ?? ""
+        let existing = elements(named: name, in: parent, namespaceURI: uri)
         if value.isEmpty {
             existing.forEach { $0.detach() }
             return
@@ -117,7 +118,9 @@ enum XMLTools {
     /// Ersetzt alle Werte eines mehrwertigen Elements (z.B. meta:keyword).
     static func setList(_ parent: XMLElement, _ name: String, prefix: String,
                         values: [String]) {
-        elements(named: name, in: parent).forEach { $0.detach() }
+        let qualified = prefix.isEmpty ? name : "\(prefix):\(name)"
+        let uri = parent.resolveNamespace(forName: qualified)?.stringValue ?? ""
+        elements(named: name, in: parent, namespaceURI: uri).forEach { $0.detach() }
         for value in values where !value.isEmpty {
             parent.addChild(element(name, prefix: prefix, value: value))
         }

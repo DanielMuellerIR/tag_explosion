@@ -18,8 +18,6 @@ extension AppModel {
     func restoreVersion(_ version: BackupVersion, for entry: FileEntry,
                         backup: TrashBackup = .shared) async -> Bool {
         guard !entry.isSaving, !isDestructiveActionLocked else { return false }
-        entry.isSaving = true
-        defer { entry.finishSaving() }
         let url = entry.url
         let kind = entry.kind
         let destination = URL(fileURLWithPath: version.entry.originalPath)
@@ -27,13 +25,12 @@ extension AppModel {
             guard let state = entry.restoreState(for: destination) else {
                 throw TagError.saveFailed(path: destination.path)
             }
-            let (loaded, newStamp) = try await Task.detached(priority: .userInitiated) {
-                try BackupHistory.restore(version, expecting: state, backup: backup)
-                return try Self.readStamped(url: url, kind: kind)
-            }.value
-            entry.acceptNew(loaded, stamp: newStamp)
-            entry.lastError = nil
-            return true
+            return try await reloadAfterMutation(entry: entry) {
+                try await BlockingWork.run {
+                    try BackupHistory.restore(version, expecting: state, backup: backup)
+                    return try Self.readStamped(url: url, kind: kind)
+                }
+            }
         } catch {
             entry.lastError = error.localizedDescription
             alertMessage = String(localized: "Version wiederherstellen fehlgeschlagen: \(entry.url.lastPathComponent)")

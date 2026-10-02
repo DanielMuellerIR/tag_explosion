@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.93 — 2026-10-02
+
+- Eingaben während Untertitelverschiebung, Tag-Schichtentfernung und
+  Versionswiederherstellung bleiben als ungespeicherte Änderungen erhalten.
+  Mehrere neue Fenster bekommen ihre jeweils angeforderten Dateien.
+- XML-Metadaten unterscheiden gleichnamige Felder anhand ihres Namensraums.
+  Fremde Erweiterungen bleiben erhalten; präfigierte EPUB-/DOCX-Pakete werden
+  korrekt ergänzt. Fremde Rechnungsfelder erhalten keine falschen BT-Zuordnungen.
+- Liedtextänderungen erhalten LRC-Metadaten einschließlich Zeitversatz sowie
+  unterschiedliche USLT-Sprachen. Mehrdeutige USLT-Beschreibungen werden beim
+  Tag-Schreiben abgelehnt, bevor die Originaldatei verändert wird.
+- Dokumente lehnen ungültige Uhrzeiten ab. Vollständige Online-Treffer für eine
+  einzelne CD korrigieren beim Überschreiben veraltete CD-Nummern.
+- Der Installer entfernt verwaiste Übernahme-Hilfssperren nicht automatisch,
+  damit konkurrierende Installationen keine neu erworbene Sperre verlieren.
+
 ## 0.46.92 — 2026-10-02
 
 - Automatische Tag-Backups berücksichtigen jetzt auch den Linux-Fehlercode für

@@ -10,6 +10,45 @@ import Testing
 @Suite("EInvoice")
 struct EInvoiceTests {
 
+    @Test("Fremde Namensräume erhalten keine EN-16931-Zuordnung",
+          arguments: ["urn:example:foreign", "urn:oasis:names:specification:ubl:schema:xsd:FakeCommonBasicComponents-2"])
+    func foreignNamespacesDoNotMap(uri: String) throws {
+        let xml = """
+        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+          xmlns:cbc="\(uri)"><cbc:ID>FREMDE-ID</cbc:ID></Invoice>
+        """
+        let doc = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
+        #expect(doc.summary.invoiceNumber == nil)
+        #expect(field(doc, term: "BT-1") == nil)
+        #expect(doc.warnings.contains { $0.code == "BR-02" })
+    }
+
+    @Test("Fremde Gruppen lösen auch keine dynamische Feldzuordnung aus", arguments: ["cac", "evil-cac"])
+    func foreignPartyDoesNotMap(prefix: String) throws {
+        let xml = """
+        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+          xmlns:\(prefix)="urn:example:foreign"
+          xmlns:a="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+          xmlns:b="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+          <\(prefix):AccountingSupplierParty><a:Party><a:PartyTaxScheme>
+            <b:CompanyID>FREMD</b:CompanyID><a:TaxScheme><b:ID>VAT</b:ID></a:TaxScheme>
+          </a:PartyTaxScheme></a:Party></\(prefix):AccountingSupplierParty>
+        </Invoice>
+        """
+        let doc = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
+        #expect(field(doc, term: "BT-31") == nil)
+    }
+
+    @Test("Fremde UN/CEFACT-ähnliche URIs werden nicht kanonisiert")
+    func foreignCIIURI() throws {
+        let xml = Self.ciiXML.replacingOccurrences(
+            of: "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100",
+            with: "urn:example:ReusableAggregateBusinessInformationEntity:100")
+        let doc = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
+        #expect(doc.summary.invoiceNumber == nil)
+        #expect(field(doc, term: "BT-1") == nil)
+    }
+
     // MARK: - Fixtures
 
     /// Minimale CII-Rechnung (EN-16931-Profil) mit den Sonderfällen, die die

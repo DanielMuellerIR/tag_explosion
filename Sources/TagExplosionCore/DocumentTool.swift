@@ -314,9 +314,10 @@ public enum DocumentTool {
     /// OOXML und ODF lehnen andere Formen ab (Word meldet sonst beschädigten
     /// Inhalt).
     static func isW3CDateTime(_ value: String) -> Bool {
-        // Die Form allein würde etwa den 31. Februar als Datum annehmen.
+        // Kalendertag und Uhrzeitbereiche prüfen; zwei Ziffern allein lassen
+        // etwa den 31. Februar oder 99:99:99 als Zeitpunkt durch.
         ISODate.isCalendarDay(String(value.prefix(10))) && value.range(
-            of: #"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$"#,
+            of: #"^\d{4}-\d{2}-\d{2}(T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)?)?$"#,
             options: .regularExpression) != nil
     }
 

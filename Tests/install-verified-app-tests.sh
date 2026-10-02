@@ -516,18 +516,28 @@ grep -q "andere Installation" "$inner_output" || {
 }
 rm -f "$inner_root/.TagExplosion.app.lock"
 
-# Ein verwaistes Übernahme-Hilfslock (Absturz mitten in der Übernahme) darf
-# nicht ewig blockieren: Nach Ablauf der Frist wird es weggeräumt.
-old_tko_root="$work/stale-takeover"
-mkdir -p "$old_tko_root"
-ln -s '999999|Mon Jan  1 00:00:00 2001' "$old_tko_root/.TagExplosion.app.lock"
-# Besitzerloses Altformat-Verzeichnis: Genau das darf nach Fristablauf weg.
-mkdir "$old_tko_root/.TagExplosion.app.lock.takeover"
-touch -t 202001010000 "$old_tko_root/.TagExplosion.app.lock.takeover"
-rm -f "$work/verify-count"
-run_installer "$new_source" "$old_tko_root/TagExplosion.app"
-assert_text new "$old_tko_root/TagExplosion.app"
-[ -z "$(find "$old_tko_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+# Ein fremdes Übernahme-Hilfslock wird niemals automatisch gelöscht: Eine
+# Besitzerprüfung und unlink können sonst den neu erworbenen Lock eines
+# anderen Übernehmers treffen. Das gilt auch für alte besitzerlose Ordner.
+for helper_kind in directory symlink; do
+    old_tko_root="$work/stale-takeover-$helper_kind"
+    mkdir -p "$old_tko_root"
+    dead_owner='999999|Mon Jan  1 00:00:00 2001'
+    ln -s "$dead_owner" "$old_tko_root/.TagExplosion.app.lock"
+    if [ "$helper_kind" = directory ]; then
+        mkdir "$old_tko_root/.TagExplosion.app.lock.takeover"
+        touch -t 202001010000 "$old_tko_root/.TagExplosion.app.lock.takeover"
+    else
+        ln -s "$dead_owner" "$old_tko_root/.TagExplosion.app.lock.takeover"
+    fi
+    if run_installer "$new_source" "$old_tko_root/TagExplosion.app" > "$work/stale-takeover-$helper_kind.log" 2>&1; then
+        echo "FEHLER: fremdes Übernahme-Hilfslock wurde entfernt" >&2
+        exit 1
+    fi
+    [ "$(readlink "$old_tko_root/.TagExplosion.app.lock")" = "$dead_owner" ]
+    [ -d "$old_tko_root/.TagExplosion.app.lock.takeover" ] || [ -L "$old_tko_root/.TagExplosion.app.lock.takeover" ]
+    [ ! -e "$old_tko_root/TagExplosion.app" ]
+done
 
 # Ein Sperrbesitzer, dem dieser Benutzer kein Signal schicken darf, gilt
 # trotzdem als LEBEND. `kill -0` liefert dafuer EPERM, und der Code hielt ihn

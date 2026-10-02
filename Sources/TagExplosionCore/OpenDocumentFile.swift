@@ -44,30 +44,30 @@ enum OpenDocumentFile: DocumentBackend {
         var info: [DocumentInfoItem] = []
         if let data = try ZipContainer.data(at: "meta.xml", in: archive) {
             let document = try XMLTools.document(from: data, path: url.path)
-            guard let meta = XMLTools.firstElement(named: "meta", in: document.rootElement()) else {
+            guard let meta = XMLTools.firstElement(named: "meta", in: document.rootElement(), namespaceURI: officeURI) else {
                 throw TagError.cannotOpen(path: url.path)
             }
-            fields.title = XMLTools.text(of: "title", in: meta)
+            fields.title = XMLTools.text(of: "title", in: meta, namespaceURI: dcURI)
             fields.authors = DocumentTool.splitList(
-                XMLTools.text(of: "creator", in: meta), separators: [";"])
-            fields.subject = XMLTools.text(of: "subject", in: meta)
-            fields.description = XMLTools.text(of: "description", in: meta)
-            fields.keywords = XMLTools.elements(named: "keyword", in: meta)
+                XMLTools.text(of: "creator", in: meta, namespaceURI: dcURI), separators: [";"])
+            fields.subject = XMLTools.text(of: "subject", in: meta, namespaceURI: dcURI)
+            fields.description = XMLTools.text(of: "description", in: meta, namespaceURI: dcURI)
+            fields.keywords = XMLTools.elements(named: "keyword", in: meta, namespaceURI: metaURI)
                 .map { ($0.stringValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
-            fields.language = XMLTools.text(of: "language", in: meta)
-            fields.created = XMLTools.text(of: "creation-date", in: meta)
-            fields.modified = XMLTools.text(of: "date", in: meta)
-            fields.setCustom("initial-creator", XMLTools.text(of: "initial-creator", in: meta))
-            fields.setCustom("generator", XMLTools.text(of: "generator", in: meta))
+            fields.language = XMLTools.text(of: "language", in: meta, namespaceURI: dcURI)
+            fields.created = XMLTools.text(of: "creation-date", in: meta, namespaceURI: metaURI)
+            fields.modified = XMLTools.text(of: "date", in: meta, namespaceURI: dcURI)
+            fields.setCustom("initial-creator", XMLTools.text(of: "initial-creator", in: meta, namespaceURI: metaURI))
+            fields.setCustom("generator", XMLTools.text(of: "generator", in: meta, namespaceURI: metaURI))
 
             // Anzeige: Bearbeitungszyklen/-dauer und die Dokumentstatistik
             // (Seiten, Wörter, Zeichen … als Attribute eines Elements).
             for name in ["editing-cycles", "editing-duration", "print-date", "printed-by"] {
-                let value = XMLTools.text(of: name, in: meta)
+                let value = XMLTools.text(of: name, in: meta, namespaceURI: metaURI)
                 if !value.isEmpty { info.append(DocumentInfoItem(label: name, value: value)) }
             }
-            if let statistic = XMLTools.firstElement(named: "document-statistic", in: meta) {
+            if let statistic = XMLTools.firstElement(named: "document-statistic", in: meta, namespaceURI: metaURI) {
                 for attribute in statistic.attributes ?? [] {
                     guard let value = attribute.stringValue, !value.isEmpty else { continue }
                     info.append(DocumentInfoItem(label: XMLTools.localName(attribute), value: value))
@@ -107,16 +107,16 @@ enum OpenDocumentFile: DocumentBackend {
         }
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: url.path) }
         let office = XMLTools.prefix(for: officeURI, preferred: "office", in: root)
-        let dc = XMLTools.prefix(for: dcURI, preferred: "dc", in: root)
-        let metaPrefix = XMLTools.prefix(for: metaURI, preferred: "meta", in: root)
         let meta: XMLElement
-        if let existing = XMLTools.firstElement(named: "meta", in: root) {
+        if let existing = XMLTools.firstElement(named: "meta", in: root, namespaceURI: officeURI) {
             meta = existing
         } else {
             meta = XMLElement(name: "\(office):meta")
             root.addChild(meta)
         }
 
+        let dc = XMLTools.prefix(for: dcURI, preferred: "dc", in: meta)
+        let metaPrefix = XMLTools.prefix(for: metaURI, preferred: "meta", in: meta)
         func set(_ name: String, prefix: String, _ new: String, _ old: String) {
             guard new != old else { return }
             XMLTools.setSingle(meta, name, prefix: prefix, value: new)
@@ -182,8 +182,8 @@ enum OpenDocumentFile: DocumentBackend {
         }
         let document = try XMLTools.document(from: data, path: url.path)
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: url.path) }
-        if XMLTools.elements(named: "file-entry", in: root)
-            .contains(where: { XMLTools.attribute($0, "full-path") == "meta.xml" }) {
+        if XMLTools.elements(named: "file-entry", in: root, namespaceURI: manifestURI)
+            .contains(where: { XMLTools.attribute($0, "full-path", namespaceURI: manifestURI) == "meta.xml" }) {
             return nil
         }
         let prefix = XMLTools.prefix(for: manifestURI, preferred: "manifest", in: root)

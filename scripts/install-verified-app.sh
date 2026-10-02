@@ -100,37 +100,25 @@ takeover_stale_lock() {
     # wurde — ein laenger pausierter, LEBENDER Uebernehmer wurde damit verdraengt,
     # und beide Laeufe arbeiteten gleichzeitig am selben Ziel
     # (Review-Fund 2026-08-17).
-    # Altformat: ein besitzerloses VERZEICHNIS aus einer frueheren Fassung.
-    # `ln -s` wuerde den Link dort HINEINLEGEN statt zu scheitern, deshalb
-    # vorab behandeln. Ohne lesbaren Besitzer bleibt nur das Alter als Kriterium.
+    # Fremde Hilfslocks niemals automatisch entfernen: Zwischen Besitzer-
+    # prüfung und unlink könnte ein anderer Übernehmer den Pfad neu belegen.
+    # Auch das Altformat muss erhalten bleiben; ln würde sonst hinein schreiben.
     if [ -d "$takeover_lock" ] && [ ! -L "$takeover_lock" ]; then
-        local mtime now
-        mtime=$(stat -f %m "$takeover_lock" 2>/dev/null || echo 0)
-        now=$(date +%s)
-        if [ $((now - mtime)) -gt 60 ]; then
-            rm -rf -- "$takeover_lock"
-        fi
-        return 1
+        echo "FEHLER: Verwaistes Übernahme-Hilfslock muss nach Prüfung laufender Installationen manuell entfernt werden: $takeover_lock" >&2
+        exit 1
     fi
     if ! ln -s "$my_owner" "$takeover_lock" 2>/dev/null; then
-        local helper_owner mtime now
+        local helper_owner
         helper_owner=$(takeover_owner)
-        if [ -n "$helper_owner" ]; then
-            if owner_alive "$helper_owner"; then
-                # Lebt: warten, nichts anfassen. Das Alter spielt keine Rolle.
-                return 1
-            fi
-            # Besitzer nachweislich tot — sofort raeumen, keine Frist noetig.
-            rm -f -- "$takeover_lock"
+        if [ -n "$helper_owner" ] && owner_alive "$helper_owner"; then
             return 1
         fi
-        # Weder Verzeichnis noch lesbarer Link (kaputt): erst nach 60 Sekunden.
-        mtime=$(stat -f %m "$takeover_lock" 2>/dev/null || echo 0)
-        now=$(date +%s)
-        if [ $((now - mtime)) -gt 60 ]; then
-            rm -rf -- "$takeover_lock"
+        # Ein inzwischen freigegebener Pfad darf im nächsten Versuch erworben werden.
+        if [ ! -e "$takeover_lock" ] && [ ! -L "$takeover_lock" ]; then
+            return 1
         fi
-        return 1
+        echo "FEHLER: Verwaistes Übernahme-Hilfslock muss nach Prüfung laufender Installationen manuell entfernt werden: $takeover_lock" >&2
+        exit 1
     fi
     # Nur das eigene Linkziel am Hilfslock-Pfad beweist den Erwerb — genau wie
     # bei der Hauptsperre.

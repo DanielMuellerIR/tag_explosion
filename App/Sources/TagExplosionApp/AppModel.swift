@@ -585,17 +585,15 @@ final class AppModel {
             return false
         }
         guard milliseconds != 0 else { return false }
-        entry.isSaving = true
-        defer { entry.finishSaving() }
         do {
-            let (loaded, newStamp) = try await Task.detached(priority: .userInitiated) {
-                try FileStamp.requireUnchanged(stamp, at: url)
-                try TrashBackup.shared.backUp(url)
-                try SubtitleFile.shift(url: url, milliseconds: milliseconds, expecting: stamp)
-                return try Self.readStamped(url: url, kind: .sidecar)
-            }.value
-            entry.acceptNew(loaded, stamp: newStamp)
-            return true
+            return try await reloadAfterMutation(entry: entry) {
+                try await BlockingWork.run {
+                    try FileStamp.requireUnchanged(stamp, at: url)
+                    try TrashBackup.shared.backUp(url)
+                    try SubtitleFile.shift(url: url, milliseconds: milliseconds, expecting: stamp)
+                    return try Self.readStamped(url: url, kind: .sidecar)
+                }
+            }
         } catch {
             entry.lastError = error.localizedDescription
             return false
@@ -822,26 +820,43 @@ final class AppModel {
     @discardableResult
     func stripLayer(entry: FileEntry, kind: TagLayerKind) async -> Bool {
         guard !entry.isDirty, !entry.isSaving, !isDestructiveActionLocked else { return false }
-        entry.isSaving = true
-        defer { entry.finishSaving() }
         let url = entry.url
         let stamp = entry.diskStamp
         do {
-            let (reloaded, newStamp) = try await Task.detached(priority: .userInitiated) {
-                // Fremde Änderung seit dem Öffnen? Dann nicht anfassen.
-                try FileStamp.requireUnchanged(stamp, at: url)
-                try TrashBackup.shared.backUp(url, reason: BackupReason.layers)
-                try TagFile.stripLayers([kind], from: url, expecting: stamp)
-                return try Self.readStamped(url: url, kind: .audio)
-            }.value
-            entry.acceptNew(reloaded, stamp: newStamp)
-            return true
+            return try await reloadAfterMutation(entry: entry) {
+                try await BlockingWork.run {
+                    // Fremde Änderung seit dem Öffnen? Dann nicht anfassen.
+                    try FileStamp.requireUnchanged(stamp, at: url)
+                    try TrashBackup.shared.backUp(url, reason: BackupReason.layers)
+                    try TagFile.stripLayers([kind], from: url, expecting: stamp)
+                    return try Self.readStamped(url: url, kind: .audio)
+                }
+            }
         } catch {
             entry.lastError = error.localizedDescription
             alertMessage = String(localized: "Schicht entfernen fehlgeschlagen: \(entry.url.lastPathComponent)")
                 + "\n" + error.localizedDescription
             return false
         }
+    }
+
+    /// Direkte Dateiaktionen dürfen nur die beim Start vorhandenen Puffer ersetzen.
+    /// Spätere Eingaben bleiben gegenüber dem neu gelesenen Stand ungespeichert.
+    func reloadAfterMutation(
+        entry: FileEntry,
+        operation: @Sendable () async throws -> (LoadedData, FileStamp?)
+    ) async throws -> Bool {
+        guard !entry.isSaving else { return false }
+        let snapshot = entry.beginSaving(allowingUnchanged: true)
+        // Rechnungen besitzen keine editierbaren Puffer, können aber eine
+        // frühere PDF-Version aus ihrer Historie wiederherstellen.
+        guard snapshot != nil || entry.kind == .invoice else { return false }
+        entry.isSaving = true
+        defer { entry.finishSaving() }
+        let (loaded, stamp) = try await operation()
+        if let snapshot { entry.acceptSaved(snapshot, reloaded: loaded, stamp: stamp) }
+        else { entry.acceptNew(loaded, stamp: stamp) }
+        return true
     }
 
     /// Liest eine Datei neu von der Platte und ersetzt den Originalzustand.

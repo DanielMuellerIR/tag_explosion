@@ -46,35 +46,36 @@ public enum XMLTreeError: Error, LocalizedError {
 
 public enum XMLTree {
 
-    /// Bekannte Namensräume → kanonisches Präfix. Vergleich über Präfix-Muster
-    /// statt exakter Strings, damit Versionssuffixe (…:100, …:12, …:15) und
-    /// künftige Revisionen nicht jedes Mal neue Einträge erzwingen.
+    /// Nur bestätigte Namensräume erhalten die von den Feldtabellen verwendeten
+    /// Präfixe. Fremde XML-Präfixe dürfen diese fachlichen Namen nicht vortäuschen.
     static func canonicalPrefix(for namespaceURI: String, qualifiedName: String?) -> String? {
-        let uri = namespaceURI
-        // UN/CEFACT CII (ZUGFeRD 2.x, Factur-X, XRechnung-CII)
-        if uri.contains(":CrossIndustryInvoice:") { return "rsm" }
-        // UN/CEFACT CIO (Order-X); der Namensraum lautet
-        // urn:un:unece:uncefact:data:SCRDMCCBDACIOMessageStructure:100 —
-        // anders als bei CII OHNE das Segment "standard".
-        if uri.contains(":SCRDMCCBDACIOMessageStructure:") { return "rsm" }
-        // ZUGFeRD 1.0 (Vorgänger-Schema, eigener Wurzel-Namensraum)
-        if uri.hasPrefix("urn:ferd:CrossIndustryDocument") { return "rsm" }
-        if uri.contains(":ReusableAggregateBusinessInformationEntity:") { return "ram" }
-        if uri.contains(":UnqualifiedDataType:") { return "udt" }
-        if uri.contains(":QualifiedDataType:") { return "qdt" }
-        // OASIS UBL (XRechnung-UBL, Peppol BIS)
-        if uri.hasPrefix("urn:oasis:names:specification:ubl:schema:xsd:") {
-            if uri.contains("CommonAggregateComponents") { return "cac" }
-            if uri.contains("CommonBasicComponents") { return "cbc" }
-            if uri.contains("CommonExtensionComponents") { return "ext" }
-            // Wurzeldokumente (Invoice-2, CreditNote-2, …) einheitlich "ubl"
-            return "ubl"
+        let uncefact = "urn:un:unece:uncefact:data:"
+        let families = [
+            (uncefact + "standard:CrossIndustryInvoice:", "rsm"),
+            (uncefact + "SCRDMCCBDACIOMessageStructure:", "rsm"),
+            (uncefact + "standard:ReusableAggregateBusinessInformationEntity:", "ram"),
+            (uncefact + "standard:UnqualifiedDataType:", "udt"),
+            (uncefact + "standard:QualifiedDataType:", "qdt"),
+        ]
+        for (stem, prefix) in families where namespaceURI.hasPrefix(stem) {
+            let version = namespaceURI.dropFirst(stem.count)
+            if !version.isEmpty, version.allSatisfy({ $0.isASCII && $0.isNumber }) { return prefix }
         }
-        if uri == "http://www.w3.org/2001/XMLSchema-instance" { return "xsi" }
-        // Unbekannter Namensraum: Dokument-Präfix aus dem qualifizierten Namen
-        // übernehmen, damit die Anzeige dem Original entspricht.
+        if namespaceURI == "urn:ferd:CrossIndustryDocument:invoice:1p0" { return "rsm" }
+        let ubl = "urn:oasis:names:specification:ubl:schema:xsd:"
+        switch namespaceURI {
+        case ubl + "CommonAggregateComponents-2": return "cac"
+        case ubl + "CommonBasicComponents-2": return "cbc"
+        case ubl + "CommonExtensionComponents-2": return "ext"
+        case ubl + "Invoice-2", ubl + "CreditNote-2", ubl + "Order-2", ubl + "OrderResponse-2": return "ubl"
+        case "http://www.w3.org/2001/XMLSchema-instance": return "xsi"
+        default: break
+        }
         if let qualifiedName, let colon = qualifiedName.firstIndex(of: ":") {
-            return String(qualifiedName[..<colon])
+            let prefix = String(qualifiedName[..<colon])
+            // Auch dynamische Zuordnungen suchen nach kanonischen Pfadstücken.
+            // Das Suffix verhindert Treffer auf z.B. "evil-cac:Party".
+            return prefix + "-unmapped"
         }
         return nil
     }

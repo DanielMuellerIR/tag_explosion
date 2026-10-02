@@ -434,9 +434,10 @@ final class FileEntry: Identifiable {
     }
 
     /// Markiert genau einen Speicherauftrag als aktiv und liefert dessen Stand.
-    /// nil bedeutet: Die Datei ist sauber oder wird bereits gespeichert.
-    func beginSaving() -> SaveSnapshot? {
-        guard isDirty, !isSaving else { return nil }
+    /// `allowingUnchanged` erfasst auch saubere Puffer vor direkten Dateiaktionen.
+    /// nil bedeutet: kein Auftrag oder bereits laufendes Speichern.
+    func beginSaving(allowingUnchanged: Bool = false) -> SaveSnapshot? {
+        guard isDirty || allowingUnchanged, !isSaving else { return nil }
         isSaving = true
         switch kind {
         case .audio:

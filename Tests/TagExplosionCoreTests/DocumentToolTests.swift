@@ -3,6 +3,9 @@
 // Container-Invarianten: Der restliche ZIP-Inhalt bleibt byte-identisch in
 // gleicher Reihenfolge, ODF behält `mimetype` unkomprimiert an erster Stelle.
 import Foundation
+#if canImport(FoundationXML)
+import FoundationXML
+#endif
 import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
@@ -55,6 +58,49 @@ struct DocumentToolTests {
         #expect(try command("/bin/ls", ["-le", url.path]).split(separator: "\n").dropFirst() == beforeACL)
     }
     #endif
+
+    @Test("Dokumentfelder und gleichnamige Fremdfelder bleiben getrennt", arguments: ["doc.docx", "doc.odt", "comic.cbz"])
+    func foreignNamespaceFieldsSurvive(fixture: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
+        let path = fixture.hasSuffix("docx") ? "docProps/core.xml" : (fixture.hasSuffix("odt") ? "meta.xml" : "ComicInfo.xml")
+        let titleName = fixture.hasSuffix("cbz") ? "Title" : "dc:title"
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let bytes = try #require(try ZipContainer.data(at: path, in: archive))
+        var xml = String(decoding: bytes, as: UTF8.self)
+        let localTitle = fixture.hasSuffix("cbz") ? "Title" : "title"
+        let foreign = "<vendor:\(localTitle) xmlns:vendor=\"urn:test:vendor\">Fremder Titel</vendor:\(localTitle)>"
+        xml = xml.replacingOccurrences(of: "<\(titleName)>", with: foreign + "<\(titleName)>")
+        try ZipContainer.rewrite(url: url, replacing: [path: Data(xml.utf8)])
+        let original = try DocumentTool.readCoreFields(url: url)
+        #expect(original.title != "Fremder Titel")
+        var edited = original
+        edited.title = ""
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        let after = try ZipContainer.open(url: url, accessMode: .read)
+        let remaining = String(decoding: try #require(try ZipContainer.data(at: path, in: after)), as: UTF8.self)
+        #expect(remaining.contains("Fremder Titel"))
+        #expect(try DocumentTool.readCoreFields(url: url).title.isEmpty)
+    }
+
+    @Test("ODF respektiert lokal umgebundene Namensraumpräfixe")
+    func odfLocalNamespaceBindings() throws {
+        let url = try Fixtures.workingCopy("doc.odt")
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let data = try #require(try ZipContainer.data(at: "meta.xml", in: archive))
+        var xml = String(decoding: data, as: UTF8.self)
+        xml = xml.replacingOccurrences(of: "<dc:", with: "<d:").replacingOccurrences(of: "</dc:", with: "</d:")
+        xml = xml.replacingOccurrences(of: "<office:meta>", with:
+            "<office:meta xmlns:dc=\"urn:test:vendor\" xmlns:d=\"http://purl.org/dc/elements/1.1/\"><dc:title>Fremd</dc:title>")
+        try ZipContainer.rewrite(url: url, replacing: ["meta.xml": Data(xml.utf8)])
+        let original = try DocumentTool.readCoreFields(url: url)
+        var edited = original
+        edited.title = "Neu"
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        #expect(try DocumentTool.readCoreFields(url: url) == edited)
+        let after = try ZipContainer.open(url: url, accessMode: .read)
+        let contents = String(decoding: try #require(try ZipContainer.data(at: "meta.xml", in: after)), as: UTF8.self)
+        #expect(contents.contains(">Fremd</dc:title>"))
+    }
 
     // MARK: - OOXML (docx)
 
@@ -149,9 +195,22 @@ struct DocumentToolTests {
         #expect(xml.contains("dcterms:created"))
     }
 
-    @Test("docx ohne core.xml: Schreiben legt es an und registriert es")
-    func docxCreatesMissingCore() throws {
+    @Test("docx ohne core.xml: Schreiben legt es an und registriert es", arguments: [false, true])
+    func docxCreatesMissingCore(prefixed: Bool) throws {
         let url = try Fixtures.workingCopy("doc-nocore.docx")
+        if prefixed {
+            let archive = try ZipContainer.open(url: url, accessMode: .read)
+            var replacements: [String: Data] = [:]
+            for path in ["[Content_Types].xml", "_rels/.rels"] {
+                let data = try #require(try ZipContainer.data(at: path, in: archive))
+                var xml = String(decoding: data, as: UTF8.self)
+                xml = xml.replacingOccurrences(of: "xmlns=", with: "xmlns:p=")
+                xml = xml.replacingOccurrences(of: "<(/?)(Types|Override|Default|Relationships|Relationship)(?=[ >])",
+                                              with: "<$1p:$2", options: .regularExpression)
+                replacements[path] = Data(xml.utf8)
+            }
+            try ZipContainer.rewrite(url: url, replacing: replacements)
+        }
         let original = try DocumentTool.readCoreFields(url: url)
         #expect(original == DocumentCoreFields())
         var edited = original
@@ -163,6 +222,14 @@ struct DocumentToolTests {
         let types = String(decoding: try #require(try ZipContainer.data(at: "[Content_Types].xml", in: archive)), as: UTF8.self)
         let rels = String(decoding: try #require(try ZipContainer.data(at: "_rels/.rels", in: archive)), as: UTF8.self)
         let core = String(decoding: try #require(try ZipContainer.data(at: "docProps/core.xml", in: archive)), as: UTF8.self)
+        let typeRoot = try #require(try XMLDocument(xmlString: types).rootElement())
+        let relRoot = try #require(try XMLDocument(xmlString: rels).rootElement())
+        let overrides = XMLTools.elements(named: "Override", in: typeRoot,
+            namespaceURI: "http://schemas.openxmlformats.org/package/2006/content-types")
+        let relationships = XMLTools.elements(named: "Relationship", in: relRoot,
+            namespaceURI: "http://schemas.openxmlformats.org/package/2006/relationships")
+        #expect(overrides.contains { XMLTools.attribute($0, "PartName") == "/docProps/core.xml" })
+        #expect(relationships.contains { XMLTools.attribute($0, "Target") == "docProps/core.xml" })
         #expect(types.contains("/docProps/core.xml"))
         #expect(rels.contains("metadata/core-properties"))
         #expect(core.contains("xsi:type=\"dcterms:W3CDTF\""))
@@ -184,7 +251,10 @@ struct DocumentToolTests {
         #expect(throws: TagError.unsupportedDocumentField(name: "Fantasie")) {
             try DocumentTool.write(url: url, fields: unknownCustom, original: original)
         }
-        for value in ["5.11.2023", "2026-02-31", "2025-02-29", "2026-13-01", "2026-02-31T12:00:00Z"] {
+        for value in ["5.11.2023", "2026-02-31", "2025-02-29", "2026-13-01", "2026-02-31T12:00:00Z",
+                      "2026-10-02T99:99:99+99:99", "2026-10-02T24:00:00Z",
+                      "2026-10-02T12:60:00Z", "2026-10-02T12:00:60Z",
+                      "2026-10-02T12:00:00+24:00", "2026-10-02T12:00:00-01:60"] {
             var badDate = original
             badDate.created = value
             #expect(throws: TagError.self) {

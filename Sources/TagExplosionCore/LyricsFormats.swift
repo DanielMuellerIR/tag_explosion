@@ -202,12 +202,17 @@ public enum LRC {
             try FileManager.default.removeItem(at: url)
             return
         }
-        let data = Data(render(lines).utf8)
+        let metadata = exists ? try FileSnapshot.capture(at: url, expecting: stamp) {
+            try load(from: url).metadata
+        }.value : []
+        let expected = Document(lines: lines, metadata: metadata)
+        let data = Data(render(lines, metadata: metadata).utf8)
         let mutate: (URL) throws -> Void = { temp in
-            try data.write(to: temp, options: .atomic)
+            // Die Geschwisterkopie trägt bereits Rechte und Attribute des Originals.
+            try data.write(to: temp)
         }
         let validate: (URL) throws -> Void = { temp in
-            guard try load(from: temp).lines == lines else { throw TagError.saveFailed(path: url.path) }
+            guard try load(from: temp) == expected else { throw TagError.saveFailed(path: url.path) }
         }
         if exists {
             if backUp { try TrashBackup.shared.backUp(url) }

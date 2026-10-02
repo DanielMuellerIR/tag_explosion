@@ -456,9 +456,9 @@ public final class TagFile {
             let file = try TagFile(url: temp)
             defer { file.close() }
             if let properties { try file.setProperties(properties) }
-            // Ein neuer Lyrics-Text bekommt von TagLib die Sprache "XXX" —
-            // die gewünschte bzw. bisherige Sprache danach wieder setzen.
-            if properties != nil || lyricsLanguage != nil { try file.setLyricsLanguage(language) }
+            // Der Shim erhält die Sprache jedes USLT-Frames bei Textänderungen.
+            // Nur eine ausdrückliche Sprachwahl gilt für sämtliche Lyrics.
+            if lyricsLanguage != nil { try file.setLyricsLanguage(language) }
             if let artworks { try file.setArtworks(artworks) }
             if let chapters { try file.setChapters(chapters) }
             if let syncedLyrics { try file.setSyncedLyrics(syncedLyrics, language: language) }

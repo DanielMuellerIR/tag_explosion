@@ -2,6 +2,7 @@
 // Fenster prüfen, dass neuere Editoränderungen und ein zweiter Speichern-Klick
 // nicht im Rennen verlorengehen.
 import Foundation
+import EInvoiceCore
 import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
@@ -10,6 +11,50 @@ import TagExplosionCore
 @Suite("AppModel Speichern", .serialized)
 @MainActor
 struct AppModelSaveTests {
+
+    @Test("Direkte Wiederherstellung bleibt für Rechnungen ohne Bearbeitungspuffer möglich")
+    func invoiceReloadingMutation() async throws {
+        let xml = """
+        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+          xmlns:b="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"><b:ID>R-1</b:ID></Invoice>
+        """
+        let original = try EInvoiceReader.document(fromXML: Data(xml.utf8), source: .xmlFile)
+        let restored = try EInvoiceReader.document(fromXML: Data(xml.replacingOccurrences(of: "R-1", with: "R-2").utf8), source: .xmlFile)
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/invoice.pdf"), loaded: .invoice(original))
+        let model = AppModel()
+        #expect(try await model.reloadAfterMutation(entry: entry) { (.invoice(restored), nil) })
+        #expect(entry.invoiceDocument?.summary.invoiceNumber == "R-2")
+        #expect(!entry.isSaving)
+    }
+
+    @Test("Direkte Dateiaktionen erhalten spätere Eingaben und ersetzen nur bestätigte Puffer",
+          arguments: [false, true], [false, true])
+    func reloadingMutationPreservesLaterEdits(initiallyDirty: Bool, editDuringWrite: Bool) async throws {
+        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")], artworks: [], audio: nil)
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/reloading-write.mp3"), loaded: .audio(original))
+        if initiallyDirty { entry.setSingleValue("TITLE", "Bestätigter Puffer") }
+        let model = AppModel()
+        let gate = SaveGate()
+        let newStamp = FileStamp(size: 42, modified: 123)
+        let task = Task {
+            try await model.reloadAfterMutation(entry: entry) {
+                await gate.markStarted()
+                await gate.waitForRelease()
+                return (.audio(TagData(properties: [TagProperty(key: "TITLE", value: "Neuer Plattenstand")],
+                                       artworks: [], audio: nil)), newStamp)
+            }
+        }
+        await gate.waitUntilStarted()
+        #expect(entry.isSaving)
+        if editDuringWrite { entry.setSingleValue("TITLE", "Währenddessen eingegeben") }
+        await gate.release()
+        #expect(try await task.value)
+        #expect(entry.firstValue("TITLE") == (editDuringWrite ? "Währenddessen eingegeben" : "Neuer Plattenstand"))
+        #expect(entry.original.properties.first?.value == "Neuer Plattenstand")
+        #expect(entry.diskStamp == newStamp)
+        #expect(entry.isDirty == editDuringWrite)
+        #expect(!entry.isSaving)
+    }
 
     @Test("Bestätigtes Überschreiben erfasst den aktuellen XMP-Stand",
           .enabled(if: MediaTestFixtures.isAvailable && (try? ExifTool.locateExecutable()) != nil,

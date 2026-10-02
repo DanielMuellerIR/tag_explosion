@@ -15,6 +15,8 @@ import FoundationXML
 #endif
 
 enum EpubFile {
+    private static let dcURI = "http://purl.org/dc/elements/1.1/"
+    private static let opfURI = "http://www.idpf.org/2007/opf"
 
     // MARK: - Lesen
 
@@ -26,7 +28,7 @@ enum EpubFile {
 
         var fields = EbookCoreFields()
         fields.title = textOfFirst("title", in: metadata)
-        fields.authors = elements(named: "creator", in: metadata)
+        fields.authors = elements(named: "creator", in: metadata, namespaceURI: dcURI)
             .filter { isAuthor($0, in: metadata) }
             .map { $0.stringValue ?? "" }
             .filter { !$0.isEmpty }
@@ -36,7 +38,7 @@ enum EpubFile {
         // dc:date kann mehrfach vorkommen (EPUB 2 mit opf:event) — erster Wert,
         // auf das reine Datum gekürzt, falls ein voller Zeitstempel drinsteht.
         fields.date = textOfFirst("date", in: metadata)
-        fields.subjects = elements(named: "subject", in: metadata)
+        fields.subjects = elements(named: "subject", in: metadata, namespaceURI: dcURI)
             .compactMap { $0.stringValue }
             .filter { !$0.isEmpty }
         fields.isbn = isbnFromIdentifiers(in: metadata)
@@ -188,14 +190,14 @@ enum EpubFile {
             coverPath = resolve(href: href, relativeTo: opfPath)
         }
 
-        let item = XMLElement(name: "item")
+        let item = opfElement("item", in: manifest)
         setAttribute(item, "id", id)
         setAttribute(item, "href", href)
         setAttribute(item, "media-type", mime)
         setAttribute(item, "properties", "cover-image")
         manifest.addChild(item)
 
-        let meta = XMLElement(name: "meta")
+        let meta = opfElement("meta", in: metadata)
         setAttribute(meta, "name", "cover")
         setAttribute(meta, "content", id)
         metadata.addChild(meta)
@@ -412,7 +414,7 @@ enum EpubFile {
     // MARK: - Metadaten-Helfer
 
     private static func isbnFromIdentifiers(in metadata: XMLElement) -> String {
-        for identifier in elements(named: "identifier", in: metadata) {
+        for identifier in elements(named: "identifier", in: metadata, namespaceURI: dcURI) {
             let value = (identifier.stringValue ?? "").trimmingCharacters(in: .whitespaces)
             if attribute(identifier, "scheme")?.uppercased() == "ISBN" {
                 return value
@@ -437,7 +439,7 @@ enum EpubFile {
         // Paket-UUID bleiben unangetastet), dann ggf. neu anlegen.
         var removedIds: [String] = []
         var packageIdentifierWasIsbn = false
-        for identifier in elements(named: "identifier", in: metadata) {
+        for identifier in elements(named: "identifier", in: metadata, namespaceURI: dcURI) {
             let value = (identifier.stringValue ?? "").lowercased()
             guard attribute(identifier, "scheme")?.uppercased() == "ISBN"
                 || value.hasPrefix("urn:isbn:") || value.hasPrefix("isbn:") else { continue }
@@ -497,7 +499,7 @@ enum EpubFile {
             // EPUB-3-Form (group-position) braucht dagegen eine Sammlung als
             // Anker und entfällt hier.
             if !fields.seriesIndex.isEmpty {
-                let calibreIndex = XMLElement(name: "meta")
+                let calibreIndex = opfElement("meta", in: metadata)
                 setAttribute(calibreIndex, "name", "calibre:series_index")
                 setAttribute(calibreIndex, "content", fields.seriesIndex)
                 metadata.addChild(calibreIndex)
@@ -518,31 +520,31 @@ enum EpubFile {
             seriesId = "series-tagx-\(suffix)"
             suffix += 1
         }
-        let collection = XMLElement(name: "meta")
+        let collection = opfElement("meta", in: metadata)
         setAttribute(collection, "property", "belongs-to-collection")
         setAttribute(collection, "id", seriesId)
         collection.stringValue = fields.series
         metadata.addChild(collection)
         // Der explizite Sammlungstyp macht die eigene Serie beim Wiederlesen
         // (auch durch andere Programme) eindeutig als Serie erkennbar.
-        let collectionType = XMLElement(name: "meta")
+        let collectionType = opfElement("meta", in: metadata)
         setAttribute(collectionType, "refines", "#\(seriesId)")
         setAttribute(collectionType, "property", "collection-type")
         collectionType.stringValue = "series"
         metadata.addChild(collectionType)
         if !fields.seriesIndex.isEmpty {
-            let position = XMLElement(name: "meta")
+            let position = opfElement("meta", in: metadata)
             setAttribute(position, "refines", "#\(seriesId)")
             setAttribute(position, "property", "group-position")
             position.stringValue = fields.seriesIndex
             metadata.addChild(position)
         }
-        let calibreSeries = XMLElement(name: "meta")
+        let calibreSeries = opfElement("meta", in: metadata)
         setAttribute(calibreSeries, "name", "calibre:series")
         setAttribute(calibreSeries, "content", fields.series)
         metadata.addChild(calibreSeries)
         if !fields.seriesIndex.isEmpty {
-            let calibreIndex = XMLElement(name: "meta")
+            let calibreIndex = opfElement("meta", in: metadata)
             setAttribute(calibreIndex, "name", "calibre:series_index")
             setAttribute(calibreIndex, "content", fields.seriesIndex)
             metadata.addChild(calibreIndex)
@@ -587,7 +589,7 @@ enum EpubFile {
     /// eine reine Autorenänderung darf keine fremden Mitwirkenden löschen.
     private static func replaceAuthors(_ metadata: XMLElement, with authors: [String]) {
         var removedIds: [String] = []
-        for creator in elements(named: "creator", in: metadata)
+        for creator in elements(named: "creator", in: metadata, namespaceURI: dcURI)
         where isAuthor(creator, in: metadata) {
             if let id = attribute(creator, "id") { removedIds.append(id) }
             creator.detach()
@@ -613,7 +615,7 @@ enum EpubFile {
     /// Setzt ein einwertiges dc-Element (leerer Wert entfernt es).
     private static func setSingle(_ metadata: XMLElement, _ name: String, _ value: String, _ changed: Bool) {
         guard changed else { return }
-        let existing = elements(named: name, in: metadata)
+        let existing = elements(named: name, in: metadata, namespaceURI: dcURI)
         if value.isEmpty {
             detachRefinements(of: existing.compactMap { attribute($0, "id") }, in: metadata)
             existing.forEach { $0.detach() }
@@ -628,7 +630,7 @@ enum EpubFile {
 
     /// Ersetzt alle Werte eines mehrwertigen dc-Elements (creator/subject).
     private static func setList(_ metadata: XMLElement, _ name: String, _ values: [String]) {
-        let existing = elements(named: name, in: metadata)
+        let existing = elements(named: name, in: metadata, namespaceURI: dcURI)
         // Verfeinerungen der ersetzten Werte dürfen nicht als Verweise auf
         // nicht mehr vorhandene XML-IDs stehen bleiben.
         detachRefinements(of: existing.compactMap { attribute($0, "id") }, in: metadata)
@@ -638,13 +640,17 @@ enum EpubFile {
         }
     }
 
+    private static func opfElement(_ name: String, in parent: XMLElement) -> XMLElement {
+        if parent.resolveNamespace(forName: name)?.stringValue == opfURI {
+            return XMLElement(name: name)
+        }
+        let prefix = XMLTools.prefix(for: opfURI, preferred: "opf", in: parent)
+        return XMLElement(name: "\(prefix):\(name)")
+    }
+
     /// Neues Dublin-Core-Element mit dem im Dokument üblichen Präfix ("dc").
     private static func dcElement(_ name: String, value: String, in metadata: XMLElement) -> XMLElement {
-        // Vorhandene dc-Elemente verraten das Präfix; Standard ist "dc".
-        let prefix = (metadata.children ?? [])
-            .compactMap { $0 as? XMLElement }
-            .first { ["title", "language", "identifier"].contains(localName($0)) }?
-            .name?.split(separator: ":").dropLast().first.map(String.init) ?? "dc"
+        let prefix = XMLTools.prefix(for: dcURI, preferred: "dc", in: metadata)
         let element = XMLElement(name: "\(prefix):\(name)")
         element.stringValue = value
         return element
@@ -655,7 +661,7 @@ enum EpubFile {
         EbookTool.normalizedSeriesIndex(raw)
     }
 
-    // MARK: - XML-Helfer (namespace-tolerant über lokale Namen)
+    // MARK: - XML-Helfer (URI statt Dokumentpräfix)
 
     /// Lokaler Name ohne Präfix ("dc:title" → "title").
     private static func localName(_ node: XMLNode) -> String {
@@ -663,10 +669,10 @@ enum EpubFile {
         return name.split(separator: ":").last.map(String.init) ?? name
     }
 
-    private static func elements(named name: String, in parent: XMLElement) -> [XMLElement] {
+    private static func elements(named name: String, in parent: XMLElement, namespaceURI: String = opfURI) -> [XMLElement] {
         (parent.children ?? [])
             .compactMap { $0 as? XMLElement }
-            .filter { localName($0) == name }
+            .filter { localName($0) == name && $0.uri == namespaceURI }
     }
 
     private static func firstElement(named name: String, in parent: XMLElement?) -> XMLElement? {
@@ -676,7 +682,7 @@ enum EpubFile {
 
     /// Text des ersten Elements mit diesem lokalen Namen ("" wenn keins).
     private static func textOfFirst(_ name: String, in parent: XMLElement) -> String {
-        elements(named: name, in: parent).first?.stringValue?
+        elements(named: name, in: parent, namespaceURI: dcURI).first?.stringValue?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
@@ -685,7 +691,7 @@ enum EpubFile {
         guard let parent else { return [] }
         var result: [XMLElement] = []
         for child in (parent.children ?? []).compactMap({ $0 as? XMLElement }) {
-            if localName(child) == name { result.append(child) }
+            if localName(child) == name && child.uri == "urn:oasis:names:tc:opendocument:xmlns:container" { result.append(child) }
             result.append(contentsOf: descendants(named: name, in: child))
         }
         return result
@@ -705,16 +711,16 @@ enum EpubFile {
         return result
     }
 
-    /// Attributwert namespace-tolerant (auch "opf:role" findet "role" nicht —
-    /// deshalb über lokale Namen vergleichen).
+    /// EPUB 2 qualifiziert role/scheme mit OPF; die übrigen Attribute sind namespacefrei.
     private static func attribute(_ element: XMLElement, _ name: String) -> String? {
-        (element.attributes ?? [])
-            .first { localName($0) == name }?
+        let uri = ["role", "scheme"].contains(name) ? opfURI : ""
+        return (element.attributes ?? [])
+            .first { localName($0) == name && ($0.uri ?? "") == uri }?
             .stringValue
     }
 
     private static func setAttribute(_ element: XMLElement, _ name: String, _ value: String) {
-        if let existing = (element.attributes ?? []).first(where: { localName($0) == name }) {
+        if let existing = (element.attributes ?? []).first(where: { localName($0) == name && ($0.uri ?? "").isEmpty }) {
             existing.stringValue = value
             return
         }
