@@ -317,7 +317,7 @@ public enum DocumentTool {
         // Kalendertag und Uhrzeitbereiche prüfen; zwei Ziffern allein lassen
         // etwa den 31. Februar oder 99:99:99 als Zeitpunkt durch.
         ISODate.isCalendarDay(String(value.prefix(10))) && value.range(
-            of: #"^\d{4}-\d{2}-\d{2}(T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)?)?$"#,
+            of: #"^\d{4}-\d{2}-\d{2}(T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-](0\d:[0-5]\d|1[0-3]:[0-5]\d|14:00))?)?$"#,
             options: .regularExpression) != nil
     }
 

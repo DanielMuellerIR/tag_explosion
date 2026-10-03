@@ -252,6 +252,25 @@ struct EbookToolTests {
         #expect(try EbookTool.readCover(url: url)?.data == expected)
     }
 
+    @Test("EPUB-Cover: Fremdattribut properties bleibt in beiden Reihenfolgen", arguments: [false, true])
+    func coverRemovalPreservesNamespacedProperties(foreignFirst: Bool) throws {
+        let url = try Fixtures.workingCopy("book3.epub")
+        let path = "OEBPS/package.opf"
+        try rewriteOpf(in: url, path: path) { xml in
+            let foreign = "xmlns:v=\"urn:vendor\" v:properties=\"private\""
+            return xml.replacingOccurrences(of: "properties=\"cover-image\"", with:
+                foreignFirst ? foreign + " properties=\"cover-image\"" : "properties=\"cover-image\" " + foreign)
+        }
+        #expect(try EbookTool.readCover(url: url) != nil)
+        let original = try EbookTool.readCoreFields(url: url)
+        try EbookTool.write(url: url, fields: original, original: original, coverUpdate: .remove)
+        #expect(try EbookTool.readCover(url: url) == nil)
+        let document = try XMLDocument(xmlString: try opfContents(of: url, path: path))
+        let item = try #require(try document.nodes(forXPath: "//*[@id='cover-image']").first as? XMLElement)
+        #expect(item.attribute(forName: "v:properties")?.stringValue == "private")
+        #expect(XMLTools.attribute(item, "properties") == nil)
+    }
+
     @Test("EPUB: mimetype bleibt erster, unkomprimierter Eintrag")
     func epubMimetypeStaysFirst() throws {
         let url = try Fixtures.workingCopy("book2.epub")

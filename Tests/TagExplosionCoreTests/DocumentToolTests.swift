@@ -642,6 +642,38 @@ struct DocumentToolTests {
         #expect(MarkdownFrontmatter.yamlScalar("\"b\"") == "\"\\\"b\\\"\"")
     }
 
+    @Test("DOCX: lokale XSI-/DCTERMS-Präfixe erhalten Fremdattribute", arguments: [false, true])
+    func datePrefixShadowingPreservesForeignAttribute(shadowDatatype: Bool) throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        let path = "docProps/core.xml"
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        var xml = String(decoding: try #require(try ZipContainer.data(at: path, in: archive)), as: UTF8.self)
+            .replacingOccurrences(of: "<dcterms:created xsi:type=\"dcterms:W3CDTF\">",
+                with: "<dcterms:created xmlns:xsi=\"urn:vendor\" xmlns:good=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Privat\" good:type=\"dcterms:W3CDTF\">")
+        if shadowDatatype {
+            xml = xml.replacingOccurrences(of: "<dcterms:created ", with: "<dt:created xmlns:dt=\"http://purl.org/dc/terms/\" xmlns:dcterms=\"urn:vendor-datatype\" ")
+                .replacingOccurrences(of: "</dcterms:created>", with: "</dt:created>")
+                .replacingOccurrences(of: "good:type=\"dcterms:W3CDTF\"", with: "good:type=\"dt:W3CDTF\"")
+        }
+        try ZipContainer.rewrite(url: url, replacing: [path: Data(xml.utf8)])
+        let original = try DocumentTool.readCoreFields(url: url)
+        var edited = original; edited.created = "2026-10-03T12:00:00Z"
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        let after = try ZipContainer.open(url: url, accessMode: .read)
+        let document = try XMLDocument(data: try #require(try ZipContainer.data(at: path, in: after)))
+        let element = try #require(try document.nodes(forXPath: "//*[local-name()='created']").first as? XMLElement)
+        #expect(element.attribute(forName: "xsi:type")?.stringValue == "Privat")
+        let datatype = try #require(XMLTools.attribute(element, "type", namespaceURI: "http://www.w3.org/2001/XMLSchema-instance"))
+        #expect(datatype.hasSuffix(":W3CDTF"))
+        #expect(element.resolveNamespace(forName: datatype)?.stringValue == "http://purl.org/dc/terms/")
+        #expect(try DocumentTool.readCoreFields(url: url) == edited)
+    }
+
+    @Test("W3CDTF: Zeitzone endet bei ±14:00", arguments: ["+14:00", "-14:00", "+13:59", "-13:59", "+14:01", "-14:01", "+23:59", "-23:59"])
+    func dateTimezoneBoundary(offset: String) {
+        #expect(DocumentTool.isW3CDateTime("2026-10-03T12:00:00" + offset) == ["+14:00", "-14:00", "+13:59", "-13:59"].contains(offset))
+    }
+
     // MARK: - Gemeinsames
 
     @Test("Medienart document und Endungen")

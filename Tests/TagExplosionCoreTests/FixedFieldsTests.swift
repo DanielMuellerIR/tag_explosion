@@ -87,8 +87,10 @@ struct FixedFieldsTests {
         }
     }
 
-    @Test("Tag- und Textänderungen erhalten die Sprachen mehrerer USLT-Frames", arguments: [false, true], [false, true])
-    func independentTagEditPreservesLyricsLanguages(editLyrics: Bool, sharedDescription: Bool) throws {
+    @Test("Tag- und Textänderungen erhalten die Sprachen mehrerer USLT-Frames", arguments: [false, true], ["upper", "lower", "same", "caseCollision"])
+    func independentTagEditPreservesLyricsLanguages(editLyrics: Bool, descriptions: String) throws {
+        let sharedDescription = descriptions == "same" || descriptions == "caseCollision"
+        let lowercase = descriptions == "lower" || descriptions == "caseCollision"
         let url = try Fixtures.workingCopy("sample.mp3")
         let originalBytes = [UInt8](try Data(contentsOf: url))
         func synchsafe(_ value: Int) -> [UInt8] {
@@ -101,8 +103,8 @@ struct FixedFieldsTests {
             let content = [UInt8(0)] + Array(language.utf8) + Array(description.utf8) + [0] + Array(text.utf8)
             return Array("USLT".utf8) + synchsafe(content.count) + [0, 0] + content
         }
-        let frames = frame(language: "deu", description: "A", text: "Deutsch")
-            + frame(language: "eng", description: sharedDescription ? "A" : "B", text: "English")
+        let frames = frame(language: "deu", description: lowercase && !sharedDescription ? "a" : "A", text: "Deutsch")
+            + frame(language: "eng", description: sharedDescription ? (lowercase ? "a" : "A") : (lowercase ? "b" : "B"), text: "English")
         let oldTagSize = Array(originalBytes.prefix(3)) == Array("ID3".utf8)
             ? 10 + decodedSize(originalBytes[6..<10]) : 0
         let bytes = Array("ID3".utf8) + [4, 0, 0] + synchsafe(frames.count) + frames
@@ -114,7 +116,9 @@ struct FixedFieldsTests {
         if editLyrics {
             properties = properties.map {
                 $0.key == "LYRICS:A" && $0.value == "Deutsch"
-                    ? TagProperty(key: $0.key, value: "Neuer deutscher Text") : $0
+                    ? TagProperty(key: $0.key, value: "Neuer deutscher Text")
+                    : ($0.key == "LYRICS:B" && $0.value == "English"
+                        ? TagProperty(key: $0.key, value: "New English text") : $0)
             }
         }
         if sharedDescription {
@@ -132,13 +136,14 @@ struct FixedFieldsTests {
             if String(decoding: after[offset..<(offset + 4)], as: UTF8.self) == "USLT", size >= 4 {
                 let language = String(decoding: after[(offset + 11)..<(offset + 14)], as: UTF8.self)
                 let description = after[(offset + 14)..<(offset + 10 + size)].prefix { $0 != 0 }
-                languages[String(decoding: description, as: UTF8.self)] = language
+                languages[String(decoding: description, as: UTF8.self).uppercased()] = language
             }
             offset += 10 + size
         }
         #expect(languages == ["A": "deu", "B": "eng"])
         if editLyrics {
             #expect(try TagFile.read(at: url).firstValue(for: "LYRICS:A") == "Neuer deutscher Text")
+            #expect(try TagFile.read(at: url).firstValue(for: "LYRICS:B") == "New English text")
         }
         #expect(try TagFile.read(at: url).firstValue(for: "TITLE") == "Neuer Titel")
     }

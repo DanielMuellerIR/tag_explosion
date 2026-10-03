@@ -8,6 +8,15 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.96 — 2026-10-03
+
+- Liedtextsprachen bleiben bei kleingeschriebenen USLT-Beschreibungen erhalten;
+  kollidierende normalisierte Property-Schlüssel werden vor dem Schreiben abgelehnt.
+- DOCX-Datumsänderungen erhalten lokal anders gebundene Fremdattribute und lösen
+  Typ- und Datentyppräfix am tatsächlichen Datumsfeld auf.
+- EPUB-Coverentfernung verändert nur das namespacefreie `properties`-Attribut.
+- W3CDTF-Zeitzonen sind auf ±14:00 begrenzt; ungenutzte XML-Suche entfernt.
+
 ## 0.46.95 — 2026-10-02
 
 - Auch Element-Namensräume werden unter Linux anhand ihrer tatsächlichen

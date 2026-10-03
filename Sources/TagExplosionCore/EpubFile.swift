@@ -238,11 +238,7 @@ enum EpubFile {
             guard properties.contains("cover-image") else { continue }
             let remaining = properties.filter { $0 != "cover-image" }
             if remaining.isEmpty {
-                if let attribute = (item.attributes ?? []).first(where: {
-                    localName($0) == "properties"
-                }) {
-                    attribute.detach()
-                }
+                XMLTools.removeAttribute(item, "properties")
             } else {
                 setAttribute(item, "properties", remaining.joined(separator: " "))
             }

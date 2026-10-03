@@ -819,24 +819,26 @@ TagLib::ID3v2::Tag* id3v2_tag(tx_file* f, bool create) {
 // werden. Mehrdeutige Zuordnungen brechen ab, statt eine Sprache zu erraten.
 int32_t set_properties_preserving_lyrics(tx_file* f, const TagLib::PropertyMap& map) {
     struct LyricsState {
-        TagLib::String description;
+        TagLib::String propertyKey;
         TagLib::String text;
         TagLib::ByteVector language;
     };
     std::vector<LyricsState> before;
     if (auto* tag = id3v2_tag(f, false)) {
         for (auto* frame : tag->frameList("USLT")) {
-            if (auto* lyrics = dynamic_cast<TagLib::ID3v2::UnsynchronizedLyricsFrame*>(frame))
-                before.push_back({lyrics->description(), lyrics->text(), lyrics->language()});
+            if (auto* lyrics = dynamic_cast<TagLib::ID3v2::UnsynchronizedLyricsFrame*>(frame)) {
+                const auto properties = lyrics->asProperties();
+                if (!properties.isEmpty())
+                    before.push_back({properties.begin()->first, lyrics->text(), lyrics->language()});
+            }
         }
     }
-    // Mehrere Sprachen unter derselben Beschreibung werden in der PropertyMap
-    // zu einem Schlüssel zusammengeführt; TagLib kann sie sogar als TXXX
+    // TagLib normalisiert Beschreibungen im Property-Schlüssel. Kollisionen werden dort
+    // zusammengeführt; TagLib kann sie sogar als TXXX
     // zurückschreiben. Solche Dateien vor jeder Property-Mutation ablehnen.
     for (size_t i = 0; i < before.size(); ++i) {
         for (size_t j = i + 1; j < before.size(); ++j) {
-            if (before[i].description == before[j].description
-                && before[i].language != before[j].language) return 1;
+            if (before[i].propertyKey == before[j].propertyKey) return 1;
         }
     }
     const TagLib::PropertyMap rejected = f->ref.setProperties(map);
@@ -845,22 +847,25 @@ int32_t set_properties_preserving_lyrics(tx_file* f, const TagLib::PropertyMap& 
             for (auto* frame : tag->frameList("USLT")) {
                 auto* lyrics = dynamic_cast<TagLib::ID3v2::UnsynchronizedLyricsFrame*>(frame);
                 if (!lyrics) continue;
+                const auto properties = lyrics->asProperties();
+                if (properties.isEmpty()) continue;
+                const auto key = properties.begin()->first;
                 const auto unchanged = std::find_if(before.begin(), before.end(), [&](const auto& old) {
-                    return old.description == lyrics->description() && old.text == lyrics->text()
+                    return old.propertyKey == key && old.text == lyrics->text()
                         && old.language == lyrics->language();
                 });
                 if (unchanged != before.end()) continue;
                 const LyricsState* match = nullptr;
                 for (bool exactText : {true, false}) {
                     for (const auto& old : before) {
-                        if (old.description != lyrics->description()
+                        if (old.propertyKey != key
                             || (exactText && old.text != lyrics->text())) continue;
                         if (match && match->language != old.language) return 1;
                         match = &old;
                     }
                     if (match) break;
                 }
-                lyrics->setLanguage(match ? match->language : before.front().language);
+                if (match) lyrics->setLanguage(match->language);
             }
         }
     }

@@ -40,17 +40,6 @@ enum XMLTools {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
-    /// Rekursive Suche in beliebiger Tiefe.
-    static func descendants(named name: String, in parent: XMLElement?) -> [XMLElement] {
-        guard let parent else { return [] }
-        var result: [XMLElement] = []
-        for child in (parent.children ?? []).compactMap({ $0 as? XMLElement }) {
-            if localName(child) == name { result.append(child) }
-            result.append(contentsOf: descendants(named: name, in: child))
-        }
-        return result
-    }
-
     /// Attributwert nach lokalem Namen und URI; ohne Angabe nur namespacefreie Attribute.
     static func attribute(_ element: XMLElement, _ name: String, namespaceURI: String = "") -> String? {
         (element.attributes ?? [])
@@ -63,6 +52,12 @@ enum XMLTools {
     // namensraum gilt nicht für unpräfigierte Attribute.
     private static func attributeNamespace(_ name: String, in element: XMLElement) -> String {
         name.contains(":") ? element.resolveNamespace(forName: name)?.stringValue ?? "" : ""
+    }
+
+    static func removeAttribute(_ element: XMLElement, _ name: String, namespaceURI: String = "") {
+        (element.attributes ?? []).filter {
+            localName($0) == name && attributeNamespace($0.name ?? "", in: element) == namespaceURI
+        }.forEach { $0.detach() }
     }
 
     static func setAttribute(_ element: XMLElement, _ name: String, _ value: String) {
@@ -86,14 +81,15 @@ enum XMLTools {
     static func prefix(for namespaceURI: String, preferred: String,
                        in root: XMLElement) -> String {
         if let existing = root.resolvePrefix(forNamespaceURI: namespaceURI),
-           !existing.isEmpty {
+           !existing.isEmpty,
+           root.resolveNamespace(forName: "\(existing):placeholder")?.stringValue == namespaceURI {
             return existing
         }
         // Ein leeres Präfix hieße Standard-Namensraum; für die Metadaten-
         // Dateien hier deklarieren alle Erzeuger die Präfixe ausdrücklich.
         var prefix = preferred
         var suffix = 2
-        while root.namespace(forPrefix: prefix) != nil {
+        while root.resolveNamespace(forName: "\(prefix):placeholder") != nil {
             prefix = "\(preferred)\(suffix)"
             suffix += 1
         }

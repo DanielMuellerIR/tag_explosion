@@ -163,8 +163,9 @@ enum OfficeDocumentFile: DocumentBackend {
     private static func setDate(_ name: String, prefix: String, _ value: String, in root: XMLElement) {
         XMLTools.setSingle(root, name, prefix: prefix, value: value)
         guard !value.isEmpty, let element = XMLTools.firstElement(named: name, in: root, namespaceURI: dctermsURI) else { return }
-        let xsi = XMLTools.prefix(for: xsiURI, preferred: "xsi", in: root)
-        XMLTools.setAttribute(element, "\(xsi):type", "\(prefix):W3CDTF")
+        let xsi = XMLTools.prefix(for: xsiURI, preferred: "xsi", in: element)
+        let datatype = XMLTools.prefix(for: dctermsURI, preferred: prefix, in: element)
+        XMLTools.setAttribute(element, "\(xsi):type", "\(datatype):W3CDTF")
     }
 
     static func validateContainer(url: URL) throws {
