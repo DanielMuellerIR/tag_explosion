@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.97 — 2026-10-03
+
+- Neuerwerb und Übernahme der Installer-Hauptsperre erfolgen unter demselben
+  Hilfslock; ein lebender Installer kann keine neu belegte Hauptsperre verlieren.
+- MusicBrainz wertet eine Trackliste erst bei passenden Titelzahlen aller Medien
+  als vollständig. Der Änderungsplan erhält die tatsächliche Medienanzahl und
+  erzeugt aus teilweise gelieferten Mehr-CD-Daten keine widersprüchliche CD-Nummer.
+
 ## 0.46.96 — 2026-10-03
 
 - Liedtextsprachen bleiben bei kleingeschriebenen USLT-Beschreibungen erhalten;

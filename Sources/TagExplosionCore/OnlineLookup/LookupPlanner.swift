@@ -95,12 +95,14 @@ public enum LookupPlanner {
         if let track {
             desired.append(("TITLE", track.title))
             desired.append(("ARTIST", track.artist ?? candidate.artist))
-            let total = candidate.tracks.filter { $0.discNumber == track.discNumber }.count
+            let total = candidate.hasFullTracklist
+                ? candidate.tracks.filter { $0.discNumber == track.discNumber }.count : 0
             desired.append(("TRACKNUMBER", total > 0 ? "\(track.number)/\(total)" : "\(track.number)"))
-            let discs = Set(candidate.tracks.map(\.discNumber)).count
+            let discs = candidate.discCount ?? (candidate.hasFullTracklist
+                ? Set(candidate.tracks.map(\.discNumber)).count : 0)
             let replacesSingleDisc = candidate.hasFullTracklist && discs == 1
                 && existing.contains { $0.key == "DISCNUMBER" }
-            if discs > 1 || replacesSingleDisc {
+            if track.discNumber > 0 && track.discNumber <= discs && (discs > 1 || replacesSingleDisc) {
                 desired.append(("DISCNUMBER", "\(track.discNumber)/\(discs)"))
             }
         } else {

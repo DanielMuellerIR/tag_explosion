@@ -84,6 +84,8 @@ public struct LookupCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     public var country: String
     /// Gesamtzahl der Titel laut Suche; nil, wenn der Dienst sie nicht nennt.
     public var trackCount: Int?
+    /// Anzahl der Medien laut Release, unabhängig von gelieferten Titeln.
+    public var discCount: Int?
     /// Trackliste. Bei Suchergebnissen oft leer oder unvollständig — erst
     /// `OnlineLookupService.details(for:)` holt sie komplett.
     public var tracks: [LookupTrack]
@@ -94,7 +96,7 @@ public struct LookupCandidate: Sendable, Codable, Equatable, Hashable, Identifia
 
     public init(source: LookupSource, score: Int, artist: String, album: String,
                 year: String = "", label: String = "", catalogNumber: String = "",
-                country: String = "", trackCount: Int? = nil, tracks: [LookupTrack] = [],
+                country: String = "", trackCount: Int? = nil, discCount: Int? = nil, tracks: [LookupTrack] = [],
                 hasFullTracklist: Bool = false, coverURL: URL? = nil,
                 identifiers: LookupIdentifiers = LookupIdentifiers()) {
         self.source = source
@@ -106,6 +108,7 @@ public struct LookupCandidate: Sendable, Codable, Equatable, Hashable, Identifia
         self.catalogNumber = catalogNumber
         self.country = country
         self.trackCount = trackCount
+        self.discCount = discCount
         self.tracks = tracks
         self.hasFullTracklist = hasFullTracklist
         self.coverURL = coverURL

@@ -4,6 +4,7 @@
 // Änderungsplan. Ein Stub ersetzt URLSession; `swift test` greift nie ins
 // Netz.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
@@ -67,6 +68,12 @@ private let mbReleaseDetailsJSON = """
   {"position":2,"format":"CD","track-count":1,"tracks":[
    {"id":"t3","position":1,"number":"1","title":"Bonus","length":60000,
     "recording":{"id":"rrrrrrrr-0000-0000-0000-000000000003","title":"Bonus"}}]}]}
+"""
+
+private let mbPartialReleaseJSON = """
+{"id":"partial-two-cds","title":"Teilweise geliefert","media":[
+ {"position":1,"track-count":2},
+ {"position":2,"track-count":1,"tracks":[{"position":1,"title":"Bonus"}]}]}
 """
 
 private let mbRecordingSearchJSON = """
@@ -236,6 +243,54 @@ struct OnlineLookupParserTests {
         #expect(c.tracks[1].artist == "Gast")
         let oversized: [String: Any] = ["id": "r", "media": [["track-count": Int.max], ["track-count": 1]]]
         #expect(try MusicBrainzClient.parseRelease(oversized, score: 0, coverArtBaseURL: caa).trackCount == nil)
+    }
+
+    @Test("MusicBrainz: teilweise Mehr-CD-Antwort erhält die CD-Gesamtzahl beim Schreiben")
+    func partialMultiDiscParserPlanWrite() throws {
+        let object = try LookupJSON.object(from: Data(mbPartialReleaseJSON.utf8), source: .musicbrainz)
+        let candidate = try MusicBrainzClient.parseRelease(object, score: 100, coverArtBaseURL: caa)
+        #expect(!candidate.hasFullTracklist)
+        #expect(candidate.trackCount == 3)
+        #expect(candidate.discCount == 2)
+        let track = try #require(candidate.tracks.first)
+        #expect(track.discNumber == 2)
+        let url = try Fixtures.workingCopy("sample.mp3")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try TagFile.write(properties: [TagProperty(key: "DISCNUMBER", value: "2/2")], to: url)
+        let before = try TagFile.read(at: url)
+        let plan = LookupPlanner.plan(for: url, existing: before.properties, candidate: candidate, track: track)
+        #expect(!plan.changes.contains { $0.key == "DISCNUMBER" })
+        try TagFile.write(properties: plan.apply(to: before.properties), to: url)
+        #expect(try TagFile.read(at: url).values(for: "DISCNUMBER") == ["2/2"])
+    }
+
+    @Test("MusicBrainz: Vollständigkeit braucht die erwarteten Titel aller Medien", arguments: [
+        #"[{"position":1,"track-count":2,"tracks":[{"position":1,"title":"Eins"}]}]"#,
+        #"[{"position":1,"tracks":[{"position":1,"title":"Eins"}]}]"#,
+        #"[{"position":2,"track-count":1,"tracks":[{"position":1,"title":"Eins"}]}]"#,
+    ])
+    func partialMediumIsNotFull(media: String) throws {
+        let data = Data("{\"id\":\"partial\",\"media\":\(media)}".utf8)
+        let object = try LookupJSON.object(from: data, source: .musicbrainz)
+        let candidate = try MusicBrainzClient.parseRelease(object, score: 100, coverArtBaseURL: caa)
+        #expect(!candidate.hasFullTracklist)
+        let plan = LookupPlanner.plan(for: URL(fileURLWithPath: "/tmp/test.mp3"),
+            existing: [TagProperty(key: "DISCNUMBER", value: "2/2")],
+            candidate: candidate, track: candidate.tracks.first)
+        #expect(!plan.changes.contains { $0.key == "DISCNUMBER" })
+        #expect(plan.changes.first { $0.key == "TRACKNUMBER" }?.newValue == "1")
+    }
+
+    @Test("MusicBrainz: nachgewiesenes Einzelmedium korrigiert die alte CD-Nummer")
+    func completeSingleMediumCorrectsDisc() throws {
+        let data = Data(#"{"id":"single","media":[{"position":1,"track-count":1,"tracks":[{"position":1,"title":"Eins"}]}]}"#.utf8)
+        let object = try LookupJSON.object(from: data, source: .musicbrainz)
+        let candidate = try MusicBrainzClient.parseRelease(object, score: 100, coverArtBaseURL: caa)
+        #expect(candidate.hasFullTracklist && candidate.discCount == 1)
+        let plan = LookupPlanner.plan(for: URL(fileURLWithPath: "/tmp/test.mp3"),
+            existing: [TagProperty(key: "DISCNUMBER", value: "2/2")],
+            candidate: candidate, track: candidate.tracks.first)
+        #expect(plan.changes.first { $0.key == "DISCNUMBER" }?.newValue == "1/1")
     }
 
     @Test("MusicBrainz-Recording-Suche: ein Kandidat je Release mit dem einen Titel")
@@ -516,6 +571,20 @@ struct OnlineLookupServiceTests {
         let cover = try await service.coverData(for: detailed)
         #expect(cover?.count == 16)
         #expect(client.requests[2].headers["Accept"] == "image/*")
+    }
+
+    @Test("Unvollständige Mehr-CD-Antwort lädt Release-Details nach")
+    func partialReleaseLoadsDetails() async throws {
+        let client = StubClient { request in
+            if request.url.path.hasPrefix("/ws/2/release/") { return json(mbReleaseDetailsJSON) }
+            return LookupHTTPResponse(statusCode: 404)
+        }
+        let object = try LookupJSON.object(from: Data(mbPartialReleaseJSON.utf8), source: .musicbrainz)
+        let candidate = try MusicBrainzClient.parseRelease(object, score: 80,
+            coverArtBaseURL: URL(string: "https://caa.test")!)
+        let detailed = try await makeService(client).details(for: candidate)
+        #expect(client.requests.count == 1)
+        #expect(detailed.hasFullTracklist && detailed.discCount == 2 && detailed.tracks.count == 3)
     }
 
     @Test("MusicBrainz ohne Album sucht Recordings; Cover 404 → nil")

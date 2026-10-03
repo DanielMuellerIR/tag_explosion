@@ -132,11 +132,12 @@ struct MusicBrainzClient: Sendable {
 
         let media = LookupJSON.array(release["media"])
         var tracks: [LookupTrack] = []
-        var hasFull = false
-        for medium in media {
-            let disc = LookupJSON.int(medium["position"]) ?? 1
+        var hasFull = !media.isEmpty
+        for (index, medium) in media.enumerated() {
+            let disc = LookupJSON.int(medium["position"]) ?? index + 1
             let list = LookupJSON.array(medium["tracks"])
-            if !list.isEmpty { hasFull = true }
+            let expected = LookupJSON.int(medium["track-count"])
+            if expected == nil || expected != list.count || list.isEmpty { hasFull = false }
             for track in list {
                 let recording = track["recording"] as? [String: Any]
                 let trackCredit = artistCredit(track["artist-credit"] ?? recording?["artist-credit"])
@@ -151,6 +152,14 @@ struct MusicBrainzClient: Sendable {
                     artist: trackCredit.name.isEmpty || trackCredit.name == credit.name ? nil : trackCredit.name,
                     recordingID: recording.map { LookupJSON.string($0["id"]) }.flatMap { $0.isEmpty ? nil : $0 }))
             }
+        }
+        let positions = media.enumerated().map { index, medium in
+            LookupJSON.int(medium["position"]) ?? index + 1
+        }
+        let allMediaKnown = !media.isEmpty && Set(positions) == Set(1...media.count)
+        if !allMediaKnown { hasFull = false }
+        if let expectedTotal = LookupJSON.int(release["track-count"]), expectedTotal != tracks.count {
+            hasFull = false
         }
         // Gesamtzahl: aus "track-count" (Suche) oder der Summe der Medien.
         let trackCount = LookupJSON.int(release["track-count"]) ?? media.reduce(Optional(0)) { total, medium in
@@ -170,6 +179,7 @@ struct MusicBrainzClient: Sendable {
             catalogNumber: catalog,
             country: LookupJSON.string(release["country"]),
             trackCount: trackCount == 0 ? nil : trackCount,
+            discCount: allMediaKnown ? media.count : nil,
             tracks: tracks,
             hasFullTracklist: hasFull,
             coverURL: coverURL(releaseID: id, base: coverArtBaseURL),

@@ -86,14 +86,11 @@ claim_lock() {
     lock_held=1
 }
 
-# Entfernt eine fremde Sperre NUR im gegenseitigen Ausschluss aller
-# Übernehmer und NUR nach erneuter Besitzer-Prüfung innerhalb dieses
-# Ausschlusses: Zwischen der Diagnose "Besitzer ist tot" beim Aufrufer und
-# dem Entfernen hier könnte ein anderer Übernehmer die tote Sperre längst
-# durch seine eigene, aktive ersetzt haben — ein blindes Entfernen stähle
-# dann eine lebende Sperre und bräche die gegenseitige Ausschließung.
+# Jeder Neuerwerb und jede Entfernung einer verwaisten Hauptsperre erfolgt
+# unter demselben Hilfslock. Sonst könnte zwischen einem leeren Besitzer-
+# Snapshot und dem Entfernen ein lebender Lauf die Hauptsperre neu belegen.
 # Rückgabe 1 = gerade nicht möglich, der Aufrufer wartet und versucht es neu.
-takeover_stale_lock() {
+claim_or_takeover_lock() {
     # Das Hilfs-Lock traegt seinen Besitzer genauso wie die Hauptsperre: EIN
     # atomarer Symlink-Schritt, dessen Ziel "PID|Startzeit" ist. Vorher war es
     # ein besitzerloses Verzeichnis, das allein nach 60 Sekunden Alter entfernt
@@ -125,6 +122,10 @@ takeover_stale_lock() {
     if [ "$(takeover_owner)" != "$my_owner" ]; then
         return 1
     fi
+    if claim_lock; then
+        release_takeover_lock
+        return 0
+    fi
     local owner
     owner=$(lock_owner)
     if [ -n "$owner" ] && owner_alive "$owner"; then
@@ -144,7 +145,10 @@ takeover_stale_lock() {
         echo "Hinweis: verwaiste Installer-Sperre wird entfernt: $lock" >&2
         rm -rf -- "$lock"
     fi
+    local status=0
+    claim_lock || status=$?
     release_takeover_lock
+    return "$status"
 }
 
 # Das Hilfs-Lock nur abnehmen, wenn es noch UNS gehoert.
@@ -154,22 +158,15 @@ release_takeover_lock() {
 }
 
 acquire_lock() {
-    local total=0 owner
+    local total=0
     while :; do
-        claim_lock && return 0
+        claim_or_takeover_lock && return 0
         total=$((total + 1))
         if [ "$total" -gt 200 ]; then
             echo "FEHLER: Installer-Sperre nicht erhalten: $lock" >&2
             exit 1
         fi
-        owner=$(lock_owner)
-        if [ -n "$owner" ] && owner_alive "$owner"; then
-            echo "FEHLER: Eine andere Installation arbeitet bereits an $dest; nichts wurde verändert." >&2
-            exit 1
-        fi
-        # Besitzer tot, Sperre unlesbar oder Altformat: exklusiv übernehmen.
-        # Schlägt das fehl (ein anderer Übernehmer ist dran), kurz warten.
-        takeover_stale_lock || sleep 0.05
+        sleep 0.05
     done
 }
 

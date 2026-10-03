@@ -66,6 +66,8 @@ stop_background_runs() {
     # Warteschleife stirbt, dann beenden und einsammeln.
     : > "$work/release" 2>/dev/null || true
     : > "$work/takeover-inner.release" 2>/dev/null || true
+    : > "$work/empty-owner.release" 2>/dev/null || true
+    : > "$work/empty-copy.release" 2>/dev/null || true
     for pid in $live; do kill "$pid" 2>/dev/null || true; done
     for pid in $live; do wait "$pid" 2>/dev/null || true; done
 }
@@ -105,6 +107,13 @@ mkdir -p "$fake_bin"
 
 cat > "$fake_bin/ditto" <<'SH'
 #!/usr/bin/env bash
+if [ -n "${RACE_COPY_MARKER:-}" ]; then
+    : > "$RACE_COPY_MARKER"
+    waited=0
+    while [ ! -f "$RACE_COPY_RELEASE" ] && [ "$waited" -lt 200 ]; do
+        sleep 0.05; waited=$((waited + 1))
+    done
+fi
 cp -R "$1" "$2"
 SH
 cat > "$fake_bin/xcrun" <<'SH'
@@ -156,7 +165,7 @@ SH
 # `sleep 0.5` bewies das nicht — wurde der Hintergrundlauf erst nach dem
 # Sperrtausch eingeplant, sah er sofort den lebenden Besitzer, brach
 # erwartungsgemaess ab, und der Test bestand, ohne die erneute Pruefung in
-# takeover_stale_lock je auszufuehren (Review-Fund 2026-08-17).
+# claim_or_takeover_lock je auszufuehren (Review-Fund 2026-08-17).
 cat > "$fake_bin/readlink" <<'SH'
 #!/usr/bin/env bash
 if [ -n "${TAKEOVER_WAIT_MARKER:-}" ]; then
@@ -189,6 +198,18 @@ if [ -n "${LOCK_READ_BLOCK_MARKER:-}" ]; then
                 ;;
         esac
     done
+fi
+# Kontrollierter Zustand: Hauptsperre beim Lesen abwesend, Hilfslock gehalten.
+# Danach darf ein zweiter echter Installer die Hauptsperre nicht neu erwerben.
+if [ -n "${EMPTY_LOCK_MARKER:-}" ] && [ "$1" = "$EMPTY_LOCK_PATH" ] &&
+   [ -L "$EMPTY_LOCK_PATH.takeover" ] && [ ! -f "$EMPTY_LOCK_MARKER" ]; then
+    /bin/rm -f "$EMPTY_LOCK_PATH"
+    : > "$EMPTY_LOCK_MARKER"
+    waited=0
+    while [ ! -f "$EMPTY_LOCK_RELEASE" ] && [ "$waited" -lt 200 ]; do
+        sleep 0.05; waited=$((waited + 1))
+    done
+    exit 1
 fi
 exec /usr/bin/readlink "$@"
 SH
@@ -240,6 +261,11 @@ run_installer() {
         TAKEOVER_WAIT_MARKER="${TAKEOVER_WAIT_MARKER:-}" \
         LOCK_READ_BLOCK_MARKER="${LOCK_READ_BLOCK_MARKER:-}" \
         LOCK_READ_BLOCK_RELEASE="${LOCK_READ_BLOCK_RELEASE:-}" \
+        EMPTY_LOCK_MARKER="${EMPTY_LOCK_MARKER:-}" \
+        EMPTY_LOCK_PATH="${EMPTY_LOCK_PATH:-}" \
+        EMPTY_LOCK_RELEASE="${EMPTY_LOCK_RELEASE:-}" \
+        RACE_COPY_MARKER="${RACE_COPY_MARKER:-}" \
+        RACE_COPY_RELEASE="${RACE_COPY_RELEASE:-}" \
         "$root/scripts/install-verified-app.sh" "$source" "$destination"
 }
 
@@ -461,7 +487,7 @@ rm -f "$race_root/.TagExplosion.app.lock"
 
 # Wettlauf 2 — Anwärter hält das Hilfslock BEREITS: Genau dann greift die
 # erneute Besitzerprüfung im gegenseitigen Ausschluss (install-verified-app.sh,
-# takeover_stale_lock). Der readlink-Stub hält den Anwärter erst an, nachdem er
+# claim_or_takeover_lock). Der readlink-Stub hält den Anwärter erst an, nachdem er
 # das Hilfslock erworben und seinen Besitz bestätigt hat; erst dann wird die
 # tote Hauptsperre gegen eine lebende getauscht. Ohne die innere Prüfung würde
 # er die lebende Sperre jetzt entfernen und installieren.
@@ -515,6 +541,41 @@ grep -q "andere Installation" "$inner_output" || {
     exit 1
 }
 rm -f "$inner_root/.TagExplosion.app.lock"
+
+# Wettlauf 3: Nach einem leeren Besitzer-Snapshot hält A weiterhin das
+# Hilfslock. B muss am selben Hilfslock warten; früher erwarb B direkt die
+# Hauptsperre, und A löschte sie anschließend trotz lebendem B.
+empty_root="$work/empty-owner-race"
+mkdir -p "$empty_root"
+ln -s '999999|Mon Jan  1 00:00:00 2001' "$empty_root/.TagExplosion.app.lock"
+empty_marker="$work/empty-owner.waiting"
+empty_release="$work/empty-owner.release"
+copy_a="$work/empty-copy-a"
+copy_b="$work/empty-copy-b"
+copy_release="$work/empty-copy.release"
+helper_b="$work/empty-helper-b"
+EMPTY_LOCK_MARKER="$empty_marker" EMPTY_LOCK_PATH="$empty_root/.TagExplosion.app.lock" \
+EMPTY_LOCK_RELEASE="$empty_release" RACE_COPY_MARKER="$copy_a" RACE_COPY_RELEASE="$copy_release" \
+run_installer "$new_source" "$empty_root/TagExplosion.app" > "$work/empty-a.log" 2>&1 &
+empty_a=$!; note_background "$empty_a"
+wait_for_file "$empty_marker" "A erreichte den leeren Besitzer-Snapshot nicht"
+[ ! -L "$empty_root/.TagExplosion.app.lock" ]
+TAKEOVER_WAIT_MARKER="$helper_b" RACE_COPY_MARKER="$copy_b" RACE_COPY_RELEASE="$copy_release" \
+run_installer "$new_source" "$empty_root/TagExplosion.app" > "$work/empty-b.log" 2>&1 &
+empty_b=$!; note_background "$empty_b"
+contender_observed() { [ -f "$helper_b" ] || [ -f "$copy_b" ]; }
+wait_for "B erreichte weder Haupt- noch Hilfslock" contender_observed
+: > "$empty_release"
+wait_for_file "$copy_a" "A erreichte den Kopierabschnitt nicht"
+[ ! -f "$copy_b" ] || { echo "FEHLER: beide lebenden Installer im Kopierabschnitt" >&2; exit 1; }
+if wait_background "$empty_b"; then
+    echo "FEHLER: B erwarb die von A belegte Hauptsperre" >&2; exit 1
+fi
+grep -q "andere Installation" "$work/empty-b.log"
+: > "$copy_release"
+wait_background "$empty_a"
+assert_text new "$empty_root/TagExplosion.app"
+[ -z "$(find "$empty_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
 
 # Ein fremdes Übernahme-Hilfslock wird niemals automatisch gelöscht: Eine
 # Besitzerprüfung und unlink können sonst den neu erworbenen Lock eines
