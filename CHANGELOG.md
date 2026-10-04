@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.46.98 — 2026-10-04
+
+- EPUB-Schnappschüsse lesen Felder und Cover aus derselben geöffneten OPF.
+  Auch die Prüfung nach dem Schreiben teilt diesen Archivzugriff.
+- Gemeinsame EPUB-Änderungen aktualisieren die OPF nur einmal; unveränderte
+  ZIP-Einträge werden ohne erneute Kompression übernommen. Ein Tag-/Covertausch
+  mit geändertem Bildformat benötigt zwei statt drei Archivdurchläufe.
+- Calibre liest Felder und Cover in einem Prozess und schreibt beide mit einem
+  gemeinsamen `ebook-meta`-Aufruf. Atomarer Austausch, Dateistempel und
+  Coverprüfung bleiben erhalten.
+
 ## 0.46.97 — 2026-10-03
 
 - Neuerwerb und Übernahme der Installer-Hauptsperre erfolgen unter demselben

@@ -22,6 +22,10 @@ enum EpubFile {
 
     static func readCoreFields(url: URL) throws -> EbookCoreFields {
         let (document, _, _) = try loadOpf(url: url, accessMode: .read)
+        return coreFields(in: document)
+    }
+
+    private static func coreFields(in document: XMLDocument) -> EbookCoreFields {
         guard let metadata = firstElement(named: "metadata", in: document.rootElement()) else {
             return EbookCoreFields()
         }
@@ -71,6 +75,21 @@ enum EpubFile {
     /// Cover als Artwork (nil, wenn das EPUB keins deklariert).
     static func readCover(url: URL) throws -> Artwork? {
         let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .read)
+        return try cover(in: document, opfPath: opfPath, archive: archive)
+    }
+
+    static func readContents(url: URL, includeCover: Bool, validating: Bool = false,
+                             betweenReads: () throws -> Void = {}) throws -> EbookContents {
+        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .read)
+        if validating { try validate(archive: archive, document: document, opfPath: opfPath) }
+        let fields = coreFields(in: document)
+        try betweenReads()
+        let artwork = includeCover ? try cover(in: document, opfPath: opfPath, archive: archive) : nil
+        return EbookContents(fields: fields, cover: artwork)
+    }
+
+    private static func cover(in document: XMLDocument, opfPath: String,
+                              archive: Archive) throws -> Artwork? {
         guard let coverHref = coverHref(in: document) else { return nil }
         let coverPath = resolve(href: coverHref, relativeTo: opfPath)
         guard let entry = archive[coverPath] else { return nil }
@@ -86,18 +105,16 @@ enum EpubFile {
         guard fields != original else { return }
         try mapWriteError(url: url) {
             try AtomicFileRewrite.run(url: url) { temp in
-                try writeCoreFieldsContents(
-                    url: temp, fields: fields, original: original)
+                try mutateContents(url: temp, fields: fields, original: original, coverUpdate: .unchanged)
             } validate: { temp in
                 try validateContainer(url: temp)
             }
         }
     }
 
-    private static func writeCoreFieldsContents(
-        url: URL, fields: EbookCoreFields, original: EbookCoreFields
+    private static func updateCoreFields(
+        in document: XMLDocument, url: URL, fields: EbookCoreFields, original: EbookCoreFields
     ) throws {
-        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .update)
         guard let root = document.rootElement(),
               let metadata = firstElement(named: "metadata", in: root) else {
             throw TagError.cannotOpen(path: url.path)
@@ -123,38 +140,34 @@ enum EpubFile {
         if fields.series != original.series || fields.seriesIndex != original.seriesIndex {
             writeSeries(fields, in: metadata)
         }
-
-        try replaceEntry(path: opfPath, data: document.xmlData(options: .nodePrettyPrint), in: archive)
     }
 
     /// Ersetzt das Cover (bzw. legt eines an, wenn keins deklariert ist).
     static func writeCover(url: URL, data: Data) throws {
         try mapWriteError(url: url) {
             try AtomicFileRewrite.run(url: url) { temp in
-                try writeCoverContents(url: temp, data: data)
+                try mutateContents(url: temp, fields: EbookCoreFields(), original: EbookCoreFields(),
+                                   coverUpdate: .set(data))
             } validate: { temp in
                 try validateContainer(url: temp)
             }
         }
     }
 
-    /// Implementierungsdetail von writeCover; die Fehlerumsetzung bleibt am
-    /// öffentlichen Schreibrand, damit alle ZIP-Schreibfehler gleich aussehen.
-    private static func writeCoverContents(url: URL, data: Data) throws {
-        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .update)
+    private static func updateCover(in document: XMLDocument, opfPath: String,
+                                    archive: Archive, url: URL, data: Data) throws -> (path: String, opfChanged: Bool) {
         let mime = Artwork.sniffMimeType(from: data) ?? "image/jpeg"
 
         if let href = coverHref(in: document) {
             // Vorhandenes Cover: Bytes ersetzen, Manifest-media-type aktualisieren
             // (Pfad/Endung bleiben — Reader richten sich nach dem media-type).
             let coverPath = resolve(href: href, relativeTo: opfPath)
-            try replaceEntry(path: coverPath, data: data, in: archive)
             if let item = manifestItems(in: document).first(where: { attribute($0, "href") == href }),
                attribute(item, "media-type") != mime {
                 setAttribute(item, "media-type", mime)
-                try replaceEntry(path: opfPath, data: document.xmlData(options: .nodePrettyPrint), in: archive)
+                return (coverPath, true)
             }
-            return
+            return (coverPath, false)
         }
 
         // Kein Cover deklariert: Datei neben die OPF legen und in Manifest +
@@ -202,8 +215,7 @@ enum EpubFile {
         setAttribute(meta, "content", id)
         metadata.addChild(meta)
 
-        try replaceEntry(path: coverPath, data: data, in: archive)
-        try replaceEntry(path: opfPath, data: document.xmlData(options: .nodePrettyPrint), in: archive)
+        return (coverPath, true)
     }
 
     /// Entfernt die EPUB-2- und EPUB-3-Deklarationen eines Covers. Die
@@ -212,15 +224,15 @@ enum EpubFile {
     static func removeCover(url: URL) throws {
         try mapWriteError(url: url) {
             try AtomicFileRewrite.run(url: url) { temp in
-                try removeCoverContents(url: temp)
+                try mutateContents(url: temp, fields: EbookCoreFields(), original: EbookCoreFields(),
+                                   coverUpdate: .remove)
             } validate: { temp in
                 try validateContainer(url: temp)
             }
         }
     }
 
-    private static func removeCoverContents(url: URL) throws {
-        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .update)
+    private static func removeCover(in document: XMLDocument, url: URL) throws {
         guard let root = document.rootElement(),
               let metadata = firstElement(named: "metadata", in: root) else {
             throw TagError.cannotOpen(path: url.path)
@@ -243,7 +255,6 @@ enum EpubFile {
                 setAttribute(item, "properties", remaining.joined(separator: " "))
             }
         }
-        try replaceEntry(path: opfPath, data: document.xmlData(options: .nodePrettyPrint), in: archive)
     }
 
     /// Ändert Kernfelder und Cover DIREKT in der übergebenen Datei — ohne
@@ -257,13 +268,33 @@ enum EpubFile {
     static func mutateContents(url: URL, fields: EbookCoreFields,
                                original: EbookCoreFields,
                                coverUpdate: EbookCoverUpdate) throws {
+        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .update)
+        var replacements: [String: Data] = [:]
+        var opfChanged = fields != original
         if fields != original {
-            try writeCoreFieldsContents(url: url, fields: fields, original: original)
+            try updateCoreFields(in: document, url: url, fields: fields, original: original)
         }
         switch coverUpdate {
-        case .unchanged: break
-        case .set(let data): try writeCoverContents(url: url, data: data)
-        case .remove: try removeCoverContents(url: url)
+        case .unchanged:
+            guard fields != original else { return }
+        case .set(let data):
+            let (path, coverDeclarationChanged) = try updateCover(in: document, opfPath: opfPath, archive: archive, url: url, data: data)
+            guard path != opfPath, path != "mimetype", path != "META-INF/container.xml" else {
+                throw TagError.saveFailed(path: url.path)
+            }
+            replacements[path] = data
+            opfChanged = opfChanged || coverDeclarationChanged
+        case .remove:
+            try removeCover(in: document, url: url)
+            opfChanged = true
+        }
+        if opfChanged { replacements[opfPath] = document.xmlData(options: .nodePrettyPrint) }
+        // ZIPFoundation kopiert bei remove die unveränderten komprimierten
+        // Einträge. Ein kompletter Neuaufbau würde alle Buchinhalte erneut
+        // komprimieren und war im Vergleich deutlich langsamer. Alle Feld-
+        // und Coverdeklarationen landen deshalb in genau einem OPF-Ersatz.
+        for path in replacements.keys.sorted() {
+            try replaceEntry(path: path, data: replacements[path]!, in: archive)
         }
     }
 
@@ -316,20 +347,22 @@ enum EpubFile {
     /// damit seine Geschwisterkopie, seit dort kein verschachtelter
     /// EPUB-Austausch mehr läuft.
     static func validateContainer(url: URL) throws {
-        let archive = try Archive(url: url, accessMode: .read)
+        let (document, opfPath, archive) = try loadOpf(url: url, accessMode: .read)
+        try validate(archive: archive, document: document, opfPath: opfPath)
+    }
+
+    private static func validate(archive: Archive, document: XMLDocument, opfPath: String) throws {
         guard let first = archive.first(where: { _ in true }),
               first.path == "mimetype", !first.isCompressed else {
-            throw TagError.cannotOpen(path: url.path)
+            throw TagError.cannotOpen(path: archive.url.path)
         }
         let mimetype = try ZipContainer.data(of: first, in: archive)
         guard String(decoding: mimetype, as: UTF8.self) == "application/epub+zip" else {
-            throw TagError.cannotOpen(path: url.path)
+            throw TagError.cannotOpen(path: archive.url.path)
         }
-
-        let (document, opfPath, validatedArchive) = try loadOpf(url: url, accessMode: .read)
         if let href = coverHref(in: document) {
-            guard validatedArchive[resolve(href: href, relativeTo: opfPath)] != nil else {
-                throw TagError.cannotOpen(path: url.path)
+            guard archive[resolve(href: href, relativeTo: opfPath)] != nil else {
+                throw TagError.cannotOpen(path: archive.url.path)
             }
         }
     }
@@ -394,14 +427,9 @@ enum EpubFile {
         return parts.joined(separator: "/")
     }
 
-    /// Ersetzt einen Archiv-Eintrag (bzw. legt ihn neu an). ZIPFoundation
-    /// schreibt das Archiv dabei um; der `mimetype`-Eintrag bleibt an Position 1.
     private static func replaceEntry(path: String, data: Data, in archive: Archive) throws {
-        if let existing = archive[path] {
-            try archive.remove(existing)
-        }
-        try archive.addEntry(with: path, type: .file,
-                             uncompressedSize: Int64(data.count),
+        if let existing = archive[path] { try archive.remove(existing) }
+        try archive.addEntry(with: path, type: .file, uncompressedSize: Int64(data.count),
                              compressionMethod: .deflate) { position, size in
             data.subdata(in: Int(position)..<(Int(position) + size))
         }

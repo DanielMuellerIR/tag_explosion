@@ -285,11 +285,13 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   ist gewünscht, aber kein Muss und richtet sich auch nach der Praktikabilität."
   Die App selbst bleibt macOS-only.
 
-- Effizienz-Umbauten aus dem Review 2026-07-18 (bewusst zurückgestellt):
-  EPUB-Archiv einmal öffnen statt pro Operation (`EpubFile.loadOpf`-Kontext
-  über read/write/Cover hinweg), ZIP-Rewrites beim Schreiben bündeln,
-  kombinierter `ebook-meta`-Aufruf (Felder + Cover in einem Prozess).
-  Lohnt bei Ordnern mit vielen E-Books; Details im Commit 352be5c.
+- E-Book-Effizienz aus dem Review 2026-07-18: erledigt mit 0.46.98.
+  EPUB-Schnappschüsse und Schreibprüfungen teilen Archiv und OPF; kombinierte
+  Änderungen aktualisieren die OPF einmal. ZIPFoundation kopiert unveränderte
+  komprimierte Einträge, statt sie neu zu komprimieren. Beim gemeinsamen
+  Tag-/Covertausch bleiben zwei Archivdurchläufe erforderlich (vorher drei).
+  Calibre liest und schreibt Felder plus Cover mit jeweils einem Prozess.
+  Vergleich und Grenzen: [ebook-performance.md](../knowledge/ebook-performance.md).
 
 - ID3v2.3 ist seit AP6 verfügbar: `tagx set --id3v23` und App-Einstellung
   für ältere Player. Standard bleibt ID3v2.4; Formatgrenzen stehen in

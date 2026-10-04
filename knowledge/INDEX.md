@@ -2,6 +2,10 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [ebook-performance.md](ebook-performance.md) — Bei gemeinsamen EPUB-/Calibre-
+  Zugriffen: geteilte OPF, einmaliger Metadatenersatz, komprimierte ZIP-Kopie,
+  kombinierte Prozesse und gemessene Grenze des vollständigen Neuaufbaus.
+
 - [xml-namensraeume.md](xml-namensraeume.md) — Bei XML-Metadaten und
   Rechnungszuordnungen: URI statt lokalem Namen, Fremdfelder erhalten,
   lokale Präfixumbindung und neue Elemente in präfigierten Paketdateien.

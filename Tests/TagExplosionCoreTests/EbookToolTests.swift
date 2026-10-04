@@ -81,6 +81,110 @@ struct EbookToolTests {
         return fields
     }
 
+    @Test("EPUB: Tags und Cover werden gemeinsam geschrieben, Nutzdaten und EPUB-mimetype bleiben erhalten",
+          arguments: ["book2.epub", "book3.epub"])
+    func combinedEpubWrite(_ fixture: String) throws {
+        let url = try Fixtures.workingCopy(fixture)
+        let original = try EbookTool.readSnapshot(url: url, includeCover: true)
+        let entries = try ZipContainer.entries(url: url)
+        let before = try Archive(url: url, accessMode: .read)
+        var payloads: [String: Data] = [:]
+        for entry in before where !entry.path.hasSuffix(".opf") && !entry.path.hasSuffix(".jpg") {
+            payloads[entry.path] = try ZipContainer.data(of: entry, in: before)
+        }
+        let cover = try Fixtures.coverData("cover.png")
+        try EbookTool.write(url: url, fields: editedFields, original: original.value.fields,
+                            coverUpdate: .set(cover), expecting: original.stamp)
+        let result = try EbookTool.readSnapshot(url: url, includeCover: true)
+        #expect(result.value.fields == editedFields)
+        #expect(result.value.cover?.data == cover)
+        let rewrittenEntries = try ZipContainer.entries(url: url)
+        #expect(rewrittenEntries.first == entries.first)
+        #expect(Set(rewrittenEntries.map(\.path)) == Set(entries.map(\.path)))
+        for entry in entries where !entry.path.hasSuffix(".opf") && !entry.path.hasSuffix(".jpg") {
+            #expect(rewrittenEntries.first(where: { $0.path == entry.path }) == entry)
+        }
+        let after = try Archive(url: url, accessMode: .read)
+        for (path, data) in payloads {
+            #expect(try ZipContainer.data(at: path, in: after) == data)
+        }
+        try EbookTool.write(url: url, fields: original.value.fields, original: result.value.fields,
+                            coverUpdate: .remove, expecting: result.stamp)
+        let removed = try EbookTool.readSnapshot(url: url, includeCover: true)
+        #expect(removed.value.fields == original.value.fields)
+        #expect(removed.value.cover == nil)
+    }
+
+    @Test("EPUB: Covertausch ohne Formatwechsel schreibt die OPF nicht neu")
+    func coverOnlyPreservesOPF() throws {
+        let url = try Fixtures.workingCopy("book3.epub")
+        let before = try opfContents(of: url, path: "OEBPS/package.opf")
+        let original = try EbookTool.readCoreFields(url: url)
+        let cover = try Fixtures.coverData("cover-alpha.png")
+        try EbookTool.write(url: url, fields: original, original: original, coverUpdate: .set(cover))
+        #expect(try opfContents(of: url, path: "OEBPS/package.opf") == before)
+        #expect(try EbookTool.readCover(url: url)?.data == cover)
+    }
+
+    @Test("Calibre: gemeinsames Lesen und Schreiben benötigen jeweils einen Prozess")
+    func combinedCalibreInvocation() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("tagx-calibre-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cover = try Fixtures.coverData("cover.png")
+        try cover.write(to: folder.appendingPathComponent("cover.png"))
+        let tool = folder.appendingPathComponent("ebook-meta")
+        try """
+        #!/bin/sh
+        set -eu
+        folder=$(dirname "$0")
+        printf 'call\\n' >> "$folder/calls"
+        printf '%s\\n' "$@" > "$folder/arguments"
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --get-cover) shift; cp "$folder/cover.png" "$1" ;;
+                --cover) shift; cp "$1" "$folder/written-cover.png" ;;
+            esac
+            shift
+        done
+        printf 'Title               : Combined title\\nPublisher           : Test publisher\\nAuthor(s)           : Unknown\\n'
+        """.write(to: tool, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: tool.path)
+        let target = folder.appendingPathComponent("book.azw3")
+        let contents = try EbookTool.readCalibreContents(url: target, includeCover: true, executable: tool.path)
+        #expect(contents.fields.title == "Combined title")
+        #expect(contents.fields.publisher == "Test publisher")
+        #expect(contents.cover?.data == cover)
+        var edited = contents.fields
+        edited.title = "New title"
+        try EbookTool.writeCalibre(url: target, fields: edited, original: contents.fields,
+                                  coverUpdate: .set(cover), executable: tool.path)
+        let args = try String(contentsOf: folder.appendingPathComponent("arguments"), encoding: .utf8)
+        #expect(args.contains("--title\nNew title\n"))
+        #expect(args.contains("--cover\n"))
+        #expect(try Data(contentsOf: folder.appendingPathComponent("written-cover.png")) == cover)
+        let calls = try String(contentsOf: folder.appendingPathComponent("calls"), encoding: .utf8)
+        #expect(calls.split(separator: "\n").count == 2)
+        let tempCoverPath = args.split(separator: "\n").last.map(String.init)!
+        #expect(!FileManager.default.fileExists(atPath: tempCoverPath))
+    }
+
+    @Test("Calibre: gemeinsame Tags und Cover bestehen den echten Roundtrip", .enabled(
+        if: Self.calibreFixtureAvailable, "Calibre oder die azw3-Fixture fehlt"))
+    func combinedCalibreRoundtrip() throws {
+        let url = try Fixtures.workingCopy("book.azw3")
+        let original = try EbookTool.readSnapshot(url: url, includeCover: true)
+        var fields = original.value.fields
+        fields.title = "Gemeinsamer Schreibvorgang"
+        let cover = try Fixtures.coverData("cover.png")
+        try EbookTool.write(url: url, fields: fields, original: original.value.fields,
+                            coverUpdate: .set(cover), expecting: original.stamp)
+        let result = try EbookTool.readSnapshot(url: url, includeCover: true)
+        #expect(result.value.fields.title == fields.title)
+        #expect(result.value.cover != nil)
+        #expect(Artwork.sniffMimeType(from: result.value.cover!.data) != nil)
+    }
+
     // MARK: - EPUB 2
 
     @Test("EPUB 2: bekannte Felder lesen")

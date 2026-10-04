@@ -117,7 +117,7 @@ public enum EbookTool {
         switch backend(for: url) {
         case .epub: return try EpubFile.readCoreFields(url: url)
         case .pdf: return try readPdf(url: url)
-        case .calibre: return try readCalibre(url: url)
+        case .calibre: return try readCalibreContents(url: url, includeCover: false).fields
         case nil: throw TagError.cannotOpen(path: url.path)
         }
     }
@@ -143,10 +143,16 @@ public enum EbookTool {
         betweenReads: () throws -> Void
     ) throws -> FileSnapshot<EbookContents> {
         try FileSnapshot.capture(at: url, expecting: stamp) {
-            let fields = try readCoreFields(url: url)
-            try betweenReads()
-            let cover = includeCover ? try readCover(url: url) : nil
-            return EbookContents(fields: fields, cover: cover)
+            switch backend(for: url) {
+            case .epub:
+                return try EpubFile.readContents(url: url, includeCover: includeCover, betweenReads: betweenReads)
+            case .calibre:
+                return try readCalibreContents(url: url, includeCover: includeCover, betweenReads: betweenReads)
+            default:
+                let fields = try readCoreFields(url: url)
+                try betweenReads()
+                return EbookContents(fields: fields, cover: nil)
+            }
         }
     }
 
@@ -208,6 +214,8 @@ public enum EbookTool {
                     try EpubFile.mutateContents(url: temp, fields: fields,
                                                 original: original,
                                                 coverUpdate: coverUpdate)
+                case .calibre:
+                    try writeCalibre(url: temp, fields: fields, original: original, coverUpdate: coverUpdate)
                 default:
                     try writeCoreFields(url: temp, fields: fields, original: original)
                     switch coverUpdate {
@@ -219,10 +227,12 @@ public enum EbookTool {
             }
         } validate: { temp in
             try TagError.withOriginalPath(url) {
-                // Die EPUB-Invarianten prüfte bisher der verschachtelte
-                // Austausch in `EpubFile`; ohne ihn gehört die Prüfung hierher.
-                if backend(for: temp) == .epub { try EpubFile.validateContainer(url: temp) }
-                _ = try readCoreFields(url: temp)
+                let contents: EbookContents
+                if backend(for: temp) == .epub {
+                    contents = try EpubFile.readContents(url: temp, includeCover: hasCoverChange, validating: true)
+                } else {
+                    contents = try readSnapshot(url: temp, includeCover: hasCoverChange).value
+                }
                 switch coverUpdate {
                 case .unchanged: break
                 case .set(let data):
@@ -231,7 +241,7 @@ public enum EbookTool {
                     // Cover in der Datei steht. EPUB legt sie unverändert ab;
                     // die externen Backends codieren sie um, dort muss das
                     // Ergebnis wenigstens ein erkennbares Bild sein.
-                    guard let written = try readCover(url: temp) else {
+                    guard let written = contents.cover else {
                         throw TagError.saveFailed(path: temp.path)
                     }
                     if backend(for: temp) == .epub {
@@ -244,7 +254,7 @@ public enum EbookTool {
                         }
                     }
                 case .remove:
-                    guard try readCover(url: temp) == nil else {
+                    guard contents.cover == nil else {
                         throw TagError.saveFailed(path: temp.path)
                     }
                 }
@@ -282,8 +292,13 @@ public enum EbookTool {
     /// Erfolgsmeldung. Öffentlich, damit CLI und App schon VOR der
     /// Sicherungskopie ablehnen können.
     public static func requireSupportedCover(_ data: Data, for url: URL) throws {
-        guard let mime = Artwork.sniffMimeType(from: data),
-              supportedCoverMimeTypes(url: url).contains(mime) else {
+        guard let mime = Artwork.sniffMimeType(from: data) else {
+            throw TagError.unsupportedCoverData
+        }
+        if backend(for: url) == .epub, ["image/jpeg", "image/png", "image/gif"].contains(mime) {
+            return
+        }
+        guard supportedCoverMimeTypes(url: url).contains(mime) else {
             throw TagError.unsupportedCoverData
         }
     }
@@ -339,14 +354,7 @@ public enum EbookTool {
         case .epub: return try EpubFile.readCover(url: url)
         case .pdf, nil: return nil
         case .calibre:
-            let exe = try locateCalibre()
-            let temp = FileManager.default.temporaryDirectory
-                .appendingPathComponent("tagx-cover-\(UUID().uuidString).jpg")
-            defer { try? FileManager.default.removeItem(at: temp) }
-            _ = try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url), "--get-cover", temp.path])
-            guard let data = try? Data(contentsOf: temp), !data.isEmpty else { return nil }
-            return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
-                           pictureType: "Front Cover")
+            return try readCalibreContents(url: url, includeCover: true).cover
         }
     }
 
@@ -357,13 +365,7 @@ public enum EbookTool {
         case .epub: try EpubFile.writeCover(url: url, data: data)
         case .pdf, nil: throw TagError.saveFailed(path: url.path)
         case .calibre:
-            let exe = try locateCalibre()
-            let ext = Artwork.sniffMimeType(from: data) == "image/png" ? "png" : "jpg"
-            let temp = FileManager.default.temporaryDirectory
-                .appendingPathComponent("tagx-cover-\(UUID().uuidString).\(ext)")
-            defer { try? FileManager.default.removeItem(at: temp) }
-            try data.write(to: temp)
-            _ = try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url), "--cover", temp.path])
+            try writeCalibre(url: url, fields: EbookCoreFields(), original: EbookCoreFields(), coverUpdate: .set(data))
         }
     }
 
@@ -461,11 +463,24 @@ public enum EbookTool {
     /// `ebook-meta <datei>` gibt "Label : Wert"-Zeilen aus; mit LC_ALL=C sind
     /// die Labels stabil englisch. Mehrzeilige Werte (Comments) werden über
     /// Fortsetzungszeilen angehängt.
-    private static func readCalibre(url: URL) throws -> EbookCoreFields {
-        let exe = try locateCalibre()
-        let output = ExternalToolText.decodeLossyPlainText(
-            try runCalibre(exe, [ExternalToolRunner.toolArgument(for: url)]))
+    static func readCalibreContents(url: URL, includeCover: Bool, executable: String? = nil,
+                                    betweenReads: () throws -> Void = {}) throws -> EbookContents {
+        let exe = try executable ?? locateCalibre()
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-cover-\(UUID().uuidString).jpg")
+        defer { try? FileManager.default.removeItem(at: temp) }
+        var args = [ExternalToolRunner.toolArgument(for: url)]
+        if includeCover { args += ["--get-cover", temp.path] }
+        let fields = calibreFields(from: ExternalToolText.decodeLossyPlainText(try runCalibre(exe, args)))
+        try betweenReads()
+        var cover: Artwork?
+        if includeCover, let data = try? Data(contentsOf: temp), !data.isEmpty {
+            cover = Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "", pictureType: "Front Cover")
+        }
+        return EbookContents(fields: fields, cover: cover)
+    }
 
+    private static func calibreFields(from output: String) -> EbookCoreFields {
         var values: [String: String] = [:]
         var currentKey: String?
         for line in output.split(separator: "\n", omittingEmptySubsequences: false) {
@@ -525,7 +540,8 @@ public enum EbookTool {
         return fields
     }
 
-    private static func writeCalibre(url: URL, fields: EbookCoreFields, original: EbookCoreFields) throws {
+    static func writeCalibre(url: URL, fields: EbookCoreFields, original: EbookCoreFields,
+                             coverUpdate: EbookCoverUpdate = .unchanged, executable: String? = nil) throws {
         var args: [String] = [ExternalToolRunner.toolArgument(for: url)]
         if fields.title != original.title { args += ["--title", fields.title] }
         if fields.authors != original.authors {
@@ -558,8 +574,24 @@ public enum EbookTool {
         if fields.subjects != original.subjects {
             args += ["--tags", fields.subjects.joined(separator: ",")]
         }
+        let ext: String
+        if case .set(let data) = coverUpdate, Artwork.sniffMimeType(from: data) == "image/png" {
+            ext = "png"
+        } else {
+            ext = "jpg"
+        }
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tagx-cover-\(UUID().uuidString).\(ext)")
+        defer { try? FileManager.default.removeItem(at: temp) }
+        switch coverUpdate {
+        case .unchanged: break
+        case .set(let data):
+            try data.write(to: temp, options: .withoutOverwriting)
+            args += ["--cover", temp.path]
+        case .remove: throw TagError.saveFailed(path: url.path)
+        }
         guard args.count > 1 else { return }
-        let exe = try locateCalibre()
+        let exe = try executable ?? locateCalibre()
         _ = try runCalibre(exe, args)
     }
 
