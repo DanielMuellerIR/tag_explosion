@@ -32,6 +32,15 @@ let package = Package(
                 .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks"])
             ]
         ),
+        .target(name: "TagExplosionPreviewSupport", dependencies: [
+            .product(name: "TagExplosionCore", package: "TagExplosion"),
+        ]),
+        .executableTarget(name: "TagExplosionPreview", dependencies: ["TagExplosionPreviewSupport",
+            .product(name: "TagExplosionCore", package: "TagExplosion")],
+            swiftSettings: [.unsafeFlags(["-parse-as-library", "-application-extension"])],
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-e", "-Xlinker", "_NSExtensionMain"])]),
+        .testTarget(name: "TagExplosionPreviewTests", dependencies: ["TagExplosionPreviewSupport",
+            .product(name: "TagExplosionTestSupport", package: "TagExplosion")]),
         // Der Save-Zustand wird ohne SwiftUI-Fenster getestet. So bleiben
         // Nebenläufigkeitsfehler auch in der macOS-CI sichtbar.
         .testTarget(

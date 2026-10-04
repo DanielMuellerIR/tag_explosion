@@ -71,6 +71,15 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$here/App/.build/$config/TagExplosionApp" "$app/Contents/MacOS/TagExplosion"
 printf 'APPL????' > "$app/Contents/PkgInfo"
 
+# Moderne Quick-Look-Erweiterung: SwiftPM baut das Executable mit dem
+# Foundation-Einstieg NSExtensionMain; ein Xcode-Projekt ist nicht nötig.
+preview="$app/Contents/PlugIns/TagExplosionPreview.appex"
+mkdir -p "$preview/Contents/MacOS"
+cp "$here/App/.build/$config/TagExplosionPreview" "$preview/Contents/MacOS/TagExplosionPreview"
+cp "$here/App/Extensions/Preview-Info.plist" "$preview/Contents/Info.plist"
+plutil -replace CFBundleShortVersionString -string "$version" "$preview/Contents/Info.plist"
+plutil -replace CFBundleVersion -string "$version" "$preview/Contents/Info.plist"
+
 # Sparkle.framework ins Bundle: SwiftPM linkt es, verpackt ein manuell gebautes
 # .app aber nicht selbst. ditto erhält die für macOS-Frameworks wesentlichen
 # Symlinks und Rechte. Ohne das Framework startet die App nicht (rpath zeigt
@@ -139,6 +148,35 @@ cat > "$app/Contents/Info.plist" <<PLIST
     <key>SUVerifyUpdateBeforeExtraction</key><true/>
     <key>SURequireSignedFeed</key><true/>
 ${icon_key}
+    <key>NSServices</key>
+    <array><dict>
+        <key>NSMessage</key><string>openFilesInTagExplosion</string>
+        <key>NSPortName</key><string>Tag Explosion</string>
+        <key>NSMenuItem</key><dict><key>default</key><string>Open in Tag Explosion</string></dict>
+        <key>NSSendTypes</key><array><string>public.file-url</string><string>NSFilenamesPboardType</string></array>
+        <key>NSSendFileTypes</key><array><string>public.data</string><string>public.folder</string></array>
+        <key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict>
+    </dict></array>
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict><key>UTTypeIdentifier</key><string>org.xiph.flac</string>
+            <key>UTTypeConformsTo</key><array><string>public.audio</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>flac</string></array>
+                <key>public.mime-type</key><string>audio/flac</string></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>org.xiph.ogg-audio</string>
+            <key>UTTypeConformsTo</key><array><string>public.audio</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>ogg</string><string>oga</string></array>
+                <key>public.mime-type</key><string>audio/ogg</string></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>org.xiph.opus</string>
+            <key>UTTypeConformsTo</key><array><string>public.audio</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>opus</string></array></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>org.matroska.mkv</string>
+            <key>UTTypeConformsTo</key><array><string>public.movie</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>mkv</string></array></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>org.matroska.mka</string>
+            <key>UTTypeConformsTo</key><array><string>public.audio</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>mka</string></array></dict></dict>
+    </array>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
@@ -207,6 +245,10 @@ ${icon_key}
 </plist>
 PLIST
 
+mkdir -p "$app/Contents/Resources/de.lproj" "$app/Contents/Resources/en.lproj"
+printf '"Open in Tag Explosion" = "In Tag Explosion öffnen";\n' > "$app/Contents/Resources/de.lproj/ServicesMenu.strings"
+printf '"Open in Tag Explosion" = "Open in Tag Explosion";\n' > "$app/Contents/Resources/en.lproj/ServicesMenu.strings"
+
 # Nicht per Textersetzung in XML schreiben: Ein gueltiger Testfeed darf Query-
 # Parameter enthalten. plutil übernimmt deren XML-Kodierung und prüft danach
 # zugleich, dass das erzeugte Bundle eine lesbare Property List besitzt.
@@ -226,6 +268,7 @@ plutil -lint "$app/Contents/Info.plist" >/dev/null
 # fertig gebaut von außen und tragen keinen Pfad dieses Macs.
 strip_eigene_binary() {
     strip -S "$app/Contents/MacOS/TagExplosion"
+    strip -S "$preview/Contents/MacOS/TagExplosionPreview"
 }
 
 if [ "$release" = "0" ]; then
@@ -236,6 +279,7 @@ if [ "$release" = "0" ]; then
     if [ "$config" = "release" ]; then
         strip_eigene_binary
     fi
+    codesign --force --sign - --entitlements "$here/App/Extensions/Preview.entitlements" "$preview"
     codesign --force --sign - "$app/Contents/MacOS/TagExplosion"
     codesign --force --sign - "$app"
     echo "App: $app"
@@ -274,6 +318,20 @@ for lib in "$fw"/*.dylib; do
     rewrite_taglib_refs "$lib"
 done
 
+# Jede Erweiterung läuft mit einem eigenen executable_path. Ihre beiden
+# TagLib-Bibliotheken liegen deshalb im eigenen Frameworks-Verzeichnis.
+preview_fw="$preview/Contents/Frameworks"
+preview_bin="$preview/Contents/MacOS/TagExplosionPreview"
+mkdir -p "$preview_fw"
+for base in libtag.2.dylib libtag_c.2.dylib; do
+    cp "$fw/$base" "$preview_fw/$base"
+done
+rewrite_taglib_refs "$preview_bin"
+verify_taglib_refs "$preview_bin" 1
+for lib in "$preview_fw"/*.dylib; do
+    verify_taglib_refs "$lib" 0
+done
+
 # Die App lädt TagLib über den C-Shim, libtag_c wiederum libtag: Beide Verweise
 # müssen existieren und ins Bundle zeigen.
 verify_taglib_refs "$bin" 1
@@ -304,6 +362,11 @@ codesign --force --options runtime --timestamp --sign "$identity" \
 for lib in "$fw"/*.dylib; do
     codesign --force --options runtime --timestamp --sign "$identity" "$lib"
 done
+for lib in "$preview_fw"/*.dylib; do
+    codesign --force --options runtime --timestamp --sign "$identity" "$lib"
+done
+codesign --force --options runtime --timestamp --sign "$identity" \
+    --entitlements "$here/App/Extensions/Preview.entitlements" "$preview"
 codesign --force --options runtime --timestamp --sign "$identity" "$app"
 codesign --verify --strict --verbose=2 "$app"
 

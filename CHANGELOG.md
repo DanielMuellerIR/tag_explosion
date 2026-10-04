@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.0 — 2026-10-04
+
+- Quick Look zeigt Tags, technische Audiodaten, Kapitel und Cover für native
+  Audio-/MP4-/Matroska-Formate und EPUB. Die Erweiterung liest ausschließlich
+  lokal und verändert keine Dateien.
+- Der Finder-Dienst „In Tag Explosion öffnen“ übernimmt einzelne Dateien,
+  Mehrfachauswahlen und Ordner in die vorhandene Fensterverwaltung.
+- SwiftPM und `build.sh` bauen die Erweiterung ohne Xcode-Projekt. Der
+  Release bündelt und signiert ihre TagLib-Bibliotheken im Erweiterungsbundle;
+  die Mindestversionsprüfung berücksichtigt auch alle Erweiterungen.
+
 ## 0.46.98 — 2026-10-04
 
 - EPUB-Schnappschüsse lesen Felder und Cover aus derselben geöffneten OPF.

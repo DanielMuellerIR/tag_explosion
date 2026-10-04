@@ -296,6 +296,18 @@ the notice).
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*
 
+## Finder integration
+
+From 0.47.0, Tag Explosion provides a Quick Look metadata preview for MP3,
+M4A/M4B, AIFF, WAV, FLAC, Ogg/Opus, MP4/M4V, Matroska, and EPUB. It shows tags
+and cover art, plus technical audio data and chapters. It reads locally;
+other formats retain their existing system preview.
+
+Send files, multiple selections, or folders through **Services → Open in Tag
+Explosion** in Finder's context menu. If the service or preview extension does
+not appear, check its activation in macOS System Settings. For registered file
+types, Quick Look shows metadata in place of its usual content preview.
+
 ## Installation
 
 Download the notarized DMG from the

@@ -23,6 +23,11 @@ SH
 cat > "$fake_bin/xcrun" <<'SH'
 #!/usr/bin/env bash
 case "${VTOOL_MODE:-ok}" in
+    plugin_new)
+        case "$3" in
+            */PlugIns/*) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 26.0\n' ;;
+            *) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 14.0\n' ;;
+        esac ;;
     ok)      printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 14.0\n  sdk 14.0\n' ;;
     new)     printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 26.0\n  sdk 26.0\n' ;;
     nominos) printf 'Load command 1\n  cmd LC_VERSION_MIN_MACOSX\n' ;;
@@ -79,6 +84,13 @@ VTOOL_MODE=new expect_failure "zu neues Mach-O" "$bundle"
 # Universal-Binary, erst der ZWEITE Slice ist zu neu. Frueher endete die
 # Auswertung nach dem ersten minos-Wert.
 VTOOL_MODE=fat expect_failure "zweiter Architektur-Slice" "$bundle"
+
+# Auch Erweiterungen liegen im ausgelieferten Bundle. Nur deren Binary ist
+# hier zu neu — eine Suche nur in MacOS/Frameworks würde den Fehler übersehen.
+mkdir -p "$bundle/Contents/PlugIns/Preview.appex/Contents/MacOS"
+printf 'binary\n' > "$bundle/Contents/PlugIns/Preview.appex/Contents/MacOS/Preview"
+VTOOL_MODE=plugin_new expect_failure "zu neues Erweiterungs-Binary" "$bundle"
+rm -rf "$bundle/Contents/PlugIns"
 
 # vtool selbst scheitert: ungeprueft ist nicht in Ordnung.
 VTOOL_MODE=fail expect_failure "vtool-Fehler" "$bundle"

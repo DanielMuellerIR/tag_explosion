@@ -2771,6 +2771,13 @@
         }
       }
     },
+    "Keine Dateien ausgewählt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": { "state": "translated", "value": "No files selected." }
+        }
+      }
+    },
     "Keine Dateien": {
       "localizations": {
         "en": {

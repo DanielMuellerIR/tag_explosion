@@ -26,7 +26,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.servicesProvider = self
         showWindowIfHidden()
+    }
+
+    @objc(openFilesInTagExplosion:userData:error:)
+    func openFilesInTagExplosion(_ pasteboard: NSPasteboard, userData: String?,
+                                error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        let urls = FinderService.fileURLs(from: pasteboard)
+        guard !urls.isEmpty else {
+            error.pointee = String(localized: "Keine Dateien ausgewählt.") as NSString
+            return
+        }
+        WindowSessions.shared.open(urls: urls)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// Startet man die App aus dem Finder mit einer Datei ("Öffnen mit …",

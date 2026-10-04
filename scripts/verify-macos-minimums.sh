@@ -18,6 +18,9 @@ declared="$(plutil -extract LSMinimumSystemVersion raw -o - "$plist")"
 list="$(mktemp)"
 trap 'rm -f "$list"' EXIT
 find "$app/Contents/MacOS" "$app/Contents/Frameworks" -type f -print > "$list"
+if [ -d "$app/Contents/PlugIns" ]; then
+    find "$app/Contents/PlugIns" -type f -print >> "$list"
+fi
 
 checked=0
 while IFS= read -r binary; do

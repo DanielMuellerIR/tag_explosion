@@ -307,6 +307,19 @@ mit `TAGX_ONLINE=1` (`tagx lookup --privacy` zeigt den Hinweis).
 ![Startbildschirm mit der Format-Übersicht](docs/screenshots/de/empty.png)
 *Der Startbildschirm listet alle unterstützten Datei- und Tag-Formate.*
 
+## Finder-Integration
+
+Ab 0.47.0 bietet Tag Explosion eine Quick-Look-Metadatenvorschau für MP3,
+M4A/M4B, AIFF, WAV, FLAC, Ogg/Opus, MP4/M4V, Matroska und EPUB. Sie zeigt Tags
+und Cover, bei Audio auch technische Daten und Kapitel. Die Vorschau liest
+nur lokal; andere Formate behalten ihre bisherige Systemvorschau.
+
+Dateien, Mehrfachauswahlen und Ordner lassen sich im Finder-Kontextmenü unter
+**Dienste → In Tag Explosion öffnen** übergeben. Falls ein Dienst oder die
+Quick-Look-Erweiterung nicht erscheint, dessen Aktivierung in den macOS-
+Systemeinstellungen prüfen. Für die registrierten Formate zeigt Quick Look
+Metadaten anstelle der üblichen Inhaltsvorschau.
+
 ## Installation
 
 Das notarisierte DMG von der [Releases-Seite](../../releases) laden, öffnen

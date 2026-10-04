@@ -2,6 +2,10 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [finder-integration.md](finder-integration.md) — Bei Quick Look, Finder-Dienst
+  und Erweiterungsbuild: SwiftPM-Einstieg, native Vorschau, eingebettete
+  Stammansicht, eigene TagLib-Ladepfade und Prüfgrenzen.
+
 - [ebook-performance.md](ebook-performance.md) — Bei gemeinsamen EPUB-/Calibre-
   Zugriffen: geteilte OPF, einmaliger Metadatenersatz, komprimierte ZIP-Kopie,
   kombinierte Prozesse und gemessene Grenze des vollständigen Neuaufbaus.
