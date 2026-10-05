@@ -311,14 +311,17 @@ mit `TAGX_ONLINE=1` (`tagx lookup --privacy` zeigt den Hinweis).
 
 Ab 0.47.0 bietet Tag Explosion eine Quick-Look-Metadatenvorschau für MP3,
 M4A/M4B, AIFF, WAV, FLAC, Ogg/Opus, MP4/M4V, Matroska und EPUB. Sie zeigt Tags
-und Cover, bei Audio auch technische Daten und Kapitel. Die Vorschau liest
-nur lokal; andere Formate behalten ihre bisherige Systemvorschau.
+und Cover, bei Audio auch technische Daten und Kapitel, wenn macOS die
+Erweiterung auswählt. Die installierte EPUB-Metadatenvorschau ist geprüft.
+Bei verbreiteten Formaten kann macOS seine eingebaute Vorschau bevorzugen:
+Im MP3-Finder-Test blieb der System-Audioplayer erhalten. Die Erweiterung
+liest nur lokal.
 
 Dateien, Mehrfachauswahlen und Ordner lassen sich im Finder-Kontextmenü unter
 **Dienste → In Tag Explosion öffnen** übergeben. Falls ein Dienst oder die
 Quick-Look-Erweiterung nicht erscheint, dessen Aktivierung in den macOS-
-Systemeinstellungen prüfen. Für die registrierten Formate zeigt Quick Look
-Metadaten anstelle der üblichen Inhaltsvorschau.
+Systemeinstellungen prüfen. Die Aktivierung allein garantiert keinen Vorrang
+der Erweiterung vor der Systemvorschau.
 
 ## Installation
 
