@@ -31,3 +31,11 @@ final class PreviewController: NSViewController, @preconcurrency QLPreviewingCon
         }
     }
 }
+
+// SwiftPMs natives Bausystem erwartet auch bei einer Erweiterung ein
+// Executable-main-Symbol. Der Linker startet tatsächlich NSExtensionMain
+// (App/Package.swift); dieser Einstieg wird nicht ausgeführt.
+@main
+private struct PreviewExtensionEntry {
+    static func main() {}
+}

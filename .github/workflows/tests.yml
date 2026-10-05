@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: macos-26
+    runs-on: macos-15
 
     steps:
       - name: Quelltext auschecken
@@ -33,7 +33,7 @@ jobs:
 
       - name: App bauen und testen
         working-directory: App
-        run: swift test --build-system xcode
+        run: swift test
 
       # Shell-Tests der Auslieferungsskripte. SwiftPM findet sie nicht; ohne
       # diesen Schritt könnten sie unbemerkt brechen, während die CI grün bleibt.
