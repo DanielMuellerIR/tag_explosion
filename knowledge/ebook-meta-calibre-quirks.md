@@ -53,3 +53,13 @@ deren Verhalten ist nicht Teil der stabilen Calibre-CLI-Schnittstelle.
 
 Labels von `ebook-meta` sind lokalisiert → immer mit `LC_ALL=C` aufrufen
 (`EbookTool.runCalibre` erledigt das via `/usr/bin/env`).
+
+
+Beim gemeinsamen Lesen mit `--get-cover` folgt nach den Metadaten eine
+lokalisierte Statuszeile mit dem Cover-Zielpfad. `LC_ALL=C` macht diese Zeile
+unter macOS/Calibre 9.9 nicht englisch. Als Fortsetzung des letzten Felds würde
+sie den Klappentext mit einem zufälligen Temp-Pfad verunreinigen; ein Archivimport
+schriebe ihn anschließend ins Buch. Seit 0.47.1 wird ausschließlich die letzte
+nichtleere Zeile mit dem einmaligen Zielpfad entfernt. Ähnlich formulierter
+Buchtext bleibt erhalten. Echte AZW3-/FB2-Prüfungen vergleichen alle Felder
+zwischen reinem und kombiniertem Lesen sowie nach unverändertem Archivimport.

@@ -168,6 +168,15 @@ SH
 # claim_or_takeover_lock je auszufuehren (Review-Fund 2026-08-17).
 cat > "$fake_bin/readlink" <<'SH'
 #!/usr/bin/env bash
+# Abbruch nach dem Anlegen beider eigenen Sperren, noch vor Besitzbestätigung.
+if [ -n "${SIGNAL_ON_INITIAL_LOCK_READ:-}" ] &&
+   [ "$1" = "$SIGNAL_ON_INITIAL_LOCK_READ" ] &&
+   [ -L "$1" ] && [ -L "$1.takeover" ] &&
+   [ ! -f "$SIGNAL_ON_INITIAL_LOCK_READ.signalled" ]; then
+    : > "$SIGNAL_ON_INITIAL_LOCK_READ.signalled"
+    owner=$(/usr/bin/readlink "$1")
+    kill -TERM "${owner%%|*}"
+fi
 if [ -n "${TAKEOVER_WAIT_MARKER:-}" ]; then
     for arg in "$@"; do
         case $arg in
@@ -258,6 +267,7 @@ run_installer() {
         BLOCK_SPCTL_CALL="${BLOCK_SPCTL_CALL:-0}" \
         RELEASE_FILE="${RELEASE_FILE:-}" \
         SIGNAL_ON_RM_OF="${SIGNAL_ON_RM_OF:-}" \
+        SIGNAL_ON_INITIAL_LOCK_READ="${SIGNAL_ON_INITIAL_LOCK_READ:-}" \
         TAKEOVER_WAIT_MARKER="${TAKEOVER_WAIT_MARKER:-}" \
         LOCK_READ_BLOCK_MARKER="${LOCK_READ_BLOCK_MARKER:-}" \
         LOCK_READ_BLOCK_RELEASE="${LOCK_READ_BLOCK_RELEASE:-}" \
@@ -280,6 +290,25 @@ rm -f "$work/verify-count"
 run_installer "$new_source" "$success_root/TagExplosion.app"
 assert_text new "$success_root/TagExplosion.app"
 [ -z "$(find "$success_root" -maxdepth 1 -name '.TagExplosion.app.*' -print)" ]
+
+# SIGTERM während eines freien Neuerwerbs räumt beide nachgewiesen eigenen
+# Sperren auf, auch wenn der Besitz noch nicht bestätigt wurde. Der nächste
+# Lauf darf dadurch nicht blockiert sein.
+acquire_abort_root="$work/acquire-abort"
+mkdir -p "$acquire_abort_root"
+acquire_abort_lock="$acquire_abort_root/.TagExplosion.app.lock"
+if SIGNAL_ON_INITIAL_LOCK_READ="$acquire_abort_lock" \
+    run_installer "$new_source" "$acquire_abort_root/TagExplosion.app"; then
+    echo "FEHLER: abgebrochener Neuerwerb meldete Erfolg" >&2
+    exit 1
+fi
+[ -f "$acquire_abort_lock.signalled" ]
+[ ! -L "$acquire_abort_lock" ] && [ ! -L "$acquire_abort_lock.takeover" ] || {
+    echo "FEHLER: Abbruch beim Neuerwerb hinterließ eigene Sperren" >&2
+    exit 1
+}
+run_installer "$new_source" "$acquire_abort_root/TagExplosion.app"
+assert_text new "$acquire_abort_root/TagExplosion.app"
 
 # Abgelehnte Erstinstallation: das schon eingesetzte Bundle muss verschwinden.
 first_root="$work/first"

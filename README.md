@@ -300,13 +300,15 @@ the notice).
 
 From 0.47.0, Tag Explosion provides a Quick Look metadata preview for MP3,
 M4A/M4B, AIFF, WAV, FLAC, Ogg/Opus, MP4/M4V, Matroska, and EPUB. It shows tags
-and cover art, plus technical audio data and chapters. It reads locally;
-other formats retain their existing system preview.
+and cover art, plus technical audio data and chapters when macOS selects the
+extension. EPUB metadata previews have been verified in the installed app.
+macOS may prefer its built-in preview for common formats: in the MP3 Finder
+check, it retained the system audio player. The extension reads locally.
 
 Send files, multiple selections, or folders through **Services → Open in Tag
 Explosion** in Finder's context menu. If the service or preview extension does
-not appear, check its activation in macOS System Settings. For registered file
-types, Quick Look shows metadata in place of its usual content preview.
+not appear, check its activation in macOS System Settings. Activation alone
+does not guarantee that Quick Look will choose it over a system preview.
 
 ## Installation
 

@@ -140,20 +140,23 @@ struct EbookToolTests {
         folder=$(dirname "$0")
         printf 'call\\n' >> "$folder/calls"
         printf '%s\\n' "$@" > "$folder/arguments"
+        cover_path=""
         while [ "$#" -gt 0 ]; do
             case "$1" in
-                --get-cover) shift; cp "$folder/cover.png" "$1" ;;
+                --get-cover) shift; cover_path="$1"; cp "$folder/cover.png" "$1" ;;
                 --cover) shift; cp "$1" "$folder/written-cover.png" ;;
             esac
             shift
         done
-        printf 'Title               : Combined title\\nPublisher           : Test publisher\\nAuthor(s)           : Unknown\\n'
+        printf 'Title               : Combined title\\nPublisher           : Test publisher\\nAuthor(s)           : Unknown\\nComments            : First line\\nCover saved to /a/real/comment.jpg\\nLast line\\n'
+        if [ -n "$cover_path" ]; then printf 'Titelbild gespeichert unter %s\\n' "$cover_path"; fi
         """.write(to: tool, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: tool.path)
         let target = folder.appendingPathComponent("book.azw3")
         let contents = try EbookTool.readCalibreContents(url: target, includeCover: true, executable: tool.path)
         #expect(contents.fields.title == "Combined title")
         #expect(contents.fields.publisher == "Test publisher")
+        #expect(contents.fields.description == "First line\nCover saved to /a/real/comment.jpg\nLast line")
         #expect(contents.cover?.data == cover)
         var edited = contents.fields
         edited.title = "New title"
@@ -167,6 +170,34 @@ struct EbookToolTests {
         #expect(calls.split(separator: "\n").count == 2)
         let tempCoverPath = args.split(separator: "\n").last.map(String.init)!
         #expect(!FileManager.default.fileExists(atPath: tempCoverPath))
+    }
+
+    @Test("Calibre: Coverabruf und unveränderter Archivimport erhalten alle Felder", .enabled(
+        if: Self.calibreFixtureAvailable, "Calibre oder die azw3-Fixture fehlt"), arguments: ["azw3", "fb2"])
+    func combinedCalibreMetadataAndArchivePreserveFields(_ format: String) throws {
+        let url = try format == "azw3" ? Fixtures.workingCopy("book.azw3") : makeFB2WorkingCopy()
+        defer { if format == "fb2" { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) } }
+        if format == "fb2" {
+            let original = try EbookTool.readCoreFields(url: url)
+            var fields = original
+            fields.description = "Synthetischer Klappentext."
+            try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+            try EbookTool.writeCover(url: url, data: Fixtures.coverData("cover.jpg"))
+        }
+        let plain = try EbookTool.readCoreFields(url: url)
+        #expect(!plain.description.isEmpty)
+        let rawBefore = try directCalibreOutput(url: url)
+        let combined = try EbookTool.readSnapshot(url: url, includeCover: true)
+        #expect(combined.value.cover != nil)
+        #expect(combined.value.fields == plain)
+        let folder = url.deletingLastPathComponent()
+        let archiveURL = folder.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [url], to: archiveURL, includeCovers: true)
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(archiveURL),
+                                            relativeTo: folder, dryRun: false)
+        #expect(report.failed.isEmpty)
+        #expect(try EbookTool.readCoreFields(url: url) == plain)
+        #expect(try directCalibreOutput(url: url) == rawBefore)
     }
 
     @Test("Calibre: gemeinsame Tags und Cover bestehen den echten Roundtrip", .enabled(

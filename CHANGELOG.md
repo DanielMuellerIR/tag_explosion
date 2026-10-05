@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.1 — 2026-10-05
+
+- Calibres lokalisierte Cover-Statuszeile wird vom Metadatenteil getrennt.
+  Ein unveränderter Archivexport/-import erhält dadurch den Buchtext.
+- Der Installer räumt eigene Haupt- und Hilfssperren auch bei einem Abbruch
+  während des Neuerwerbs auf; fremde Sperren bleiben erhalten.
+- Finder-Dienst mit Mehrfachauswahl und installierte EPUB-Vorschau im echten
+  Lauf geprüft. Für MP3 wählt macOS hier seine Systemvorschau; die Beschreibung
+  verspricht deshalb keinen generellen Ersatz der Inhaltsvorschau mehr.
+
 ## 0.47.0 — 2026-10-04
 
 - Quick Look zeigt Tags, technische Audiodaten, Kapitel und Cover für native

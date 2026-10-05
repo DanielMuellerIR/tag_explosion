@@ -471,7 +471,16 @@ public enum EbookTool {
         defer { try? FileManager.default.removeItem(at: temp) }
         var args = [ExternalToolRunner.toolArgument(for: url)]
         if includeCover { args += ["--get-cover", temp.path] }
-        let fields = calibreFields(from: ExternalToolText.decodeLossyPlainText(try runCalibre(exe, args)))
+        var lines = ExternalToolText.decodeLossyPlainText(try runCalibre(exe, args))
+            .components(separatedBy: "\n")
+        // Calibre hängt nach den Metadaten eine lokalisierte Cover-Meldung an.
+        // Nur die Schlusszeile mit unserem einmaligen Zielpfad abtrennen;
+        // ähnlich formulierter Buchtext muss unverändert bleiben.
+        if includeCover, let last = lines.lastIndex(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }),
+           lines[last].trimmingCharacters(in: .whitespaces).hasSuffix(" " + temp.path) {
+            lines.remove(at: last)
+        }
+        let fields = calibreFields(from: lines.joined(separator: "\n"))
         try betweenReads()
         var cover: Artwork?
         if includeCover, let data = try? Data(contentsOf: temp), !data.isEmpty {

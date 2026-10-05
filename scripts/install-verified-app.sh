@@ -20,7 +20,6 @@ lock="$parent/.$name.lock"
 
 installed=0
 replacement_deployed=0
-lock_held=0
 takeover_lock="$lock.takeover"
 
 # Zwei gleichzeitige Installationen auf DASSELBE Ziel würden einander in die
@@ -83,7 +82,6 @@ claim_lock() {
     # dort hinein statt zu scheitern. Nur das eigene Linkziel am Sperrpfad
     # beweist den Erwerb.
     [ "$(lock_owner)" = "$my_owner" ] || return 1
-    lock_held=1
 }
 
 # Jeder Neuerwerb und jede Entfernung einer verwaisten Hauptsperre erfolgt
@@ -170,22 +168,34 @@ acquire_lock() {
     done
 }
 
+# Gibt die Sperre nur frei, wenn sie noch UNS gehört: Hätte ein Übernehmer sie
+# uns wider Erwarten weggenommen, löschte ein blindes rm die aktive Sperre des
+# anderen Laufs.
+release_lock() {
+    if [ "$(lock_owner)" = "$my_owner" ]; then
+        rm -f -- "$lock"
+    fi
+}
+
+# Schon der Sperrerwerb kann unterbrochen werden, bevor claim_lock seinen
+# Besitz bestätigt. Die Linkziele belegen auch dann unsere Sperren. Bis zum
+# vollständigen Erwerb gibt es noch keine Bundle-Mutation oder einen Rollback.
+cleanup_acquisition() {
+    local status=$?
+    trap - EXIT
+    trap '' INT TERM HUP
+    release_lock
+    release_takeover_lock
+    exit "$status"
+}
+trap cleanup_acquisition EXIT
+trap 'exit 130' INT TERM HUP
 acquire_lock
 
 # Ein früherer fehlgeschlagener Rollback bewahrt $old absichtlich. Wird die
 # Prozess-ID später wiederverwendet, darf mv das neue Ziel nicht in dieses
 # Bundle hinein verschachteln. In diesem seltenen Fall vor jeder Mutation
 # abbrechen und beide bestehenden Stände unangetastet lassen.
-# Gibt die Sperre nur frei, wenn sie noch UNS gehört: Hätte ein Übernehmer sie
-# uns wider Erwarten weggenommen, löschte ein blindes rm die aktive Sperre des
-# anderen Laufs.
-release_lock() {
-    if [ "$lock_held" -eq 1 ] && [ "$(lock_owner)" = "$my_owner" ]; then
-        rm -f -- "$lock"
-    fi
-    lock_held=0
-}
-
 if [ -e "$new" ] || [ -e "$old" ]; then
     echo "FEHLER: Installer-Zwischenpfad existiert bereits; nichts wurde verändert: $old" >&2
     release_lock
