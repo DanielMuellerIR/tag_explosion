@@ -3027,6 +3027,24 @@
         "Online parameters and consent checked with controlled responses, no full live-provider acceptance",
         "String catalog checked mechanically and changed entries reviewed; not every translation linguistically reviewed",
         "Dependency source, generated fixtures, build outputs and binary image resources excluded from own-source coverage"
+      ],
+      "followups": [
+        {
+          "completed_at": "2026-10-06T23:17:51+02:00",
+          "review": "delta-plus-boundaries",
+          "outcome": "improved",
+          "summary": "Der macOS-CI-Compiler überschreitet bei der verketteten Byte-Array-Fixture sein Typprüfungsbudget. Schrittweises Anhängen erzeugt dieselbe Fixture und vereinfacht die Inferenz. Ausschließlich Testcode geändert; Produkt und Version bleiben unverändert.",
+          "files": [
+            {
+              "path": "App/Tests/TagExplosionAppTests/ChapterEntryTests.swift",
+              "sha256": "265bd01f90d34ccf784e3b2f2714aa8bcc4d7a2416c8107b42e63bdd81e3af84"
+            }
+          ],
+          "tests": [
+            "macOS ChapterEntryTests: 6 tests / 1 suite passed; actual tag-save CHAP-subframe regression passed"
+          ],
+          "trigger": "https://github.com/DanielMuellerIR/tag_explosion/actions/runs/37532028121"
+        }
       ]
     }
   ]

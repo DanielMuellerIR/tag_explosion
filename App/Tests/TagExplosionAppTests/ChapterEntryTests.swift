@@ -45,8 +45,12 @@ struct ChapterEntryTests {
         let marker = "Review-CHAP-Marker"
         let subframes = frame("TIT2", [3] + Array("Intro".utf8))
             + frame("TXXX", [3] + Array("Custom".utf8) + [0] + Array(marker.utf8))
-        let chapter = Array("chapter1".utf8) + [0] + bigEndian(0) + bigEndian(1000)
-            + Array(repeating: UInt8(255), count: 8) + subframes
+        var chapter = Array("chapter1".utf8)
+        chapter.append(0)
+        chapter.append(contentsOf: bigEndian(0))
+        chapter.append(contentsOf: bigEndian(1000))
+        chapter.append(contentsOf: Array(repeating: UInt8(255), count: 8))
+        chapter.append(contentsOf: subframes)
         let frames = frame("CHAP", chapter)
         let size = [21, 14, 7, 0].map { UInt8((frames.count >> $0) & 0x7f) }
         try (Data(Array("ID3".utf8) + [3, 0, 0] + size + frames) + bytes).write(to: url)
