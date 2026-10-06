@@ -787,7 +787,10 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path, detail: "the target ebook format does not support covers")
                 }
-                guard !artworks.isEmpty || EbookTool.supportsCoverRemoval(url: url) else {
+                // Ein bereits coverfreies Buch erfüllt den leeren Sollzustand.
+                // Nur eine tatsächlich erforderliche Löschung braucht Backend-Unterstützung.
+                if artworks.isEmpty, !EbookTool.supportsCoverRemoval(url: url),
+                   try EbookTool.readCover(url: url) != nil {
                     throw TagArchiveError.inconsistentEntry(
                         path: entry.path,
                         detail: "the target ebook backend cannot safely remove covers")

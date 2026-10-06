@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.3 — 2026-10-06
+
+- Mehrzeilige Calibre-Klappentexte behalten unformatierte Zeilen mit Doppelpunkt
+  vollständig beim Lesen und beim Wiederherstellen aus einem Archiv.
+- Coverfreie Calibre-E-Books lassen sich mit dem standardmäßig exportierten
+  leeren Coverzustand unverändert importieren. Erforderliche, nicht unterstützte
+  Coverlöschungen werden weiterhin vor allen Archivmutationen abgelehnt.
+- Der abschließende Ausgabezeilenumbruch wird nicht mehr an skalare
+  Metadatenwerte angehängt; unveränderte Sprachwerte lösen keinen Schreibvorgang aus.
+
 ## 0.47.2 — 2026-10-05
 
 - Die Quick-Look-Erweiterung enthält das von SwiftPMs nativem Bausystem

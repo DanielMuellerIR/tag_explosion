@@ -148,7 +148,7 @@ struct EbookToolTests {
             esac
             shift
         done
-        printf 'Title               : Combined title\\nPublisher           : Test publisher\\nAuthor(s)           : Unknown\\nComments            : First line\\nCover saved to /a/real/comment.jpg\\nLast line\\n'
+        printf 'Title               : Combined title\\nPublisher           : Test publisher\\nAuthor(s)           : Unknown\\nComments            : First line\\nNote: keep this\\nCover saved to /a/real/comment.jpg\\nLast line\\n'
         if [ -n "$cover_path" ]; then printf 'Titelbild gespeichert unter %s\\n' "$cover_path"; fi
         """.write(to: tool, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: tool.path)
@@ -156,7 +156,7 @@ struct EbookToolTests {
         let contents = try EbookTool.readCalibreContents(url: target, includeCover: true, executable: tool.path)
         #expect(contents.fields.title == "Combined title")
         #expect(contents.fields.publisher == "Test publisher")
-        #expect(contents.fields.description == "First line\nCover saved to /a/real/comment.jpg\nLast line")
+        #expect(contents.fields.description == "First line\nNote: keep this\nCover saved to /a/real/comment.jpg\nLast line")
         #expect(contents.cover?.data == cover)
         var edited = contents.fields
         edited.title = "New title"
@@ -198,6 +198,50 @@ struct EbookToolTests {
         #expect(report.failed.isEmpty)
         #expect(try EbookTool.readCoreFields(url: url) == plain)
         #expect(try directCalibreOutput(url: url) == rawBefore)
+    }
+
+    @Test("Calibre: Doppelpunkt im Klappentext wird vollständig aus dem Archiv restauriert", .enabled(
+        if: Self.calibreFixtureAvailable, "Calibre fehlt"))
+    func calibreMultilineCommentsArchiveRestore() throws {
+        let url = try Fixtures.workingCopy("book.azw3")
+        let original = try EbookTool.readCoreFields(url: url)
+        var fields = original
+        fields.description = "First line\nNote: keep this\nLast line"
+        try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+        #expect(try directCalibreOutput(url: url).contains(fields.description))
+        #expect(try EbookTool.readCoreFields(url: url).description == fields.description)
+        let archiveURL = url.deletingLastPathComponent().appendingPathComponent("multiline.json")
+        try TagArchiveIO.export(files: [url], to: archiveURL, includeCovers: true)
+        var changed = fields
+        changed.description = "Changed"
+        try EbookTool.writeCoreFields(url: url, fields: changed, original: fields)
+        let report = try TagArchiveIO.apply(try TagArchiveIO.load(archiveURL), relativeTo: url.deletingLastPathComponent(), dryRun: false)
+        #expect(report.failed.isEmpty)
+        #expect(try directCalibreOutput(url: url).contains(fields.description))
+    }
+
+    @Test("Calibre: coverfreies FB2 und skalare Sprache bleiben beim Archivimport unverändert", .enabled(
+        if: Self.calibreFixtureAvailable, "Calibre fehlt"))
+    func calibreCoverlessArchiveAndScalarNoOp() throws {
+        let url = try makeFB2WorkingCopy()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let fields = try EbookTool.readCoreFields(url: url)
+        #expect(fields.description.isEmpty)
+        #expect(fields.language == "de")
+        #expect(try EbookTool.readCover(url: url) == nil)
+        let before = try Data(contentsOf: url)
+        let inode = try FileManager.default.attributesOfItem(atPath: url.path)[.systemFileNumber] as? UInt64
+        let archiveURL = url.deletingLastPathComponent().appendingPathComponent("coverless.json")
+        try TagArchiveIO.export(files: [url], to: archiveURL, includeCovers: true)
+        let archive = try TagArchiveIO.load(archiveURL)
+        for dryRun in [true, false] {
+            let report = try TagArchiveIO.apply(archive, relativeTo: url.deletingLastPathComponent(), dryRun: dryRun)
+            #expect(report.failed.isEmpty)
+            #expect(report.unchanged == [url.lastPathComponent])
+        }
+        try EbookTool.writeCoreFields(url: url, fields: fields, original: fields)
+        #expect(try Data(contentsOf: url) == before)
+        #expect(try FileManager.default.attributesOfItem(atPath: url.path)[.systemFileNumber] as? UInt64 == inode)
     }
 
     @Test("Calibre: gemeinsame Tags und Cover bestehen den echten Roundtrip", .enabled(

@@ -44,7 +44,9 @@ Die öffentliche `ebook-meta`-CLI dokumentiert `--cover <datei>` zum Setzen,
 aber keine Löschoperation. Auch ein existierender Pfad wie `/dev/null` meldet
 Erfolg, lässt ein vorhandenes Cover bei Proben jedoch unverändert. Ein
 Archiv-Eintrag mit `artworks: []` verlangt ausdrücklich das Entfernen und wird
-für Calibre-E-Books daher **vor allen Archivschreibvorgängen** abgelehnt.
+für Calibre-E-Books mit vorhandenem Cover daher **vor allen Archivschreibvorgängen**
+abgelehnt. Ist das Ziel bereits coverfrei, ist dieser Sollzustand erfüllt und
+der Import zulässig.
 `artworks: null` bedeutet dagegen weiterhin „nicht archiviert“ und bleibt
 unverändert anwendbar. Keine interne `calibre-debug`-API als Workaround nutzen:
 deren Verhalten ist nicht Teil der stabilen Calibre-CLI-Schnittstelle.
@@ -63,3 +65,10 @@ schriebe ihn anschließend ins Buch. Seit 0.47.1 wird ausschließlich die letzte
 nichtleere Zeile mit dem einmaligen Zielpfad entfernt. Ähnlich formulierter
 Buchtext bleibt erhalten. Echte AZW3-/FB2-Prüfungen vergleichen alle Felder
 zwischen reinem und kombiniertem Lesen sowie nach unverändertem Archivimport.
+
+Seit 0.47.3 erkennt der Leser Feldlabels an Calibres Ausrichtung auf Spalte 20.
+Unformatierte Klappentextzeilen wie `Note: keep this` bleiben Fortsetzungen.
+Der abschließende Ausgabezeilenumbruch ist nur ein Datensatztrenner und wird
+nicht an den letzten Feldwert angehängt. Echte AZW3-Archivprüfungen kontrollieren
+den vollständigen mehrzeiligen Text zusätzlich gegen die direkte Calibre-Ausgabe;
+ein coverfreies FB2 bleibt nach Export, Dry-run und Import byte- und inodegleich.

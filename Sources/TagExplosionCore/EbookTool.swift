@@ -492,10 +492,15 @@ public enum EbookTool {
     private static func calibreFields(from output: String) -> EbookCoreFields {
         var values: [String: String] = [:]
         var currentKey: String?
-        for line in output.split(separator: "\n", omittingEmptySubsequences: false) {
+        // Nur der abschließende Datensatztrenner ist kein Metadateninhalt.
+        var lines = output.components(separatedBy: "\n")
+        if lines.last == "" { lines.removeLast() }
+        for line in lines {
             // Label-Zeilen: "Title               : Wert"
             if let colon = line.firstIndex(of: ":"),
-               line.distance(from: line.startIndex, to: colon) <= 20,
+               // Calibre richtet echte Feldlabels auf Spalte 20 aus. Ein
+               // unformatierter „Note:“ im Klappentext bleibt eine Fortsetzung.
+               line.distance(from: line.startIndex, to: colon) == 20,
                !line.hasPrefix(" ") {
                 let key = line[..<colon].trimmingCharacters(in: .whitespaces)
                 let value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
