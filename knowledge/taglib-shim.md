@@ -16,10 +16,19 @@
 - **TagLib ist beim Öffnen tolerant:** Müll-Datei mit .mp3-Endung öffnet ohne
   Fehler (leerer Tag). `FileRef.isNull()` schlägt nur bei fehlender Datei oder
   komplett unbekanntem Container an. `.mov` liest TagLib 2.3 (MP4-Parser).
-- **Matroska (mkv/webm) ist seit TagLib 2.x tagbar** — TITLE/GENRE etc.
+- **Matroska (mkv/webm) ist seit TagLib 2.2 tagbar** — TITLE/GENRE etc.
   funktionieren im Roundtrip; Cover für Matroska nicht über complex properties.
 - TagLib schreibt **ID3v2.4**; v2.3 geht seit AP6 über `tx_save_id3v2`
   (`MPEG::File::save(tags, strip, version, duplicate)` und die Pendants für
   WAV/AIFF/DSF). Grenzen und Schichten: [id3-schichten.md](id3-schichten.md).
 - Beim Schreiben von MP3 entsteht zusätzlich **ID3v1.1** (TagLib aktualisiert
   vorhandene v1-Tags mit; bei frischen Dateien schreibt save() beide).
+
+## Portabler Release ab 0.47.4
+
+Der macOS-14-Release verwendet die verifizierte Sonoma-Flasche von TagLib
+2.3.2. Die vorher gepinnte 2.1.1 enthielt weder den Matroska-Leser (ab 2.2)
+noch die MP4-Kapitel-API (ab 2.3). Die Shim-Abfragen blenden solche Funktionen
+bei älteren Entwicklungsbibliotheken weiterhin aus. Mindestversion und
+Funktionsumfang müssen gegen dieselbe Bibliothek geprüft werden, die
+`build.sh --release` anschließend bündelt.

@@ -8,6 +8,37 @@ import Testing
 
 @Suite("PlaylistTool")
 struct PlaylistTests {
+    @Test("XSPF löst geerbtes und überschriebenes xml:base auf")
+    func xspfUsesXMLBase() throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("list.xspf")
+        try write("""
+        <playlist xmlns="http://xspf.org/ns/0/" version="1" xml:base="media/">
+          <trackList xml:base="disc/">
+            <track><location>song.mp3</location></track>
+            <track xml:base="../other/"><location xml:base="nested/">song.mp3</location></track>
+            <track xml:base="https://example.invalid/music/"><location>song.mp3</location></track>
+          </trackList>
+        </playlist>
+        """, to: url)
+        let entries = try PlaylistTool.read(url: url).entries
+        #expect(entries[0].resolvedPath == dir.appendingPathComponent("media/disc/song.mp3").path)
+        #expect(entries[1].resolvedPath == dir.appendingPathComponent("media/other/nested/song.mp3").path)
+        #expect(entries[2].resolvedPath == nil)
+        #expect(entries[2].isRemote)
+        #expect(entries[0].location == "song.mp3")
+    }
+
+    @Test("XSPF ohne Location wird nicht zur Playlist selbst", arguments: ["", " xml:base='https://example.invalid/'"])
+    func xspfWithoutLocation(_ base: String) throws {
+        let dir = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("list.xspf")
+        try write("<playlist xmlns='http://xspf.org/ns/0/' version='1'\(base)><trackList><track><title>Titel</title></track><track><location/></track></trackList></playlist>", to: url)
+        let entries = try PlaylistTool.read(url: url).entries
+        #expect(entries.allSatisfy { $0.resolvedPath == nil && !$0.exists && !$0.isRemote })
+    }
 
     /// Frisches Temp-Verzeichnis mit einer Textdatei darin.
     private func makeDirectory() throws -> URL {

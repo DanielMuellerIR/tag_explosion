@@ -57,11 +57,14 @@ let foreignPIDs: Set<pid_t> = Set(
         .map(\.processIdentifier))
 /// Instanzen, die wir selbst gestartet haben. Sie zählen unabhängig davon, ob
 /// AppKit ein `launchDate` liefert.
-var claimedPIDs: Set<pid_t> = []
+private var claimedPIDs: Set<pid_t> = []
+private let ownershipLock = NSLock()
 
 func claimOwnership(of app: NSRunningApplication) {
     guard !foreignPIDs.contains(app.processIdentifier) else { return }
+    ownershipLock.lock()
     claimedPIDs.insert(app.processIdentifier)
+    ownershipLock.unlock()
 }
 
 /// Alle Instanzen, die zu DIESEM Lauf gehören.
@@ -82,8 +85,11 @@ func claimOwnership(of app: NSRunningApplication) {
 /// verspätete Instanz stehen.
 func ownedInstances() -> [NSRunningApplication] {
     let running = NSRunningApplication.runningApplications(withBundleIdentifier: testBundleID)
-    if !claimedPIDs.isEmpty {
-        return running.filter { claimedPIDs.contains($0.processIdentifier) }
+    ownershipLock.lock()
+    let claimed = claimedPIDs
+    ownershipLock.unlock()
+    if !claimed.isEmpty {
+        return running.filter { claimed.contains($0.processIdentifier) }
     }
     return running.filter { app in
         guard !foreignPIDs.contains(app.processIdentifier) else { return false }

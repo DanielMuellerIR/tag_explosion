@@ -13,6 +13,37 @@ import Testing
 @Suite("DocumentTool", .serialized)
 struct DocumentToolTests {
 
+    @Test("OOXML-Beziehungsziele werden als URI gegen die Paketwurzel aufgelöst",
+          arguments: [("./docProps/core.xml", "docProps/core.xml"),
+                      ("docProps/../docProps/core.xml", "docProps/core.xml"),
+                      ("/docProps/core.xml", "docProps/core.xml"),
+                      ("docProps/é.xml", "docProps/%C3%A9.xml"),
+                      ("docProps/core%20properties.xml", "docProps/core%20properties.xml")])
+    func encodedCoreRelationship(item: (String, String)) throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let core = try #require(try ZipContainer.data(at: "docProps/core.xml", in: archive))
+        let relationships = try #require(try ZipContainer.data(at: "_rels/.rels", in: archive))
+        let changed = String(decoding: relationships, as: UTF8.self)
+            .replacingOccurrences(of: "docProps/core.xml", with: item.0)
+        let part = item.1
+        let types = try #require(try ZipContainer.data(at: "[Content_Types].xml", in: archive))
+        let changedTypes = String(decoding: types, as: UTF8.self)
+            .replacingOccurrences(of: "/docProps/core.xml", with: "/" + part)
+        try ZipContainer.rewrite(url: url, replacing: [part: core, "_rels/.rels": Data(changed.utf8),
+                                                      "[Content_Types].xml": Data(changedTypes.utf8)])
+        let before = try archiveContents(url)
+        let original = try DocumentTool.readCoreFields(url: url)
+        #expect(!original.title.isEmpty)
+        var edited = original
+        edited.title = "Titel im referenzierten Part"
+        try DocumentTool.write(url: url, fields: edited, original: original)
+        let after = try archiveContents(url)
+        let written = try #require(after.first { $0.0 == part })
+        #expect(String(decoding: written.2, as: UTF8.self).contains(edited.title))
+        expectUntouched(before: before, after: after, except: [part])
+    }
+
     /// Alle Einträge eines Archivs (Pfad, Kompression, Inhalt) in Reihenfolge.
     private func archiveContents(_ url: URL) throws -> [(String, Bool, Data)] {
         let archive = try ZipContainer.open(url: url, accessMode: .read)

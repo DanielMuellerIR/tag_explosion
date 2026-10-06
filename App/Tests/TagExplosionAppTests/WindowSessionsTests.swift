@@ -8,6 +8,18 @@ import TagExplosionCore
 @Suite("Fenster-Registry")
 @MainActor
 struct WindowSessionsTests {
+    @Test("Noch fokussierte geprüfte Eingaben schützen das Beenden")
+    func pendingDraftRequiresTerminationConfirmation() {
+        let harness = Harness()
+        let model = harness.addWindow()
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/draft.mp3"),
+            loaded: .audio(TagData(properties: [], artworks: [], audio: nil)))
+        model.entries = [entry]
+        entry.fixedFieldDrafts[FixedFields.replayGainAlbumGain] = "-6 dB"
+        #expect(harness.sessions.needsTerminationConfirmation)
+        entry.revert()
+        #expect(!harness.sessions.needsTerminationConfirmation)
+    }
 
     /// Registry mit prüfbarem Ersatz für alles, was sonst AppKit macht.
     private final class Harness {

@@ -23,6 +23,11 @@ public struct TagArchive: Codable, Sendable, Equatable {
         public var kind: MediaFormats.Kind
         /// Audio/Video: vollständige PropertyMap.
         public var properties: [String: [String]]?
+        /// Audio-Details ab Schema 5; nil lässt den nicht archivierten Zustand stehen.
+        public var chapters: [Chapter]?
+        public var syncedLyrics: [SyncedLyricLine]?
+        public var lyricsLanguage: String?
+        public var syncedLyricsLanguage: String?
         /// Cover (Audio/Video mehrere, E-Book eins); Data → Base64 im JSON.
         public var artworks: [Artwork]?
         /// Bilder: Kernfelder statt PropertyMap.
@@ -42,7 +47,9 @@ public struct TagArchive: Codable, Sendable, Equatable {
                     image: ImageCoreFields? = nil,
                     ebook: EbookCoreFields? = nil,
                     document: DocumentCoreFields? = nil,
-                    nfo: NFOFields? = nil) {
+                    nfo: NFOFields? = nil, chapters: [Chapter]? = nil,
+                    syncedLyrics: [SyncedLyricLine]? = nil, lyricsLanguage: String? = nil,
+                    syncedLyricsLanguage: String? = nil) {
             self.path = path
             self.kind = kind
             self.properties = properties
@@ -51,6 +58,10 @@ public struct TagArchive: Codable, Sendable, Equatable {
             self.ebook = ebook
             self.document = document
             self.nfo = nfo
+            self.chapters = chapters
+            self.syncedLyrics = syncedLyrics
+            self.lyricsLanguage = lyricsLanguage
+            self.syncedLyricsLanguage = syncedLyricsLanguage
         }
     }
 
@@ -60,7 +71,8 @@ public struct TagArchive: Codable, Sendable, Equatable {
     /// Feld `document`) — ältere Programmstände lehnen ein solches Archiv
     /// damit mit einer klaren Versionsmeldung ab statt mit einem Decodierfehler.
     /// 4 ergänzt NFO-Einträge (`kind: sidecar`, Feld `nfo`).
-    public static let currentVersion = 4
+    /// 5 ergänzt Kapitel und Lyrics einschließlich getrennter USLT-/SYLT-Sprachen.
+    public static let currentVersion = 5
 
     public init(version: Int = TagArchive.currentVersion, created: String, files: [Entry]) {
         self.version = version
@@ -129,7 +141,7 @@ public enum TagArchiveIO {
     /// Schema 1 wird weiterhin importiert und beim Lesen umgerechnet, siehe
     /// `normalizingLegacyValues`; Schema 2 unterscheidet sich von 3 nur durch
     /// das Fehlen von Dokument-Einträgen und wird unverändert gelesen.
-    private static let supportedVersions: Set<Int> = [1, 2, 3, TagArchive.currentVersion]
+    private static let supportedVersions: Set<Int> = [1, 2, 3, 4, TagArchive.currentVersion]
 
     /// Rechnet ein Archiv des alten Schemas auf die heutige Bedeutung um.
     ///
@@ -161,22 +173,18 @@ public enum TagArchiveIO {
                 path: relativePath(of: url, to: baseDirectory), kind: kind)
             switch kind {
             case .audio:
-                if includeCovers {
-                    let data = try FileSnapshot.capture(at: url) {
-                        try TagFile.read(at: url)
-                    }.value
-                    entry.properties = TagProperty.valuesByKey(data.properties)
-                    // [] bedeutet bewusst: Es wurde nach Covern gesucht, aber
-                    // keines gefunden. nil bleibt für --without-covers reserviert.
-                    entry.artworks = data.artworks
-                } else {
-                    // Ohne Cover reicht die PropertyMap — erspart das
-                    // Extrahieren aller eingebetteten Bilder.
-                    entry.properties = try FileSnapshot.capture(at: url) {
-                        let file = try TagFile(url: url)
-                        defer { file.close() }
-                        return TagProperty.valuesByKey(try file.properties())
-                    }.value
+                let data = try FileSnapshot.capture(at: url) {
+                    let file = try TagFile(url: url)
+                    defer { file.close() }
+                    return try file.readAll(includeArtworks: includeCovers)
+                }.value
+                entry.properties = TagProperty.valuesByKey(data.properties)
+                if includeCovers { entry.artworks = data.artworks }
+                if data.supportsChapters { entry.chapters = data.chapters }
+                if data.supportsSyncedLyrics {
+                    entry.syncedLyrics = data.syncedLyrics
+                    entry.lyricsLanguage = data.lyricsLanguage
+                    entry.syncedLyricsLanguage = data.syncedLyricsLanguage
                 }
             case .image:
                 // Gesichert wird der zusammengeführte Stand (Sidecar überlagert
@@ -363,7 +371,7 @@ public enum TagArchiveIO {
             archive, relativeTo: baseDirectory,
             allowExternalTargets: allowExternalTargets
         )
-        let targets = validated.map(\.url)
+        let targets = validated.flatMap(\.accessURLs)
         if let approvedTargets {
             // Bewusst KEINE erneute Kanonisierung der freigegebenen Pfade: Sie
             // sind der beim Bestätigen angezeigte, bereits vollständig
@@ -393,9 +401,10 @@ public enum TagArchiveIO {
                     // zeigen, was tatsächlich geschrieben wurde.
                     throw TagArchiveError.targetChangedAfterValidation(path: entry.path)
                 }
+                try target.requireCurrentDestination()
                 if try applyEntry(
                     entry, to: url, dryRun: dryRun, expecting: validatedStamp,
-                    beforeNoopReturn: beforeNoopReturn, backUp: backUp) {
+                    beforeNoopReturn: beforeNoopReturn, backUp: backUp, validated: target) {
                     report.applied.append(entry.path)
                 } else {
                     report.unchanged.append(entry.path)
@@ -429,7 +438,7 @@ public enum TagArchiveIO {
         return try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
             allowExternalTargets: allowExternalTargets
-        ).map(\.url)
+        ).flatMap(\.accessURLs)
     }
 
     /// Aus einer bereits vollständig aufgelösten Zielliste die Ziele außerhalb
@@ -447,7 +456,8 @@ public enum TagArchiveIO {
         dryRun: Bool,
         expecting stamp: FileStamp,
         beforeNoopReturn: (URL) throws -> Void,
-        backUp: (URL) throws -> Void
+        backUp: (URL) throws -> Void,
+        validated: ValidatedTarget
     ) throws -> Bool {
         switch entry.kind {
         case .audio:
@@ -466,7 +476,11 @@ public enum TagArchiveIO {
             let propertiesDiffer = TagProperty.valuesByKey(current.properties) != targetProperties
             // Ohne Cover im Archiv (--without-covers) bleiben Cover unangetastet.
             let artworksDiffer = targetArtworks.map { $0 != current.artworks } ?? false
-            guard propertiesDiffer || artworksDiffer else {
+            let chaptersDiffer = entry.chapters.map { $0 != current.chapters } ?? false
+            let syncedDiffer = entry.syncedLyrics.map { $0 != current.syncedLyrics } ?? false
+            let languageDiffer = entry.lyricsLanguage.map { $0 != current.lyricsLanguage } ?? false
+            let syncedLanguageDiffer = entry.syncedLyricsLanguage.map { $0 != current.syncedLyricsLanguage } ?? false
+            guard propertiesDiffer || artworksDiffer || chaptersDiffer || syncedDiffer || languageDiffer || syncedLanguageDiffer else {
                 try beforeNoopReturn(url)
                 try snapshot.requireCurrent(at: url)
                 return false
@@ -475,7 +489,12 @@ public enum TagArchiveIO {
                 try snapshot.requireCurrent(at: url)
                 try backUp(url)
                 try TagFile.write(properties: propertyList(targetProperties),
-                                  artworks: targetArtworks ?? current.artworks, to: url,
+                                  artworks: artworksDiffer ? targetArtworks : nil,
+                                  chapters: chaptersDiffer ? entry.chapters : nil,
+                                  syncedLyrics: syncedDiffer ? entry.syncedLyrics : nil,
+                                  lyricsLanguage: languageDiffer ? entry.lyricsLanguage : nil,
+                                  syncedLyricsLanguage: syncedLanguageDiffer || syncedDiffer || languageDiffer ? entry.syncedLyricsLanguage : nil,
+                                  to: url,
                                   expecting: snapshot.stamp,
                                   allowingArchivedValues: true)
             }
@@ -483,9 +502,11 @@ public enum TagArchiveIO {
         case .image:
             let snapshot = try ExifTool.readCoreFieldsSnapshot(
                 url: url, expecting: stamp)
+            try validated.requireCurrentDestination()
             let current = snapshot.value.fields
             guard let target = entry.image, target != current else {
                 try beforeNoopReturn(url)
+                try validated.requireCurrentDestination()
                 try snapshot.requireCurrent(at: url)
                 return false
             }
@@ -496,12 +517,15 @@ public enum TagArchiveIO {
             // ein, statt exiftool ein zweites Mal auszuführen.
             // Kamera-RAW und Bilder mit vorhandener Sidecar schreibt der Import
             // in die Sidecar; gesichert wird dann diese, nicht das Bild.
-            let destination = ExifTool.writeDestination(for: url, preferSidecar: false)
+            let destination = validated.destination ?? ExifTool.writeDestination(for: url, preferSidecar: false)
             try ExifTool.writeArchivedCoreFields(
                 url: url, fields: target, original: current,
                 expecting: snapshot.stamp, to: destination,
                 sidecar: snapshot.value.sidecar, dryRun: dryRun,
-                beforeReplace: { try backUp(destination.url) })
+                beforeReplace: {
+                    try validated.requireCurrentDestination()
+                    try backUp(destination.url)
+                })
             return true
         case .ebook:
             guard let target = entry.ebook else {
@@ -625,6 +649,39 @@ public enum TagArchiveIO {
             if entry.kind != .sidecar, entry.nfo != nil {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "nfo data requires a sidecar entry")
+            }
+
+            let hasAudioDetails = entry.chapters != nil || entry.syncedLyrics != nil
+                || entry.lyricsLanguage != nil || entry.syncedLyricsLanguage != nil
+            if hasAudioDetails, entry.kind != .audio || archive.version < 5 {
+                throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "chapter and lyrics data requires an audio entry in schema 5")
+            }
+            for (key, values) in entry.properties ?? [:] {
+                try FixedFields.validateText(key, field: "tag key")
+                for value in values { try FixedFields.validateText(value, field: key) }
+            }
+            if entry.kind == .audio {
+                for artwork in entry.artworks ?? [] {
+                    try FixedFields.validateText(artwork.description, field: "artwork description")
+                    try FixedFields.validateText(artwork.mimeType, field: "artwork MIME type")
+                    try FixedFields.validateText(artwork.pictureType, field: "artwork type")
+                }
+            }
+            if let chapters = entry.chapters {
+                try ChapterList.validate(chapters)
+                for chapter in chapters { try FixedFields.validateText(chapter.title, field: "chapter title") }
+            }
+            if let lines = entry.syncedLyrics {
+                try LRC.validate(lines)
+                for line in lines { try FixedFields.validateText(line.text, field: "synced lyrics") }
+            }
+            for language in [entry.lyricsLanguage, entry.syncedLyricsLanguage].compactMap({ $0 }) {
+                guard FixedFields.isValidLanguage(language) else {
+                    throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "invalid lyrics language")
+                }
+            }
+            if entry.syncedLyrics?.isEmpty == true, let language = entry.syncedLyricsLanguage, !language.isEmpty {
+                throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "a SYLT language requires synchronized lines")
             }
 
             switch entry.kind {
@@ -775,12 +832,38 @@ public enum TagArchiveIO {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "different paths resolve to the same target")
             }
-            targets.append(ValidatedTarget(url: url, stamp: stamp))
+            var destination: ImageWriteDestination?
+            var destinationState: FileState = .unknown
+            if entry.kind == .image, exists {
+                let chosen = ExifTool.writeDestination(for: url, preferSidecar: false)
+                let canonical = MediaFormats.canonicalFileURL(chosen.url)
+                destinationState = FileState.current(of: chosen.url)
+                guard allowExternalTargets || isDescendant(canonical, of: canonicalBase) else {
+                    throw TagArchiveError.externalTargetRequiresApproval(path: entry.path, resolvedPath: canonical.path)
+                }
+                destination = ImageWriteDestination(url: canonical, reason: chosen.reason)
+                if canonical != url {
+                    let writeIdentity = FileIdentity(canonical)
+                    let uniquePath = canonicalPaths.insert(writeIdentity.canonicalPath).inserted
+                    let uniqueFile = writeIdentity.diskIdentity.map { diskIdentities.insert($0).inserted } ?? true
+                    guard uniquePath && uniqueFile else {
+                        throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "different entries share a write target")
+                    }
+                }
+            }
+            targets.append(ValidatedTarget(url: url, stamp: stamp, destination: destination, destinationState: destinationState))
 
             guard exists else { continue }
             guard MediaFormats.kind(of: url) == entry.kind else {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "target media type does not match the archive entry")
+            }
+            if entry.kind == .audio {
+                let file = try TagFile(url: url)
+                defer { file.close() }
+                if entry.chapters != nil, !file.supportsChapters { throw TagError.chaptersUnsupported(path: url.path) }
+                if entry.syncedLyrics != nil || entry.lyricsLanguage != nil || entry.syncedLyricsLanguage != nil,
+                   !file.supportsSyncedLyrics { throw TagError.syncedLyricsUnsupported(path: url.path) }
             }
             if entry.kind == .ebook, let artworks = entry.artworks {
                 guard EbookTool.supportsCover(url: url) else {
@@ -796,8 +879,8 @@ public enum TagArchiveIO {
                         detail: "the target ebook backend cannot safely remove covers")
                 }
             }
-            // PDF kennt keinen Serien-Ort; das Backend ignoriert Serienfelder
-            // still. Ein Archiv mit Serienwunsch für ein PDF würde deshalb
+            // PDF und AZW3 haben keinen verlässlich schreibbaren Serien-Ort.
+            // Ein Archiv mit Serienwunsch für diese Formate würde deshalb
             // "Erfolg" melden, ohne den Wert zu schreiben — besser vorab
             // ablehnen (dieselbe Regel wie `tagx ebook set`).
             if entry.kind == .ebook, let ebook = entry.ebook,
@@ -837,6 +920,23 @@ public enum TagArchiveIO {
         let url: URL
         /// nil bedeutet: Das Ziel fehlte während der vollständigen Vorprüfung.
         let stamp: FileStamp?
+        let destination: ImageWriteDestination?
+        let destinationState: FileState
+
+        var accessURLs: [URL] {
+            guard let destination, destination.url != url else { return [url] }
+            return [url, destination.url]
+        }
+
+        func requireCurrentDestination() throws {
+            guard let destination else { return }
+            let current = ExifTool.writeDestination(for: url, preferSidecar: false)
+            guard current.reason == destination.reason,
+                  MediaFormats.canonicalFileURL(current.url) == destination.url else {
+                throw TagArchiveError.targetChangedAfterValidation(path: url.path)
+            }
+            try destinationState.requireUnchanged(at: current.url)
+        }
     }
 
     private struct DiskIdentity: Hashable {

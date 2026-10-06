@@ -18,6 +18,7 @@ struct MusicBrainzClient: Sendable {
         var terms: [String] = []
         if !query.album.isEmpty { terms.append("release:\(Self.luceneQuoted(query.album))") }
         if !query.artist.isEmpty { terms.append("artist:\(Self.luceneQuoted(query.artist))") }
+        if !query.year.isEmpty { terms.append("date:\(Self.luceneQuoted(query.year))") }
         if let count = query.trackCount, count > 0 { terms.append("tracks:\(count)") }
         guard !terms.isEmpty else { throw LookupError.emptyQuery }
         let url = try makeURL(path: "release", query: [
@@ -33,6 +34,7 @@ struct MusicBrainzClient: Sendable {
         var terms: [String] = []
         if !query.title.isEmpty { terms.append("recording:\(Self.luceneQuoted(query.title))") }
         if !query.artist.isEmpty { terms.append("artist:\(Self.luceneQuoted(query.artist))") }
+        if !query.year.isEmpty { terms.append("firstreleasedate:\(Self.luceneQuoted(query.year))") }
         guard !terms.isEmpty else { throw LookupError.emptyQuery }
         let url = try makeURL(path: "recording", query: [
             ("query", terms.joined(separator: " AND ")), ("fmt", "json"), ("limit", "\(limit)"),

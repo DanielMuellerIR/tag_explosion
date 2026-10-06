@@ -1,6 +1,7 @@
 // Kapitel im Editor-Puffer: dirty-Erkennung, Snapshot nur für Formate mit
 // Kapiteln, Übernahme des Read-backs — headless, ohne Fenster.
 import Foundation
+import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
 import TagExplosionCore
@@ -8,6 +9,55 @@ import TagExplosionCore
 @Suite("FileEntry Kapitel", .serialized)
 @MainActor
 struct ChapterEntryTests {
+
+    @Test("Eine reine Tagänderung erteilt keinen Kapitel-Schreibauftrag")
+    func unchangedChaptersStayUntouched() throws {
+        let original = TagData(properties: [], artworks: [], audio: nil,
+                               chapters: sample, supportsChapters: true)
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/kapitel.mp3"),
+                              loaded: .audio(original))
+        entry.properties = [TagProperty(key: "TITLE", value: "Neuer Titel")]
+        let snapshot = try #require(entry.beginSaving())
+        guard case .audio(let audio) = snapshot else { Issue.record("Audio erwartet"); return }
+        #expect(audio.chapters == nil)
+        entry.finishSaving()
+        entry.chapters = []
+        guard case .audio(let clearing)? = entry.beginSaving() else { Issue.record("Audio erwartet"); return }
+        #expect(clearing.chapters == [])
+        entry.finishSaving()
+    }
+
+    @Test("Eine App-Tagänderung erhält fremde CHAP-Unterframes")
+    func tagSavePreservesChapterSubframes() async throws {
+        let url = try MediaTestFixtures.workingCopy("sample.mp3")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var bytes = try Data(contentsOf: url)
+        if bytes.starts(with: Data("ID3".utf8)) {
+            let size = bytes[6..<10].reduce(0) { ($0 << 7) | Int($1 & 0x7f) }
+            bytes.removeFirst(10 + size)
+        }
+        func bigEndian(_ value: Int) -> [UInt8] {
+            [24, 16, 8, 0].map { UInt8((value >> $0) & 0xff) }
+        }
+        func frame(_ name: String, _ payload: [UInt8]) -> [UInt8] {
+            Array(name.utf8) + bigEndian(payload.count) + [0, 0] + payload
+        }
+        let marker = "Review-CHAP-Marker"
+        let subframes = frame("TIT2", [3] + Array("Intro".utf8))
+            + frame("TXXX", [3] + Array("Custom".utf8) + [0] + Array(marker.utf8))
+        let chapter = Array("chapter1".utf8) + [0] + bigEndian(0) + bigEndian(1000)
+            + Array(repeating: UInt8(255), count: 8) + subframes
+        let frames = frame("CHAP", chapter)
+        let size = [21, 14, 7, 0].map { UInt8((frames.count >> $0) & 0x7f) }
+        try (Data(Array("ID3".utf8) + [3, 0, 0] + size + frames) + bytes).write(to: url)
+        let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio)
+        let entry = FileEntry(url: url, loaded: loaded, stamp: stamp)
+        #expect(entry.chapters.map(\.title) == ["Intro"])
+        entry.setSingleValue("TITLE", "Neuer Titel")
+        #expect(await AppModel().save(entry: entry))
+        #expect(try Data(contentsOf: url).range(of: Data(marker.utf8)) != nil)
+        #expect(try TagFile.read(at: url).chapters.map(\.title) == ["Intro"])
+    }
 
     private let sample = [
         Chapter(title: "Intro", startMilliseconds: 0, endMilliseconds: 1000),

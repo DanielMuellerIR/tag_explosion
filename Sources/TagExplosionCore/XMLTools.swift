@@ -140,10 +140,64 @@ enum XMLTools {
     /// Parst XML-Daten; jeder Fehler gilt als „Datei nicht lesbar“.
     static func document(from data: Data, path: String) throws -> XMLDocument {
         do {
-            return try XMLDocument(data: data)
+            // FoundationXML repariert unter Linux einige Syntaxfehler still.
+            // Vor einer Bearbeitung muss der strengere SAX-Parser zustimmen.
+            let parser = XMLParser(data: data)
+            parser.shouldResolveExternalEntities = false
+            parser.externalEntityResolvingPolicy = .never
+            guard parser.parse(), parser.parserError == nil else { throw TagError.cannotOpen(path: path) }
+            let document = try XMLDocument(data: data, options: .nodeLoadExternalEntitiesNever)
+            // Externe Deklarationen dürfen auch nicht beim späteren Schreiben
+            // zu leeren Feldwerten werden, wenn ihr Inhalt nicht geladen wurde.
+            #if os(Linux)
+            // XMLDocument.dtd dereferenziert unter Swift 6.0/Linux auch dann
+            // einen Zeiger, wenn die Datei überhaupt keine DTD enthält.
+            let declarations = (document.children ?? []).compactMap { $0 as? XMLDTD }
+            #else
+            let declarations = document.dtd.map { [$0] } ?? []
+            #endif
+            for dtd in declarations {
+                guard dtd.systemID == nil, dtd.publicID == nil,
+                      !hasExternalDeclarations(dtd.xmlString) else {
+                    throw TagError.cannotOpen(path: path)
+                }
+            }
+            return document
         } catch {
             throw TagError.cannotOpen(path: path)
         }
+    }
+
+    // XMLDTDNode.isExternal stürzt unter Swift 6.0/Linux auch bei internen
+    // Entities ab. Die Serialisierung ist portabel und liefert UTF-8-Text.
+    // Literale und Kommentare zählen nicht als Deklarationen. Parameter-
+    // Entities bleiben gesperrt, weil sie weitere Deklarationen erzeugen können.
+    private static func hasExternalDeclarations(_ declaration: String) -> Bool {
+        var unquoted = ""
+        var cursor = declaration.startIndex
+        while cursor < declaration.endIndex {
+            if declaration[cursor...].hasPrefix("<!--") {
+                guard let end = declaration[cursor...].range(of: "-->") else { return true }
+                cursor = end.upperBound
+                unquoted.append(" ")
+            } else if declaration[cursor...].hasPrefix("<?") {
+                guard let end = declaration[cursor...].range(of: "?>") else { return true }
+                cursor = end.upperBound
+                unquoted.append(" ")
+            } else if declaration[cursor] == "\"" || declaration[cursor] == "'" {
+                let quote = declaration[cursor]
+                cursor = declaration.index(after: cursor)
+                guard let end = declaration[cursor...].firstIndex(of: quote) else { return true }
+                cursor = declaration.index(after: end)
+                unquoted.append(" ")
+            } else {
+                unquoted.append(declaration[cursor])
+                cursor = declaration.index(after: cursor)
+            }
+        }
+        if unquoted.contains("%") { return true }
+        let external = #"<!DOCTYPE\s+[^\s>\[]+\s+(?:SYSTEM|PUBLIC)\b|<!ENTITY\s+[^\s>]+\s+(?:SYSTEM|PUBLIC)\b"#
+        return unquoted.range(of: external, options: .regularExpression) != nil
     }
 
     /// Serialisiert lesbar eingerückt; die Dateien sind klein, und Word,

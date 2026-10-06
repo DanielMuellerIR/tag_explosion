@@ -4,9 +4,21 @@
 import Foundation
 import TagExplosionTestSupport
 import Testing
+import TagExplosionCore
+@testable import tagx
 
 @Suite("tagx lookup")
 struct LookupCommandTests {
+    @Test("Lookup-Cover ersetzt nur das erste Bild und erhält weitere Bilder")
+    func preservesOtherArtworks() {
+        let old = Artwork(data: Data([1]), pictureType: "Front Cover")
+        let booklet = Artwork(data: Data([2]), pictureType: "Leaflet Page")
+        let cover = Artwork(data: Data([3]), pictureType: "Front Cover")
+        #expect(Lookup.replacingFront(cover, in: [old, booklet]) == [cover, booklet])
+        #expect(Lookup.replacingFront(cover, in: []) == [cover])
+        #expect(Lookup.replacingFront(cover, in: [booklet, old]) == [booklet, cover])
+        #expect(Lookup.replacingFront(cover, in: [booklet]) == [cover, booklet])
+    }
 
     @Test("Ohne TAGX_ONLINE: Exit 1 mit Hinweis, auch bei nicht existierender Datei")
     func refusesWithoutConsent() throws {

@@ -253,6 +253,20 @@ struct Parse: ParsableCommand {
         print("\(item.file): \(assignments)")
     }
 
+    private static func changedFieldCount<T: Encodable>(_ fields: T, original: T) throws -> Int {
+        func values(_ item: T) throws -> [String: NSObject] {
+            var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(item)) as? [String: NSObject] ?? [:]
+            if let custom = object.removeValue(forKey: "custom") as? [[String: NSObject]] {
+                for field in custom {
+                    if let key = field["key"] as? String { object["custom:" + key] = field["value"] }
+                }
+            }
+            return object
+        }
+        let before = try values(original), after = try values(fields)
+        return Swift.Set(before.keys).union(after.keys).filter { before[$0] != after[$0] }.count
+    }
+
     /// Schreibt die geparsten Werte auf dem bestehenden Weg der Medienart:
     /// Lese-Schnappschuss, No-op-Erkennung, Papierkorb-Sicherung, atomarer
     /// Austausch. Liefert die Zahl der geänderten Felder.
@@ -277,6 +291,7 @@ struct Parse: ParsableCommand {
                 try snapshot.requireCurrent(at: url)
                 return 0
             }
+            try FixedFields.validate(properties, changedFrom: snapshot.value.properties)
             try snapshot.requireCurrent(at: url)
             try TrashBackup.shared.backUp(url)
             try TagFile.write(properties: properties, to: url, expecting: snapshot.stamp)
@@ -303,6 +318,7 @@ struct Parse: ParsableCommand {
                 try snapshot.value.requireUnchangedSidecar(for: url)
                 return 0
             }
+            let changedFields = try Self.changedFieldCount(fields, original: original)
             try snapshot.requireCurrent(at: url)
             try snapshot.value.requireUnchangedSidecar(for: url)
             // Kamera-RAW, bmp/svg und eine vorhandene Sidecar schreiben in die
@@ -312,7 +328,7 @@ struct Parse: ParsableCommand {
             try ExifTool.writeCoreFields(url: url, fields: fields, original: original,
                                          expecting: snapshot.stamp, to: destination,
                                          sidecar: snapshot.value.sidecar)
-            return parsed.count
+            return changedFields
 
         case .ebook:
             let snapshot = try EbookTool.readSnapshot(url: url, includeCover: false,
@@ -327,7 +343,7 @@ struct Parse: ParsableCommand {
             do {
                 try EbookTool.requireStorableSeries(fields, original: original, url: url)
             } catch TagError.seriesUnsupported {
-                throw ValidationError("This format cannot store a series (PDF).")
+                throw ValidationError("This format cannot store a series.")
             } catch TagError.seriesIndexWithoutSeries {
                 throw ValidationError("A series index needs a series name (%{series}).")
             }
@@ -335,11 +351,12 @@ struct Parse: ParsableCommand {
                 try snapshot.requireCurrent(at: url)
                 return 0
             }
+            let changedFields = try Self.changedFieldCount(fields, original: original)
             try snapshot.requireCurrent(at: url)
             try TrashBackup.shared.backUp(url)
             try EbookTool.write(url: url, fields: fields, original: original,
                                 coverUpdate: .unchanged, expecting: snapshot.stamp)
-            return parsed.count
+            return changedFields
 
         case .document:
             let snapshot = try DocumentTool.readSnapshot(url: url, includeCover: false,
@@ -363,11 +380,12 @@ struct Parse: ParsableCommand {
                 try snapshot.requireCurrent(at: url)
                 return 0
             }
+            let changedFields = try Self.changedFieldCount(fields, original: original)
             try snapshot.requireCurrent(at: url)
             try TrashBackup.shared.backUp(url)
             try DocumentTool.write(url: url, fields: fields, original: original,
                                    expecting: snapshot.stamp)
-            return parsed.count
+            return changedFields
 
         case .sidecar:
             // Nur NFO-Felder haben einen Speicherort; bei Untertiteln steckt
@@ -390,11 +408,12 @@ struct Parse: ParsableCommand {
                 try snapshot.requireCurrent(at: url)
                 return 0
             }
+            let changedFields = try Self.changedFieldCount(fields, original: original)
             try snapshot.requireCurrent(at: url)
             try TrashBackup.shared.backUp(url)
             try KodiNFOFile.write(url: url, fields: fields, original: original,
                                   expecting: snapshot.stamp)
-            return parsed.count
+            return changedFields
 
         case .invoice, .playlist, nil:
             throw ValidationError("Not a taggable media file: \(url.path)")

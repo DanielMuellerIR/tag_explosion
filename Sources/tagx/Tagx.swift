@@ -20,10 +20,9 @@ struct Tagx: AsyncParsableCommand {
     )
 }
 
-/// Version aus der beim Build eingebetteten VERSION-Datei; Fallback "dev".
+/// Bundle-Version oder VERSION-Datei oberhalb des Buildordners; Fallback "dev".
 let tagxVersion: String = {
-    // build.sh reicht die Version via Umgebung/Generierung; im swift-run-Fall
-    // lesen wir die VERSION-Datei relativ zum Repo, sonst "dev".
+    // Ein eigenständig kopiertes CLI ohne Bundle-/VERSION-Angabe heißt "dev".
     if let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String { return v }
     let fm = FileManager.default
     var dir = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()

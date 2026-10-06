@@ -8,6 +8,20 @@ import Testing
 
 @Suite("CoverTools")
 struct CoverToolsTests {
+    @Test("Exportierte GIF-, WebP- und BMP-Ordner-Cover werden wiedergefunden", arguments: ["gif", "webp", "bmp"])
+    func reloadsExportedFormats(_ format: String) throws {
+        let data: Data
+        switch format {
+        case "gif": data = Data("GIF89a".utf8) + Data(repeating: 0, count: 20)
+        case "webp": data = Data("RIFF".utf8) + Data(repeating: 0, count: 4) + Data("WEBP".utf8) + Data(repeating: 0, count: 20)
+        default: data = Data("BM".utf8) + Data(repeating: 0, count: 30)
+        }
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let artwork = Artwork(data: data, pictureType: "Front Cover")
+        _ = try FolderCover.export(artwork, to: directory)
+        #expect(try FolderCover.load(in: directory)?.data == data)
+    }
 
     @Test("Bildanalyse akzeptiert Data-Ausschnitte mit fremdem Startindex", arguments: ["cover.jpg", "cover.png"])
     func analyzeDataSlice(_ name: String) throws {

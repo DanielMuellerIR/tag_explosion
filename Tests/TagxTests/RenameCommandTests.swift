@@ -9,6 +9,24 @@ import TagExplosionCore
 
 @Suite("tagx rename/parse", .serialized)
 struct RenameCommandTests {
+    @Test("write zählt tatsächliche Änderungen und zusammengehörende Aliasfelder einmal", arguments: ["cover.jpg", "book2.epub", "doc.docx"])
+    func actualChangedFieldCount(_ fixture: String) throws {
+        let url = try MediaTestFixtures.workingCopy(fixture)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let title = try readPatternFields(at: url)["TITLE"] ?? ""
+        let alias = fixture == "cover.jpg" ? "CREATOR" : "AUTHOR"
+        let count = try Parse.write(fields: ["TITLE": title, alias: "Neuer Autor", "ARTIST": "Neuer Autor"], to: url)
+        #expect(count == 1)
+    }
+
+    @Test("NFO meldet nur geänderte Zielfelder und zählt Regie-Aliase einmal")
+    func nfoChangedFieldCount() throws {
+        let dir = try makeDirectory("nfo-count")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("movie.nfo")
+        try "<movie><title>Alt</title><director>Regie</director></movie>".write(to: url, atomically: true, encoding: .utf8)
+        #expect(try Parse.write(fields: ["TITLE": "Alt", "DIRECTOR": "Neu", "ARTIST": "Neu"], to: url) == 1)
+    }
 
     /// `tagx apply` plant aus einem Lesestand und schreibt danach über
     /// `Parse.write`. Kennt ein Zweig den Stempel dieser Planung nicht, liest

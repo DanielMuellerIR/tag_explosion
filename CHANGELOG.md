@@ -8,6 +8,36 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.4 — 2026-10-06
+
+- Speichern bestätigt noch fokussierte Eingaben. Ungültige Entwürfe verhindern
+  das Schreiben; gemischte Stapelwerte und spätere Eingaben bleiben erhalten.
+- Reine Tagänderungen lassen Kapitel-Unterframes stehen. SYLT behält seine
+  eigene Sprache, auch bei unbekannter Sprache und neu angelegten ID3-Tags.
+- Archivschema 5 sichert Audio-Kapitel, synchronisierte Lyrics und beide
+  Lyrics-Sprachen. Alte Archive verändern diese nicht gesicherten Felder nicht.
+- Archivimporte berücksichtigen tatsächliche XMP-Schreibziele bei Freigabe,
+  Dublettenprüfung und Schutz vor zwischenzeitlichen Dateiänderungen.
+- XML-Bearbeitung lehnt defekte und externe Deklarationen ab, erhält gewöhnliche
+  interne Entities und umgeht zwei Abstürze in FoundationXML unter Linux.
+  ZIP-Metadaten und Cover werden mit begrenzter Entpackungsgröße gelesen.
+- Office-Beziehungsziele folgen Paket-URIs; EPUB 2 erhält passende Metadaten;
+  XSPF berücksichtigt `xml:base`. Nicht speicherbare AZW3-Serienänderungen
+  werden vor dem Schreiben abgelehnt.
+- Widerrufene Online-Freigaben stoppen weitere Ergebnisübernahme und Coverabrufe.
+  MusicBrainz-Jahresfilter verwenden die richtigen Suchfelder. Online-Cover
+  erhalten andere eingebettete Bilder; Stapelaktionen beachten Formatfähigkeiten.
+- Quick Look verwirft überholte Leseergebnisse und leert die vorige Ansicht.
+  Der Stapel-Editor zeigt vollständig lesbare Aktionsbeschriftungen.
+- NUL in Audiometadaten wird vor dem Schreiben abgelehnt. CLI-Änderungszahlen
+  zählen tatsächliche Zielfelder; exportierte GIF/WebP/BMP-Ordner-Cover werden
+  wieder gefunden.
+- Der portable macOS-14-Build verwendet TagLib 2.3.2 mit MP4-Kapiteln und
+  Matroska-Unterstützung. DMG-Aufräumen betrifft nur das eigene Volume;
+  Cachepfade mit Sonderzeichen und GUI-Test-Prozessbesitz sind abgesichert.
+- Dokumentation, Lizenzangaben und gezielte Regressionstests aktualisiert.
+  Prüfbericht: [Code-Review 2026-10-06](docs/CODE-REVIEW-2026-10-06.md).
+
 ## 0.47.3 — 2026-10-06
 
 - Mehrzeilige Calibre-Klappentexte behalten unformatierte Zeilen mit Doppelpunkt

@@ -250,6 +250,8 @@ final class FileEntry: Identifiable {
         nfoFields = other.nfoFields
         subtitleFields = other.subtitleFields
         playlistFields = other.playlistFields
+        fixedFieldDrafts = other.fixedFieldDrafts
+        lyricsLanguageDraft = other.lyricsLanguageDraft
         lastError = other.lastError
     }
 
@@ -286,10 +288,48 @@ final class FileEntry: Identifiable {
     /// `AppModel.stripLayer` und liest die Datei danach neu.
     var layers: [TagLayer] { kind == .audio ? original.layers : [] }
 
+    var fixedFieldDrafts: [String: String] = [:]
+    var lyricsLanguageDraft: String?
+
+    func commitFixedFieldDraft(_ key: String) throws {
+        guard let raw = fixedFieldDrafts[key] else { return }
+        let value = try normalizedDraft(raw, key: key)
+        setSingleValue(key, value)
+        fixedFieldDrafts.removeValue(forKey: key)
+    }
+
+    private func normalizedDraft(_ raw: String, key: String) throws -> String {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? "" : try FixedFields.normalized(key: key, value: value)
+    }
+
+    func commitLyricsLanguageDraft() throws {
+        guard let raw = lyricsLanguageDraft else { return }
+        let value = FixedFields.normalizedLanguage(raw)
+        guard FixedFields.isValidLanguage(value) else {
+            throw TagError.invalidFieldValue(field: "LYRICS language", reason: "expected three letters (ISO 639-2)")
+        }
+        lyricsLanguage = value
+        lyricsLanguageDraft = nil
+    }
+
+    private func commitFieldDrafts() throws {
+        var values: [String: String] = [:]
+        for (key, raw) in fixedFieldDrafts { values[key] = try normalizedDraft(raw, key: key) }
+        // Alle Felder prüfen, bevor irgendein Bearbeitungspuffer verändert wird.
+        if let raw = lyricsLanguageDraft, !FixedFields.isValidLanguage(FixedFields.normalizedLanguage(raw)) {
+            throw TagError.invalidFieldValue(field: "LYRICS language", reason: "expected three letters (ISO 639-2)")
+        }
+        for (key, value) in values { setSingleValue(key, value) }
+        fixedFieldDrafts.removeAll()
+        try commitLyricsLanguageDraft()
+    }
+
     var isDirty: Bool {
         switch kind {
         case .audio:
-            return properties != original.properties || artworks != original.artworks
+            return !fixedFieldDrafts.isEmpty || lyricsLanguageDraft != nil
+                || properties != original.properties || artworks != original.artworks
                 || chapters != original.chapters || syncedLyrics != original.syncedLyrics
                 || lyricsLanguage != original.lyricsLanguage
                 || videoNFOFields != videoNFOOriginal
@@ -311,6 +351,8 @@ final class FileEntry: Identifiable {
 
     /// Verwirft alle ungespeicherten Änderungen.
     func revert() {
+        fixedFieldDrafts.removeAll()
+        lyricsLanguageDraft = nil
         properties = original.properties
         artworks = original.artworks
         chapters = original.chapters
@@ -329,6 +371,8 @@ final class FileEntry: Identifiable {
 
     /// Nach erfolgreichem Speichern/Neuladen den Originalzustand ersetzen.
     func acceptNewOriginal(_ data: TagData, sidecars: AudioSidecars = AudioSidecars()) {
+        fixedFieldDrafts.removeAll()
+        lyricsLanguageDraft = nil
         original = data
         properties = data.properties
         artworks = data.artworks
@@ -437,13 +481,18 @@ final class FileEntry: Identifiable {
     /// `allowingUnchanged` erfasst auch saubere Puffer vor direkten Dateiaktionen.
     /// nil bedeutet: kein Auftrag oder bereits laufendes Speichern.
     func beginSaving(allowingUnchanged: Bool = false) -> SaveSnapshot? {
-        guard isDirty || allowingUnchanged, !isSaving else { return nil }
+        guard !isSaving else { return nil }
+        do { try commitFieldDrafts() } catch {
+            lastError = error.localizedDescription
+            return nil
+        }
+        guard isDirty || allowingUnchanged else { lastError = nil; return nil }
         isSaving = true
         switch kind {
         case .audio:
             return .audio(AudioSnapshot(
                 properties: properties, artworks: artworks,
-                chapters: supportsChapters ? chapters : nil,
+                chapters: supportsChapters && chapters != original.chapters ? chapters : nil,
                 syncedLyrics: syncedLyrics != original.syncedLyrics ? syncedLyrics : nil,
                 lyricsLanguage: lyricsLanguage != original.lyricsLanguage ? lyricsLanguage : nil,
                 original: original,
@@ -674,4 +723,3 @@ final class FileEntry: Identifiable {
         }
     }
 }
-

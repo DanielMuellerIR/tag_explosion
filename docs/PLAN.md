@@ -1,6 +1,7 @@
 # Tag Explosion — Architekturplan
 
-Stand: 2026-07-25. Dieses Dokument beschreibt den Plan; Abweichungen werden hier nachgezogen.
+Stand: 2026-10-06. Dieses Dokument beschreibt die aktuelle Architektur und
+abgeschlossene Meilensteine; offene Erweiterungen stehen in der Roadmap.
 
 ## Ziel
 
@@ -14,24 +15,26 @@ Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten:
 
 ## Architektur
 
-Drei Schichten, ein Swift-Package-Monorepo:
+Ein Monorepo mit zwei Swift-Packages: Core/CLI im Wurzelverzeichnis und die
+macOS-App samt Finder-Vorschau unter `App/`.
 
-```
-┌─────────────────────────────────────────────┐
-│ TagExplosion.app   (SwiftUI, nur macOS)     │
-├─────────────────────────────────────────────┤
-│ tagx               (CLI, portabel)          │  ← headless Testbarkeit, Batch-Skripting
-├─────────────────────────────────────────────┤
-│ TagExplosionCore   (Swift-Library, portabel)│  ← Datenmodell, Lesen/Schreiben, Fassade
-├─────────────────────────────────────────────┤
-│ CTagShim           (C++→C-Shim über TagLib) │  ← einziger TagLib-Berührungspunkt
-└─────────────────────────────────────────────┘
+```text
+SwiftUI-App ────────┐
+Finder-Vorschau ────┼──→ TagExplosionCore ──→ CTagShim ──→ TagLib
+CLI tagx ───────────┘          │
+                              └────────────→ EInvoiceCore
 ```
 
-### Warum TagLib (2.3, Homebrew/apt) + eigener Shim?
+`EInvoiceCore` ist der eigenständige Rechnungsleser ohne TagLib- oder
+ZIP-Abhängigkeit. Die App verwendet ihn zusätzlich direkt für die Anzeige.
+Core und CLI bleiben Linux-portabel; App und Finder-Vorschau sind macOS-only.
 
+### Warum TagLib + eigener Shim?
+
+- Der portable macOS-Release bündelt TagLib 2.3.2 für macOS 14;
+  Entwicklungsbuilds verwenden die installierte Systembibliothek.
 - TagLib ist die Referenz fürs *Schreiben* von Audio-Tags (kid3 nutzt es selbst),
-  battle-tested, C++, läuft auf macOS und Linux. Lizenz LGPL-2.1 **oder MPL-1.1**
+  C++, läuft auf macOS und Linux. Lizenz LGPL-2.1-only **oder MPL-1.1**
   → als dynamisch gelinkte Systembibliothek problemlos mit MIT kompatibel.
 - Die mitgelieferte C-API (`tag_c.h`) ist zu schmal (keine Kapitel, kein Frame-Zugriff).
   Deshalb eigener **MIT-lizenzierter C++-Shim** mit schlanker C-Schnittstelle,
@@ -39,7 +42,8 @@ Drei Schichten, ein Swift-Package-Monorepo:
   - PropertyMap (alle Textfelder, beliebige Schlüssel) lesen/schreiben
   - Komplexe Properties (PICTURE = Cover, mehrere pro Datei) lesen/schreiben
   - AudioProperties (Dauer, Bitrate, Samplerate, Kanäle, Encoding-Details)
-  - später: ID3v2-Frame-Details, MP4-Spezialatome (Kapitel sind erledigt, s. u.)
+  - Kapitel, Tag-Schichten, USLT-/SYLT-Liedtexte und Podcast-Spezialfelder
+  - offen: allgemeine Ansicht roher ID3v2-Frames
 - Kein Swift-C++-Interop direkt gegen TagLib: zu fragil über TagLib-Versionen,
   C-Grenze ist stabil und Linux-tauglich.
 
@@ -50,21 +54,27 @@ Drei Schichten, ein Swift-Package-Monorepo:
   Kein Linken gegen libmediainfo nötig → einfach, robust, lizenzsauber.
 - TagLib bleibt die Quelle der Wahrheit fürs *Editieren*; MediaInfo ist read-only-Panel.
 
-### Bilder (Phase 3): exiftool
+### Bilder: exiftool
 
 - exiftool (Perl, Artistic License, CLI) ist der De-facto-Standard für EXIF/IPTC/XMP
-  lesen **und schreiben**. Wrapper analog MediaInfo (`exiftool -j`, `-stay_open` für Batch-Performance).
-- Anzeige-Vorschau über native ImageIO im App-Layer (nicht im portablen Core).
+  lesen **und schreiben**. Der Wrapper startet je Operation einen Prozess
+  (`exiftool -j` zum Lesen); eine `-stay_open`-Sitzung ist nicht implementiert.
+- Anzeige-Vorschau über AppKit im App-Layer. Optionale Cover-Konvertierung
+  nutzt ImageIO im Core ausschließlich auf Apple-Plattformen.
 
-### Video (Phase 4)
+### Video
 
-- Anzeige über MediaInfo (kommt gratis mit). Bearbeitung: TagLib 2.3 kann MP4 und
-  inzwischen Matroska-Tags; ffmpeg als Fallback für Remux-Fälle. Genauer Umfang offen.
+- Anzeige über MediaInfo. MP4/3GP und Matroska/WebM werden über TagLib bearbeitet;
+  andere Videocontainer bleiben rein lesend. Ein ffmpeg-Remux-Fallback ist nicht
+  implementiert. Kodi-NFO-Sidecars haben einen eigenen nativen Schreibweg.
 
 ## Datenmodell (Core)
 
-- `MediaFile`: URL, Formatinfo, `[TagField]`, `[Artwork]`, `AudioInfo`, Dirty-State.
-- `TagField`: Schlüssel (normalisiert, z.B. `ARTIST`) + Werte (mehrwertig) + Herkunft.
+- `TagData`: `[TagProperty]`, `[Artwork]`, `AudioInfo`, Kapitel, Tag-Schichten
+  und Liedtexte samt Formatfähigkeiten. URL, Editierpuffer und Dirty-State
+  hält `FileEntry` in der App; `FileSnapshot` verbindet Daten und Plattenstempel.
+- `TagProperty`: Schlüssel (normalisiert, z.B. `ARTIST`) + einzelner Wert;
+  mehrere Einträge mit demselben Schlüssel bilden ein mehrwertiges Feld.
   Bekannte Schlüssel bekommen Anzeige-Metadaten (deutscher Label, Reihenfolge, Editor-Typ),
   unbekannte werden generisch angezeigt (nichts verstecken!).
 - `Artwork`: Daten, MIME (kann fehlen → aus Magic Bytes ableiten), Bildtyp (Front/Back/…), Beschreibung.
@@ -93,9 +103,9 @@ tag_explosion/
 │   ├── CTagShim/          # C++-Shim (include/ + shim.cpp), linkt libtag
 │   ├── TagExplosionCore/  # portables Swift
 │   └── tagx/              # CLI (swift-argument-parser)
-├── App/                   # SwiftUI-App (Xcode-Projekt oder xcodegen — nach Recherche)
+├── App/                   # eigenes Swift-Package: SwiftUI-App + Quick-Look-Erweiterung
 ├── Tests/                 # XCTest; Fixtures werden per ffmpeg-Skript generiert
-│   └── Fixtures/generate_fixtures.sh
+│   └── TagExplosionCoreTests/Fixtures/generate_fixtures.sh
 ├── docs/PLAN.md           # dieses Dokument
 ├── VERSION                # semver, Quelle der Wahrheit
 ├── AGENTS.md · README.md · LICENSE (MIT)
@@ -178,6 +188,8 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 - Schema (`TagArchive` im Core): je Datei relativer Pfad + Medienart; Audio/
   Video mit vollständiger PropertyMap (mehrwertig als Arrays) + Covern
   (Base64), Bilder mit ImageCoreFields, E-Books mit EbookCoreFields + Cover.
+  Seit Schema 5 (0.47.4) zusätzlich Audio-Kapitel und eingebettete Lyrics mit
+  getrennten USLT-/SYLT-Sprachen; fehlende Felder älterer Archive bleiben unangetastet.
 - Auto-Backup: vor Batch-Speichern (>1 Datei; Einstellung ⌘,, Default an)
   `tags-backup-<Zeitstempel>.json` je betroffenem Ordner; Wiederherstellen =
   derselbe Import-Weg. Import matcht ausschließlich über den relativen Pfad
@@ -271,7 +283,7 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Backlog / Notizen
 
-- Offene Erweiterungen (neue Formate, Umbenennen, Kapitel, Werkzeuge) stehen
+- Offene Erweiterungen und der Status der erledigten Arbeitspakete stehen
   als Arbeitspakete mit Status in [ROADMAP.md](ROADMAP.md).
 
 - **Linux: abgesicherter Modus** — bis 0.38.0 warf `TrashBackup.backUp`

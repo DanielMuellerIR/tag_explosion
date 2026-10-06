@@ -39,7 +39,10 @@ to-folder`) oder `App/Sources/TagExplosionApp/CoverToolsMenu.swift`.
   keine CRCs, ImageIO würde einen falschen CRC beim Dekodieren aber
   tolerieren oder ablehnen, je nach Chunk.
 - **Ordner-Cover ist case-insensitiv, die Priorität fest:** `folder.*` vor
-  `cover.*` vor `front.*`, jeweils jpg/jpeg vor png. `FolderCover.find`
+  `cover.*` vor `front.*`, jeweils jpg/jpeg vor png. Seit 0.47.4 folgen
+  danach dieselben Namen mit gif/webp/bmp, damit ein exportiertes Ordner-Cover
+  wieder gefunden wird; vorhandene JPEG-/PNG-Prioritäten bleiben erhalten.
+  `FolderCover.find`
   listet das Verzeichnis und vergleicht kleingeschrieben; auf Dateisystemen
   mit Groß-/Kleinschreibung können `Folder.jpg` und `folder.jpg` nebeneinander
   liegen — dann gewinnt die alphabetisch erste, damit CLI und App dasselbe

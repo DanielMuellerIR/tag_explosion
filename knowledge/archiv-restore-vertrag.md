@@ -53,7 +53,7 @@ oder wenn ein Export/Auto-Backup unerwartet scheitert.
   genau das Tag, das Adobe Bridge und Lightroom für „abgelehnt" schreiben — und
   der Read-back konnte den Fehler nicht sehen, weil er das gelöschte Tag wieder
   als −1 las (Review-Fund 2026-08-20).
-- Das Archivschema steht deshalb auf **2**. Schema 1 kannte nur `Int` und
+- Diese Unterscheidung wurde mit Archivschema **2** eingeführt. Schema 1 kannte nur `Int` und
   schrieb −1 für beides; `TagArchiveIO.normalizingLegacyValues` rechnet solche
   Archive beim Import auf nil um. Ohne diese Umrechnung schriebe ein alter
   Bestand plötzlich ein −1-Tag in Dateien, die vorher keines hatten. Beide
@@ -89,3 +89,19 @@ Die Zahlen sind kein fester Grenzwert für andere Rechner oder Dateisysteme.
 NFO-Nutzdaten gehören ausschließlich zu `kind: sidecar`. Die Schemaprüfung
 lehnt sie auch dann ab, wenn ein anderer Medientyp seine eigenen Pflichtfelder
 korrekt mitliefert; sonst würde der Import diesen Teil still ignorieren.
+
+## Kapitel, Lyrics und abgeleitete Schreibziele (2026-10-06, 0.47.4)
+
+Schema 5 sichert bei unterstützten Audioformaten Kapitel, SYLT-Zeilen und
+getrennte USLT-/SYLT-Sprachen. Fehlende Felder in Schema 1–4 bleiben unarchiviert;
+leere Arrays und leere Sprachen in Schema 5 sind bekannte leere Sollzustände.
+Mehrere fremde Lyrics-Frames, unbekannte ID3-Frames, Tag-Schichten und externe
+LRC-/Video-NFO-Dateien werden dadurch nicht zu einem vollständigen Dateiabzug.
+Dafür dienen die unveränderten Papierkorbkopien.
+
+Die Zielliste eines Bildimports enthält auch das kanonische XMP-Schreibziel.
+Externe Sidecars brauchen dieselbe Freigabe wie externe Originaldateien. Quelle,
+Schreibziel, Identität und Sidecar-Auswahl werden vor dem Lesen und Austausch
+erneut geprüft; zwei Archiveinträge dürfen kein Schreibziel gemeinsam benutzen.
+NUL in Tag-Texten ist technisch nicht darstellbar und wird auch für archivierte
+Bestandswerte vor jeder Mutation abgelehnt.

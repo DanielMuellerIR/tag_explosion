@@ -36,7 +36,7 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   Infra-Doku); der öffentliche GitHub-Remote wird nur auf ausdrücklichen
   Auftrag bedient.
 - **Keine echten Mediendateien committen** (Urheberrecht) — Test-Fixtures werden
-  per `Tests/Fixtures/generate_fixtures.sh` (ffmpeg) erzeugt.
+  per `Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh` (ffmpeg) erzeugt.
 - Lizenz-Regel: Abhängigkeiten müssen MIT-kompatibel bleiben (TagLib nur dynamisch
   als Systembibliothek linken; mediainfo/exiftool nur als CLI aufrufen).
 
@@ -51,8 +51,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 
 ## Fallen / Agent-Hinweise
 
-- mediainfo-JSON ist nicht immer sauberes UTF-8 (Latin1-Reste in ID3) — Encoding-
-  Fallback nötig (UTF-8 → MacRoman → Latin1 probieren).
+- mediainfo-JSON kann UTF-8 mit fremden ID3-Bytes mischen. `ExternalToolText`
+  erhält gültige UTF-8-Sequenzen und bewertet je Textfeld MacRoman bzw.
+  Windows-1252; JSON-Surrogate-Reste werden zusätzlich repariert.
 - Cover können ohne MIME-Type vorliegen → aus Magic Bytes ableiten.
 - **Dateisicherheit hat Vorrang.** Jeder Schreibweg läuft über
   `AtomicFileRewrite` (Kopie → prüfen → atomar ersetzen) und ruft vorher

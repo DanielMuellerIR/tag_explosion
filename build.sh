@@ -427,11 +427,24 @@ echo "== DMG bauen =="
 dmg="$here/TagExplosion-$version.dmg"
 rm -f "$dmg"
 vol_name="Tag Explosion"
-mount_dir="/Volumes/$vol_name"
+mount_name="$vol_name-$(uuidgen)"
+mount_dir="/Volumes/$mount_name"
+mounted=0
 staging="$(mktemp -d)"
 rw_dmg="$staging/rw.dmg"
 # Aufräumen auch bei Fehlern: evtl. gemountetes Volume aushängen, Staging löschen.
-trap 'hdiutil detach "$mount_dir" -quiet 2>/dev/null || true; rm -rf "$staging"' EXIT
+cleanup_dmg() {
+    if [ "$mounted" = "1" ]; then
+        if ! hdiutil detach "$mount_dir" -quiet 2>/dev/null; then
+            echo "FEHLER: Eigenes DMG noch eingehängt: $mount_dir; Arbeitsdaten bleiben in $staging" >&2
+            return
+        fi
+        mounted=0
+    fi
+    rm -rf "$staging"
+}
+trap cleanup_dmg EXIT
+trap 'exit 1' HUP INT TERM
 
 # a) Hintergrundbild: Der Finder zeigt auf Retina-Displays nur dann ein scharfes
 #    Bild, wenn das TIFF beide Auflösungen enthält (1x = 600×420 Punkte bei
@@ -446,12 +459,10 @@ tiffutil -cathidpicheck "$staging/DmgBg_1x.png" "$staging/DmgBg_2x.png" \
 
 # b) RW-Image erzeugen und mounten. Größe großzügig (App + 30 MB) — die
 #    UDZO-Konvertierung schrumpft ohnehin auf die echte Größe. Hängt von einem
-#    abgebrochenen Lauf noch ein gleichnamiges Volume, erst aushängen.
+#    abgebrochenen Lauf ein anderes Volume, bleibt es unangetastet.
 size_mb=$(( $(du -sm "$app" | cut -f1) + 30 ))
-if [ -d "$mount_dir" ]; then
-    hdiutil detach "$mount_dir" -quiet 2>/dev/null || true
-fi
 hdiutil create -size "${size_mb}m" -fs HFS+ -volname "$vol_name" -ov -quiet "$rw_dmg"
+mounted=1
 hdiutil attach -readwrite -noverify -noautoopen -quiet \
     -mountpoint "$mount_dir" "$rw_dmg"
 
@@ -474,13 +485,13 @@ if [ "$finder_layout" = "1" ]; then
     # (belegt 2026-09-10 mit einem Wegwerf-Image). Deshalb warten, bis der
     # Finder es kennt, statt sich auf glückliches Timing zu verlassen.
     for _ in $(seq 1 20); do
-        osascript -e "tell application \"Finder\" to get name of disk \"$vol_name\"" \
+        osascript -e "tell application \"Finder\" to get name of (POSIX file \"$mount_dir\" as alias)" \
             >/dev/null 2>&1 && break
         sleep 0.5
     done
     osascript <<EOF
 tell application "Finder"
-    tell disk "$vol_name"
+    tell (POSIX file "$mount_dir" as alias)
         open
         set current view of container window to icon view
         set toolbar visible of container window to false
@@ -523,6 +534,7 @@ fi
 sync
 sleep 2
 hdiutil detach "$mount_dir" -quiet || hdiutil detach -force "$mount_dir"
+mounted=0
 hdiutil convert "$rw_dmg" -format UDZO -imagekey zlib-level=9 -quiet -o "$dmg"
 
 # f) Auch das DMG selbst signieren (sonst meckert Quarantine beim Öffnen),

@@ -93,7 +93,7 @@ enum EpubFile {
         guard let coverHref = coverHref(in: document) else { return nil }
         let coverPath = resolve(href: coverHref, relativeTo: opfPath)
         guard let entry = archive[coverPath] else { return nil }
-        let data = try ZipContainer.data(of: entry, in: archive)
+        let data = try ZipContainer.data(of: entry, in: archive, maximumSize: ZipContainer.artworkSizeLimit)
         let mime = Artwork.sniffMimeType(from: data) ?? ""
         return Artwork(data: data, mimeType: mime, pictureType: "Front Cover")
     }
@@ -138,7 +138,7 @@ enum EpubFile {
             writeIsbn(fields.isbn, in: metadata, package: root)
         }
         if fields.series != original.series || fields.seriesIndex != original.seriesIndex {
-            writeSeries(fields, in: metadata)
+            writeSeries(fields, in: metadata, isEPUB3: (attribute(root, "version") ?? "2").hasPrefix("3"))
         }
     }
 
@@ -171,7 +171,7 @@ enum EpubFile {
         }
 
         // Kein Cover deklariert: Datei neben die OPF legen und in Manifest +
-        // beiden Cover-Konventionen (EPUB 2 meta + EPUB 3 property) eintragen.
+        // den zur Paketversion passenden Cover-Konventionen eintragen.
         guard let root = document.rootElement(),
               let metadata = firstElement(named: "metadata", in: root),
               let manifest = firstElement(named: "manifest", in: root) else {
@@ -207,7 +207,9 @@ enum EpubFile {
         setAttribute(item, "id", id)
         setAttribute(item, "href", href)
         setAttribute(item, "media-type", mime)
-        setAttribute(item, "properties", "cover-image")
+        if (attribute(root, "version") ?? "2").hasPrefix("3") {
+            setAttribute(item, "properties", "cover-image")
+        }
         manifest.addChild(item)
 
         let meta = opfElement("meta", in: metadata)
@@ -500,7 +502,7 @@ enum EpubFile {
         metadata.addChild(replacement)
     }
 
-    private static func writeSeries(_ fields: EbookCoreFields, in metadata: XMLElement) {
+    private static func writeSeries(_ fields: EbookCoreFields, in metadata: XMLElement, isEPUB3: Bool) {
         // Nur die bisherigen SERIEN-Angaben entfernen (beide Konventionen).
         // Andere Sammlungen des Buchs (z.B. collection-type="set") sind
         // eigenständige Metadaten und bleiben samt Verfeinerungen erhalten.
@@ -531,37 +533,39 @@ enum EpubFile {
             return
         }
 
-        // … und in beiden Formen neu schreiben (EPUB 3 + Calibre-kompatibel).
+        // EPUB 2 erlaubt hier nur name/content; property/refines sind EPUB 3.
         // Die id muss im GESAMTEN OPF-Dokument eindeutig sein, nicht nur unter
         // den <meta>-Elementen: Auch dc:creator, dc:identifier oder ein
         // Manifest-Eintrag kann "series-tagx" schon tragen. Eine doppelte
         // XML-ID machte die neuen refines-Verweise mehrdeutig.
-        let scope: XMLNode = metadata.rootDocument ?? metadata
-        let usedIds = allIds(in: scope)
-        var seriesId = "series-tagx"
-        var suffix = 2
-        while usedIds.contains(seriesId) {
-            seriesId = "series-tagx-\(suffix)"
-            suffix += 1
-        }
-        let collection = opfElement("meta", in: metadata)
-        setAttribute(collection, "property", "belongs-to-collection")
-        setAttribute(collection, "id", seriesId)
-        collection.stringValue = fields.series
-        metadata.addChild(collection)
-        // Der explizite Sammlungstyp macht die eigene Serie beim Wiederlesen
-        // (auch durch andere Programme) eindeutig als Serie erkennbar.
-        let collectionType = opfElement("meta", in: metadata)
-        setAttribute(collectionType, "refines", "#\(seriesId)")
-        setAttribute(collectionType, "property", "collection-type")
-        collectionType.stringValue = "series"
-        metadata.addChild(collectionType)
-        if !fields.seriesIndex.isEmpty {
-            let position = opfElement("meta", in: metadata)
-            setAttribute(position, "refines", "#\(seriesId)")
-            setAttribute(position, "property", "group-position")
-            position.stringValue = fields.seriesIndex
-            metadata.addChild(position)
+        if isEPUB3 {
+            let scope: XMLNode = metadata.rootDocument ?? metadata
+            let usedIds = allIds(in: scope)
+            var seriesId = "series-tagx"
+            var suffix = 2
+            while usedIds.contains(seriesId) {
+                seriesId = "series-tagx-\(suffix)"
+                suffix += 1
+            }
+            let collection = opfElement("meta", in: metadata)
+            setAttribute(collection, "property", "belongs-to-collection")
+            setAttribute(collection, "id", seriesId)
+            collection.stringValue = fields.series
+            metadata.addChild(collection)
+            // Der explizite Sammlungstyp macht die eigene Serie beim Wiederlesen
+            // (auch durch andere Programme) eindeutig als Serie erkennbar.
+            let collectionType = opfElement("meta", in: metadata)
+            setAttribute(collectionType, "refines", "#\(seriesId)")
+            setAttribute(collectionType, "property", "collection-type")
+            collectionType.stringValue = "series"
+            metadata.addChild(collectionType)
+            if !fields.seriesIndex.isEmpty {
+                let position = opfElement("meta", in: metadata)
+                setAttribute(position, "refines", "#\(seriesId)")
+                setAttribute(position, "property", "group-position")
+                position.stringValue = fields.seriesIndex
+                metadata.addChild(position)
+            }
         }
         let calibreSeries = opfElement("meta", in: metadata)
         setAttribute(calibreSeries, "name", "calibre:series")

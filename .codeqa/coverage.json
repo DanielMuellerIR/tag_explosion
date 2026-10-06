@@ -1649,6 +1649,1385 @@
           "sha256": "99a037e2a300ebc992ef03ec7dde2dc95762815b52d2edc2053e3430d93848d6"
         }
       ]
+    },
+    {
+      "id": "2026-10-06-intensive-review",
+      "started_at": "2026-10-06T19:28:06+02:00",
+      "deadline_at": "2026-10-06T22:28:06+02:00",
+      "budget_seconds": 10800,
+      "status": "complete",
+      "base_head": "ee3b4f0e3b07ddf5fa18c038fa2bd050f3f0004e",
+      "base_version": "0.47.3",
+      "report": "docs/CODE-REVIEW-2026-10-06.md",
+      "coverage": [
+        {
+          "path": ".github/workflows/publish-appcast.yml",
+          "sha256": "2f3365e739ca2f3ea4958af33ed773ab0699873cf407d38fd02fa0bfd99ce0c9",
+          "lines": 94
+        },
+        {
+          "path": ".github/workflows/tests.yml",
+          "sha256": "e278a7198e963794a0b1941fd85cfc07cb0bbc76a5cc678cc94d38f4a0154068",
+          "lines": 75
+        },
+        {
+          "path": "App/Package.swift",
+          "sha256": "3ab631a918fa54a1f15a4eddabf2a58897512ed8a30a717ea487f273171427c4",
+          "lines": 52
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/AppFileIO.swift",
+          "sha256": "e39a18008cfc64ddaf2424963c1d9440ff8c7ebfd61351b19dc91237bfea568f",
+          "lines": 251
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/AppModel+Loading.swift",
+          "sha256": "a08fc70a01716d1b3e7203af71b036c92f734a7aed388c448f4ac7e2841bc1b5",
+          "lines": 132
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/AppModel+VersionHistory.swift",
+          "sha256": "fb7764475fead169795277072a09a2368c0458478e8318d559db90b2d5c5e1d7",
+          "lines": 138
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/AppModel.swift",
+          "sha256": "848c067414dd416f96b226f154be8598897cba8b8f7ad4512cba910c88a9e821",
+          "lines": 1079
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/ArchiveButtons.swift",
+          "sha256": "9376a816acdbf656702518d4f6bd03cd472869a0fde1c9200172c7d02f7017d9",
+          "lines": 69
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/BatchEditorView.swift",
+          "sha256": "59b918d609183d443e92141f8da49b954f13c0fa18daa55e4496c2a707176d5f",
+          "lines": 327
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/BatchSaveResults.swift",
+          "sha256": "3ae3d439372de6d6439e759f6d89248cadbd94f4220f395f6a8cc4fef3e810d3",
+          "lines": 58
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/BrewToolInstallOffer.swift",
+          "sha256": "991aab6489c8004ee94627002ccc0daadb23a90343a929a9855e8fd3de3cb0d1",
+          "lines": 228
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/ChapterSection.swift",
+          "sha256": "666de78cb89425f72cbf995c40a57c3285e5831b678b944e84c82e9e85a5c849",
+          "lines": 178
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/ContentView.swift",
+          "sha256": "dccc013f53b7ef50d9a6b58145b0a92340eeb4883cc0f6f096891a4a36125a21",
+          "lines": 486
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/CoverToolsMenu.swift",
+          "sha256": "cf19faa3059b56ba609c732c791319571feb14a3494ad4b1175bfaee20b3c039",
+          "lines": 239
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/CoverWell.swift",
+          "sha256": "030de3162b5dbe546e6fc03e4791f2b7c2e7d97b623ae6202f3b4240bb06818a",
+          "lines": 204
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/DocumentBatchEditorView.swift",
+          "sha256": "5c00bef21878c11e26a649b4f2877254ef2397f4d3f849e4c38e94c6a66a8ff3",
+          "lines": 143
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/DocumentEditorView.swift",
+          "sha256": "c520bedbd77ef4d68d1b83479d56d2e5db3af0fbb275681e7e0265e2c8145716",
+          "lines": 275
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/EbookBatchEditorView.swift",
+          "sha256": "283b21a9031e701ecc71b86000490992166663dce6b8cea5fa021e01b0778d44",
+          "lines": 132
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/EbookEditorView.swift",
+          "sha256": "840851ef5bfafb892e7c648e701864a6ce1e3352f48014330d6bb280bd21fc2b",
+          "lines": 259
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/EditorView.swift",
+          "sha256": "1752f15d2b01d40aba597e935e84500a65797315722cad871de190edd9d12dae",
+          "lines": 284
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FileEntry.swift",
+          "sha256": "cba481bef18a5247fedd80d3f3cafd64f947a389a57f3a42191da72b3023e27c",
+          "lines": 725
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FileList.swift",
+          "sha256": "6e039e482e5e83638c3a01bf8199ee744748be217e5b1348b154fabcf405ccf6",
+          "lines": 130
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FilenameActions.swift",
+          "sha256": "f1acc0255d3e2109cdc21a8966c574ba10da87d64cdb016ee455394d869bddf5",
+          "lines": 240
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FilenamePatternSheets.swift",
+          "sha256": "982d6f3b5edd23bf09f71e9497d0bdec1cab76616802e5126d70eed5b86d82f2",
+          "lines": 298
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FinderService.swift",
+          "sha256": "c4d6c7dbb4f90467001b57f6368ae4faff5bef93b6652ae81da049af8cc0b217",
+          "lines": 17
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/FixedFieldSections.swift",
+          "sha256": "0c87baf9381b4add55b72ddba7b4b87a3aff43282ce8d8e0e7ad2daceb35c748",
+          "lines": 348
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/ImageBatchEditorView.swift",
+          "sha256": "25f9711055ee302cea5d857af201a15d615e5d1e8d89c5432fe801fc1466c2ef",
+          "lines": 251
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/ImageEditorView.swift",
+          "sha256": "a27186d7607a6108935c00808361831e24bdbb9dabd6916ac0e6e1b317cf94b2",
+          "lines": 424
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/InvoiceView.swift",
+          "sha256": "5dafe9282d8efe7b6d590b836d84acdf4ce6570418f8defe5578fb77a26e80d2",
+          "lines": 378
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/LibraryCheckSheet.swift",
+          "sha256": "f604d3f43ccd5eda0159d8d6d6ff6a26b8db727ee4d750d386006acaaac6847c",
+          "lines": 272
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/LibraryCheckState.swift",
+          "sha256": "0d6e6908503eb5e121374d440b7dfbb6c3f54b390d4d36a9f403a10d0a0dcc57",
+          "lines": 56
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/LoadedData.swift",
+          "sha256": "ecabdb28f326418f89c5a111e64a3b9097c5d5a47382d7b64a76139579e1ea8f",
+          "lines": 54
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/MediaInfoTab.swift",
+          "sha256": "e880cf6ff7652acb715e314ea55117db5fcf90fccf65e792289180e1d57c3c43",
+          "lines": 106
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/NFOSidecarSection.swift",
+          "sha256": "cc65551b531b12009ec2805d8413a16ce828729e4f73f9538204301f2073c3e4",
+          "lines": 72
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/OnlineLookupDetails.swift",
+          "sha256": "633e97270a99fde968aab37832c98ef2ca0699fa7916271d2baa8ce68f3295d2",
+          "lines": 53
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/OnlineLookupSettings.swift",
+          "sha256": "89ed31600baaf5d2ca12ee1d452b1b291d501d5b134fdf8af39121b01ab1674f",
+          "lines": 187
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/OnlineLookupSheet.swift",
+          "sha256": "73c25344f2a2290918b6029f346a988b9a19125ae40671a6be884c9493545e61",
+          "lines": 479
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/PlaylistEditorView.swift",
+          "sha256": "19bf040ba4420b288a0d7ca82c3afe68a708378ec21e329599fa1232a1f007b5",
+          "lines": 290
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/PlaylistExportMenu.swift",
+          "sha256": "cc7adc49b932b193b4a1779c3a82eb03e774a37780a28ab8b293b94851bbb612",
+          "lines": 104
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/RatingPicker.swift",
+          "sha256": "a3cb1738bb655f8ef497b760a281fb057e3ed7637907a949d78fae6d04a309cf",
+          "lines": 109
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/SharedFormControls.swift",
+          "sha256": "4ee5bb7d25626a0f2694304d12f3382021f83bf70f437e7af1e66d2715557680",
+          "lines": 77
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/SidecarEditorView.swift",
+          "sha256": "e0c908e4639150040c083d4f011e6523ee39c44f5c994674d483e51f26e91243",
+          "lines": 328
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/TagExplosionApp.swift",
+          "sha256": "b76b649b6a71a495d143b7d9cbff2201ab18b0bb84ef832eaa5c079766f9aee8",
+          "lines": 298
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/TagLayerSection.swift",
+          "sha256": "9ef37569e7ba626d1e86c37d48ba5b46d8169aa573e5c2d29f29edc8ee3df371",
+          "lines": 80
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/TagRulesActions.swift",
+          "sha256": "4d60d757a4fdb03c9a4b65ab1326c5aca4c77e3d95b2eba28408f802b84ea524",
+          "lines": 109
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/TagRulesSheet.swift",
+          "sha256": "c615e504841e71b727ae40a28434d0ecbd5f3d1f372bf7090d4f524934e2e861",
+          "lines": 574
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/VersionHistoryView.swift",
+          "sha256": "2f67b401abf7ade512f99a56e06bce63b4b937ccbfe96072018be45ab01a4e72",
+          "lines": 198
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/WindowBridge.swift",
+          "sha256": "d88fa092cbd8f3e5c99e67104220e636f50dc34996c45289c66d7b179afb875c",
+          "lines": 179
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/WindowChrome.swift",
+          "sha256": "22fafcfed474a1642f5a8770d7c29f59c131ee5983b203df4b2c62cbb6b2ff06",
+          "lines": 65
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/WindowSessions.swift",
+          "sha256": "bd54619eda62896c271b3d0d3f9904f36ac8f99b10ab66c25491f95ad66e2ee0",
+          "lines": 317
+        },
+        {
+          "path": "App/Sources/TagExplosionPreview/PreviewProvider.swift",
+          "sha256": "0fd69292a542f8eb0d09488d9d5dcbba39028764ba0585d1bbe9e167bec541fb",
+          "lines": 20
+        },
+        {
+          "path": "App/Sources/TagExplosionPreviewSupport/MetadataPreview.swift",
+          "sha256": "7b2b7e262d0af6f6583b4912a7b1cb4b3da61db4006131af7629ce9b5791c7cc",
+          "lines": 42
+        },
+        {
+          "path": "App/Sources/TagExplosionPreviewSupport/MetadataPreviewController.swift",
+          "sha256": "d12fd568d9d7eff29b09f09047b2e7da86a899019d9032d48d422b1db1df9b9b",
+          "lines": 64
+        },
+        {
+          "path": "App/Sources/TagExplosionPreviewSupport/MetadataPreviewView.swift",
+          "sha256": "6b8126eace0346c1dfe2a35499b50a82570f797ea20bb4b0cd9db3854b12a9be",
+          "lines": 42
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/AppModelRenameTests.swift",
+          "sha256": "d3a376e64f8bf666ad968fc279d5339def7f0aeb2f4a339ea487abac6b41a2c8",
+          "lines": 201
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/AppModelRulesTests.swift",
+          "sha256": "4b20afc8e51c28ef3c64e85aaa3b98e2eada4b67c74f5141fd702a4ec75aa82c",
+          "lines": 160
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/AppModelSaveTests.swift",
+          "sha256": "6dd6c7b53547959758d6ae7e7d931bc768a1ac2acdba76fcaccc6f4fc5d24ae8",
+          "lines": 1282
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/BatchSaveTests.swift",
+          "sha256": "71b3868f984406bcb6243fc5739ba336f0182764b8421512a1ae2d988000808b",
+          "lines": 109
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/BrewToolInstallerTests.swift",
+          "sha256": "a63d7d19d489e2cf77e4ec99dfd650fdcb05b40e2c10ef314ebb610747982129",
+          "lines": 113
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/ChapterEditorTests.swift",
+          "sha256": "fe498a6bf5cd76baf698d5a03a81fcd3dcd9d5196a87112984614de7895b1642",
+          "lines": 26
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/ChapterEntryTests.swift",
+          "sha256": "b7b1b695e43c781fced5141658574812197818e435fe8a8d570c4dc8ad2be917",
+          "lines": 152
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/CoverDropTests.swift",
+          "sha256": "8aef4036091f171baba1b2fbc8badf4da841fbfa22bfe7a6b14be1990193e51e",
+          "lines": 96
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/CoverToolActionsTests.swift",
+          "sha256": "819f1b7c36e1e3ff1caa93931a3c24d5d6e26699016f51749eabba2a4d9c1c41",
+          "lines": 108
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/EditorRenderingTests.swift",
+          "sha256": "bc8e5b4da6162c10599a4d4a08ceb70135d8594328e1e516eb99f6ded0f53591",
+          "lines": 63
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/FileListTests.swift",
+          "sha256": "c10b756753b0a90cb061962d33ca875b8be27129f980f714a4f161f9d61e253b",
+          "lines": 105
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/FinderServiceTests.swift",
+          "sha256": "3269eb9eaf952e4e7ee45021d3fc807b2f55dcc1198975575bd662856613903d",
+          "lines": 31
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/FixtureSupport.swift",
+          "sha256": "c0f436596f1124b9518dab187658268c86fb4f48492db26ae74d45312fcaa169",
+          "lines": 10
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/InvoiceFieldLayoutTests.swift",
+          "sha256": "76daac27f25615f0d886b7c265fe32f7d6c8aa9712eca54f242be40c80153542",
+          "lines": 46
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/LibraryCheckEntryTests.swift",
+          "sha256": "e260bfaf28b81b9e2dafd16e8d04040bfcdc7ddf03bce62ea09769c954669b7e",
+          "lines": 81
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/LoadingTests.swift",
+          "sha256": "fa38412f0e0567d60b20885327778287c3427442f91b5d0e45c261054076e4ea",
+          "lines": 165
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/LyricsEntryTests.swift",
+          "sha256": "20da2f877612ff1ba59b2a4fb8dd9f7d3d9f1f10c91931297e68a5f1232cb8bf",
+          "lines": 224
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/OnlineLookupAccessTests.swift",
+          "sha256": "97f5639ee3ba2972afbd177f8d6d6101d24a42eeb033c02bb3820a61a72c79f8",
+          "lines": 31
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/OnlineLookupDetailsTests.swift",
+          "sha256": "fccc3d65337c62b7d0b2cb7adfff71bff6f80c51a6523267f68f39636ce977ab",
+          "lines": 139
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/PlaylistEntryTests.swift",
+          "sha256": "20ecbfbd7a522e01b89b68ae781bee99e66220b38a152109b156e96d78fb0d38",
+          "lines": 58
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/RatingPickerTests.swift",
+          "sha256": "6f6ec8aab8c43eef8167f1a74d40c1ef3b7f83bd1e2686d9a733662eb5fd95e7",
+          "lines": 107
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/SidecarEntryTests.swift",
+          "sha256": "fbfa929301cc926729f7337c69141f25ede8a5d7427af92a3cc9a3b2e779b124",
+          "lines": 131
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/TagLayerEntryTests.swift",
+          "sha256": "20da581684e3036086ddf98ee81d20bb7d8a1574a25300327822c2c277c82737",
+          "lines": 88
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/ValidatedFieldDraftTests.swift",
+          "sha256": "501b0b7fec4a58259aa9cf964c2dd59e2f085915f455e68d7abc3d9c2b4ef29d",
+          "lines": 99
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/VersionHistoryTests.swift",
+          "sha256": "8f68ed4d74ac154c9849cb30338696145ff6e656144a3898734edb7b368a0e6c",
+          "lines": 48
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/WindowChromeTests.swift",
+          "sha256": "6ea0ab4e4a5b021f2290d86635d4993e9f6a779209850030bd7d8fa716398147",
+          "lines": 89
+        },
+        {
+          "path": "App/Tests/TagExplosionAppTests/WindowSessionsTests.swift",
+          "sha256": "4cea6aaa8679d7df8e1dec7cb3b6743311408caa7184da3b28702d81e2ff1e14",
+          "lines": 448
+        },
+        {
+          "path": "App/Tests/TagExplosionPreviewTests/MetadataPreviewControllerTests.swift",
+          "sha256": "65d8066e5353bf67b7a92c0ce0accd093549160bd5727888d2e76691b908673d",
+          "lines": 53
+        },
+        {
+          "path": "App/Tests/TagExplosionPreviewTests/MetadataPreviewTests.swift",
+          "sha256": "bf60a514cd5da7085cf145c6a5867874c187c2aed3555e12cdb7a4c2468e7954",
+          "lines": 25
+        },
+        {
+          "path": "Package.swift",
+          "sha256": "c3dda4d88ac5dfe5153cf75b60094bb6fbc6be5c87adc41f4fd0c67070799001",
+          "lines": 77
+        },
+        {
+          "path": "Sources/CTagLib/ctaglib-umbrella.h",
+          "sha256": "52462a4a4469862a06fed585859c462434442d8c7467dbe609de8dacf0ed521b",
+          "lines": 4
+        },
+        {
+          "path": "Sources/CTagLib/module.modulemap",
+          "sha256": "b0edda6a5462a771222b40a0f58402ba0914b64aef691765d6d55e14dd0cf303",
+          "lines": 6
+        },
+        {
+          "path": "Sources/CTagShim/include/ctagshim.h",
+          "sha256": "078d38b63e4eb4d4ccfdecb6136fd3aed6d887dce06ede0d73c9ae3d4867ffa3",
+          "lines": 221
+        },
+        {
+          "path": "Sources/CTagShim/shim.cpp",
+          "sha256": "654dc973be8750a0f92677acb868268061a91b37cabaae363c05097b6e376106",
+          "lines": 1066
+        },
+        {
+          "path": "Sources/EInvoiceCore/CIIMapping.swift",
+          "sha256": "a275a2d2407e2ca8650256547237069f9ac6cbe822cf08f173aee3217e6ba0d6",
+          "lines": 382
+        },
+        {
+          "path": "Sources/EInvoiceCore/CodeLists.swift",
+          "sha256": "5c494fee7ec997bc3879f0625ce3ddc1c889e6ad49a1b232fd85709029a599ff",
+          "lines": 155
+        },
+        {
+          "path": "Sources/EInvoiceCore/EInvoiceModel.swift",
+          "sha256": "eba01033754587c8b775926d2f9f91bb81124090eef480f4e3e18f50670111ab",
+          "lines": 331
+        },
+        {
+          "path": "Sources/EInvoiceCore/EInvoiceReader.swift",
+          "sha256": "4b4d259d81f92dc5a686113583e8d3e0fde42e924f2ba3adf2ed934cf880aa3c",
+          "lines": 380
+        },
+        {
+          "path": "Sources/EInvoiceCore/EInvoiceValidation.swift",
+          "sha256": "2349406545543c6a72b4bb8dc183f98accc70782270dfcf8a893483376653f35",
+          "lines": 170
+        },
+        {
+          "path": "Sources/EInvoiceCore/EN16931Terms.swift",
+          "sha256": "99e104ddc2d1c5f53d44371c7356b245fcab03ae572446d345c47bdbe7ea3ecd",
+          "lines": 241
+        },
+        {
+          "path": "Sources/EInvoiceCore/OrderMapping.swift",
+          "sha256": "4cf0953bc065d5fc8c20875de4db2addc9903f6ac7c86799532de1fe881bd903",
+          "lines": 574
+        },
+        {
+          "path": "Sources/EInvoiceCore/PDFEmbeddedInvoice.swift",
+          "sha256": "33fe35411d741ef021fb0324b0e0f5241549460e693e91edbd6266fed912e586",
+          "lines": 448
+        },
+        {
+          "path": "Sources/EInvoiceCore/UBLMapping.swift",
+          "sha256": "62fd5da2ce3d7f525ead6ccdfa39ea6ff096c0f548993b40a9081860c099780a",
+          "lines": 340
+        },
+        {
+          "path": "Sources/EInvoiceCore/XMLTree.swift",
+          "sha256": "cccf7241a9a3104c8de93e6534a368a4284458025533aae3a36d6083935c5b30",
+          "lines": 197
+        },
+        {
+          "path": "Sources/TagExplosionCore/AtomicFileRewrite.swift",
+          "sha256": "d6f7d8e256bc3606fa8d5ea1962a94d6c11056934088697e3f975d22fadd9f33",
+          "lines": 265
+        },
+        {
+          "path": "Sources/TagExplosionCore/BackupHistory.swift",
+          "sha256": "9b85338f78d0c1b320949460651ced1061f0cb11962a5821df3ad96b44e6dfaa",
+          "lines": 309
+        },
+        {
+          "path": "Sources/TagExplosionCore/BackupJournal.swift",
+          "sha256": "2db95f569f73693b6c39e8c471cb57193351b5adfaba0211352c9aff805fba45",
+          "lines": 370
+        },
+        {
+          "path": "Sources/TagExplosionCore/BlockingWork.swift",
+          "sha256": "0570cb518d13c7569549a0277f5cfd853fb0cc53df85449afe291cb725f28c36",
+          "lines": 30
+        },
+        {
+          "path": "Sources/TagExplosionCore/ChapterFormats.swift",
+          "sha256": "59c4e02eca22a4ae275f9cc244b594fd318d3fc64ed03622595f95593ab422f7",
+          "lines": 200
+        },
+        {
+          "path": "Sources/TagExplosionCore/ComicArchiveFile.swift",
+          "sha256": "ad1511719ee3a7891cec3219f14c2631dfb4677745d4b842acc0dafb755e8beb",
+          "lines": 212
+        },
+        {
+          "path": "Sources/TagExplosionCore/CoverTools.swift",
+          "sha256": "3778cf6ac5fa96f08d0d7ef33fbcd6e030ecbb6909ebb9273942952808b0a18e",
+          "lines": 679
+        },
+        {
+          "path": "Sources/TagExplosionCore/CueApply.swift",
+          "sha256": "afac93b2d250a01a252dce406c4f7507ac7e0a0449736b6f70b9868c1e7e45c0",
+          "lines": 164
+        },
+        {
+          "path": "Sources/TagExplosionCore/CueSheetFile.swift",
+          "sha256": "76416975a7b9678e7c540c26ffaa507530a3a1719f074dcd808cef617aef3de4",
+          "lines": 338
+        },
+        {
+          "path": "Sources/TagExplosionCore/DocumentTool.swift",
+          "sha256": "09fe4c8c799b83b06f8e004d0d41fdf52ca32b3199eec9b72fb6d2dcb781e6a1",
+          "lines": 351
+        },
+        {
+          "path": "Sources/TagExplosionCore/EbookTool.swift",
+          "sha256": "c69735756776763bfdf9abf29935a51fa53eb01f5be4aaedb0d94a2440d414f0",
+          "lines": 648
+        },
+        {
+          "path": "Sources/TagExplosionCore/EpubFile.swift",
+          "sha256": "8cf0d1d9354f4bfc5e2f0a6e114bb7554998384554fa17d12135bb08c59b19e5",
+          "lines": 749
+        },
+        {
+          "path": "Sources/TagExplosionCore/ExifTool.swift",
+          "sha256": "89f5a0b59424fc7be2c8f8e6c8f2d1f7c0444a43664b9cadc3be36a8e9980741",
+          "lines": 680
+        },
+        {
+          "path": "Sources/TagExplosionCore/ExternalToolRunner.swift",
+          "sha256": "38ed1dc3c6738e551cfe4a7f318ef28ae9685697c51715ee4c7b24afab0f8ef8",
+          "lines": 302
+        },
+        {
+          "path": "Sources/TagExplosionCore/ExternalToolText.swift",
+          "sha256": "90badcef436e62beee41975af9f75dec1c1f1e9f4237b45c28a3a0e734ceb68a",
+          "lines": 331
+        },
+        {
+          "path": "Sources/TagExplosionCore/FileExport.swift",
+          "sha256": "7417f9a47cad459ec880259422cb081facb3d8edfadd674c6b277c04357f4418",
+          "lines": 52
+        },
+        {
+          "path": "Sources/TagExplosionCore/FileRenamer.swift",
+          "sha256": "18bd2f640eac45eeeb135944ae6278e40aa5306e42d7358bbce392d9a96dbe99",
+          "lines": 407
+        },
+        {
+          "path": "Sources/TagExplosionCore/FileStamp.swift",
+          "sha256": "32bc3f866bf2dfda8cd75b866107ca9cec261cc24be7a6029c7a1bafc784e1db",
+          "lines": 106
+        },
+        {
+          "path": "Sources/TagExplosionCore/FileState.swift",
+          "sha256": "1979fef674b7e99c928564a8f80729c7df21f3cc6dade692f75ea5641e058df0",
+          "lines": 32
+        },
+        {
+          "path": "Sources/TagExplosionCore/FilenamePattern.swift",
+          "sha256": "9674b6dfde1d733f8556cccb38b9fc8be1c3e989106556890d3beda064d53f88",
+          "lines": 549
+        },
+        {
+          "path": "Sources/TagExplosionCore/FixedFields.swift",
+          "sha256": "7c1fda5d8a6690f61386e8ceec9efd8516ebb5cd2a399105304b5b6058e0e148",
+          "lines": 301
+        },
+        {
+          "path": "Sources/TagExplosionCore/ISODate.swift",
+          "sha256": "fa3ed9e04a51d169e375e95d7852b58d5160a269e295c8594cf5fb3cee2a8906",
+          "lines": 35
+        },
+        {
+          "path": "Sources/TagExplosionCore/ImagePixelSize.swift",
+          "sha256": "1d4fb30b8bbadfc7604ae09d65b67dff6728a85d7f7aec16c0b7135da4d69a1e",
+          "lines": 135
+        },
+        {
+          "path": "Sources/TagExplosionCore/KodiNFOFile.swift",
+          "sha256": "14d6de66642d1b3ef119d58f766824ca2ae0166d35bf644cd0f20e7ce933d4a5",
+          "lines": 589
+        },
+        {
+          "path": "Sources/TagExplosionCore/LibraryCheck.swift",
+          "sha256": "4288f57611ba9c1ff3cc77659022a1aaee779f718e047800df088d53e50351f0",
+          "lines": 811
+        },
+        {
+          "path": "Sources/TagExplosionCore/LyricsFormats.swift",
+          "sha256": "80edd87c87296e0c6609f24f4ef1646173c398f44a342a1cbf92a51e1e6be4d2",
+          "lines": 232
+        },
+        {
+          "path": "Sources/TagExplosionCore/M3UPlaylistFile.swift",
+          "sha256": "2968099384dc2d0c6ffc87fddd34cfb8afc3ea8e53ab0a0941f30114daa87619",
+          "lines": 145
+        },
+        {
+          "path": "Sources/TagExplosionCore/MarkdownDocumentFile.swift",
+          "sha256": "bf0a3d6c925b5a9a0bb89f4ad5a1e2769ae8c4206b05668c7803327ebea0bc45",
+          "lines": 208
+        },
+        {
+          "path": "Sources/TagExplosionCore/MarkdownFrontmatter.swift",
+          "sha256": "8bf0b752401360be51188e2c4603c788dec362c8e62d79e7cb8bd4588b081860",
+          "lines": 384
+        },
+        {
+          "path": "Sources/TagExplosionCore/MediaFormats.swift",
+          "sha256": "9f965644ccc2383161ad8e5642eccd838db6ecc4a611ac4c9f26ca2d584d438f",
+          "lines": 308
+        },
+        {
+          "path": "Sources/TagExplosionCore/MediaInfoCache.swift",
+          "sha256": "306d5065e6770b057a6f12739d775e69d897a2d21202e87c4b248831e900ebab",
+          "lines": 119
+        },
+        {
+          "path": "Sources/TagExplosionCore/MediaInfoReader.swift",
+          "sha256": "fa16e769e97db15edbaec0695a29040563218e23e6d9969a6ae4485a9be3843d",
+          "lines": 319
+        },
+        {
+          "path": "Sources/TagExplosionCore/Model.swift",
+          "sha256": "cc35e7456cd22811f709b8fa31f1cf20f96ad00227814bd8ba320e271b956240",
+          "lines": 433
+        },
+        {
+          "path": "Sources/TagExplosionCore/NFOXMLLayout.swift",
+          "sha256": "6c2ea1bfe4c5d11aaf8087051c278e94748bc19102eb0ba3de0188ae0c9218e3",
+          "lines": 153
+        },
+        {
+          "path": "Sources/TagExplosionCore/OfficeDocumentFile.swift",
+          "sha256": "230ee2a049ffee52313a13df09c87bbfb4539cef26ea54c29ba15c783d3ac331",
+          "lines": 278
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/AcoustIDClient.swift",
+          "sha256": "849dd35fb2b0823516191bca220aa2457885e304da1c79c62d3683eb72ce3fa7",
+          "lines": 161
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/DiscogsClient.swift",
+          "sha256": "1fca3ec9d858de45b868c961f70fc62f5f40daadf93cf9069cfb0d3ea49dc0bc",
+          "lines": 149
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/LookupConsent.swift",
+          "sha256": "d19cd55cb90f84136229aa5376b8d3ff16dfe85e8ee7155c1e7b66d0fa3d0443",
+          "lines": 79
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/LookupHTTP.swift",
+          "sha256": "7a932c290ba2b1b8e167211f62032a944fd866a53e1300b4c8d3fd1a174f3080",
+          "lines": 263
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/LookupModel.swift",
+          "sha256": "058027e06a20fea40f6df56693a03ad6f7ec6d724605d943ad1b8fda54759a4e",
+          "lines": 283
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/LookupPlanner.swift",
+          "sha256": "76027acdad806b15a1508527d2d5c14e40ba208bd946629fca6d6e8cfd108e79",
+          "lines": 138
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/MusicBrainzClient.swift",
+          "sha256": "2a0dffdcc20e9450d7fb236062402f7186239df0bf68b6a14f9a19179738f342",
+          "lines": 218
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/OnlineLookupService.swift",
+          "sha256": "122b1e097f915df333835ea95efa1042c0f05df5e97582943bf195e49b06b014",
+          "lines": 164
+        },
+        {
+          "path": "Sources/TagExplosionCore/OnlineLookup/TrackMatcher.swift",
+          "sha256": "3d876ccdaf8201a1d98b8cc5e1e0e8439db5816c98ae0848cfcc7bc7c2204a73",
+          "lines": 177
+        },
+        {
+          "path": "Sources/TagExplosionCore/OpenDocumentFile.swift",
+          "sha256": "32358cfb67075d2f13bc7c81d50eb037c05b9c1f5f6ec2490c95285218e86701",
+          "lines": 196
+        },
+        {
+          "path": "Sources/TagExplosionCore/PLSPlaylistFile.swift",
+          "sha256": "c52af1728ae89614eeb77017691716d615cd77fb1dfbe7cb6e4da59d3c6b1ea3",
+          "lines": 124
+        },
+        {
+          "path": "Sources/TagExplosionCore/PlaylistExporter.swift",
+          "sha256": "1495d86c90dcbcbf4bea9b297f271a8b6cd8ee086b1214fa699bae956ff12bea",
+          "lines": 226
+        },
+        {
+          "path": "Sources/TagExplosionCore/PlaylistTextFile.swift",
+          "sha256": "d035d3d405e8a0d2728ddc6e78aff270bd989db5867c111ea0413c973a1b9074",
+          "lines": 180
+        },
+        {
+          "path": "Sources/TagExplosionCore/PlaylistTool.swift",
+          "sha256": "9b944a0f9c395e0c2865df93aad6ae06fb168e3d6e69cac9709f0dcb4e87c5d5",
+          "lines": 393
+        },
+        {
+          "path": "Sources/TagExplosionCore/PortableSHA256.swift",
+          "sha256": "d0d96eaadca27458a9176a0be87b7af490f48d76de5d3ac29361d294b607de5e",
+          "lines": 99
+        },
+        {
+          "path": "Sources/TagExplosionCore/SidecarTool.swift",
+          "sha256": "bd1fa599d95d7a7b75460cce66c291735cfd0cd102394f47c6a5384eaf1e3bce",
+          "lines": 92
+        },
+        {
+          "path": "Sources/TagExplosionCore/SubtitleFile.swift",
+          "sha256": "c4fb01c8016fb17c00c96b86ac82b795a74d9691b8fa14440aef60688be1c394",
+          "lines": 596
+        },
+        {
+          "path": "Sources/TagExplosionCore/TagArchive.swift",
+          "sha256": "d24c333399f9a1572478f0185b659ec76a635b5e624846ca0f647d0d28cf4ad9",
+          "lines": 1005
+        },
+        {
+          "path": "Sources/TagExplosionCore/TagFile.swift",
+          "sha256": "0c612a68261e716b50feb388a3c8c5276f1efb29052d51cdf7b450a99d4aa5a1",
+          "lines": 619
+        },
+        {
+          "path": "Sources/TagExplosionCore/TagRules.swift",
+          "sha256": "8318664a243a7d98eab193cebc90ac395037999f29ad75bcd486078e140345a5",
+          "lines": 1137
+        },
+        {
+          "path": "Sources/TagExplosionCore/TextEncoding.swift",
+          "sha256": "86a57ea67fecf010c3dab60432b9b2fa2ef2366e6217c2a8197efd71e7e78c52",
+          "lines": 30
+        },
+        {
+          "path": "Sources/TagExplosionCore/TrashBackup.swift",
+          "sha256": "a64106ca22ea199572715ce61b40afc85812843158c5b1b9def4264df94e1390",
+          "lines": 337
+        },
+        {
+          "path": "Sources/TagExplosionCore/XDGTrash.swift",
+          "sha256": "4441ab7b7b574a0311778fc9bff255bfd1511574adb863ce000d8a512e61cf79",
+          "lines": 254
+        },
+        {
+          "path": "Sources/TagExplosionCore/XMLTools.swift",
+          "sha256": "09123bebde189311e57342519c7b3f7d9d2ff0ef6a1732ba50d41b09f20c0b51",
+          "lines": 208
+        },
+        {
+          "path": "Sources/TagExplosionCore/XSPFPlaylistFile.swift",
+          "sha256": "23c2d851b11dd855c1aae33ebc964d55374b3c064c1deea9ef9bf3bdcd6fdd56",
+          "lines": 133
+        },
+        {
+          "path": "Sources/TagExplosionCore/ZipContainer.swift",
+          "sha256": "72fe9ea95b23f676b4c363651582269f2f4c2e532add90bb140d1cf357129150",
+          "lines": 219
+        },
+        {
+          "path": "Sources/tagx/ApplyCommand.swift",
+          "sha256": "1726cb35508fd5fe72ea6c94f81a17b5d556ffbed2ec6f4bff7d756a68f41a5d",
+          "lines": 206
+        },
+        {
+          "path": "Sources/tagx/ArchiveCommands.swift",
+          "sha256": "c7979de4b695b9e89af6fb10f0cd8122f372a3dc8aa1480c8c81d80ad07740b4",
+          "lines": 94
+        },
+        {
+          "path": "Sources/tagx/ChaptersCommand.swift",
+          "sha256": "52833b9ac22e86539ab6951f83ede2a67d4c0afa2e502e4ab55edd83e0e728bb",
+          "lines": 128
+        },
+        {
+          "path": "Sources/tagx/CheckCommand.swift",
+          "sha256": "a827d6f5aeb2ce072b83a738686066f2cce166e96235096cfbede13cbfd2a95b",
+          "lines": 89
+        },
+        {
+          "path": "Sources/tagx/CoverToolCommands.swift",
+          "sha256": "b27b516aef7c07d9fa7051d26732d35c27e1b1233a7651adeacaec3d75c2a58f",
+          "lines": 231
+        },
+        {
+          "path": "Sources/tagx/DocCommand.swift",
+          "sha256": "7f03573dfe248d5ea77c954dc05297bb20c889284becda1cfc3872309b5a8874",
+          "lines": 149
+        },
+        {
+          "path": "Sources/tagx/EbookCommand.swift",
+          "sha256": "838b580507d834753321abc41ffbf2700972d10680e2e36127bff0c68e172e51",
+          "lines": 167
+        },
+        {
+          "path": "Sources/tagx/ExifCommand.swift",
+          "sha256": "c28117409783459c7f474df1bfb47381f7db96fa201ca53dde6e146a150968a9",
+          "lines": 235
+        },
+        {
+          "path": "Sources/tagx/HistoryCommand.swift",
+          "sha256": "e68d00db967a0535201a3bfb022fc6b153543ca0ba606f187c071236004c9f97",
+          "lines": 178
+        },
+        {
+          "path": "Sources/tagx/InvoiceCommand.swift",
+          "sha256": "c66b6660eb9db6439a559f5219b2cbef3c9ac4cd2f7c5bac385d846dae289fa6",
+          "lines": 151
+        },
+        {
+          "path": "Sources/tagx/LayersCommand.swift",
+          "sha256": "c585fdd10b4dab2bd5324005b09d43d06840719a49141f5214bdcbd911ae98ef",
+          "lines": 94
+        },
+        {
+          "path": "Sources/tagx/LookupCommand.swift",
+          "sha256": "f549b07a701785d509a913e284f37992f2ffa84d2283e52d7db601136e74fd54",
+          "lines": 257
+        },
+        {
+          "path": "Sources/tagx/LyricsCommand.swift",
+          "sha256": "912bdfd16a0c44d7d567e75b760d33e9736f0d82ce70a6046249bd6e053a8f80",
+          "lines": 321
+        },
+        {
+          "path": "Sources/tagx/NfoCommand.swift",
+          "sha256": "dcf8186b8890d6b25bc3001f41f652f3d1ce25bd2045391e54dd552bcf11e283",
+          "lines": 162
+        },
+        {
+          "path": "Sources/tagx/PlaylistCommand.swift",
+          "sha256": "775178ba8d76d81b5eb58773b95dc02ad27f06392b6d094d81e400be100302bd",
+          "lines": 255
+        },
+        {
+          "path": "Sources/tagx/RenameCommands.swift",
+          "sha256": "6161ea196e58169412b32e90d8f04ac9bb3db36368f968541912ecab1403bf0d",
+          "lines": 422
+        },
+        {
+          "path": "Sources/tagx/SubtitleCommand.swift",
+          "sha256": "ef24033bcce472af3f2a8ffbd47db37fc3119b59de4935cb15ac0f1df1d3cc02",
+          "lines": 132
+        },
+        {
+          "path": "Sources/tagx/Tagx.swift",
+          "sha256": "79925c65a9a47ca2d55b1bf26f4c80548cd734a5f40cb35f2cbf75518f3bd8d7",
+          "lines": 413
+        },
+        {
+          "path": "Tests/Support/MediaFixtures.swift",
+          "sha256": "c2734c773b894219519ffa63237d701a8f8815a08def60e3bda70e39f226d1fb",
+          "lines": 61
+        },
+        {
+          "path": "Tests/Support/ProcessSupport.swift",
+          "sha256": "6f18686511c90d1948366082e3713f9b61a1706f693130ab8eb5fd8e1463ceab",
+          "lines": 99
+        },
+        {
+          "path": "Tests/Support/TestFiles.swift",
+          "sha256": "ba9829a556dcedb900b2fd691e19d8ca585eed32fbca75bde6d2ece3d1d6aa0f",
+          "lines": 24
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/BackupHistoryTests.swift",
+          "sha256": "1b49c43288184c55d9f92e14566d6cc212f00e20e04b1df28f7da60bd81e430d",
+          "lines": 308
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/BlockingWorkTests.swift",
+          "sha256": "e8d8cae321e992358cd7aefac8f8863802379bf52fd4dd578ff22af9c8053b44",
+          "lines": 61
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/ChapterTests.swift",
+          "sha256": "16abe996015be2c2ec26cf014090b6c2929d92845493bef1e08e4475ddb38a7d",
+          "lines": 267
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/CoverToolsTests.swift",
+          "sha256": "bb71f5efbb2353fca8eec014c098294e4270db175c4095521093d125e5225f73",
+          "lines": 323
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/DocumentToolTests.swift",
+          "sha256": "bf803a7ee68f4d31a04fdfa9ba674cc9825a49c4fd9be8d603fa82317d979f7f",
+          "lines": 766
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/EInvoiceTests.swift",
+          "sha256": "4adc96a7ee3492dd801d0c16606699464a2c558eb5d8f6bb715957690937db78",
+          "lines": 1626
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/EbookToolTests.swift",
+          "sha256": "f2ff2fedbd6db93b965873e0b826adfafc7db1c71d60ef1b594caa12a9112142",
+          "lines": 1174
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/ExifToolTests.swift",
+          "sha256": "5a4178fa81956938c731c1f271bcb2fbeab63fde1f565c6ea6a3c9662466d80f",
+          "lines": 481
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/FileExportTests.swift",
+          "sha256": "4744a4473ac64d230e48e8d3662fd36a55884c3d35de557c5a200732d08f302d",
+          "lines": 66
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/FileIntegrityTests.swift",
+          "sha256": "d6b0b830b53d072d85d7afa62d8ce0ad21c4cc389ae005e19987f3aab2e0ca43",
+          "lines": 438
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/FilenamePatternTests.swift",
+          "sha256": "ff05d24bf654838b8bc4ff26ec3932cb71deacf7302f24eec63fc3d35c483005",
+          "lines": 500
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/FixedFieldsTests.swift",
+          "sha256": "7ec3a2b4e2a7c3a62aaf6b7c4e6b3c30f7f35b64900220d6224eba7cd6b07130",
+          "lines": 547
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh",
+          "sha256": "010c2452b8fe7a04f8b1436de65cff490b1724af22e9d4bdef599cbe64c89f36",
+          "lines": 470
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/LibraryCheckTests.swift",
+          "sha256": "dd1bfa194dde46186dff6954535d77c43c44a3fb6d9cca1882d3a20a86567cf4",
+          "lines": 445
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/MediaFormatsTests.swift",
+          "sha256": "56caf8cb84e958049ce42f5ff8d84a361b176ea0bd54696d6fc40642bf9e9d2f",
+          "lines": 117
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/MediaInfoCacheTests.swift",
+          "sha256": "6c9ff1c2d266a093b6961c613d37939c2c5208c27e918920bac456000f319bc0",
+          "lines": 231
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/MediaInfoReaderProcessTests.swift",
+          "sha256": "43ace444f1ac1c3dcbfac2bf95765475e5786de9481c52b9f687a05505f3e394",
+          "lines": 300
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/OnlineLookupTests.swift",
+          "sha256": "e2bd7ae8f650a3e9685df5d98da803855bfcb995a4a25c42fbb8d1bfa9478739",
+          "lines": 696
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/PlaylistTests.swift",
+          "sha256": "ee9a511d7ddfe03df878291f76c275bc5108250158b7368a15547757fd158630",
+          "lines": 744
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/RoundtripTests.swift",
+          "sha256": "027ba53354710167afb0e328b319be0d0cb93e6d23156ea58d7974372b01f0f6",
+          "lines": 375
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/SidecarTests.swift",
+          "sha256": "0cfbf0b6f7c22d99804fbc329211e4fa2f4086a565a1a66e3c19e5d9e34fa1d2",
+          "lines": 651
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/TagArchiveTests.swift",
+          "sha256": "a2fce94380218c725b9534702c38b5c0a8c1f5c6751d337c22d0969b1feafb38",
+          "lines": 1295
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/TagLayerTests.swift",
+          "sha256": "2f4e121ca81bae16946c145121b35313d21255704c92eab22415bfb1c05a3f81",
+          "lines": 267
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/TagRulesTests.swift",
+          "sha256": "f8ddd268c88ad1c8f845d412f4eef6cc550b272851497604e48e7bc37229c82c",
+          "lines": 392
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/TrashBackupTests.swift",
+          "sha256": "c9f696b00f5401a2e32e4fea8359bb5940f0aa7044b8c0ab85cd127432b36edb",
+          "lines": 271
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/XDGTrashTests.swift",
+          "sha256": "4d05496ca796490bc00c9aa5a9a848d3cd2587a27dd3b2a74b92bce6398a588f",
+          "lines": 247
+        },
+        {
+          "path": "Tests/TagExplosionCoreTests/ZipIntegrityTests.swift",
+          "sha256": "e7e9b4d23f4c2bfe49c68f9001925e504979fdc69f74458c22306fa4837e1db6",
+          "lines": 69
+        },
+        {
+          "path": "Tests/TagxTests/ApplyCommandTests.swift",
+          "sha256": "1619349eb39f20cf06671a5cb0aee604e9639edf0db4665143401ceaa468e96b",
+          "lines": 209
+        },
+        {
+          "path": "Tests/TagxTests/ChaptersCommandTests.swift",
+          "sha256": "b129f76b43bd3c5e0c38a28e1fac6601cec2bd13a1aba420b3ec3938c4b52bb1",
+          "lines": 140
+        },
+        {
+          "path": "Tests/TagxTests/CheckCommandTests.swift",
+          "sha256": "b80c6deb7306ca93f2d4c5ce7a88cdce4efb3e14a5188e74ecb0f1a9ff7fb6a2",
+          "lines": 98
+        },
+        {
+          "path": "Tests/TagxTests/CoverToolCommandTests.swift",
+          "sha256": "a67ea235c70410d9e876d42f15550c66260628ebadf8e12f37d6509cfad3e676",
+          "lines": 164
+        },
+        {
+          "path": "Tests/TagxTests/DocCommandTests.swift",
+          "sha256": "e076c40c1332064fcc0487e72885df69cb81aedde1cf57935ed12353d59402e7",
+          "lines": 56
+        },
+        {
+          "path": "Tests/TagxTests/ExifCommandTests.swift",
+          "sha256": "f7f05980d353da584b8c992f86756749523c01bd4c790d24d68026e0b2277865",
+          "lines": 96
+        },
+        {
+          "path": "Tests/TagxTests/ExportCollisionTests.swift",
+          "sha256": "8fa784063e205785bfe7bce7b638f7bb05805f9741a95254726383ca5042f77a",
+          "lines": 114
+        },
+        {
+          "path": "Tests/TagxTests/FixtureSupportTests.swift",
+          "sha256": "8e43069398ecc65363714b29a06403d7d6862c4dca25c36ed23cead7abf82d4d",
+          "lines": 72
+        },
+        {
+          "path": "Tests/TagxTests/HistoryCommandTests.swift",
+          "sha256": "5937a42bb1acf7c71c37c34b7c426069a253fb8cd2f188c016b6672870dbd28c",
+          "lines": 143
+        },
+        {
+          "path": "Tests/TagxTests/InvoiceCommandTests.swift",
+          "sha256": "9eb657c5ca4a67d5ec560ea8d34c2309e9c9feedbeecd381688c822c58e88eaf",
+          "lines": 142
+        },
+        {
+          "path": "Tests/TagxTests/LayersCommandTests.swift",
+          "sha256": "4e3a162ade131abface8827ebb722097cd9d05ad9fdbf62fa6046b138d0e0b29",
+          "lines": 117
+        },
+        {
+          "path": "Tests/TagxTests/LookupCommandTests.swift",
+          "sha256": "3027ac5ef3ae356a4c52284b9ad2a60bf9e2bf36e1d1b86d399728fc48fc9d56",
+          "lines": 52
+        },
+        {
+          "path": "Tests/TagxTests/LyricsCommandTests.swift",
+          "sha256": "fe692af12042fea6331f8a63294c823d47c0957024d2539c265c27fba0da7430",
+          "lines": 241
+        },
+        {
+          "path": "Tests/TagxTests/PlaylistCommandTests.swift",
+          "sha256": "0d173bb20f18a01d9ff48dca0b4f025d1cd9faaf231ae904a1333b00ef6d2a7c",
+          "lines": 131
+        },
+        {
+          "path": "Tests/TagxTests/ProcessSupportTests.swift",
+          "sha256": "e1f77978f6af76a85874c64f57baf7d0e85f13571345ad4660259debb968206d",
+          "lines": 34
+        },
+        {
+          "path": "Tests/TagxTests/RenameCommandTests.swift",
+          "sha256": "ad6270e694e31043b23eda0de0046e6b9e48bd65363c5ca6839fa44b09b72415",
+          "lines": 217
+        },
+        {
+          "path": "Tests/TagxTests/SafeModeCoverageTests.swift",
+          "sha256": "c260f6f96bf9e4ba8deea1f924759811baf3edc6f0342616e9bfe56b87017d93",
+          "lines": 34
+        },
+        {
+          "path": "Tests/TagxTests/SetCommandTests.swift",
+          "sha256": "62155606710b523048f41035fd4723b59549f831057d485f02c56fe0df72a72d",
+          "lines": 148
+        },
+        {
+          "path": "Tests/TagxTests/SidecarCommandTests.swift",
+          "sha256": "424df641a2ab2cd919f2a7a05ffa6564c43ac7dfb06a7c806857f065f2ab11d9",
+          "lines": 105
+        },
+        {
+          "path": "Tests/TagxTests/TestFixtures.swift",
+          "sha256": "21a9e7ed3c57638f8e4169e11b71e3c0b10b1a761db9e76c9f943a4fbc42093a",
+          "lines": 36
+        },
+        {
+          "path": "Tests/build-plist-tests.sh",
+          "sha256": "ab0ef5768e6c26553ef7c756e12afb77a86e67091da488c8c953bec7305302d1",
+          "lines": 22
+        },
+        {
+          "path": "Tests/dmg-ownership-tests.sh",
+          "sha256": "cfd5c241c488f5db50e7df6ee58fe816576e87d9a6c82ae7fe57773fe1be8e12",
+          "lines": 79
+        },
+        {
+          "path": "Tests/icon-generator-tests.sh",
+          "sha256": "b67dbce196aea93fab6cdaf0b4066b58fadc59ae58844f9f5fc947738091f15f",
+          "lines": 40
+        },
+        {
+          "path": "Tests/install-verified-app-tests.sh",
+          "sha256": "a7abad9dea5c10e915af4a7ea4a6f9dfd075b53c712b58cec4751d7a419e5ebf",
+          "lines": 664
+        },
+        {
+          "path": "Tests/portable-taglib-tests.sh",
+          "sha256": "ea15193488a176594ada2fd135b8e076cb33d88aaf25412323932d5723c7882a",
+          "lines": 36
+        },
+        {
+          "path": "Tests/shell-test-support-tests.sh",
+          "sha256": "d13073c0bf105c7f1b2984ed1ee2dc1404a9406286392ca2fb80e67d663259f6",
+          "lines": 35
+        },
+        {
+          "path": "Tests/shell-test-support.sh",
+          "sha256": "c70165d43232562593f4cbcb57f281e8c5ac2462d89858459a8cfa1ef79ae9e4",
+          "lines": 24
+        },
+        {
+          "path": "Tests/taglib-refs-tests.sh",
+          "sha256": "e21f6e23aa9e41938038e64770d0d47f342ee303e969dc6c7f9f772d3108688a",
+          "lines": 113
+        },
+        {
+          "path": "Tests/verify-macos-minimums-tests.sh",
+          "sha256": "4cf9e47b459fa00b25c06846c28441f5ffad877979a72c11ebe16cc898e88e55",
+          "lines": 113
+        },
+        {
+          "path": "build.sh",
+          "sha256": "b1d6157a994973a58c4e58796f2cf3e20b8fe5d4d9b2838cfc6c8b1f04486b45",
+          "lines": 550
+        },
+        {
+          "path": "install.sh",
+          "sha256": "e4dede7a200c2d15268949c36bb248eb0e77735ff9e025f7af6b622c6d1633ba",
+          "lines": 90
+        },
+        {
+          "path": "release.sh",
+          "sha256": "0c072f725428e7e1ad0a22c46e33483ef6e5508e769b481e80f9d0a7890798a6",
+          "lines": 47
+        },
+        {
+          "path": "scripts/dev-screenshot.sh",
+          "sha256": "0335c29a7342d42c81ee51faa3f02cade40a185a99141ef5ddce615e6d0b8f18",
+          "lines": 73
+        },
+        {
+          "path": "scripts/dev-uitest.sh",
+          "sha256": "8784f195af699bb5340187a9ebd801093fe8113ff25b420081bd47cf2a034a42",
+          "lines": 174
+        },
+        {
+          "path": "scripts/dev-windowtest.sh",
+          "sha256": "9adbdf67a04042f13a65af7e3b84555b9049bfbefe4662c698727ca126327632",
+          "lines": 197
+        },
+        {
+          "path": "scripts/gen-social-preview.py",
+          "sha256": "cdf52dfdcd9bf0f5185eb6da28d417b7aeac1177ad197ab4fe2eff6075717f21",
+          "lines": 124
+        },
+        {
+          "path": "scripts/generate-dmg-background.swift",
+          "sha256": "c8421841cf165dc3474576a4f9ffc04cdd373f7dfb700e980b052630338cbb46",
+          "lines": 110
+        },
+        {
+          "path": "scripts/icon-from-image.swift",
+          "sha256": "4a6c2ce8cddb39622d8f843e10d4187c772f427479376d1ae304a9c00d6b7fb5",
+          "lines": 128
+        },
+        {
+          "path": "scripts/install-verified-app.sh",
+          "sha256": "a4894866bc0d1633f2c95277113f4eca19933d63c4396a034b840c4da3f5ff16",
+          "lines": 276
+        },
+        {
+          "path": "scripts/lib/gui-testkit.swift",
+          "sha256": "840c0d9ed4fad21256124ee5a3c38bb504ad5212d21878d5f7e512a4ae50cfea",
+          "lines": 258
+        },
+        {
+          "path": "scripts/linux-deps.sh",
+          "sha256": "92a3eb65924b7dc2a735b1a959ee4f167cda8691d909af53b6ebdb4613cf9656",
+          "lines": 59
+        },
+        {
+          "path": "scripts/make-icon.swift",
+          "sha256": "7743618a202a35b6694eaa39ec3a469d719120c6eaecf172bfb6567f155da6e2",
+          "lines": 126
+        },
+        {
+          "path": "scripts/notary-profile.sh",
+          "sha256": "836efe434900bc037d32e133c9a6a3b1529068e77e26b6bcf75729b44e39888f",
+          "lines": 86
+        },
+        {
+          "path": "scripts/prepare-portable-taglib.sh",
+          "sha256": "8ccbd46877e95f53d34acd93a4c58d5d195688261fc08147332f51b1b0db9504",
+          "lines": 64
+        },
+        {
+          "path": "scripts/taglib-refs.sh",
+          "sha256": "c6094f238680b3547ae3765bbf31476100668c1fddbcdce7e712fccdc12c4ea5",
+          "lines": 76
+        },
+        {
+          "path": "scripts/verify-macos-minimums.sh",
+          "sha256": "c1ff625d03c88656dd88878597c8731a108e422666aa7cc3ece8a27c77ee68d9",
+          "lines": 68
+        }
+      ],
+      "finished_at": "2026-10-06T20:49:26+02:00",
+      "result_version": "0.47.4",
+      "review": "full",
+      "outcome": "improved",
+      "architecture_verdict": "passend",
+      "code_file_count": 253,
+      "code_line_count": 62249,
+      "open_confirmed_findings": [],
+      "diff_review": "passed",
+      "documentation": {
+        "review": "full",
+        "paths": [
+          "README.md",
+          "README.de.md",
+          "AGENTS.md",
+          "CHANGELOG.md",
+          "THIRD-PARTY-NOTICES.md",
+          "LICENSE",
+          "docs/CODE-REVIEW-2026-10-02.md",
+          "docs/CODE-REVIEW-2026-10-06.md",
+          "docs/CODEQA-2026-09-08.md",
+          "docs/PLAN.md",
+          "docs/ROADMAP.md",
+          "docs/analysis-validation.md",
+          "docs/loading-performance.md",
+          "docs/review-2026-10-03.md",
+          "docs/sparkle-release.md",
+          "knowledge/INDEX.md",
+          "knowledge/archiv-restore-vertrag.md",
+          "knowledge/backup-journal-format.md",
+          "knowledge/batch-regeln.md",
+          "knowledge/bibliothekspruefung.md",
+          "knowledge/blockierende-arbeit-und-executor.md",
+          "knowledge/cover-werkzeuge.md",
+          "knowledge/dateiliste-filter.md",
+          "knowledge/dateiname-muster-umbenennen.md",
+          "knowledge/dateisicherheit-schreibwege.md",
+          "knowledge/dokument-container-metadaten.md",
+          "knowledge/e-rechnung-anzeige.md",
+          "knowledge/ebook-meta-calibre-quirks.md",
+          "knowledge/ebook-performance.md",
+          "knowledge/epub-opf-struktur.md",
+          "knowledge/fenster-und-layout.md",
+          "knowledge/feste-felder-lyrics-lautheit-podcast.md",
+          "knowledge/finder-integration.md",
+          "knowledge/gui-selbsttests.md",
+          "knowledge/id3-schichten.md",
+          "knowledge/kapitel-hoerbuch.md",
+          "knowledge/kodi-nfo-untertitel.md",
+          "knowledge/konsistenzpruefung.md",
+          "knowledge/ladeauftraege.md",
+          "knowledge/linux-xdg-papierkorb.md",
+          "knowledge/mediainfo-exiftool-wrapper.md",
+          "knowledge/online-lookup-dienste.md",
+          "knowledge/playlists-cue.md",
+          "knowledge/raw-xmp-sidecar.md",
+          "knowledge/taglib-shim.md",
+          "knowledge/test-prozessausfuehrung.md",
+          "knowledge/undo-historie-journal.md",
+          "knowledge/weitere-endungen-taglib.md",
+          "knowledge/xml-namensraeume.md"
+        ]
+      },
+      "other_resources": [
+        {
+          "path": "App/Extensions/Preview-Info.plist",
+          "sha256": "bdfccef4c2b53b81a0bdfd0d04771c344187fb90ff487e140f59c12a5ceec1c4",
+          "review": "bundle-configuration"
+        },
+        {
+          "path": "App/Extensions/Preview.entitlements",
+          "sha256": "b746c74b201e6af4e0864fbd1f4f629f96156a7ec4b7208bc995d0a5089bb592",
+          "review": "bundle-configuration"
+        },
+        {
+          "path": "App/Sources/TagExplosionApp/Resources/Localizable.xcstrings",
+          "sha256": "29af4684bb28a94df82f155b6947729b82f645059be4d420f94f8d39df6a8b0c",
+          "review": "changed-strings-and-english-completeness"
+        }
+      ],
+      "tests": [
+        "macOS Swift 6.3.3, TagLib 2.3.1: 506 Core tests / 36 suites and 65 CLI tests / 19 suites passed, no skips",
+        "macOS App: 151 tests / 27 suites passed, 2 opt-in/performance skips; Preview: 3 tests / 2 suites passed",
+        "macOS native background-window EditorRenderingTests: 2 tests passed; four views visually inspected; foreground unchanged",
+        "Linux Swift 6.0.3, TagLib 2.3.1, non-root: complete run passed; 565 reported tests, 39 explicit skips",
+        "macOS actual portable TagLib 2.3.2: 506 Core and 65 CLI tests passed, no skips",
+        "App and Preview built successfully against actual portable TagLib 2.3.2; dependency load commands checked",
+        "Final ebook regression run after series-error correction: 47 tests / 1 suite passed",
+        "Eight shell suites passed: support, bundle plist, installer, minimum OS, TagLib refs, portable cache, DMG ownership, icons",
+        "23 shell/Python files passed syntax checks; Finder DMG AppleScript compiled; GUI helper compiled and ran without starting an App",
+        "Three real media copies (two MP3, one M4A): old/new TagLib metadata and title roundtrips equal; original hashes unchanged",
+        "All local documentation links resolve; git diff --check passed"
+      ],
+      "limitations": [
+        "No installed Quick Look activation, notarization, installation, Sparkle update transaction or publication",
+        "No actual macOS 14 runtime; portable TagLib Mach-O minos 14.0 verified",
+        "DMG cleanup verified with controlled tool stubs; Finder AppleScript compiled, no real Finder layout run",
+        "No complete interactive GUI acceptance across every dialog or language; 1000-FLAC performance test not run",
+        "Online parameters and consent checked with controlled responses, no full live-provider acceptance",
+        "String catalog checked mechanically and changed entries reviewed; not every translation linguistically reviewed",
+        "Dependency source, generated fixtures, build outputs and binary image resources excluded from own-source coverage"
+      ]
     }
   ]
 }

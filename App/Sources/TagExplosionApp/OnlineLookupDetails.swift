@@ -24,9 +24,10 @@ final class OnlineLookupDetails {
     }
 
     func load(_ selected: LookupCandidate, includeCover: Bool,
+              isAllowed: () -> Bool = { true },
               details: (LookupCandidate) async throws -> LookupCandidate,
               cover: (LookupCandidate) async throws -> Data?) async {
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, isAllowed() else { reset(); return }
         reset()
         let request = requestID
         isBusy = true
@@ -34,15 +35,18 @@ final class OnlineLookupDetails {
         do {
             let full = try await details(selected)
             guard requestID == request, !Task.isCancelled else { return }
+            guard isAllowed() else { reset(); return }
             candidate = full
             coverData = nil
             if includeCover, full.coverURL != nil {
                 let data = try await cover(full)
                 guard requestID == request, !Task.isCancelled else { return }
+                guard isAllowed() else { reset(); return }
                 coverData = data
             }
         } catch {
             guard requestID == request, !Task.isCancelled else { return }
+            guard isAllowed() else { reset(); return }
             errorMessage = error.localizedDescription
         }
     }

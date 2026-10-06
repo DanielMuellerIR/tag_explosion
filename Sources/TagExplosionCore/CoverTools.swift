@@ -590,6 +590,9 @@ public enum FolderCover {
         "folder.jpg", "folder.jpeg", "folder.png",
         "cover.jpg", "cover.jpeg", "cover.png",
         "front.jpg", "front.jpeg", "front.png",
+        "folder.gif", "folder.webp", "folder.bmp",
+        "cover.gif", "cover.webp", "cover.bmp",
+        "front.gif", "front.webp", "front.bmp",
     ]
 
     /// Findet die höchstpriorisierte Cover-Datei im Verzeichnis. Auf

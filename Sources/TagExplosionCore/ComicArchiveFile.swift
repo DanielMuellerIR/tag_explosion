@@ -79,7 +79,7 @@ enum ComicArchiveFile: DocumentBackend {
         let archive = try ZipContainer.open(url: url, accessMode: .read)
         guard let first = imagePages(in: archive).first,
               let entry = archive[first] else { return nil }
-        let data = try ZipContainer.data(of: entry, in: archive)
+        let data = try ZipContainer.data(of: entry, in: archive, maximumSize: ZipContainer.artworkSizeLimit)
         return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
                        pictureType: "Front Cover")
     }

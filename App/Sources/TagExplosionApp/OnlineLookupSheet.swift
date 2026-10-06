@@ -47,6 +47,7 @@ private struct LookupDetailsRequest: Equatable {
 }
 
 struct OnlineLookupSheet: View {
+    @AppStorage(OnlineLookupAccess.allowedDefaultsKey) private var onlineAllowed = false
     let entries: [FileEntry]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openSettings) private var openSettings
@@ -74,6 +75,7 @@ struct OnlineLookupSheet: View {
 
     private var detailed: LookupCandidate? { detailsState.candidate }
     private var coverData: Data? { detailsState.coverData }
+    private var canIncludeCover: Bool { entries.allSatisfy { MediaFormats.supportsEmbeddedArtwork($0.url) } }
     private var isBusy: Bool { isSearching || detailsState.isBusy }
 
     /// Dateiinfos für Matcher und Suchbegriffe, einmal aus den Puffern gelesen.
@@ -102,6 +104,16 @@ struct OnlineLookupSheet: View {
         .padding(20)
         .frame(minWidth: 900, idealWidth: 980, minHeight: 620)
         .onAppear(perform: prefill)
+        .onChange(of: onlineAllowed) { _, allowed in
+            if !allowed {
+                searchTask?.cancel()
+                detailsState.reset()
+                rows = []
+                candidates = []
+                selectedCandidateID = nil
+                isSearching = false
+            }
+        }
         .onDisappear {
             searchTask?.cancel()
             isSearching = false
@@ -191,7 +203,7 @@ struct OnlineLookupSheet: View {
         artist = query.artist
         album = query.album
         title = query.title
-        includeCover = entries.contains { $0.artworks.isEmpty }
+        includeCover = canIncludeCover && entries.contains { $0.artworks.isEmpty }
     }
 
     /// Erst Einstellung, dann Hinweis, dann Netz.
@@ -322,7 +334,8 @@ struct OnlineLookupSheet: View {
     private func loadDetails(for candidate: LookupCandidate) async {
         guard !Task.isCancelled, OnlineLookupAccess.isAllowed, let service = lookupService else { return }
         rows = []
-        await detailsState.load(candidate, includeCover: includeCover,
+        await detailsState.load(candidate, includeCover: includeCover && canIncludeCover,
+                                isAllowed: { OnlineLookupAccess.isAllowed },
                                 details: { try await service.details(for: $0) },
                                 cover: { try await service.coverData(for: $0) })
         rebuildRows()
@@ -364,6 +377,7 @@ struct OnlineLookupSheet: View {
                     Toggle("Kennungen schreiben (MusicBrainz, Discogs, AcoustID)", isOn: $includeIdentifiers)
                         .onChange(of: includeIdentifiers) { rebuildRows() }
                     Toggle("Cover übernehmen", isOn: $includeCover)
+                        .disabled(!canIncludeCover)
                         .onChange(of: includeCover) { rebuildRows() }
                 }
                 .font(.caption)
@@ -443,6 +457,7 @@ struct OnlineLookupSheet: View {
 
     /// Plan in die Bearbeitungspuffer übertragen — keine Datei wird angefasst.
     private func applyPlans() {
+        guard OnlineLookupAccess.isAllowed else { return }
         let artwork = coverData.map { Artwork(data: $0, mimeType: Artwork.sniffMimeType(from: $0) ?? "",
                                               pictureType: "Front Cover") }
         for row in rows {
@@ -451,7 +466,7 @@ struct OnlineLookupSheet: View {
             // wenn es genau eine Datei ist — bei einem Album bleiben sie unberührt.
             guard row.assignment.track != nil || entries.count == 1 else { continue }
             entry.properties = row.plan.apply(to: entry.properties)
-            if includeCover, let artwork {
+            if includeCover, MediaFormats.supportsEmbeddedArtwork(entry.url), let artwork {
                 if entry.artworks.isEmpty {
                     entry.artworks = [artwork]
                 } else {

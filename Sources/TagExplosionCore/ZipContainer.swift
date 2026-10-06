@@ -18,6 +18,8 @@ import Glibc
 #endif
 
 enum ZipContainer {
+    static let metadataSizeLimit = 16 * 1024 * 1024
+    static let artworkSizeLimit = 64 * 1024 * 1024
 
     /// Öffnet ein Archiv. Ein Lesefehler heißt „keine lesbare Datei“, ein
     /// Schreibfehler (z.B. schreibgeschützt) „nicht speicherbar“.
@@ -32,10 +34,20 @@ enum ZipContainer {
         }
     }
 
-    /// Vollständiger Inhalt eines Eintrags.
-    static func data(of entry: Entry, in archive: Archive) throws -> Data {
+    /// Die Grenze gilt auch für den tatsächlich entpackten Inhalt, nicht nur
+    /// für die Größenangabe eines möglicherweise manipulierten ZIP-Headers.
+    static func data(of entry: Entry, in archive: Archive,
+                     maximumSize: Int = metadataSizeLimit) throws -> Data {
+        guard entry.uncompressedSize <= maximumSize else {
+            throw TagError.cannotOpen(path: archive.url.path)
+        }
         var data = Data()
-        try extract(entry, in: archive) { data.append($0) }
+        try extract(entry, in: archive) {
+            guard $0.count <= maximumSize - data.count else {
+                throw TagError.cannotOpen(path: archive.url.path)
+            }
+            data.append($0)
+        }
         return data
     }
 

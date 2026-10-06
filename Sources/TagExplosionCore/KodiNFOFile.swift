@@ -190,7 +190,10 @@ public enum KodiNFOFile {
             if let url { info.append(companionItem(for: url)) }
             return NFOContents(rootName: nil, fields: NFOFields(), info: info, urls: urls)
         }
-        let document = try XMLTools.document(from: Data(layout.xml.utf8), path: path)
+        guard let xml = (layout.prefix + layout.xml).encoded(as: layout.encoding) else {
+            throw TagError.cannotOpen(path: path)
+        }
+        let document = try XMLTools.document(from: xml, path: path)
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: path) }
         let rootName = XMLTools.localName(root).lowercased()
         var fields = NFOFields()
@@ -355,7 +358,10 @@ public enum KodiNFOFile {
         guard let layout = try NFOXMLLayout.parse(text, path: originalPath) else {
             throw TagError.urlOnlyNFO(path: originalPath)
         }
-        let document = try XMLTools.document(from: Data(layout.xml.utf8), path: originalPath)
+        guard let xml = (layout.prefix + layout.xml).encoded(as: layout.encoding) else {
+            throw TagError.cannotOpen(path: originalPath)
+        }
+        let document = try XMLTools.document(from: xml, path: originalPath)
         guard let root = document.rootElement() else { throw TagError.cannotOpen(path: originalPath) }
         let rootName = XMLTools.localName(root).lowercased()
 

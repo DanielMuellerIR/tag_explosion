@@ -12,6 +12,41 @@ import ZIPFoundation
 
 @Suite("EbookTool", .serialized)
 struct EbookToolTests {
+    @Test("EPUB 2 erhält keine EPUB-3-Attribute beim Anlegen von Serie und Cover")
+    func epub2WritesVersionCompatibleMetadata() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        let original = try EbookTool.readCoreFields(url: url)
+        var fields = original
+        fields.series = "Neue Reihe"
+        fields.seriesIndex = "2"
+        try EbookTool.writeCoreFields(url: url, fields: fields, original: original)
+        try EbookTool.removeCover(url: url)
+        try EbookTool.writeCover(url: url, data: try Data(contentsOf: Fixtures.directory.appendingPathComponent("cover.png")))
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let data = try #require(try ZipContainer.data(at: "OEBPS/content.opf", in: archive))
+        let document = try XMLTools.document(from: data, path: url.path)
+        let root = try #require(document.rootElement())
+        let metadata = try #require(XMLTools.firstElement(named: "metadata", in: root))
+        for meta in XMLTools.elements(named: "meta", in: metadata) {
+            #expect(XMLTools.attribute(meta, "property") == nil)
+            #expect(XMLTools.attribute(meta, "refines") == nil)
+        }
+        let manifest = try #require(XMLTools.firstElement(named: "manifest", in: root))
+        #expect(XMLTools.elements(named: "item", in: manifest).allSatisfy { XMLTools.attribute($0, "properties") == nil })
+        #expect(try EbookTool.readCoreFields(url: url).series == fields.series)
+    }
+
+    @Test("AZW3 lehnt Serienänderungen vor dem Schreiben ab", .enabled(if: Self.calibreFixtureAvailable))
+    func azw3RejectsSeriesChanges() throws {
+        let url = try Fixtures.workingCopy("book.azw3")
+        let original = try EbookTool.readCoreFields(url: url)
+        var fields = original
+        fields.series = "Nicht speicherbar"
+        let before = try Data(contentsOf: url)
+        #expect(!EbookTool.supportsSeries(url: url))
+        #expect(throws: TagError.self) { try EbookTool.write(url: url, fields: fields, original: original, coverUpdate: .unchanged) }
+        #expect(try Data(contentsOf: url) == before)
+    }
 
     @Test("EPUB-Metadaten bewahren gleichnamige Fremdelemente")
     func foreignEpubMetadataSurvives() throws {
@@ -172,9 +207,19 @@ struct EbookToolTests {
         #expect(!FileManager.default.fileExists(atPath: tempCoverPath))
     }
 
-    @Test("Calibre: Coverabruf und unveränderter Archivimport erhalten alle Felder", .enabled(
-        if: Self.calibreFixtureAvailable, "Calibre oder die azw3-Fixture fehlt"), arguments: ["azw3", "fb2"])
-    func combinedCalibreMetadataAndArchivePreserveFields(_ format: String) throws {
+    @Test("Calibre: Coverabruf und unveränderter AZW3-Archivimport erhalten alle Felder", .enabled(
+        if: Self.calibreFixtureAvailable, "Calibre oder die azw3-Fixture fehlt"))
+    func combinedAZW3MetadataAndArchivePreserveFields() throws {
+        try combinedCalibreMetadataAndArchivePreserveFields("azw3")
+    }
+
+    @Test("Calibre: Coverabruf und unveränderter FB2-Archivimport erhalten alle Felder", .enabled(
+        if: EbookTool.calibreAvailable, "Calibre fehlt"))
+    func combinedFB2MetadataAndArchivePreserveFields() throws {
+        try combinedCalibreMetadataAndArchivePreserveFields("fb2")
+    }
+
+    private func combinedCalibreMetadataAndArchivePreserveFields(_ format: String) throws {
         let url = try format == "azw3" ? Fixtures.workingCopy("book.azw3") : makeFB2WorkingCopy()
         defer { if format == "fb2" { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) } }
         if format == "fb2" {
@@ -221,7 +266,7 @@ struct EbookToolTests {
     }
 
     @Test("Calibre: coverfreies FB2 und skalare Sprache bleiben beim Archivimport unverändert", .enabled(
-        if: Self.calibreFixtureAvailable, "Calibre fehlt"))
+        if: EbookTool.calibreAvailable, "Calibre fehlt"))
     func calibreCoverlessArchiveAndScalarNoOp() throws {
         let url = try makeFB2WorkingCopy()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
@@ -522,12 +567,10 @@ struct EbookToolTests {
 
     // MARK: - PDF (exiftool)
 
-    @Test("PDF: Roundtrip der unterstützten Felder")
+    @Test("PDF: Roundtrip der unterstützten Felder", .enabled(
+        if: FileManager.default.fileExists(atPath: Fixtures.directory.appendingPathComponent("book.pdf").path),
+        "PDF-Fixture fehlt"))
     func pdfRoundtrip() throws {
-        guard FileManager.default.fileExists(
-            atPath: Fixtures.directory.appendingPathComponent("book.pdf").path) else {
-            return // Fixture braucht sips (macOS)
-        }
         let url = try Fixtures.workingCopy("book.pdf")
         let original = try EbookTool.readCoreFields(url: url)
         var edited = editedFields
@@ -559,6 +602,8 @@ struct EbookToolTests {
         let url = try Fixtures.workingCopy("book.azw3")
         let original = try EbookTool.readCoreFields(url: url)
         var edited = editedFields
+        edited.series = original.series
+        edited.seriesIndex = original.seriesIndex
         // ebook-meta normalisiert Sprachcodes auf ISO-639-2 ("fra")
         edited.language = "fra"
         try EbookTool.writeCoreFields(url: url, fields: edited, original: original)
@@ -949,7 +994,7 @@ struct EbookToolTests {
         // Schreibzugriff ab (die Prüfung läuft vor jedem Backend-Kontakt,
         // deshalb genügt hier ein Pfad ohne echte Datei).
         let azw3 = URL(fileURLWithPath: "/nicht-vorhanden/buch.azw3")
-        #expect(throws: TagError.seriesIndexWithoutSeries) {
+        #expect(throws: TagError.seriesUnsupported(path: azw3.path)) {
             try EbookTool.write(url: azw3, fields: indexOnly, original: original,
                                 coverUpdate: .unchanged)
         }

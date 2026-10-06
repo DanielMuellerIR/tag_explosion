@@ -533,6 +533,16 @@ struct OnlineLookupMatchingTests {
 
 @Suite("Online-Lookup: Service mit Stub")
 struct OnlineLookupServiceTests {
+    @Test("MusicBrainz berücksichtigt das Jahr für Release- und Recording-Suche", arguments: [false, true])
+    func searchUsesYear(recording: Bool) async throws {
+        let client = StubClient { _ in json(recording ? "{\"recordings\":[]}" : "{\"releases\":[]}") }
+        let query = LookupQuery(artist: "Test", album: recording ? "" : "Album", title: recording ? "Titel" : "", year: "2004")
+        _ = try await makeService(client).search(query, source: .musicbrainz)
+        let request = try #require(client.requests.first)
+        let components = try #require(URLComponents(url: request.url, resolvingAgainstBaseURL: false))
+        let term = components.queryItems?.first(where: { $0.name == "query" })?.value ?? ""
+        #expect(term.contains(recording ? "firstreleasedate:\"2004\"" : "date:\"2004\""))
+    }
     private func makeService(_ client: StubClient, credentials: LookupCredentials = LookupCredentials(),
                              fingerprinter: @escaping OnlineLookupService.Fingerprinter = { _ in
                                  AudioFingerprint(durationSeconds: 181, fingerprint: "AQAD")

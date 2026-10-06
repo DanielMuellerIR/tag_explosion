@@ -49,12 +49,31 @@ enum XSPFPlaylistFile: PlaylistBackend {
         var entries: [PlaylistEntry] = []
         for (offset, track) in tracks.enumerated() {
             let duration = Int(XMLTools.text(of: "duration", in: track))
-            entries.append(PlaylistTool.makeEntry(
-                number: offset + 1, location: XMLTools.text(of: "location", in: track), base: base,
+            let location = XMLTools.firstElement(named: "location", in: track)
+            var effectiveBase = url
+            var ancestors: [XMLElement] = []
+            var node = location
+            while let element = node {
+                ancestors.append(element)
+                node = element.parent as? XMLElement
+            }
+            for element in ancestors.reversed() {
+                if let value = XMLTools.attribute(element, "base", namespaceURI: "http://www.w3.org/XML/1998/namespace"),
+                   let resolved = URL(string: value, relativeTo: effectiveBase)?.absoluteURL {
+                    effectiveBase = resolved
+                }
+            }
+            let rawLocation = XMLTools.text(of: "location", in: track)
+            let resolvedLocation = rawLocation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? ""
+                : URL(string: rawLocation, relativeTo: effectiveBase)?.absoluteURL.absoluteString ?? rawLocation
+            var entry = PlaylistTool.makeEntry(
+                number: offset + 1, location: resolvedLocation, base: base,
                 title: XMLTools.text(of: "title", in: track),
                 performer: XMLTools.text(of: "creator", in: track),
                 album: XMLTools.text(of: "album", in: track),
-                durationMilliseconds: duration.flatMap { $0 >= 0 ? $0 : nil }, locationIsURI: true))
+                durationMilliseconds: duration.flatMap { $0 >= 0 ? $0 : nil }, locationIsURI: true)
+            entry.location = rawLocation
+            entries.append(entry)
         }
         let fields = PlaylistCoreFields(
             title: XMLTools.text(of: "title", in: root),

@@ -110,7 +110,7 @@ struct EbookSet: ParsableCommand {
         do {
             try EbookTool.requireStorableSeries(fields, original: original, url: url)
         } catch TagError.seriesUnsupported {
-            throw ValidationError("This format cannot store a series (PDF).")
+            throw ValidationError("This format cannot store a series.")
         } catch TagError.seriesIndexWithoutSeries {
             throw ValidationError("A series index needs a series name (--series).")
         }

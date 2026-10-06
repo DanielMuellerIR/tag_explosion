@@ -20,7 +20,7 @@
 </p>
 
 ![Editing an audiobook: cover art, tags, and per-field copy menus](docs/screenshots/en/audio.png)
-*The audio editor: cover art, all tag fields, and a copy menu on every field.*
+*The audio editor: cover art, all tag fields, and copy menus on the general text fields.*
 
 ## Features
 
@@ -164,18 +164,19 @@
   `tagx apply rules.json [--apply] [--json] <files|folders>` (dry run by
   default, `--example` prints a commented sample file, exit 64 for an
   invalid rules file). Writing goes through the usual safe path.
-- **Copy values between tags** — every text field (single-file and batch) can
-  take its value from another tag, per file. Works across tag formats (for
+- **Copy values between tags** — the general audio text fields and compatible
+  image text fields can take their values from another tag, per file. Works across tag formats (for
   example EXIF → IPTC/XMP), restricted to type-compatible text fields.
 - **Safe mode** — before every change, an untouched copy of the file goes to
   the trash, and every write goes through a checked copy of the file. See
   [Keeping your files safe](#keeping-your-files-safe).
-- **Tag export/import with auto-backup** — the batch editors export all tags
-  of a selection (covers embedded) into one self-contained JSON file and
+- **Tag export/import with auto-backup** — the batch editors export supported tags
+  of a selection (covers embedded; audio includes chapters and embedded lyrics
+  with their languages) into one self-contained JSON file and
   restore from it; before batch saves the app automatically writes a
   `tags-backup-<timestamp>.json` next to the files (setting, on by default).
-- **Tech panel** — the full `mediainfo` report for any file, filterable and
-  copyable.
+- **Tech panel** — the full `mediainfo` report for audio and video, filterable
+  and copyable; `tagx info` also reads other supported files.
 - **Auto-updates** — via [Sparkle](https://sparkle-project.org); the app only
   installs updates after you confirm.
 - **CLI `tagx`** — everything scriptable with JSON output and exit codes:
@@ -184,8 +185,8 @@
 
 The app's user interface is available in English and German (it follows the
 system language); the CLI speaks English. One exception: the e-invoice view
-labels fields with the official German EN 16931 business-term names (as used
-by the German XRechnung specification) in both app and CLI — the BT/BG
+labels fields in both app and CLI with German descriptions written for
+the project and based on the EN 16931 business terms — the BT/BG
 numbers next to them are language-independent.
 
 ![Batch editing an album](docs/screenshots/en/batch.png)
@@ -196,8 +197,8 @@ each file from one of its own tags.*
 *The image editor with MWG-harmonized EXIF/IPTC/XMP fields.*
 
 ![E-book metadata editor](docs/screenshots/en/ebook.png)
-*The e-book editor: Calibre-style metadata plus cover for EPUB, PDF, and
-Calibre formats.*
+*The e-book editor: Calibre-style metadata, with cover support depending on
+the format. PDF metadata has no cover or series editor; AZW3 does not support series changes.*
 
 ## Keeping your files safe
 
@@ -211,8 +212,8 @@ the original, then checked (does the file still open, are channels, sample rate
 and duration unchanged, is the cover count right), and only then does it replace
 the original in a single atomic step. A crash, a format error or a full disk
 cannot leave a half-written file behind: either the change is complete, or the
-original is untouched. On APFS the copy is a clone, so this costs neither
-noticeable time nor disk space.
+original is untouched. On APFS the initial copy can share disk blocks with the original; changed
+blocks still require space, and backend processing can take time.
 
 **Safe mode puts the previous version in the trash.** Before each change, an
 untouched copy of the file goes to the trash — collected in one folder per
@@ -223,7 +224,7 @@ again, so it only takes up the space that actually changes. Safe mode is on by
 default while the app is young; turn it off under ⌘, or with `--no-backup` /
 `TAGX_NO_BACKUP=1` in the CLI.
 
-**Every trash backup is remembered, so you can undo.** Each copy is recorded
+**Trash backups provide an undo history.** Each copy is normally recorded
 in a small journal (`~/Library/Application Support/TagExplosion/backup-journal.json`:
 original path, trash path, time, size, SHA-256, trigger). The editor's
 "Versions …" button lists the backups of the open file, shows which fields
@@ -232,7 +233,10 @@ Last Change" (⌘⇧Z) restores the newest one. Restoring is a normal write: the
 current state goes to the trash first, so an undo can itself be undone. The
 CLI does the same with `tagx history list|diff|restore|prune`. Emptying the
 trash ends the history — the journal only indexes copies that still exist,
-and nothing is ever deleted from the trash by the app.
+and nothing is ever deleted from the trash by the app. The journal retains
+at most 5,000 entries; a journal write error leaves the backup in the trash
+without listing it in the history. Files over 512 MiB are checked by size
+instead of SHA-256 when restored.
 
 **Changes made by other programs are not overwritten silently.** If a file
 changed on disk after you opened it, saving stops and asks. Choosing "Save
@@ -242,17 +246,19 @@ fields and cover together — and checked again before a no-op result or the
 atomic replacement. Replacing a file at the same path is detected by its changed
 file identity, not mistaken for the file that was read.
 
-**Before writing, the app checks that there is room.** A batch that would run
-out of disk space is refused instead of started.
+**Before copying, the app checks available space on volumes without file
+cloning.** Each file is saved independently. A later failure in a batch leaves
+earlier successful saves in place and is reported per file; the batch is not
+a transaction across all files.
 
 **Batch saves also write a tag backup.** Before saving more than one file, a
 `tags-backup-<timestamp>.json` with the previous state (covers included) is
 written next to the files, restorable through the same import path or
 `tagx import`.
 
-**Formats the app cannot write safely stay read-only.** Containers that TagLib
-cannot write, PDFs without cover support, and e-book formats that need Calibre
-but do not have it are shown, not edited. A field that a format cannot store is
+**Writing capabilities depend on the format and field.** Containers without a
+safe TagLib write path stay read-only. PDF metadata is editable, its cover and
+series are not. Calibre formats become available when Calibre is installed. A field that a format cannot store is
 rejected before anything is written, not silently dropped.
 
 **Verified by tests, not by hope.** The test suite checks that the audio stream
@@ -288,7 +294,7 @@ the notice).
 | Camera RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | read embedded; write to XMP sidecar `<name>.xmp` only |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (editable) · mov, avi, ogv (view only) | MP4 atoms, Matroska tags |
 | Video sidecars | nfo (Kodi/Jellyfin XML; URL-only NFOs view only) · srt (view only, language via file name) · vtt (header editable) | NFO elements (unknown ones preserved), WebVTT header; cue time shift for srt/vtt |
-| E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover) |
+| E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover; AZW3: no series changes) |
 | Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
 | Playlists | cue · m3u, m3u8 · pls · xspf | Cue header/track lines, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (view: paths, existence, duration; edit: labels only; export: m3u8/pls/xspf) |
 | E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms; Order-X and Peppol orders with Order-X labels; basic validation warnings |
@@ -379,7 +385,7 @@ tagx history restore song.mp3 --version 1 --apply   # bring back the newest back
 tagx apply --example > rules.json              # commented sample rules file
 tagx apply rules.json Album/                   # preview: FIELD: old -> new per file
 tagx apply rules.json --apply Album/           # write the changes (trash copy, atomic replace)
-tagx export Album/ -o tags.json                # back up all tags (covers embedded)
+tagx export Album/ -o tags.json                # back up supported tags (covers embedded)
 tagx import --dry-run tags.json                # preview a restore
 tagx info video.mkv                            # full mediainfo report
 tagx invoice invoice.pdf                       # e-invoice profile, warnings + all fields (BT terms)
@@ -435,7 +441,7 @@ file's own volume), where every file manager shows it. See
 
 MIT (see [LICENSE](LICENSE)), © 2026 Daniel Müller.
 
-TagLib (LGPL-2.1-or-later or MPL-1.1) is linked dynamically and shipped
+TagLib (LGPL-2.1-only or MPL-1.1) is linked dynamically and shipped
 inside the app bundle, so it stays replaceable. The library code itself is
 untouched; bundling only rewrites the install names to point at the bundle's
 framework folder and re-signs the files. Sparkle (MIT),

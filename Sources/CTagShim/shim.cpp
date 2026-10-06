@@ -18,8 +18,8 @@
 #include <textidentificationframe.h>
 // mp4file.h gibt es in jeder TagLib 2.x und wird unabhängig von den Kapiteln
 // gebraucht (MP4-Tag für feste Felder, Podcast-Atome). Nur die Kapitel-API
-// hängt am 2.3-Header — sonst bricht der Release-Build gegen die portable
-// TagLib 2.1.1, während der Homebrew-Build (2.3.1) ihn nicht bemerkt.
+// hängt am 2.3-Header. Mit einer älteren Systembibliothek bleibt der Shim
+// dadurch baubar; der portable Release verwendet inzwischen TagLib 2.3.2.
 #include <mp4file.h>
 #if __has_include(<mp4chapter.h>)
 #define TX_HAVE_MP4_CHAPTERS 1
@@ -924,7 +924,7 @@ char* tx_get_lyrics_language(tx_file* f) {
 int tx_set_lyrics_language(tx_file* f, const char* language) {
     if (!valid_language(language)) return 0;
     TagLib::ID3v2::Tag* tag = id3v2_tag(f, false);
-    if (!tag) return 0;
+    if (!tag) return tx_id3v2_supported(f);
     for (auto* frame : tag->frameList("USLT")) {
         if (auto* uslt = dynamic_cast<TagLib::ID3v2::UnsynchronizedLyricsFrame*>(frame))
             uslt->setLanguage(language_bytes(language));

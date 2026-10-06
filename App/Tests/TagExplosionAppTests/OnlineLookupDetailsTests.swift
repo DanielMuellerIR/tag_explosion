@@ -6,6 +6,26 @@ import TagExplosionCore
 @Suite("Online-Auswahl: verspätete Antworten", .timeLimit(.minutes(1)))
 @MainActor
 struct OnlineLookupDetailsTests {
+    @Test("Widerruf stoppt den nächsten Request und verwirft laufende Antworten", arguments: [false, true])
+    func revokedConsent(duringCover: Bool) async {
+        let state = OnlineLookupDetails()
+        let gate = LookupGate()
+        var allowed = true
+        var coverCalls = 0
+        let loading = Task {
+            await state.load(candidate("revoked"), includeCover: true, isAllowed: { allowed },
+                details: { item in if !duringCover { await gate.wait() }; return item },
+                cover: { _ in coverCalls += 1; await gate.wait(); return Data([1]) })
+        }
+        await gate.waitUntilStarted()
+        allowed = false
+        gate.release()
+        await loading.value
+        #expect(coverCalls == (duringCover ? 1 : 0))
+        #expect(state.candidate == nil)
+        #expect(state.coverData == nil)
+        #expect(!state.isBusy)
+    }
     private func candidate(_ id: String) -> LookupCandidate {
         LookupCandidate(source: .musicbrainz, score: 100, artist: "Artist", album: id,
                         hasFullTracklist: true, coverURL: URL(string: "https://example.test/\(id)"),

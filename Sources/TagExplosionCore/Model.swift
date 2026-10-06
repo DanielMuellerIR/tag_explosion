@@ -198,7 +198,8 @@ public enum ID3Version: String, Sendable, Codable, CaseIterable {
     }
 }
 
-/// Vollständiger Tag-Zustand einer Datei — das, was gelesen/geschrieben wird.
+/// Vom Datenmodell erfasster Tag-Zustand einer Datei; unbekannte Rohframes
+/// und weitere Lyrics-Frames sind nicht vollständig enthalten.
 public struct TagData: Sendable, Codable, Equatable {
     public var properties: [TagProperty]
     public var artworks: [Artwork]
@@ -220,7 +221,9 @@ public struct TagData: Sendable, Codable, Equatable {
     /// Synchronisierte Lyrics (ID3v2 SYLT) in Zeitreihenfolge; leer bei
     /// Formaten ohne SYLT — dort übernimmt die LRC-Sidecar (`LRC`).
     public var syncedLyrics: [SyncedLyricLine]
-    /// Ob die Datei einen ID3v2-Tag trägt und damit SYLT und die
+    /// Eigene Sprache des SYLT-Frames; unabhängig von USLT.
+    public var syncedLyricsLanguage: String
+    /// Ob das Format einen ID3v2-Tag und damit SYLT und die
     /// Lyrics-Sprache speichern kann (MP3/MP2, WAV, AIFF, DSF).
     public var supportsSyncedLyrics: Bool
 
@@ -228,7 +231,7 @@ public struct TagData: Sendable, Codable, Equatable {
                 isReadOnly: Bool = false, chapters: [Chapter] = [], supportsChapters: Bool = false,
                 layers: [TagLayer] = [],
                 lyricsLanguage: String = "", syncedLyrics: [SyncedLyricLine] = [],
-                supportsSyncedLyrics: Bool = false) {
+                supportsSyncedLyrics: Bool = false, syncedLyricsLanguage: String = "") {
         self.properties = properties
         self.artworks = artworks
         self.audio = audio
@@ -238,7 +241,28 @@ public struct TagData: Sendable, Codable, Equatable {
         self.layers = layers
         self.lyricsLanguage = lyricsLanguage
         self.syncedLyrics = syncedLyrics
+        self.syncedLyricsLanguage = syncedLyricsLanguage
         self.supportsSyncedLyrics = supportsSyncedLyrics
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case properties, artworks, audio, isReadOnly, chapters, supportsChapters, layers
+        case lyricsLanguage, syncedLyrics, supportsSyncedLyrics, syncedLyricsLanguage
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        properties = try c.decode([TagProperty].self, forKey: .properties)
+        artworks = try c.decode([Artwork].self, forKey: .artworks)
+        audio = try c.decodeIfPresent(AudioInfo.self, forKey: .audio)
+        isReadOnly = try c.decode(Bool.self, forKey: .isReadOnly)
+        chapters = try c.decode([Chapter].self, forKey: .chapters)
+        supportsChapters = try c.decode(Bool.self, forKey: .supportsChapters)
+        layers = try c.decode([TagLayer].self, forKey: .layers)
+        lyricsLanguage = try c.decode(String.self, forKey: .lyricsLanguage)
+        syncedLyrics = try c.decode([SyncedLyricLine].self, forKey: .syncedLyrics)
+        supportsSyncedLyrics = try c.decode(Bool.self, forKey: .supportsSyncedLyrics)
+        syncedLyricsLanguage = try c.decodeIfPresent(String.self, forKey: .syncedLyricsLanguage) ?? ""
     }
 
     /// Alle Werte zu einem Schlüssel (Reihenfolge wie gelesen).
@@ -384,7 +408,7 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
         case .chaptersUnsupported(let path):
             return "Chapters are not supported for this file format (MP3, MP4, Matroska only): \(path)"
         case .seriesUnsupported(let path):
-            return "This file format cannot store a series (PDF): \(path)"
+            return "This file format cannot store a series: \(path)"
         case .invalidChapters(let reason):
             return "Invalid chapter list: \(reason)"
         case .unsupportedDocumentField(let name):

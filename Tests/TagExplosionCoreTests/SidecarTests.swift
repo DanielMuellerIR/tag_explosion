@@ -8,6 +8,63 @@ import Testing
 
 @Suite("Sidecars (NFO, SRT, VTT)")
 struct SidecarTests {
+    @Test("NFO erhält interne Entity-Inhalte bei Feldänderungen")
+    func internalEntitiesSurvive() throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = try writeFile("movie.nfo", "<!DOCTYPE movie [<!ENTITY title 'Titel &amp; Inhalt'>]><movie><title>&title;</title><year>2020</year></movie>", in: dir)
+        let original = try KodiNFOFile.read(url: url).fields
+        #expect(original.title == "Titel & Inhalt")
+        var edited = original
+        edited.year = "2021"
+        try KodiNFOFile.write(url: url, fields: edited, original: original)
+        #expect(try KodiNFOFile.read(url: url).fields.title == original.title)
+        #expect(try KodiNFOFile.read(url: url).fields.year == "2021")
+    }
+
+    @Test("XML lädt keine externen lokalen Entities", arguments: [false, true])
+    func rejectsExternalEntities(externalDTD: Bool) throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let external = try writeFile("external.txt", externalDTD ? "<!ENTITY title 'Externer Testinhalt'>" : "Externer Testinhalt", in: dir)
+        let declaration = externalDTD ? "<!DOCTYPE movie SYSTEM '\(external.absoluteString)'>" : "<!DOCTYPE movie [<!ENTITY title SYSTEM '\(external.absoluteString)'>]>"
+        let xml = declaration + "<movie><title>&title;</title></movie>"
+        #expect(throws: TagError.self) { _ = try KodiNFOFile.parse(xml, path: "test.nfo") }
+        #expect(throws: TagError.self) { _ = try XMLTools.document(from: Data(xml.utf8), path: "test.xml") }
+    }
+
+    @Test("Defektes XML wird vor einer NFO-Bearbeitung abgelehnt", arguments: [
+        "<movie><title>Alt</year></movie>",
+        "<movie><title>Alt</title></movie><extra/>",
+        "<movie><title>&unknown;</title></movie>",
+    ])
+    func malformedXMLIsRejected(_ xml: String) throws {
+        let dir = try makeDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = try writeFile("broken.nfo", xml, in: dir)
+        let before = try Data(contentsOf: url)
+        #expect(throws: TagError.self) { _ = try KodiNFOFile.read(url: url) }
+        #expect(throws: TagError.self) { _ = try XMLTools.document(from: before, path: url.path) }
+        #expect(try Data(contentsOf: url) == before)
+    }
+
+    @Test("DTD-Text und Kommentare mit SYSTEM/PUBLIC sind keine externen Deklarationen")
+    func literalDTDKeywordsAreAllowed() throws {
+        let xml = "<!DOCTYPE movie [<!-- SYSTEM 'ignored' --><?keep SYSTEM PUBLIC?><!ENTITY title 'SYSTEM PUBLIC &amp; Text'>]><movie><title>&title;</title></movie>"
+        let contents = try KodiNFOFile.parse(xml, path: "test.nfo")
+        #expect(contents.fields.title == "SYSTEM PUBLIC & Text")
+    }
+
+    @Test("Externe und parameterbasierte DTDs werden unabhängig von Nutzung und Encoding abgelehnt", arguments: [
+        "<!DOCTYPE movie PUBLIC '-//TEST//DTD movie//EN' 'file:///tmp/no-such-dtd'><movie/>",
+        "<!DOCTYPE movie [<!ENTITY title PUBLIC '-//TEST//Entity' 'file:///tmp/no-such-entity'>]><movie/>",
+        "<!DOCTYPE movie [<!ENTITY % remote SYSTEM 'file:///tmp/no-such-dtd'>]><movie/>",
+        "<!DOCTYPE movie [<!ENTITY % inject \"&#60;!ENTITY title SYSTEM 'file:///tmp/no-such-entity'>\">%inject;]><movie/>",
+    ], [String.Encoding.utf8, .utf16LittleEndian, .utf16BigEndian, .isoLatin1])
+    func externalDTDEncodingsAreRejected(_ xml: String, _ encoding: String.Encoding) throws {
+        let data = try #require(xml.data(using: encoding))
+        #expect(throws: TagError.self) { _ = try XMLTools.document(from: data, path: "test.xml") }
+    }
 
     private func makeDir() throws -> URL {
         let dir = FileManager.default.temporaryDirectory

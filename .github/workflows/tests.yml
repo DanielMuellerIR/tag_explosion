@@ -45,6 +45,8 @@ jobs:
           Tests/install-verified-app-tests.sh
           Tests/verify-macos-minimums-tests.sh
           Tests/taglib-refs-tests.sh
+          Tests/portable-taglib-tests.sh
+          Tests/dmg-ownership-tests.sh
           Tests/icon-generator-tests.sh
 
   # Core und CLI sind Linux-portabel — das prüft nur ein Lauf, der wirklich

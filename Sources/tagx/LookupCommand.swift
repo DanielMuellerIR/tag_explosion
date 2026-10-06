@@ -187,7 +187,7 @@ struct Lookup: AsyncParsableCommand {
                 try FileStamp.requireUnchanged(file.stamp, at: file.url)
                 try TrashBackup.shared.backUp(file.url)
                 try TagFile.write(properties: plan.apply(to: file.data.properties),
-                                  artworks: wantsCover ? [coverArtwork!] : nil,
+                                  artworks: wantsCover ? Self.replacingFront(coverArtwork!, in: file.data.artworks) : nil,
                                   to: file.url, expecting: file.stamp)
                 outcomes.append(.init(file: file.url.path, written: true, error: nil))
             } catch {
@@ -213,6 +213,16 @@ struct Lookup: AsyncParsableCommand {
             print("Written \(outcomes.filter(\.written).count) of \(outcomes.count) file(s)")
         }
         if failed { throw ExitCode(1) }
+    }
+
+    static func replacingFront(_ artwork: Artwork, in artworks: [Artwork]) -> [Artwork] {
+        var result = artworks
+        if let index = result.firstIndex(where: { $0.pictureType == "Front Cover" }) {
+            result[index] = artwork
+        } else {
+            result.insert(artwork, at: 0)
+        }
+        return result
     }
 
     // MARK: Textausgabe

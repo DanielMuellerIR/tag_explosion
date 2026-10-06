@@ -11,9 +11,10 @@ ein leeres Feld anders dargestellt wird oder ein Cover nicht entfernt werden kan
 Bei EPUB funktioniert dasselbe Kommando. Auch `ebook-convert` epub→azw3 nimmt
 die Serie nicht mit. Konsequenz im Code:
 
-- `EbookToolTests` prüft die Serie beim azw3-Roundtrip bewusst nicht.
-- Kein Workaround eingebaut; die App zeigt nach Speichern+Neuladen den echten
-  Dateizustand — die Serie verschwindet dann sichtbar (ehrlich statt still).
+- Seit 0.47.4 lehnt der Schreibweg Änderungen an Serie/Serienindex vor der
+  Mutation ab. Die App bietet sie für AZW3 nicht an.
+- Der AZW3-Roundtrip verändert diese Felder nicht; ein zusätzlicher Test
+  verlangt bei einem Serienwunsch einen Fehler und bytegleiches Original.
 
 ## Datum: reines Datum rutscht einen Tag zurück
 
@@ -72,3 +73,7 @@ Der abschließende Ausgabezeilenumbruch ist nur ein Datensatztrenner und wird
 nicht an den letzten Feldwert angehängt. Echte AZW3-Archivprüfungen kontrollieren
 den vollständigen mehrzeiligen Text zusätzlich gegen die direkte Calibre-Ausgabe;
 ein coverfreies FB2 bleibt nach Export, Dry-run und Import byte- und inodegleich.
+
+Seit 0.47.4 werden Serienänderungen bei AZW3 vor dem Schreiben abgelehnt.
+App-Felder bleiben ausgeblendet; Änderungen über CLI, Muster und Regeln werden
+ebenfalls abgewiesen. Unveränderte Bestandswerte blockieren andere Felder nicht.

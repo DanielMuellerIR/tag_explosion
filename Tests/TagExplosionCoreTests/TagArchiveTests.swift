@@ -14,6 +14,159 @@ import Testing
 
 @Suite("TagArchive", .serialized)
 struct TagArchiveTests {
+    @Test("Audioarchive stellen Kapitel, Lyrics und unabhängige Sprachen wieder her", arguments: ["chapters", "synced", "uslt", "sylt"])
+    func restoresAudioDetails(_ field: String) throws {
+        let folder = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("sample.mp3")
+        let chapters = [Chapter(title: "Intro", startMilliseconds: 0, endMilliseconds: 1000)]
+        let lines = [SyncedLyricLine(milliseconds: 0, text: "Original")]
+        try TagFile.write(properties: [TagProperty(key: "LYRICS", value: "Text")],
+                          chapters: chapters, syncedLyrics: lines, lyricsLanguage: "eng",
+                          syncedLyricsLanguage: "deu", to: url)
+        let original = try TagFile.read(at: url)
+        let archive = try TagArchiveIO.build(files: [url], baseDirectory: folder, includeCovers: false)
+        #expect(archive.version == 5)
+        #expect(archive.files[0].artworks == nil)
+        switch field {
+        case "chapters": try TagFile.write(chapters: [], to: url)
+        case "synced": try TagFile.write(syncedLyrics: [SyncedLyricLine(milliseconds: 500, text: "Geändert")], to: url)
+        case "uslt": try TagFile.write(lyricsLanguage: "fra", to: url)
+        default: try TagFile.write(syncedLyricsLanguage: "fra", to: url)
+        }
+        let report = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false)
+        #expect(report.applied == ["sample.mp3"])
+        #expect(report.failed.isEmpty)
+        let restored = try TagFile.read(at: url)
+        #expect(restored.chapters == original.chapters)
+        #expect(restored.syncedLyrics == original.syncedLyrics)
+        #expect(restored.lyricsLanguage == "eng")
+        #expect(restored.syncedLyricsLanguage == "deu")
+        #expect(try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: true).unchanged == ["sample.mp3"])
+    }
+
+    @Test("Alte Archive lassen nicht gesicherte Kapitel und Lyrics unverändert", arguments: [1, 2, 3, 4])
+    func oldSchemaDoesNotClearAudioDetails(_ version: Int) throws {
+        let archive = TagArchive(version: version, created: "2026-10-06T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio, properties: [:]),
+        ])
+        let decoded = try JSONDecoder().decode(TagArchive.self, from: JSONEncoder().encode(archive))
+        try TagArchiveIO.validate(decoded)
+        #expect(decoded.files[0].chapters == nil)
+        #expect(decoded.files[0].syncedLyrics == nil)
+        var invalid = decoded
+        invalid.files[0].chapters = []
+        #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(invalid) }
+    }
+
+    @Test("Externe XMP-Verknüpfungen gehören zur Zielfreigabe und werden erneut geprüft")
+    func externalSidecarRequiresApproval() throws {
+        let folder = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let base = folder.appendingPathComponent("archive")
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let image = base.appendingPathComponent("cover.jpg")
+        try FileManager.default.copyItem(at: folder.appendingPathComponent("cover.jpg"), to: image)
+        let external = folder.appendingPathComponent("external.xmp")
+        let second = folder.appendingPathComponent("second.xmp")
+        let xmp = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8)
+        try xmp.write(to: external)
+        try xmp.write(to: second)
+        let sidecar = MediaFormats.sidecarURL(for: image)
+        try FileManager.default.createSymbolicLink(at: sidecar, withDestinationURL: external)
+        let archive = TagArchive(created: "2026-10-06T00:00:00Z", files: [
+            .init(path: "cover.jpg", kind: .image, image: ImageCoreFields(title: "Neuer Titel")),
+        ])
+        #expect(throws: TagArchiveError.self) {
+            _ = try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false)
+        }
+        #expect(try Data(contentsOf: external) == xmp)
+        let targets = try TagArchiveIO.validatedTargets(archive, relativeTo: base, allowExternalTargets: true)
+        #expect(targets == [MediaFormats.canonicalFileURL(image), MediaFormats.canonicalFileURL(external)])
+        #expect(TagArchiveIO.externalTargets(targets, relativeTo: base) == [external])
+        try FileManager.default.removeItem(at: sidecar)
+        try FileManager.default.createSymbolicLink(at: sidecar, withDestinationURL: second)
+        #expect(throws: TagArchiveError.approvedTargetListChanged) {
+            _ = try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false,
+                approvedTargets: targets, allowExternalTargets: true,
+                afterValidation: {}, backUp: { _ in Issue.record("Nicht freigegebenes Ziel erreicht Backup") })
+        }
+        try FileManager.default.removeItem(at: sidecar)
+        try FileManager.default.createSymbolicLink(at: sidecar, withDestinationURL: external)
+        let report = try TagArchiveIO.apply(archive, relativeTo: base, dryRun: false,
+            approvedTargets: targets, allowExternalTargets: true, afterValidation: {
+                try FileManager.default.removeItem(at: sidecar)
+                try FileManager.default.createSymbolicLink(at: sidecar, withDestinationURL: second)
+            }, backUp: { _ in Issue.record("Umgebogenes Ziel erreicht Backup") })
+        #expect(report.failed.count == 1)
+        #expect(try Data(contentsOf: external) == xmp)
+        #expect(try Data(contentsOf: second) == xmp)
+    }
+
+    @Test("Gemeinsame XMP-Ziele werden vor der ersten Archivmutation abgelehnt", arguments: [false, true])
+    func sharedSidecarTargetsAreRejected(hardlink: Bool) throws {
+        let folder = try makeFolder(["cover.jpg", "cover.png"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let first = folder.appendingPathComponent("cover.jpg")
+        let second = folder.appendingPathComponent(hardlink ? "second.png" : "cover.png")
+        if hardlink { try FileManager.default.moveItem(at: folder.appendingPathComponent("cover.png"), to: second) }
+        let xmp = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8)
+        let sidecar = MediaFormats.sidecarURL(for: first)
+        try xmp.write(to: sidecar)
+        if hardlink { try FileManager.default.linkItem(at: sidecar, to: MediaFormats.sidecarURL(for: second)) }
+        let firstBytes = try Data(contentsOf: first), secondBytes = try Data(contentsOf: second)
+        let archive = TagArchive(created: "2026-10-06T00:00:00Z", files: [
+            .init(path: first.lastPathComponent, kind: .image, image: ImageCoreFields(title: "Eins")),
+            .init(path: second.lastPathComponent, kind: .image, image: ImageCoreFields(title: "Zwei")),
+        ])
+        #expect(throws: TagArchiveError.self) {
+            _ = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false,
+                afterValidation: {}, backUp: { _ in Issue.record("Doppeltes Ziel erreicht Backup") })
+        }
+        #expect(try Data(contentsOf: first) == firstBytes)
+        #expect(try Data(contentsOf: second) == secondBytes)
+        #expect(try Data(contentsOf: sidecar) == xmp)
+    }
+
+    @Test("Ein Archiv-No-op erkennt fremde XMP-Änderungen unmittelbar vor Erfolg", arguments: [false, true])
+    func sidecarNoopRetargetIsRejected(retarget: Bool) throws {
+        let folder = try makeFolder(["cover.jpg"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent("cover.jpg")
+        let sidecar = MediaFormats.sidecarURL(for: image)
+        let xmp = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>".utf8)
+        try xmp.write(to: sidecar)
+        let archive = try TagArchiveIO.build(files: [image], baseDirectory: folder, includeCovers: false)
+        let second = folder.appendingPathComponent("other.xmp")
+        let foreign = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><!--fremd--></x:xmpmeta>".utf8)
+        try foreign.write(to: second)
+        let report = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false,
+            afterValidation: {}, beforeNoopReturn: { _ in
+                if retarget {
+                    try FileManager.default.removeItem(at: sidecar)
+                    try FileManager.default.createSymbolicLink(at: sidecar, withDestinationURL: second)
+                } else { try foreign.write(to: sidecar) }
+            }, backUp: { _ in Issue.record("Geändertes No-op-Ziel erreicht Backup") })
+        #expect(report.unchanged.isEmpty)
+        #expect(report.failed.map(\.0) == ["cover.jpg"])
+        #expect(try Data(contentsOf: sidecar) == foreign)
+    }
+
+    @Test("NUL und ungültige Kapitel im zweiten Eintrag scheitern vor jeder Mutation", arguments: [false, true])
+    func invalidAudioDetailsPreventPartialImport(nul: Bool) throws {
+        let folder = try makeFolder(["sample.mp3", "sample.flac"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let first = folder.appendingPathComponent("sample.mp3")
+        let before = try Data(contentsOf: first)
+        let second = TagArchive.Entry(path: "sample.flac", kind: .audio,
+            properties: nul ? ["TITLE": ["vor\0nach"]] : [:],
+            chapters: nul ? nil : [Chapter(title: "Unzulässig", startMilliseconds: 0, endMilliseconds: 1000)])
+        let archive = TagArchive(created: "2026-10-06T00:00:00Z", files: [
+            .init(path: "sample.mp3", kind: .audio, properties: ["TITLE": ["Geändert"]]), second,
+        ])
+        #expect(throws: (any Error).self) { _ = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false) }
+        #expect(try Data(contentsOf: first) == before)
+    }
 
     private static let calibreFixtureAvailable = EbookTool.calibreAvailable
         && FileManager.default.fileExists(

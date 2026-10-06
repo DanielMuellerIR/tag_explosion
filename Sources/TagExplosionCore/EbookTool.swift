@@ -165,6 +165,7 @@ public enum EbookTool {
     static func writeCoreFields(
         url: URL, fields: EbookCoreFields, original: EbookCoreFields
     ) throws {
+        try requireStorableSeries(fields, original: original, url: url)
         guard fields != original else { return }
         switch backend(for: url) {
         case .epub: try EpubFile.writeCoreFields(url: url, fields: fields, original: original)
@@ -343,10 +344,14 @@ public enum EbookTool {
         backend(for: url) == .epub
     }
 
-    /// Kann dieses Format eine Serie speichern? (PDF nicht — exiftool kennt
-    /// keinen Standard-Ort dafür; Serienfelder werden dort ignoriert.)
+    /// PDF hat keinen Standard-Ort für Serien; Calibre schreibt sie in AZW3
+    /// nicht verlässlich zurück. Diese Formate dürfen keine Serienänderung anbieten.
     public static func supportsSeries(url: URL) -> Bool {
-        backend(for: url) != .pdf
+        switch backend(for: url) {
+        case .epub: return true
+        case .calibre: return url.pathExtension.lowercased() != "azw3"
+        case .pdf, nil: return false
+        }
     }
 
     public static func readCover(url: URL) throws -> Artwork? {

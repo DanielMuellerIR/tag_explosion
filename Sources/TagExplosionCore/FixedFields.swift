@@ -169,6 +169,8 @@ public enum FixedFields {
         func reject(_ reason: String) -> TagError {
             TagError.invalidFieldValue(field: key, reason: reason)
         }
+        try validateText(key, field: "tag key")
+        try validateText(value, field: key)
         switch key {
         case replayGainTrackGain, replayGainAlbumGain:
             guard let gain = Loudness.parseGain(value) else {
@@ -207,6 +209,12 @@ public enum FixedFields {
             }
         default:
             break
+        }
+    }
+
+    static func validateText(_ value: String, field: String) throws {
+        guard !value.utf8.contains(0) else {
+            throw TagError.invalidFieldValue(field: field, reason: "NUL cannot be stored in tag text")
         }
     }
 

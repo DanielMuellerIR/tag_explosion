@@ -112,15 +112,25 @@ public final class TagFile {
 
     /// Synchronisierte Lyrics (SYLT) in Zeitreihenfolge; leer ohne SYLT.
     public func syncedLyrics() throws -> [SyncedLyricLine] {
+        try syncedLyricsReading().lines
+    }
+
+    private func syncedLyricsReading() throws -> (lines: [SyncedLyricLine], language: String) {
         let h = try requireHandle()
         var count: Int32 = 0
-        let raw = tx_get_synced_lyrics(h, &count, nil)
-        defer { tx_free_synced_lyrics(raw, count) }
+        var rawLanguage: UnsafeMutablePointer<CChar>?
+        let raw = tx_get_synced_lyrics(h, &count, &rawLanguage)
+        defer {
+            tx_free_synced_lyrics(raw, count)
+            free(rawLanguage)
+        }
         guard count >= 0 else { throw TagError.cannotOpen(path: path) }
-        guard let raw, count > 0 else { return [] }
-        return (0..<Int(count)).map { i in
+        let language = rawLanguage.map { FixedFields.normalizedLanguage(String(cString: $0)) } ?? ""
+        guard let raw, count > 0 else { return ([], language) }
+        let lines = (0..<Int(count)).map { i in
             SyncedLyricLine(milliseconds: Int(raw[i].time_ms), text: String(cString: raw[i].text))
         }
+        return (lines, language)
     }
 
     public func artworks() throws -> [Artwork] {
@@ -211,18 +221,19 @@ public final class TagFile {
     }
 
     /// Liest den kompletten Tag-Zustand in einem Rutsch.
-    public func readAll() throws -> TagData {
-        TagData(
+    public func readAll(includeArtworks: Bool = true) throws -> TagData {
+        let synced = try syncedLyricsReading()
+        return TagData(
             properties: try properties(),
-            artworks: try artworks(),
+            artworks: includeArtworks ? try artworks() : [],
             audio: audioInfo(),
             isReadOnly: isReadOnly,
             chapters: try chapters(),
             supportsChapters: supportsChapters,
             layers: try layers(),
             lyricsLanguage: lyricsLanguage(),
-            syncedLyrics: try syncedLyrics(),
-            supportsSyncedLyrics: supportsSyncedLyrics
+            syncedLyrics: synced.lines,
+            supportsSyncedLyrics: supportsSyncedLyrics, syncedLyricsLanguage: synced.language
         )
     }
 
@@ -420,11 +431,25 @@ public final class TagFile {
         chapters: [Chapter]? = nil,
         syncedLyrics: [SyncedLyricLine]? = nil,
         lyricsLanguage: String? = nil,
+        syncedLyricsLanguage: String? = nil,
         to url: URL,
         expecting stamp: FileStamp? = nil,
         id3Version: ID3Version = .v24,
         allowingArchivedValues: Bool = false
     ) throws {
+        if let properties {
+            for property in properties {
+                try FixedFields.validateText(property.key, field: "tag key")
+                try FixedFields.validateText(property.value, field: property.key)
+            }
+        }
+        for artwork in artworks ?? [] {
+            try FixedFields.validateText(artwork.description, field: "artwork description")
+            try FixedFields.validateText(artwork.mimeType, field: "artwork MIME type")
+            try FixedFields.validateText(artwork.pictureType, field: "artwork type")
+        }
+        for chapter in chapters ?? [] { try FixedFields.validateText(chapter.title, field: "chapter title") }
+        for line in syncedLyrics ?? [] { try FixedFields.validateText(line.text, field: "synced lyrics") }
         // Vorher-Zustand als Vergleichsmaßstab für die Prüfung danach.
         let before = try TagFile.read(at: url)
         if before.isReadOnly { throw TagError.readOnly(path: url.path) }
@@ -450,6 +475,12 @@ public final class TagFile {
             throw TagError.invalidFieldValue(
                 field: "LYRICS language", reason: "expected three letters (ISO 639-2), got \"\(lyricsLanguage)\"")
         }
+        if let syncedLyricsLanguage {
+            guard before.supportsSyncedLyrics else { throw TagError.syncedLyricsUnsupported(path: url.path) }
+            guard FixedFields.isValidLanguage(syncedLyricsLanguage) else {
+                throw TagError.invalidFieldValue(field: "SYLT language", reason: "expected three letters (ISO 639-2)")
+            }
+        }
         let language = lyricsLanguage.map(FixedFields.normalizedLanguage) ?? before.lyricsLanguage
 
         try AtomicFileRewrite.run(url: url, expecting: stamp) { temp in
@@ -461,11 +492,20 @@ public final class TagFile {
             if lyricsLanguage != nil { try file.setLyricsLanguage(language) }
             if let artworks { try file.setArtworks(artworks) }
             if let chapters { try file.setChapters(chapters) }
-            if let syncedLyrics { try file.setSyncedLyrics(syncedLyrics, language: language) }
+            if let syncedLyrics = syncedLyrics ?? (syncedLyricsLanguage != nil ? before.syncedLyrics : nil) {
+                // USLT und SYLT dürfen unterschiedliche Sprachen tragen.
+                // Eine reine Zeilenänderung erhält die Sprache des SYLT.
+                let existing = try file.syncedLyricsReading()
+                let syncedLanguage = syncedLyricsLanguage.map(FixedFields.normalizedLanguage)
+                    ?? (lyricsLanguage == nil && !existing.lines.isEmpty ? existing.language : language)
+                try file.setSyncedLyrics(syncedLyrics, language: syncedLanguage)
+            }
             try file.save(id3Version: id3Version)
         } validate: { temp in
             try validateWriteResult(at: temp, expecting: artworks, chapters: chapters,
                                     syncedLyrics: syncedLyrics,
+                                    lyricsLanguage: lyricsLanguage.map(FixedFields.normalizedLanguage),
+                                    syncedLyricsLanguage: syncedLyricsLanguage.map(FixedFields.normalizedLanguage),
                                     comparedTo: before.audio, originalPath: url.path)
         }
     }
@@ -524,6 +564,7 @@ public final class TagFile {
     private static func validateWriteResult(
         at url: URL, expecting artworks: [Artwork]?, chapters: [Chapter]?,
         syncedLyrics: [SyncedLyricLine]? = nil,
+        lyricsLanguage: String? = nil, syncedLyricsLanguage: String? = nil,
         comparedTo before: AudioInfo?, originalPath: String
     ) throws {
         let file = try TagFile(url: url) // muss überhaupt wieder lesbar sein
@@ -532,6 +573,15 @@ public final class TagFile {
 
         if let syncedLyrics, (try file.syncedLyrics()) != syncedLyrics {
             throw TagError.saveFailed(path: originalPath)
+        }
+
+        if let lyricsLanguage, !FixedFields.lyricsText(in: try file.properties()).isEmpty,
+           file.lyricsLanguage() != lyricsLanguage { throw TagError.saveFailed(path: originalPath) }
+        if let syncedLyricsLanguage {
+            let synced = try file.syncedLyricsReading()
+            if !synced.lines.isEmpty, synced.language != syncedLyricsLanguage {
+                throw TagError.saveFailed(path: originalPath)
+            }
         }
 
         if let artworks, (try file.artworks()).count != artworks.count {

@@ -20,7 +20,7 @@
 </p>
 
 ![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/de/audio.png)
-*Der Audio-Editor: Cover, alle Tag-Felder und an jedem Feld ein Kopier-Menü.*
+*Der Audio-Editor: Cover, alle Tag-Felder und Kopier-Menüs an den allgemeinen Textfeldern.*
 
 ## Funktionen
 
@@ -142,7 +142,7 @@
 - **Konsistenzprüfung** — ein Bericht über einen Ordner oder eine Auswahl:
   fehlendes Cover, Cover-Größe/-Format im Album uneinheitlich, Album-Interpret
   uneinheitlich oder bei einer Compilation fehlend, Track- und Disc-Nummern
-  (fehlend, Lücken, Dubletten, ohne Gesamtzahl, größer als die Gesamtzahl),
+  (fehlend, null oder negativ, Lücken, Dubletten, ohne Gesamtzahl, größer als die Gesamtzahl),
   Jahr, Genre und Album-Schreibweise im Album uneinheitlich, leere Felder
   Titel/Interpret/Album, gleicher Titel + Interpret + Dauer (±2 s) über alle
   Dateien und optional Dateinamen gegen ein Muster. Gruppiert wird nach Album
@@ -167,19 +167,20 @@
   per Voreinstellung, `--example` gibt eine kommentierte Beispieldatei aus,
   Exit 64 bei ungültiger Regeldatei). Geschrieben wird über den gewohnten
   sicheren Weg.
-- **Werte zwischen Tags kopieren** — jedes Textfeld (Einzeldatei und Batch)
-  kann seinen Wert pro Datei aus einem anderen Tag übernehmen. Funktioniert
+- **Werte zwischen Tags kopieren** — die allgemeinen Audio-Textfelder und
+  typkompatible Bild-Textfelder können Werte pro Datei aus einem anderen Tag übernehmen. Funktioniert
   auch über Tag-Formate hinweg (z. B. EXIF → IPTC/XMP), beschränkt auf
   typkompatible Textfelder.
 - **Abgesicherter Modus** — vor jeder Änderung landet eine unveränderte Kopie
   der Datei im Papierkorb, und jeder Schreibvorgang läuft über eine geprüfte
   Kopie. Siehe [Wie die Dateien geschützt werden](#wie-die-dateien-geschützt-werden).
-- **Tag-Export/-Import mit Auto-Backup** — die Batch-Editoren exportieren alle
-  Tags einer Auswahl (Cover eingebettet) in eine selbständige JSON-Datei und
+- **Tag-Export/-Import mit Auto-Backup** — die Batch-Editoren exportieren die
+  unterstützten Tags einer Auswahl (Cover eingebettet; bei Audio auch Kapitel
+  und eingebettete Lyrics mit Sprache) in eine selbständige JSON-Datei und
   stellen daraus wieder her; vor Batch-Speichern legt die App automatisch ein
   `tags-backup-<Zeitstempel>.json` neben die Dateien (Einstellung, Default an).
-- **Technik-Panel** — der vollständige `mediainfo`-Bericht zu jeder Datei,
-  filterbar und kopierbar.
+- **Technik-Panel** — der vollständige `mediainfo`-Bericht für Audio und Video,
+  filterbar und kopierbar; `tagx info` liest auch andere unterstützte Dateien.
 - **Auto-Updates** — über [Sparkle](https://sparkle-project.org); installiert
   wird nur nach Bestätigung.
 - **CLI `tagx`** — alles auch headless, mit JSON-Ausgabe und Exit-Codes:
@@ -188,8 +189,8 @@
 
 Die Oberfläche der App ist deutsch und englisch (folgt der Systemsprache);
 die CLI spricht Englisch. Eine Ausnahme: Die E-Rechnungs-Anzeige beschriftet
-Felder in App und CLI mit den offiziellen deutschen
-EN-16931-Feldbezeichnungen (wie in der XRechnung-Spezifikation); die
+Felder in App und CLI mit deutschen
+Bezeichnungen für die EN-16931-Felder; die
 BT-/BG-Nummern daneben sind sprachunabhängig.
 
 ![Batch-Bearbeitung eines Albums](docs/screenshots/de/batch.png)
@@ -200,8 +201,8 @@ Kopier-Menüs befüllen jede Datei aus einem ihrer eigenen Tags.*
 *Der Bild-Editor mit MWG-harmonisierten EXIF/IPTC/XMP-Feldern.*
 
 ![E-Book-Metadaten-Editor](docs/screenshots/de/ebook.png)
-*Der E-Book-Editor: Metadaten wie in Calibre plus Cover für EPUB, PDF und
-Calibre-Formate.*
+*Der E-Book-Editor: Metadaten wie in Calibre; Cover je nach Format. PDF hat
+keinen Cover- oder Serieneditor; AZW3 unterstützt keine Serienänderungen.*
 
 ## Wie die Dateien geschützt werden
 
@@ -216,8 +217,9 @@ Samplerate und Spielzeit unverändert, stimmt die Zahl der Cover) und ersetzt da
 Original erst danach in einem einzigen atomaren Schritt. Ein Absturz, ein
 Formatfehler oder ein voller Datenträger kann keine halb geschriebene Datei
 hinterlassen: Entweder die Änderung ist vollständig, oder das Original ist
-unberührt. Auf APFS ist die Kopie ein Klon und kostet dadurch weder spürbar Zeit
-noch Speicherplatz.
+unberührt. Auf APFS kann die anfängliche Kopie Blöcke mit dem Original teilen;
+geänderte Blöcke brauchen weiterhin Platz, und die Backend-Verarbeitung kann
+Zeit benötigen.
 
 **Der abgesicherte Modus legt die alte Fassung in den Papierkorb.** Vor jeder
 Änderung wandert eine unveränderte Kopie der Datei dorthin — gesammelt in einem
@@ -229,10 +231,12 @@ Auch hier ist die Kopie auf APFS ein Klon und belegt nur das, was sich
 tatsächlich ändert. Der Modus ist standardmäßig an, solange die App jung ist;
 abschalten unter ⌘, oder in der CLI mit `--no-backup` bzw. `TAGX_NO_BACKUP=1`.
 
-**Jede Papierkorb-Sicherung wird verzeichnet — deshalb gibt es ein Undo.**
-Jede Kopie landet in einem kleinen Journal (`~/Library/Application
+**Papierkorb-Sicherungen bilden eine Undo-Historie.**
+Kopien werden normalerweise in einem begrenzten Journal verzeichnet (`~/Library/Application
 Support/TagExplosion/backup-journal.json`: Originalpfad, Pfad im Papierkorb,
-Zeit, Größe, SHA-256, Auslöser). Der Knopf „Versionen …“ im Editor listet die
+Zeit, Größe, SHA-256, Auslöser; höchstens 5000 Einträge). Dateien über 512 MiB
+werden anhand ihrer Größe geprüft. Scheitert der Journaleintrag, bleibt die
+Kopie im Papierkorb erhalten, erscheint aber nicht in der Historie. Der Knopf „Versionen …“ im Editor listet die
 Sicherungen der geöffneten Datei, zeigt je Version, welche Felder sich vom
 jetzigen Stand unterscheiden, und stellt eine gewählte Version wieder her;
 „Ablage → Letzte Änderung rückgängig“ (⌘⇧Z) holt die jüngste zurück.
@@ -251,17 +255,18 @@ kopiert. Metadaten-Reads werden vorher und nachher als ein Schnappschuss geprüf
 oder dem atomaren Austausch. Eine Ersetzung am gleichen Pfad fällt durch ihre
 neue Dateiidentität auf und gilt nicht als die zuvor gelesene Datei.
 
-**Vor dem Schreiben wird geprüft, ob genug Platz da ist.** Ein Stapel, dem der
-Speicherplatz ausginge, wird abgelehnt statt begonnen.
+**Vor dem Kopieren wird der verfügbare Platz auf Datenträgern ohne Klonfunktion
+geprüft.** Die Prüfung gilt pro Datei. Ein Stapel kann daher nach bereits
+gespeicherten Dateien an Platzmangel scheitern.
 
 **Vor Batch-Speichern entsteht zusätzlich ein Tag-Backup.** Bei mehr als einer
 Datei wird ein `tags-backup-<Zeitstempel>.json` mit dem bisherigen Zustand
 (inklusive Cover) neben die Dateien gelegt, wiederherstellbar über denselben
 Import-Weg oder `tagx import`.
 
-**Was sich nicht sicher schreiben lässt, bleibt read-only.** Container, die
-TagLib nicht schreiben kann, PDFs ohne Cover-Unterstützung und E-Book-Formate,
-die Calibre brauchen, es aber nicht vorfinden, werden angezeigt statt bearbeitet.
+**Schreibfähigkeiten gelten je Format und Feld.** Container ohne sicheren
+TagLib-Schreibweg bleiben read-only. PDF-Metadaten sind editierbar, Cover und
+Serie nicht. Calibre-Formate stehen erst mit installiertem Calibre zur Verfügung.
 Ein Feld, das ein Format nicht aufnehmen kann, wird vor dem Schreiben abgelehnt
 und nicht stillschweigend verworfen.
 
@@ -299,7 +304,7 @@ mit `TAGX_ONLINE=1` (`tagx lookup --privacy` zeigt den Hinweis).
 | Kamera-RAW | cr2, cr3, nef, arw, raf, orf, rw2, pef | eingebettet lesen; schreiben nur in die XMP-Sidecar `<name>.xmp` |
 | Video | mp4, m4v, 3gp, 3g2, mkv, webm (bearbeitbar) · mov, avi, ogv (nur Anzeige) | MP4-Atome, Matroska-Tags |
 | Video-Sidecars | nfo (Kodi/Jellyfin-XML; Nur-URL-NFO nur Anzeige) · srt (nur Anzeige, Sprache über den Dateinamen) · vtt (Kopf editierbar) | NFO-Elemente (unbekannte bleiben erhalten), WebVTT-Kopf; Zeitverschiebung der Cues für srt/vtt |
-| E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover) |
+| E-Books | epub, pdf · mobi, azw3, fb2 (mit Calibre) | EPUB-OPF, PDF Info/XMP (PDF: keine Serie/kein Cover; AZW3: keine Serienänderung) |
 | Dokumente | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml nur Anzeige), ODF meta.xml, ComicInfo.xml (Cover = erste Seite, nur Anzeige), YAML-Frontmatter (fremde Schlüssel bleiben erhalten) |
 | Playlists | cue · m3u, m3u8 · pls · xspf | Cue-Kopf/Track-Zeilen, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (Anzeige: Pfade, Existenz, Dauer; Bearbeiten: nur Beschriftung; Export: m3u8/pls/xspf) |
 | E-Rechnungen (nur Anzeige) | xml · pdf (eingebettete Rechnung) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII und UBL, Felder mit BT-/BG-Bezeichnungen; Order-X und Peppol-Bestellungen mit Order-X-Bezeichnungen; Hinweise der Grundvalidierung |
@@ -392,7 +397,7 @@ tagx history restore song.mp3 --version 1 --apply   # jüngste Sicherung zurück
 tagx apply --example > regeln.json             # kommentierte Beispiel-Regeldatei
 tagx apply regeln.json Album/                  # Vorschau: FELD: alt -> neu je Datei
 tagx apply regeln.json --apply Album/          # Änderungen schreiben (Papierkorb-Kopie, atomarer Austausch)
-tagx export Album/ -o tags.json                # alle Tags sichern (Cover eingebettet)
+tagx export Album/ -o tags.json                # unterstützte Tags sichern (Cover eingebettet)
 tagx import --dry-run tags.json                # Wiederherstellung als Vorschau
 tagx info video.mkv                            # vollständiger mediainfo-Bericht
 tagx invoice rechnung.pdf                      # E-Rechnung: Profil, Hinweise + alle Felder (BT-Nummern)
@@ -449,7 +454,7 @@ stehen in [docs/PLAN.md](docs/PLAN.md), der Release-Ablauf in
 
 MIT (siehe [LICENSE](LICENSE)), © 2026 Daniel Müller.
 
-TagLib (LGPL-2.1-or-later oder MPL-1.1) wird dynamisch gelinkt und im
+TagLib (LGPL-2.1-only oder MPL-1.1) wird dynamisch gelinkt und im
 App-Bundle mitgeliefert, bleibt dort also austauschbar. Der Bibliothekscode
 bleibt dabei unverändert; nur die Install-Namen werden auf den Ordner im
 Bundle umgebogen und die Dateien neu signiert. Ebenfalls gelinkt

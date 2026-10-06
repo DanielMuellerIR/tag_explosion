@@ -9,12 +9,20 @@ struct BatchEditorView: View {
     let entries: [FileEntry]
     @State private var coverTargeted = false
 
+    var canEditCovers: Bool {
+        !entries.isEmpty && entries.allSatisfy { !$0.isReadOnly && MediaFormats.supportsEmbeddedArtwork($0.url) }
+    }
+
+    func canEdit(_ key: String) -> Bool {
+        entries.allSatisfy { !$0.isReadOnly && (MediaFormats.writableTagKeys(for: $0.url)?.contains(key) ?? true) }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 batchFieldsSection
-                if entries.allSatisfy({ FixedFields.supportsLoudness($0.url) }) {
+                if entries.allSatisfy({ !$0.isReadOnly && FixedFields.supportsLoudness($0.url) }) {
                     BatchLoudnessSection(entries: entries)
                 }
                 actionsSection
@@ -62,6 +70,7 @@ struct BatchEditorView: View {
                     CoverInfoLine(artwork: cover)
                 }
                 CoverToolsButton(entries: entries)
+                    .disabled(!canEditCovers)
             }
         }
     }
@@ -79,7 +88,9 @@ struct BatchEditorView: View {
                 VStack(spacing: 4) {
                     Image(systemName: allSame ? "photo.on.rectangle.angled" : "questionmark.square.dashed")
                         .font(.largeTitle)
-                    Text(allSame ? "Cover für alle\nhierher ziehen" : "verschiedene Cover\n(Drop ersetzt alle)")
+                    Text(canEditCovers
+                         ? (allSame ? "Cover für alle\nhierher ziehen" : "verschiedene Cover\n(Drop ersetzt alle)")
+                         : "Cover für diese Auswahl\nnicht bearbeitbar")
                         .font(.caption2)
                         .multilineTextAlignment(.center)
                 }
@@ -92,16 +103,18 @@ struct BatchEditorView: View {
         }
         .frame(width: 140, height: 140)
         .onDrop(of: [.fileURL, .image], isTargeted: $coverTargeted) { providers in
-            handleCoverDrop(providers)
+            canEditCovers && handleCoverDrop(providers)
         }
         .contextMenu {
             Button("Bild auswählen …") { pickCover() }
             Button("Cover überall entfernen", role: .destructive) {
+                guard canEditCovers else { return }
                 for entry in entries { entry.artworks = [] }
             }
             Divider()
             CoverToolsMenuItems(entries: entries)
         }
+        .disabled(!canEditCovers)
     }
 
     // MARK: Felder
@@ -118,6 +131,7 @@ struct BatchEditorView: View {
                             BatchTextField(entries: entries, key: field.key)
                             CopyFromFieldMenu(entries: entries, targetKey: field.key)
                         }
+                        .disabled(!canEdit(field.key))
                     }
                 }
             }
@@ -129,45 +143,51 @@ struct BatchEditorView: View {
 
     private var actionsSection: some View {
         GroupBox("Aktionen") {
-            HStack(spacing: 12) {
-                Button {
-                    renumberTracks()
-                } label: {
-                    Label("Tracks nummerieren (1–\(entries.count))", systemImage: "list.number")
-                }
-                .help("Setzt TRACKNUMBER in Listenreihenfolge auf n/\(entries.count)")
-
-                Button {
-                    for entry in entries {
-                        entry.setSingleValue("TITLE", titleFromFilename(entry))
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Button {
+                        renumberTracks()
+                    } label: {
+                        Label("Tracks nummerieren (1–\(entries.count))", systemImage: "list.number")
                     }
-                } label: {
-                    Label("Titel aus Dateinamen", systemImage: "textformat")
+                    .disabled(!canEdit("TRACKNUMBER"))
+                    .help("Setzt TRACKNUMBER in Listenreihenfolge auf n/\(entries.count)")
+
+                    Button {
+                        for entry in entries {
+                            entry.setSingleValue("TITLE", titleFromFilename(entry))
+                        }
+                    } label: {
+                        Label("Titel aus Dateinamen", systemImage: "textformat")
+                    }
+                    .disabled(!canEdit("TITLE"))
+                    .help("Setzt TITLE aus dem Dateinamen (ohne Nummer-Präfix und Endung)")
                 }
-                .help("Setzt TITLE aus dem Dateinamen (ohne Nummer-Präfix und Endung)")
+                HStack(spacing: 12) {
+                    // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
+                    FilenamePatternMenu(entries: entries)
 
-                // Dateiname ↔ Tags mit Muster (Vorschau im Dialog).
-                FilenamePatternMenu(entries: entries)
+                    // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
+                    TagRulesButton(entries: entries)
+                }
+                HStack(spacing: 12) {
+                    // Auswahl als m3u8/pls/xspf sichern (Pfade relativ zur Playlist).
+                    PlaylistExportMenu(entries: entries)
 
-                // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
-                TagRulesButton(entries: entries)
-
-                // Auswahl als m3u8/pls/xspf sichern (Pfade relativ zur Playlist).
-                PlaylistExportMenu(entries: entries)
-
-                // Konsistenzprüfung der Auswahl (nur lesend, Sheet mit Befunden).
-                LibraryCheckButton(entries: entries)
-                // Album bei MusicBrainz/Discogs/AcoustID nachschlagen (nur auf Klick).
-                OnlineLookupButton(entries: entries)
-
-                Spacer()
+                    // Konsistenzprüfung der Auswahl (nur lesend, Sheet mit Befunden).
+                    LibraryCheckButton(entries: entries)
+                    // Album bei MusicBrainz/Discogs/AcoustID nachschlagen (nur auf Klick).
+                    OnlineLookupButton(entries: entries)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(8)
         }
     }
 
     /// TRACKNUMBER in Listenreihenfolge als n/total setzen.
     private func renumberTracks() {
+        guard canEdit("TRACKNUMBER") else { return }
         let total = entries.count
         for (i, entry) in entries.enumerated() {
             entry.setSingleValue("TRACKNUMBER", "\(i + 1)/\(total)")
@@ -212,7 +232,7 @@ struct BatchEditorView: View {
     // MARK: Cover-Handling
 
     private func setCoverForAll(_ data: Data) {
-        guard Artwork.sniffMimeType(from: data) != nil else { return }
+        guard canEditCovers, Artwork.sniffMimeType(from: data) != nil else { return }
         let artwork = Artwork(data: data, pictureType: "Front Cover")
         for entry in entries {
             if entry.artworks.isEmpty {
@@ -228,6 +248,7 @@ struct BatchEditorView: View {
     }
 
     private func pickCover() {
+        guard canEditCovers else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.message = String(localized: "Coverbild für alle ausgewählten Dateien")

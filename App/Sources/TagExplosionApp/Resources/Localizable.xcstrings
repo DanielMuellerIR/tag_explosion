@@ -2774,7 +2774,10 @@
     "Keine Dateien ausgewählt.": {
       "localizations": {
         "en": {
-          "stringUnit": { "state": "translated", "value": "No files selected." }
+          "stringUnit": {
+            "state": "translated",
+            "value": "No files selected."
+          }
         }
       }
     },
@@ -6214,6 +6217,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Business process"
+          }
+        }
+      }
+    },
+    "Cover für diese Auswahl\nnicht bearbeitbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover art cannot be edited\nfor this selection"
           }
         }
       }

@@ -4,6 +4,22 @@ import Testing
 
 @Suite("ZIP-Prüfsummen")
 struct ZipIntegrityTests {
+    @Test("Komprimierte Metadaten und Cover werden vor unbegrenzter Extraktion abgelehnt")
+    func rejectsOversizedEntries() throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        try ZipContainer.rewrite(url: url, replacing: [
+            "OEBPS/content.opf": Data(repeating: 0x20, count: ZipContainer.metadataSizeLimit + 1),
+            "OEBPS/cover.jpg": Data(repeating: 0, count: ZipContainer.artworkSizeLimit + 1),
+        ])
+        let archive = try ZipContainer.open(url: url, accessMode: .read)
+        let metadata = try #require(archive["OEBPS/content.opf"])
+        let cover = try #require(archive["OEBPS/cover.jpg"])
+        #expect(throws: TagError.self) { _ = try ZipContainer.data(of: metadata, in: archive) }
+        #expect(throws: TagError.self) {
+            _ = try ZipContainer.data(of: cover, in: archive, maximumSize: ZipContainer.artworkSizeLimit)
+        }
+        #expect(try Data(contentsOf: url).count < 100_000)
+    }
     /// Nur die gespeicherte Prüfsumme ändern: Inhalt und ZIP-Struktur bleiben
     /// lesbar, sodass nicht schon ein XML-/Deflate-Fehler die Prüfung ersetzt.
     private func corruptChecksum(_ path: String, in url: URL) throws {

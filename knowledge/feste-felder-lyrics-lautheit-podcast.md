@@ -46,6 +46,10 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
   (Format 2) und Typ „Lyrics"; SYLT-Frames mit MPEG-Frame-Zeitstempeln
   (Format 1) werden gelesen als „keine Zeilen", weil die Umrechnung die
   Frame-Dauer bräuchte.
+- Seit 0.47.4 bleibt die eigene SYLT-Sprache bei Zeilenänderungen erhalten,
+  einschließlich unbekannter Sprache (`XXX`). `TagData.syncedLyricsLanguage`
+  ist unabhängig von `lyricsLanguage` (USLT); Archivschema 5 sichert beide.
+  Nur eine ausdrückliche Sprachwahl ändert die betroffenen Frames.
 - **kid3-cli gibt SYLT-Zeilen nicht aus** (`get SYLT` zeigt nur die
   Beschreibung); kid3s eigenes `set SYLT "[00:01.00]…"` schreibt den LRC-Text
   sogar in die Beschreibung. Als Fremdprüfung bleibt nur: der Frame erscheint
@@ -91,3 +95,14 @@ lässt TagLib beim `setProperties` stehen („Unsupported Data").
   sich weiterhin retaggen; wer den kaputten Wert anfasst, bekommt den Fehler.
 - Keine Berechnung aus dem Audio (kein loudgain/r128gain) — bewusst nicht
   Teil des Pakets.
+
+## Entwürfe im Editor ab 0.47.4
+
+Geprüfte Felder und die Lyrics-Sprache halten die tatsächliche Eingabe in
+`FileEntry`. Return, Fokusverlust und Speichern bestätigen diese Entwürfe.
+Ein ungültiger Entwurf bleibt sichtbar, zählt als ungespeicherte Änderung
+und verhindert einen Speicherauftrag. Fokus allein bestätigt keinen Wert,
+sodass eine gemischte Auswahl ihre ursprünglichen Werte behält. Eine
+absichtlich leere Eingabe entfernt den Wert bei allen ausgewählten Dateien.
+Neue Eingaben während eines laufenden Speicherns bleiben nach dessen
+Read-back als Entwurf erhalten.

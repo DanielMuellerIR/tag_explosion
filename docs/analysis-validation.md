@@ -74,6 +74,12 @@ dokumentiert. Die belastbaren Größen sind Prozessanzahl (2 → 1 bei CLI-Bedar
 
 ## Weitere Kandidaten
 
+Abgleich 2026-10-06: Die nachfolgenden Vorschläge stammen aus dem damaligen
+Review. EPUB-/Calibre-Bündelung ist seit 0.46.98 umgesetzt (siehe
+[ebook-performance.md](../knowledge/ebook-performance.md)); Finder/Quick Look
+seit 0.47.0 (siehe [finder-integration.md](../knowledge/finder-integration.md)).
+Die entsprechenden Absätze sind historische Vorschläge.
+
 - `tagx check` liest in `CheckCommand.run` weiter seriell über
   `LibraryCheck.Item.load`. Nächster Schritt: einen bedarfsgerechten Audio-Leseweg
   ohne Kapitel/Lyrics/Tag-Schichten entwerfen und Befunde mit dem vollständigen

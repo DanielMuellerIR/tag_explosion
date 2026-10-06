@@ -107,3 +107,34 @@ Was ein Format nicht speichern kann, lehnt `DocumentTool.requireWritable`
 `invalidDocumentValue`); App, CLI und Archiv-Import nutzen dieselbe Prüfung.
 Nach dem Schreiben wird die Geschwisterkopie zurückgelesen und muss exakt die
 Zielfelder liefern, sonst ersetzt sie das Original nicht.
+
+## Eingabegrenzen und Office-Pfade (2026-10-06, 0.47.4)
+
+ZIP-Metadaten werden höchstens bis 16 MiB, Cover bis 64 MiB entpackt. Die
+Prüfung gilt vor dem Entpacken und für jeden gelesenen Block. Große unveränderte
+Nutzdaten beim ZIP-Neuaufbau werden weiterhin blockweise kopiert.
+
+XML lädt keine externen Entities. Externe DTD-/Entity-Deklarationen und
+Parameter-Entities werden
+abgelehnt, damit ein Write sie nicht als leere Feldwerte übernimmt. NFOs behalten
+interne Entity-Inhalte und den ursprünglichen Vorspann.
+
+OOXML-Relationship-Ziele sind URI-Referenzen: Punktsegmente werden aufgelöst,
+Nicht-ASCII-Zeichen in ZIP-Partnamen prozentkodiert und führende Schrägstriche
+entfernt. Bereits kodierte ASCII-Zeichen wie `%20` bleiben im ZIP-Namen kodiert;
+Partnamen werden ohne Beachtung der ASCII-Groß-/Kleinschreibung verglichen.
+EPUB 2 erhält beim Anlegen von Serie/Cover ausschließlich seine zulässigen
+name/content-Metadaten; property/refines und cover-image gelten für EPUB 3.
+
+### Portable XML-Prüfung ab 0.47.4
+
+Vor dem DOM-Aufbau müssen `XMLParser.parse()` und ein leerer `parserError`
+wohlgeformtes XML bestätigen; externe Auflösung ist ausdrücklich gesperrt.
+Unter Swift 6.0/Linux erzwingt der DOM-Leser sonst Fehlerkorrektur. Sein
+`XMLDocument.dtd`-Getter stürzt ohne DTD ab, und `XMLDTDNode.isExternal`
+stürzt bei internen Entities ab. Die Prüfung verwendet daher auf Linux die
+Dokumentkinder und bei beiden Plattformen ausschließlich die sicheren
+XMLDTD-Identifier und deren serialisierte Deklaration. Gewöhnliche interne
+Entities bleiben erlaubt; Parameter-Entities werden wegen möglicher weiterer
+Deklarationen abgelehnt. Tests prüfen SYSTEM/PUBLIC, kommentierte und zitierte
+Schlüsselwörter, interne Entity-Inhalte und verschiedene XML-Kodierungen.

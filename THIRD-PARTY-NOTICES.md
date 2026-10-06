@@ -5,15 +5,16 @@ Tag Explosion selbst steht unter der MIT-Lizenz, © 2026 Daniel Müller (siehe
 mitgeliefert, gelinkt oder aufgerufen werden, und gibt die Lizenztexte
 vollständig wieder, wo die jeweilige Lizenz das verlangt.
 
-Stand: 2026-08-03. TagLib-Version im Bundle: 2.3.
+Stand: 2026-10-06. Portabler macOS-Release: TagLib 2.3.2;
+Entwicklungsbuilds verwenden die installierte System-TagLib.
 
 ## Übersicht
 
 | Komponente | Verwendung | Lizenz |
 |---|---|---|
-| [TagLib](https://taglib.org) | Audio-/Video-Tags lesen und schreiben; `libtag`/`libtag_c` ins App-Bundle kopiert und dynamisch gelinkt. Der Bibliothekscode bleibt unverändert; beim Bündeln werden nur die Install-Namen der `.dylib`-Dateien umgeschrieben und die Dateien neu signiert (siehe unten) | LGPL-2.1-or-later **oder** MPL-1.1 |
+| [TagLib](https://taglib.org) | Audio-/Video-Tags lesen und schreiben; `libtag`/`libtag_c` ins App-Bundle kopiert und dynamisch gelinkt. Der Bibliothekscode bleibt unverändert; beim Bündeln werden nur die Install-Namen der `.dylib`-Dateien umgeschrieben und die Dateien neu signiert (siehe unten) | LGPL-2.1-only **oder** MPL-1.1 |
 | [Sparkle](https://sparkle-project.org) | Signierte App-Updates; `Sparkle.framework` im App-Bundle. Der Framework-Code bleibt unverändert; beim Bündeln wird der ungenutzte Ordner `XPCServices` entfernt (die App läuft ohne Sandbox) und das Framework neu signiert | MIT (mit weiteren Copyright-Vermerken) |
-| [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) | ZIP-Container-Zugriff für EPUB; statisch in Core, CLI und App | MIT |
+| [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) | ZIP-Container-Zugriff für EPUB, Office, OpenDocument und CBZ; statisch in Core, CLI und App | MIT |
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | Argumentparser der CLI `tagx`; statisch gelinkt | Apache-2.0 |
 | [MediaInfo](https://mediaarea.net/MediaInfo) | Technik-Ansicht; **nicht gebündelt**, nur als externes Programm aufgerufen | BSD-2-Clause |
 | [ExifTool](https://exiftool.org) | Bild- und PDF-Metadaten; **nicht gebündelt**, nur aufgerufen | Perl Artistic License / GPL-1.0-or-later |
@@ -58,12 +59,10 @@ dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
 - Die Feldnummern (BT-/BG-Nummern) und XML-Pfade folgen dem **semantischen
   Datenmodell der EN 16931** und seinen Syntax-Bindings für UN/CEFACT CII und
   OASIS UBL. Aus den Normdokumenten (Copyright CEN/DIN) werden keine
-  Textpassagen wiedergegeben. Die deutschen Feldnamen sind die kurzen
-  fachlichen Benennungen der Business Terms (z.B. „Rechnungsnummer" für
-  BT-1), wie sie auch die deutsche Fassung der EN 16931 und die
-  XRechnung-Spezifikation der KoSIT verwenden — übernommen als knappe
-  faktische Bezeichnungen der Felder, nicht als Beschreibungs- oder
-  Normtexte.
+  Textpassagen wiedergegeben. Die deutschen Feldnamen sind eigene kurze
+  fachliche Bezeichnungen der Business Terms (z.B. „Rechnungsnummer“ für
+  BT-1). Sie dienen zur verständlichen Anzeige der zugeordneten Fakten und
+  sind keine wortgetreue Wiedergabe normativer Feldbeschreibungen.
 - Die entschlüsselten Codewerte stammen aus den öffentlichen
   **UNTDID-Codelisten** (Dokumententyp 1001, Zahlungsart 4461,
   USt-Kategorie 5305) und den **Maßeinheiten der UN/ECE Recommendation 20/21**,

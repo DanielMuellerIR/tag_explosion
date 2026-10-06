@@ -5,9 +5,9 @@
 //    dB daneben);
 //  - „Podcast": Flag, Feed-URL, GUID, Kategorie, Stichwörter, Staffel,
 //    Episode, Beschreibungen — nur für ID3v2 und MP4.
-// Die Werte liegen als normale Properties im Bearbeitungspuffer; jedes Feld
-// prüft beim Bestätigen über `FixedFields.normalized` und zeigt einen
-// ungültigen Wert rot an, statt ihn ins Modell zu übernehmen. Gespeichert
+// Eingaben bleiben als Entwürfe im Bearbeitungspuffer; jedes Feld prüft
+// beim Bestätigen oder Speichern über `FixedFields.normalized`. Ungültige
+// Entwürfe bleiben sichtbar und verhindern das Speichern. Gespeichert
 // wird über den normalen Weg (Snapshot → TagFile.write / LRC-Sidecar).
 import AppKit
 import SwiftUI
@@ -18,60 +18,51 @@ import UniformTypeIdentifiers
 
 /// Textfeld für ein festes Feld. Der Text wird erst beim Bestätigen (Return
 /// oder Fokusverlust) geprüft und in die Speicherform gebracht; ein
-/// ungültiger Wert bleibt sichtbar stehen, wird rot erklärt und nicht
-/// übernommen. Leer entfernt das Feld.
+/// ungültiger Wert bleibt als Entwurf sichtbar stehen, wird rot erklärt
+/// und verhindert das Speichern. Leer entfernt das Feld.
 struct ValidatedTagField: View {
     let key: String
-    @Binding var value: String
+    let entries: [FileEntry]
     var placeholder = ""
-    /// Zusatzanzeige rechts neben dem Feld (z.B. R128 als dB).
     var trailing: ((String) -> String)? = nil
-    @State private var draft = ValidatedFieldDraft()
-    @State private var error: String?
     @FocusState private var focused: Bool
+
+    private var text: String {
+        let values = entries.map { $0.fixedFieldDrafts[key] ?? $0.firstValue(key) }
+        guard let first = values.first, values.allSatisfy({ $0 == first }) else { return "" }
+        return first
+    }
+
+    private var error: String? {
+        guard let raw = entries.compactMap({ $0.fixedFieldDrafts[key] }).first else { return nil }
+        do {
+            let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty { _ = try FixedFields.normalized(key: key, value: value) }
+            return nil
+        } catch { return error.localizedDescription }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 TextField(placeholder, text: Binding(
-                    get: { draft.text }, set: { draft.edit($0) }))
+                    get: { text }, set: { raw in for entry in entries { entry.fixedFieldDrafts[key] = raw } }))
                     .textFieldStyle(.roundedBorder)
                     .focused($focused)
-                    .onAppear { draft.synchronize(value) }
-                    // Änderungen von außen (Verwerfen, Batch, Neuladen) nachziehen.
-                    .onChange(of: value) { _, newValue in
-                        if !focused {
-                            draft.synchronize(newValue)
-                            error = nil
-                        }
-                    }
                     .onSubmit { commit() }
-                    .onChange(of: focused) { _, isFocused in
-                        if !isFocused { commit() }
-                    }
-                if let trailing, !value.isEmpty {
-                    Text(trailing(value))
+                    .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+                if let trailing, !text.isEmpty {
+                    Text(trailing(text))
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
             }
-            if let error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
+            if let error { Text(error).font(.caption).foregroundStyle(.red) }
         }
     }
 
     private func commit() {
-        do {
-            if let normalized = try draft.commit(key: key) {
-                value = normalized
-                error = nil
-            }
-        } catch {
-            self.error = error.localizedDescription
-        }
+        for entry in entries { try? entry.commitFixedFieldDraft(key) }
     }
 }
 
@@ -87,8 +78,6 @@ struct LyricsSection: View {
     @Bindable var entry: FileEntry
     @Environment(AppModel.self) private var model
     @State private var importError: String?
-    @State private var languageText = ""
-    @State private var languageError: String?
     @FocusState private var languageFocused: Bool
 
     var body: some View {
@@ -106,14 +95,12 @@ struct LyricsSection: View {
                     HStack(spacing: 8) {
                         Text("Sprache (ISO 639-2)")
                             .foregroundStyle(.secondary)
-                        TextField("deu", text: $languageText)
+                        TextField("deu", text: Binding(
+                            get: { entry.lyricsLanguageDraft ?? entry.lyricsLanguage },
+                            set: { entry.lyricsLanguageDraft = $0 }))
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 70)
                             .focused($languageFocused)
-                            .onAppear { languageText = entry.lyricsLanguage }
-                            .onChange(of: entry.lyricsLanguage) { _, newValue in
-                                if !languageFocused { languageText = newValue }
-                            }
                             .onSubmit { commitLanguage() }
                             .onChange(of: languageFocused) { _, isFocused in
                                 if !isFocused { commitLanguage() }
@@ -183,16 +170,13 @@ struct LyricsSection: View {
         }
     }
 
-    private func commitLanguage() {
-        let normalized = FixedFields.normalizedLanguage(languageText)
-        guard FixedFields.isValidLanguage(normalized) else {
-            languageError = String(localized: "Drei Buchstaben nach ISO 639-2 (z.B. deu, eng)")
-            return
-        }
-        languageError = nil
-        entry.lyricsLanguage = normalized
-        languageText = normalized
+    private var languageError: String? {
+        guard let raw = entry.lyricsLanguageDraft,
+              !FixedFields.isValidLanguage(FixedFields.normalizedLanguage(raw)) else { return nil }
+        return String(localized: "Drei Buchstaben nach ISO 639-2 (z.B. deu, eng)")
     }
+
+    private func commitLanguage() { try? entry.commitLyricsLanguageDraft() }
 
     /// LRC-Datei laden: synchronisierte Zeilen ersetzen; ohne eigenen Text
     /// füllt sie auch die unsynchronisierten Lyrics.
@@ -262,7 +246,7 @@ struct LoudnessSection: View {
             Text(label)
                 .gridColumnAlignment(.trailing)
                 .foregroundStyle(.secondary)
-            ValidatedTagField(key: key, value: fieldBinding(entry, key), placeholder: placeholder,
+            ValidatedTagField(key: key, entries: [entry], placeholder: placeholder,
                               trailing: trailing)
         }
     }
@@ -303,10 +287,7 @@ struct BatchLoudnessSection: View {
                 .foregroundStyle(.secondary)
             ValidatedTagField(
                 key: key,
-                value: Binding(
-                    get: { common ?? "" },
-                    set: { newValue in for entry in entries { entry.setSingleValue(key, newValue) } }
-                ),
+                entries: entries,
                 placeholder: common == nil ? String(localized: "— verschieden —") : "")
         }
     }
@@ -361,7 +342,7 @@ struct PodcastSection: View {
             Text(label)
                 .gridColumnAlignment(.trailing)
                 .foregroundStyle(.secondary)
-            ValidatedTagField(key: key, value: fieldBinding(entry, key), placeholder: placeholder)
+            ValidatedTagField(key: key, entries: [entry], placeholder: placeholder)
         }
     }
 }

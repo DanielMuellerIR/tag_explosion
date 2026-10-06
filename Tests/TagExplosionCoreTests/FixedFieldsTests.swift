@@ -28,6 +28,59 @@ private func run(_ executable: String, _ arguments: [String]) -> String? {
 
 @Suite("Feste Felder", .serialized)
 struct FixedFieldsTests {
+    @Test("TagData-JSON vor der getrennten SYLT-Sprache bleibt lesbar")
+    func legacyTagDataDecodes() throws {
+        let data = Data(#"{"properties":[],"artworks":[],"audio":null,"isReadOnly":false,"chapters":[],"supportsChapters":true,"layers":[],"lyricsLanguage":"eng","syncedLyrics":[{"time":0,"text":"Text"}],"supportsSyncedLyrics":true}"#.utf8)
+        let decoded = try JSONDecoder().decode(TagData.self, from: data)
+        #expect(decoded.lyricsLanguage == "eng")
+        #expect(decoded.syncedLyricsLanguage.isEmpty)
+        #expect(decoded.syncedLyrics == [SyncedLyricLine(milliseconds: 0, text: "Text")])
+    }
+
+    @Test("NUL wird auch bei Archivwerten ohne Änderung des Originals abgelehnt", arguments: [false, true])
+    func rejectsNULText(archived: Bool) throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let before = try Data(contentsOf: url)
+        #expect(throws: TagError.self) {
+            try TagFile.write(properties: [TagProperty(key: "TITLE", value: "vor\0nach")],
+                              to: url, allowingArchivedValues: archived)
+        }
+        #expect(try Data(contentsOf: url) == before)
+    }
+
+    @Test("SYLT behält seine eigene Sprache bei Textänderungen", arguments: [false, true], ["deu", ""])
+    func syncedLyricsPreservesIndependentLanguage(withUSLT: Bool, ownLanguage: String) throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        if withUSLT {
+            try TagFile.write(properties: [TagProperty(key: "LYRICS", value: "Text")],
+                              lyricsLanguage: "eng", to: url)
+        }
+        try TagFile.write(syncedLyrics: Self.syncedSample, syncedLyricsLanguage: ownLanguage, to: url)
+        if withUSLT { try TagFile.write(lyricsLanguage: "eng", to: url) }
+        var changed = Self.syncedSample
+        changed[0].text = "Neue Zeile"
+        try TagFile.write(syncedLyrics: changed, to: url)
+        let bytes = try Data(contentsOf: url)
+        let frame = try #require(bytes.range(of: Data("SYLT".utf8)))
+        // ID3v2-Framekopf: 10 Bytes; dann Textkodierung und drei Sprachbytes.
+        let language = bytes.subdata(in: (frame.lowerBound + 11)..<(frame.lowerBound + 14))
+        #expect(String(decoding: language, as: UTF8.self) == (ownLanguage.isEmpty ? "XXX" : ownLanguage))
+        if withUSLT { #expect(try TagFile.read(at: url).lyricsLanguage == "eng") }
+    }
+
+    @Test("Eine enttaggte MP3 erhält neue SYLT samt ausdrücklicher Sprache")
+    func syncedLyricsCreatesID3Tag() throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let present = try TagFile.read(at: url).layers.filter(\.present).map(\.kind)
+        try TagFile.stripLayers(Set(present), from: url)
+        #expect(try TagFile.read(at: url).layers.allSatisfy { !$0.present })
+        try TagFile.write(syncedLyrics: Self.syncedSample, lyricsLanguage: "deu", to: url)
+        #expect(try TagFile.read(at: url).syncedLyrics == Self.syncedSample)
+        let bytes = try Data(contentsOf: url)
+        let frame = try #require(bytes.range(of: Data("SYLT".utf8)))
+        #expect(String(decoding: bytes.subdata(in: (frame.lowerBound + 11)..<(frame.lowerBound + 14)),
+                       as: UTF8.self) == "deu")
+    }
 
     // MARK: - Lyrics
 

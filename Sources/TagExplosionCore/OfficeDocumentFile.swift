@@ -71,7 +71,7 @@ enum OfficeDocumentFile: DocumentBackend {
     /// app.xml: alle einfachen Textelemente (Application, Pages, Words, …).
     /// Verschachtelte Angaben (HeadingPairs, TitlesOfParts) bleiben außen vor.
     private static func readInfo(url: URL, archive: Archive) throws -> [DocumentInfoItem] {
-        let path = relationshipTarget(ofType: appRelationshipType, in: archive) ?? "docProps/app.xml"
+        let path = try relationshipTarget(ofType: appRelationshipType, in: archive) ?? "docProps/app.xml"
         guard let data = try ZipContainer.data(at: path, in: archive) else { return [] }
         let document = try XMLTools.document(from: data, path: url.path)
         guard let root = document.rootElement() else { return [] }
@@ -111,7 +111,7 @@ enum OfficeDocumentFile: DocumentBackend {
 
     static func mutate(url: URL, fields: DocumentCoreFields, original: DocumentCoreFields) throws {
         let archive = try ZipContainer.open(url: url, accessMode: .read)
-        let path = corePath(in: archive)
+        let path = try corePath(in: archive)
         var replacements: [String: Data] = [:]
 
         let document: XMLDocument
@@ -180,19 +180,40 @@ enum OfficeDocumentFile: DocumentBackend {
     // MARK: - Paketstruktur
 
     /// Pfad von core.xml laut `_rels/.rels` (Standard: docProps/core.xml).
-    private static func corePath(in archive: Archive) -> String {
-        relationshipTarget(ofType: coreRelationshipType, in: archive) ?? defaultCorePath
+    private static func corePath(in archive: Archive) throws -> String {
+        try relationshipTarget(ofType: coreRelationshipType, in: archive) ?? defaultCorePath
     }
 
-    private static func relationshipTarget(ofType type: String, in archive: Archive) -> String? {
-        guard let data = try? ZipContainer.data(at: "_rels/.rels", in: archive),
-              let document = try? XMLDocument(data: data),
-              let root = document.rootElement() else { return nil }
+    private static func relationshipTarget(ofType type: String, in archive: Archive) throws -> String? {
+        guard let data = try ZipContainer.data(at: "_rels/.rels", in: archive) else { return nil }
+        let document = try XMLTools.document(from: data, path: archive.url.path)
+        guard let root = document.rootElement() else { throw TagError.cannotOpen(path: archive.url.path) }
         for relationship in XMLTools.elements(named: "Relationship", in: root, namespaceURI: "http://schemas.openxmlformats.org/package/2006/relationships")
         where XMLTools.attribute(relationship, "Type") == type {
-            guard let target = XMLTools.attribute(relationship, "Target") else { continue }
-            // Ziele sind paketrelativ; ein führender Schrägstrich ist erlaubt.
-            return target.hasPrefix("/") ? String(target.dropFirst()) : target
+            guard XMLTools.attribute(relationship, "TargetMode") != "External",
+                  let target = XMLTools.attribute(relationship, "Target"),
+                  let uri = URLComponents(string: target),
+                  uri.scheme == nil, uri.host == nil, uri.query == nil, uri.fragment == nil else {
+                throw TagError.cannotOpen(path: archive.url.path)
+            }
+            var segments: [Substring] = []
+            for segment in uri.percentEncodedPath.split(separator: "/") {
+                if segment == "." { continue }
+                if segment == ".." {
+                    guard !segments.isEmpty else { throw TagError.cannotOpen(path: archive.url.path) }
+                    segments.removeLast()
+                } else {
+                    segments.append(segment)
+                }
+            }
+            guard !segments.isEmpty else { throw TagError.cannotOpen(path: archive.url.path) }
+            // OPC bildet Nicht-ASCII-Zeichen für ZIP auf Prozentkodierung ab.
+            // ASCII-Fluchten wie %20 bleiben erhalten; Partnamen sind ohne
+            // Beachtung der ASCII-Groß-/Kleinschreibung gleichwertig.
+            let path = segments.joined(separator: "/")
+            let matches = archive.filter { $0.path.lowercased() == path.lowercased() }
+            guard matches.count <= 1 else { throw TagError.cannotOpen(path: archive.url.path) }
+            return matches.first?.path ?? path
         }
         return nil
     }

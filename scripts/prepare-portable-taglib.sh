@@ -6,8 +6,8 @@
 set -eu
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
-version="2.1.1"
-bottle_sha="a8d56fabd553d9d4f5de8a78476f803ea5e6d7d7dc00861f767fbe54b161f50d"
+version="2.3.2"
+bottle_sha="ce74ab9da6700f72cd203c363e942697dfe90b53973d9b0e83b9b908108c0102"
 bottle_url="https://ghcr.io/v2/homebrew/core/taglib/blobs/sha256:$bottle_sha"
 cache_dir="${TAGX_PORTABLE_TAGLIB_CACHE:-$here/build/vendor}"
 archive="$cache_dir/taglib-$version-arm64-sonoma.tar.gz"
@@ -56,8 +56,9 @@ tar -xzf "$archive" -C "$root" --strip-components=2
 # Homebrew ersetzt diesen Platzhalter normalerweise erst bei der Installation.
 # SwiftPM/pkg-config braucht für unseren isolierten Cache stattdessen den echten
 # Pfad. Die Mach-O-Install-Namen werden später im App-Bundle separat umgebogen.
+escaped_root="$(printf '%s' "$root" | sed 's/[\\&|]/\\&/g')"
 for pc in "$root"/lib/pkgconfig/*.pc; do
-    sed -i '' "s|@@HOMEBREW_CELLAR@@/taglib/$version|$root|g" "$pc"
+    sed -i '' "s|@@HOMEBREW_CELLAR@@/taglib/$version|$escaped_root|g" "$pc"
 done
 
 printf '%s\n' "$root"

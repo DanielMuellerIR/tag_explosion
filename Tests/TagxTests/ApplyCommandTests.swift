@@ -10,6 +10,18 @@ import TagExplosionCore
 @Suite("tagx apply", .serialized)
 struct ApplyCommandTests {
 
+    @Test("Eine JSON-Regel mit NUL schreibt keinen gekürzten Audiotag")
+    func nulInJSONRuleIsRejected() throws {
+        let copy = try MediaTestFixtures.workingCopy("sample.mp3")
+        defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+        let before = try Data(contentsOf: copy)
+        let rules = copy.deletingLastPathComponent().appendingPathComponent("nul.json")
+        try Data(#"{"version":1,"rules":[{"action":"set","field":"TITLE","value":"before\u0000after"}]}"#.utf8).write(to: rules)
+        let result = try runTagx(arguments: ["apply", rules.path, copy.path, "--apply", "--no-backup"])
+        #expect(result.status != 0)
+        #expect(try Data(contentsOf: copy) == before)
+    }
+
     @Test("Regelplan bewahrt den XMP-Lesestand bis zum Schreiben",
           .enabled(if: TagxFixtures.isAvailable && (try? ExifTool.locateExecutable()) != nil,
                    "Bild-Fixture oder exiftool fehlt"), arguments: [false, true])
