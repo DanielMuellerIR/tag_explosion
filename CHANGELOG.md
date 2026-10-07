@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.5 — 2026-10-07
+
+- Der Finder-Layoutschritt beim DMG-Bau adressiert das eingehängte Volume als
+  Finder-Ordner. Ein roher AppleScript-Alias scheiterte bei `open` mit Fehler -1708.
+
 ## 0.47.4 — 2026-10-06
 
 - Speichern bestätigt noch fokussierte Eingaben. Ungültige Entwürfe verhindern

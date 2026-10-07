@@ -491,7 +491,8 @@ if [ "$finder_layout" = "1" ]; then
     done
     osascript <<EOF
 tell application "Finder"
-    tell (POSIX file "$mount_dir" as alias)
+    -- Ein roher AppleScript-alias akzeptiert open nicht; Finder braucht ein Ordnerobjekt.
+    tell folder (POSIX file "$mount_dir" as alias)
         open
         set current view of container window to icon view
         set toolbar visible of container window to false

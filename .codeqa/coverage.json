@@ -3044,6 +3044,41 @@
             "macOS ChapterEntryTests: 6 tests / 1 suite passed; actual tag-save CHAP-subframe regression passed"
           ],
           "trigger": "https://github.com/DanielMuellerIR/tag_explosion/actions/runs/37532028121"
+        },
+        {
+          "completed_at": "2026-10-07T02:07:50.263586+00:00",
+          "review": "delta-plus-boundaries",
+          "outcome": "improved",
+          "summary": "Der reale DMG-Layoutlauf zeigte, dass ein roher AppleScript-Alias open nicht akzeptiert (-1708). Eine explizite Finder-Ordnerreferenz behebt den Fehler. Version 0.47.5 sichert die Buildkorrektur; der bereits signierte Produkt-Build und das Release-Tag 0.47.4 bleiben unverändert.",
+          "files": [
+            {
+              "path": "build.sh",
+              "sha256": "ad030c7db1f5e4148446ed530af29986f037ce44d719eb585ec12f37b7237ff8"
+            },
+            {
+              "path": "VERSION",
+              "sha256": "0e6621a827a645131af266fa33147731613e6f22e53678b80f12763be70bcbba"
+            },
+            {
+              "path": "CHANGELOG.md",
+              "sha256": "c14696c0609490eb25ba8c641d4f49ae03a75a485ddb0b63488441783e3a5a63"
+            },
+            {
+              "path": "knowledge/INDEX.md",
+              "sha256": "bf15b779b227f8aa76f0557006cd310b3b3fbddc1cf63bb167427ed69fc10d92"
+            },
+            {
+              "path": "knowledge/dmg-finder-layout.md",
+              "sha256": "44c289bfa00e6dd6f0762edc501cace8ea28aa0cb8cbeeda7730c7f5da8f7a19"
+            }
+          ],
+          "tests": [
+            "macOS 26.7.1 native GUI session: complete Finder-layout DMG build passed; resulting 0.47.4 DMG signed, notarized, stapled and accepted by Gatekeeper",
+            "DMG ownership shell tests passed; bash syntax check and git diff --check passed"
+          ],
+          "limitations": [
+            "SSH Apple Events can be denied separately from GUI-session automation; compilation alone does not verify Finder behavior"
+          ]
         }
       ]
     }

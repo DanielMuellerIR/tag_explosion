@@ -2,6 +2,9 @@
 
 Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
+- [dmg-finder-layout.md](dmg-finder-layout.md) — Beim DMG-Bau: Finder-Ordner
+  statt rohem AppleScript-Alias, echte GUI-Sitzung und notwendiger Laufzeittest.
+
 - [finder-integration.md](finder-integration.md) — Bei Quick Look, Finder-Dienst
   und Erweiterungsbuild: SwiftPM-Einstieg, native Vorschau, eingebettete
   Stammansicht, eigene TagLib-Ladepfade und Prüfgrenzen.
