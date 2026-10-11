@@ -334,14 +334,14 @@ enum EpubFile {
             throw TagError.cannotOpen(path: url.path)
         }
         let containerData = try ZipContainer.data(of: containerEntry, in: archive)
-        let container = try XMLDocument(data: containerData)
+        let container = try XMLTools.document(from: containerData, path: url.path)
         guard let rootfile = descendants(named: "rootfile", in: container.rootElement()).first,
               let opfPath = attribute(rootfile, "full-path"),
               let opfEntry = archive[opfPath] else {
             throw TagError.cannotOpen(path: url.path)
         }
         let opfData = try ZipContainer.data(of: opfEntry, in: archive)
-        return (try XMLDocument(data: opfData), opfPath, archive)
+        return (try XMLTools.document(from: opfData, path: url.path), opfPath, archive)
     }
 
     /// Prüft die EPUB-Invarianten der vollständig geschriebenen Temp-Datei,

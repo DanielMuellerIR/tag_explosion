@@ -135,6 +135,12 @@ public struct TagArchiveReport: Sendable, Equatable {
 }
 
 public enum TagArchiveIO {
+    /// Quelldateien bleiben den Archiveinträgen zugeordnet; die Zugriffsliste
+    /// enthält zusätzlich Sidecars und dient Freigabe und Konfliktschutz.
+    public struct TargetPlan: Sendable {
+        public let sourcesByArchivePath: [String: URL]
+        public let accessURLs: [URL]
+    }
 
     /// Verstandene Archivschemata. Neue Schemata dürfen nicht versehentlich
     /// wie alte gelesen werden, weil dabei Felder verloren gehen könnten.
@@ -434,11 +440,21 @@ public enum TagArchiveIO {
     public static func validatedTargets(_ archive: TagArchive,
                                         relativeTo baseDirectory: URL,
                                         allowExternalTargets: Bool = false) throws -> [URL] {
+        try validatedTargetPlan(archive, relativeTo: baseDirectory,
+                                allowExternalTargets: allowExternalTargets).accessURLs
+    }
+
+    public static func validatedTargetPlan(_ archive: TagArchive,
+                                           relativeTo baseDirectory: URL,
+                                           allowExternalTargets: Bool = false) throws -> TargetPlan {
         try validate(archive)
-        return try validateResolvedEntries(
+        let targets = try validateResolvedEntries(
             archive, relativeTo: baseDirectory,
             allowExternalTargets: allowExternalTargets
-        ).flatMap(\.accessURLs)
+        )
+        return TargetPlan(
+            sourcesByArchivePath: Dictionary(uniqueKeysWithValues: zip(archive.files.map(\.path), targets.map(\.url))),
+            accessURLs: targets.flatMap(\.accessURLs))
     }
 
     /// Aus einer bereits vollständig aufgelösten Zielliste die Ziele außerhalb
@@ -668,7 +684,7 @@ public enum TagArchiveIO {
                 }
             }
             if let chapters = entry.chapters {
-                try ChapterList.validate(chapters)
+                try ChapterList.validateStoredTimes(chapters)
                 for chapter in chapters { try FixedFields.validateText(chapter.title, field: "chapter title") }
             }
             if let lines = entry.syncedLyrics {
@@ -680,9 +696,9 @@ public enum TagArchiveIO {
                     throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "invalid lyrics language")
                 }
             }
-            if entry.syncedLyrics?.isEmpty == true, let language = entry.syncedLyricsLanguage, !language.isEmpty {
-                throw TagArchiveError.inconsistentEntry(path: entry.path, detail: "a SYLT language requires synchronized lines")
-            }
+            // Kapitel-Zeitverläufe und leere SYLT-Frames sind lesbare Bestände.
+            // Das Archiv muss sie sichern und wiederherstellen können; die
+            // normale Bearbeitung prüft neue Kapitel weiterhin in TagFile.write.
 
             switch entry.kind {
             case .audio:

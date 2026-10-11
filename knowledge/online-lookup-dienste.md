@@ -60,6 +60,11 @@ für Online-Dienste.
   Lesen und Schreiben die Netzantwort liegt. Die App schreibt gar nicht
   selbst: „Übernehmen" setzt nur den Bearbeitungspuffer, gespeichert wird
   mit ⌘S über den normalen Weg.
+- Online-Cover ersetzen das Bild mit `pictureType == "Front Cover"`, unabhängig
+  von seiner Position. Fehlt ein Frontcover, wird es vorne ergänzt; Booklets
+  und andere Bilder bleiben erhalten. Die App bündelt die Pufferübernahme in
+  `FileEntry.applyLookup`; `OnlineLookupApplyTests` prüft auch den anschließenden
+  echten Speicherweg mit einem Booklet vor dem Frontcover.
 
 ## Zugangsdaten
 

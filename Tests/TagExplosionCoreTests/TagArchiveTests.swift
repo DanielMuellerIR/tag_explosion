@@ -14,6 +14,60 @@ import Testing
 
 @Suite("TagArchive", .serialized)
 struct TagArchiveTests {
+    @Test("Lesbare überlappende Kapitel und leere SYLT bleiben archivierbar und wiederherstellbar",
+          arguments: ["chapters", "sylt", "both"])
+    func archivesLegacyAudioDetails(_ detail: String) throws {
+        let folder = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("sample.mp3")
+        try ID3TestFixtures.installLegacyDetails(at: url, overlappingChapters: detail != "sylt",
+                                                  emptySyncedLyrics: detail != "chapters")
+        let original = try TagFile.read(at: url)
+        #expect(original.chapters.count == (detail == "sylt" ? 0 : 2))
+        if detail != "sylt" {
+            #expect(original.chapters[1].startMilliseconds < original.chapters[0].endMilliseconds)
+        }
+        #expect(original.syncedLyrics.isEmpty)
+        #expect(original.syncedLyricsLanguage == (detail == "chapters" ? "" : "eng"))
+        let json = folder.appendingPathComponent("tags.json")
+        try TagArchiveIO.export(files: [url], to: json, includeCovers: true)
+        let archive = try TagArchiveIO.load(json)
+        #expect(archive.files[0].chapters == original.chapters)
+        #expect(archive.files[0].syncedLyricsLanguage == original.syncedLyricsLanguage)
+        #expect(try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false).unchanged == ["sample.mp3"])
+        try TagFile.write(chapters: [], syncedLyrics: [], to: url)
+        let dryRun = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: true)
+        #expect(dryRun.applied == ["sample.mp3"])
+        let report = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false)
+        #expect(report.failed.isEmpty)
+        #expect(report.applied == ["sample.mp3"])
+        let restored = try TagFile.read(at: url)
+        #expect(restored.chapters == original.chapters)
+        #expect(restored.syncedLyrics.isEmpty)
+        #expect(restored.syncedLyricsLanguage == original.syncedLyricsLanguage)
+        #expect(try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false).unchanged == ["sample.mp3"])
+        // Die normale Bearbeitung bleibt streng; [] entfernt auch restaurierte leere Frames.
+        if !original.chapters.isEmpty {
+            var edited = original.chapters
+            edited[0].title = "Geändert"
+            #expect(throws: TagError.self) { try TagFile.write(chapters: edited, to: url) }
+        }
+        try TagFile.write(syncedLyrics: [], to: url)
+        #expect(try TagFile.read(at: url).syncedLyricsLanguage.isEmpty)
+        if detail != "chapters" {
+            _ = try TagArchiveIO.apply(archive, relativeTo: folder, dryRun: false)
+            // Ein handgebautes Archiv ohne gesicherte Sprache verlangt nur
+            // das Leeren der Zeilen, keinen leeren Frame mit geerbter Sprache.
+            var cleared = archive
+            cleared.files[0].syncedLyricsLanguage = nil
+            try TagFile.write(syncedLyrics: [.init(milliseconds: 0, text: "Text")],
+                              syncedLyricsLanguage: "eng", to: url)
+            let result = try TagArchiveIO.apply(cleared, relativeTo: folder, dryRun: false)
+            #expect(result.failed.isEmpty)
+            #expect(try TagFile.read(at: url).syncedLyricsLanguage.isEmpty)
+        }
+    }
+
     @Test("Audioarchive stellen Kapitel, Lyrics und unabhängige Sprachen wieder her", arguments: ["chapters", "synced", "uslt", "sylt"])
     func restoresAudioDetails(_ field: String) throws {
         let folder = try makeFolder(["sample.mp3"])

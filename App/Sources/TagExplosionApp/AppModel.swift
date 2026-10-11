@@ -648,9 +648,9 @@ final class AppModel {
             let prepared = try await Task.detached(priority: .userInitiated) {
                 let archive = try TagArchiveIO.load(url)
                 let base = url.deletingLastPathComponent()
-                let targets = try TagArchiveIO.validatedTargets(
+                let targets = try TagArchiveIO.validatedTargetPlan(
                     archive, relativeTo: base, allowExternalTargets: true)
-                let external = TagArchiveIO.externalTargets(targets, relativeTo: base)
+                let external = TagArchiveIO.externalTargets(targets.accessURLs, relativeTo: base)
                 return (archive, base, targets, external)
             }.value
             // Die geprüfte Zielliste geht IMMER an `apply` — auch wenn kein
@@ -659,7 +659,7 @@ final class AppModel {
             // dialog verwendet, um betroffene offene Editoren zu bestimmen;
             // ein während des Dialogs umgebogener Symlink darf nicht auf eine
             // nie berücksichtigte Datei zeigen.
-            let approvedTargets = prepared.2
+            let approvedTargets = prepared.2.accessURLs
             let allowExternal = !prepared.3.isEmpty
             await requestExternalApprovalOrScheduleImport(
                 archive: prepared.0,
@@ -689,10 +689,10 @@ final class AppModel {
     ) async {
         do {
             let targets = try await Task.detached(priority: .userInitiated) {
-                try TagArchiveIO.validatedTargets(
+                try TagArchiveIO.validatedTargetPlan(
                     archive, relativeTo: base, allowExternalTargets: true)
             }.value
-            let external = TagArchiveIO.externalTargets(targets, relativeTo: base)
+            let external = TagArchiveIO.externalTargets(targets.accessURLs, relativeTo: base)
             await requestExternalApprovalOrScheduleImport(
                 archive: archive, relativeTo: base, targets: targets,
                 externalTargets: external, apply: apply)
@@ -704,7 +704,7 @@ final class AppModel {
     private func requestExternalApprovalOrScheduleImport(
         archive: TagArchive,
         relativeTo base: URL,
-        targets: [URL],
+        targets: TagArchiveIO.TargetPlan,
         externalTargets: [URL],
         apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
     ) async {
@@ -716,7 +716,7 @@ final class AppModel {
         }
 
         pendingExternalImport = PendingExternalImportApproval(
-            targetPaths: targets.map(\.path),
+            targetPaths: targets.accessURLs.map(\.path),
             externalTargetCount: externalTargets.count)
         pendingExternalImportAction = PendingExternalImportAction(
             perform: { [weak self] in
@@ -751,18 +751,16 @@ final class AppModel {
     private func scheduleImport(
         archive: TagArchive,
         relativeTo base: URL,
-        targets: [URL],
+        targets: TagArchiveIO.TargetPlan,
         apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
     ) async {
-        let targetSet = Set(targets.map(MediaFormats.canonicalFileURL))
+        let targetSet = Set(targets.accessURLs.map(MediaFormats.canonicalFileURL))
         let openedTargets = entries.filter {
             targetSet.contains(MediaFormats.canonicalFileURL($0.url))
         }
-        // Feste Zuordnung Archiveintrag → geprüftes Ziel. `validatedTargets`
-        // liefert die Ziele in der Reihenfolge der Archiveinträge, und deren
-        // Pfade sind eindeutig (Archiv-Schemaprüfung).
-        let targetsByArchivePath = Dictionary(
-            uniqueKeysWithValues: zip(archive.files.map(\.path), targets))
+        // Die Zugriffsliste enthält auch XMP-Schreibziele; nur die getrennt
+        // erfassten Quelldateien gehören zu den nachzuladenden Editoren.
+        let targetsByArchivePath = targets.sourcesByArchivePath
         await requestDestructiveAction(
             title: String(localized: "Ungespeicherte Änderungen"),
             message: String(localized:

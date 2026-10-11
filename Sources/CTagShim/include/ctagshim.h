@@ -144,10 +144,11 @@ tx_synced_line* tx_get_synced_lyrics(tx_file* f, int32_t* out_count, char** out_
 void tx_free_synced_lyrics(tx_synced_line* lines, int32_t count);
 
 // Ersetzt alle SYLT-Frames durch genau einen mit den übergebenen Zeilen
-// (count 0 = alle entfernen). language: drei Buchstaben oder NULL ("XXX").
+// (count 0 = alle entfernen, außer preserve_empty ist gesetzt: leerer Frame).
+// language: drei Buchstaben oder NULL ("XXX").
 // Der Shim kopiert die Daten. 1 = Erfolg, 0 = Fehler oder Format ohne ID3v2.
 int tx_set_synced_lyrics(tx_file* f, const tx_synced_line* lines, int32_t count,
-                         const char* language);
+                         const char* language, int preserve_empty);
 
 // Feld außerhalb der PropertyMap: id3_frame ist eine ID3v2-Frame-ID (vier
 // Zeichen, z.B. "TKWD"; "PCST" = Podcast-Flag), mp4_atom ein MP4-Atomname

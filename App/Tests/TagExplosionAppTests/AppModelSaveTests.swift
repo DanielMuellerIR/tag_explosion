@@ -11,6 +11,62 @@ import TagExplosionCore
 @Suite("AppModel Speichern", .serialized)
 @MainActor
 struct AppModelSaveTests {
+    @Test("Import mit XMP am ersten Bild lädt nachfolgende Audioeditoren neu")
+    func importWithSidecarReloadsFollowingAudio() async throws {
+        let audio = try MediaTestFixtures.workingCopy()
+        let folder = audio.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent("cover.jpg")
+        try FileManager.default.copyItem(at: AppTestFixtures.directory.appendingPathComponent("cover.jpg"), to: image)
+        let sidecar = MediaFormats.sidecarURL(for: image)
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8).write(to: sidecar)
+        var archive = try TagArchiveIO.build(files: [image, audio], baseDirectory: folder, includeCovers: true)
+        archive.files[1].properties?["TITLE"] = ["Imported audio title"]
+        let json = folder.appendingPathComponent("tags.json")
+        try JSONEncoder().encode(archive).write(to: json)
+        let entry = FileEntry(url: audio, loaded: .audio(try TagFile.read(at: audio)))
+        let imageEntry = FileEntry(url: image, loaded: .image(try ExifTool.readCoreReading(url: image)))
+        let model = AppModel()
+        model.entries = [imageEntry, entry]
+        await model.importArchive(from: json)
+        #expect(try TagFile.read(at: audio).firstValue(for: "TITLE") == "Imported audio title")
+        #expect(entry.firstValue("TITLE") == "Imported audio title")
+        #expect(!entry.isDirty)
+        #expect(model.alertMessage?.contains("1 geändert, 1 unverändert") == true)
+    }
+
+    @Test("Batch-Speichern sichert überlappende Kapitel und leere SYLT und erhält beide")
+    func batchSaveWithLegacyAudioDetails() async throws {
+        let first = try MediaTestFixtures.workingCopy()
+        let folder = first.deletingLastPathComponent()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let second = folder.appendingPathComponent("second.mp3")
+        try FileManager.default.copyItem(at: first, to: second)
+        try ID3TestFixtures.installLegacyDetails(at: first)
+        let original = try TagFile.read(at: first)
+        let entries = try [first, second].map { url in
+            let entry = FileEntry(url: url, loaded: .audio(try TagFile.read(at: url)))
+            entry.setSingleValue("TITLE", "Batch title")
+            return entry
+        }
+        let previous = UserDefaults.standard.object(forKey: AppModel.autoBackupDefaultsKey)
+        UserDefaults.standard.set(true, forKey: AppModel.autoBackupDefaultsKey)
+        defer { UserDefaults.standard.set(previous, forKey: AppModel.autoBackupDefaultsKey) }
+        let model = AppModel()
+        model.entries = entries
+        #expect(await model.saveEntries(entries))
+        #expect(model.batchResults.allSatisfy { $0.status == .success })
+        let after = try TagFile.read(at: first)
+        #expect(after.firstValue(for: "TITLE") == "Batch title")
+        #expect(after.chapters == original.chapters)
+        #expect(after.syncedLyricsLanguage == "eng")
+        let backups = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("tags-backup-") }
+        let backup = try #require(backups.first)
+        let archived = try TagArchiveIO.load(backup)
+        #expect(archived.files.first(where: { $0.path == first.lastPathComponent })?.chapters == original.chapters)
+    }
+
 
     @Test("Direkte Wiederherstellung bleibt für Rechnungen ohne Bearbeitungspuffer möglich")
     func invoiceReloadingMutation() async throws {

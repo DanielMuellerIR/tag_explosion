@@ -105,3 +105,25 @@ Schreibziel, Identität und Sidecar-Auswahl werden vor dem Lesen und Austausch
 erneut geprüft; zwei Archiveinträge dürfen kein Schreibziel gemeinsam benutzen.
 NUL in Tag-Texten ist technisch nicht darstellbar und wird auch für archivierte
 Bestandswerte vor jeder Mutation abgelehnt.
+
+## Lesbare Audio-Bestände und Editor-Zuordnung (2026-10-11, 0.47.6)
+
+Überlappende Kapitel sind in fremden CHAP-Frames lesbar. Der Export prüft deren
+Zeiten nur auf negative Werte; die fachliche Prüfung auf Reihenfolge, Ende und
+Überlappung gilt weiterhin für tatsächlich bearbeitete Kapitel. Der Archiv-Restore
+verwendet `allowingArchivedValues` auch für Kapitel, damit eine Sicherung nach
+einer zwischenzeitlichen Änderung wiederherstellbar bleibt. Die Formatgrenzen
+des Shims und die Prüfung der geschriebenen Kopie gelten weiterhin.
+
+Ein leerer SYLT-Frame kann eine Sprache tragen. Schema 5 sichert diesen Zustand
+als `syncedLyrics: []` plus nichtleere `syncedLyricsLanguage`. Der Archiv-Restore
+setzt dafür ausdrücklich `preserve_empty` im Shim; normales `syncedLyrics: []`
+entfernt weiterhin sämtliche SYLT-Frames. Bei leerer Sprache unterscheidet das
+Schema einen fehlenden Frame weiterhin nicht von einem leeren Frame mit
+unbekannter Sprache.
+
+`validatedTargetPlan` liefert die Quellenzuordnung nach Archivpfad und getrennt
+die vollständigen Zugriffs-URLs einschließlich XMP. Die App verwendet letztere
+für Freigaben und Konflikte, die Quellenzuordnung dagegen zum Neuladen geänderter
+Editoren. Die flache Zugriffsliste darf nicht mit den Archiveinträgen gezippt
+werden, weil ein Bildeintrag mehrere URLs liefern kann.

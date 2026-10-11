@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.6 — 2026-10-11
+
+- EPUBs mit externen XML-Entities werden beim Öffnen und vor dem Schreiben
+  abgelehnt. Lokale Dateien können dadurch nicht als Metadaten eingelesen werden.
+- Online-Cover ersetzen das vorhandene Frontcover anhand seines Bildtyps.
+  Booklets und andere eingebettete Bilder bleiben erhalten.
+- Archivimporte laden auch nach Bild-Einträgen mit XMP-Sidecar die richtigen
+  geöffneten Dateien neu.
+- Überlappende Bestandskapitel und leere SYLT-Frames mit Sprache lassen sich
+  sichern und wiederherstellen. Solche Bestände blockieren das automatische
+  Backup vor einem Stapel-Speichern nicht mehr.
+- Gezielte Regressionstests und Archiv-Dokumentation ergänzt.
+  Prüfbericht: [Code-Review 2026-10-11](docs/CODE-REVIEW-2026-10-11.md).
+
 ## 0.47.5 — 2026-10-07
 
 - Der Finder-Layoutschritt beim DMG-Bau adressiert das eingehängte Volume als

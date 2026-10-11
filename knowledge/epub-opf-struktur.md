@@ -61,3 +61,13 @@ alle zugehörigen Knoten und ihre Verfeinerungen gemeinsam.
 Löschung, der den Verweis auflöst statt nur das Feld zurückzulesen
 (`packageIdentifierValue`). Wer hier etwas umbaut, prüft am besten zusätzlich
 mit `epubcheck`, falls installiert.
+
+## XML-Eingang (2026-10-11, 0.47.6)
+
+Sowohl `META-INF/container.xml` als auch die OPF müssen durch
+`XMLTools.document` laufen. Direktes `XMLDocument(data:)` lädt unter macOS
+externe SYSTEM-Entities, etwa den Inhalt einer lokalen Datei als Buchtitel.
+Der gemeinsame Parser sperrt externe Auflösung und lehnt externe Deklarationen
+ab. Dies gilt auch für die Vorprüfung eines Schreibvorgangs; die Ablehnung lässt
+das EPUB bytegleich. `EbookToolTests.epubRejectsExternalEntities` prüft beide
+Dateien mit einer synthetischen lokalen Markerdatei beim Lesen und Schreiben.

@@ -18,13 +18,11 @@ public enum ChapterList {
     /// Überlappung (ein Kapitel beginnt, bevor das vorige endet). Ein
     /// Beginn genau am Ende des Vorgängers ist die Regel und erlaubt.
     public static func validate(_ chapters: [Chapter]) throws {
+        try validateStoredTimes(chapters)
         var previousStart = 0
         var previousEnd = 0
         for (index, chapter) in chapters.enumerated() {
             let number = index + 1
-            if chapter.startMilliseconds < 0 || chapter.endMilliseconds < 0 {
-                throw TagError.invalidChapters(reason: "chapter \(number) has a negative time")
-            }
             if chapter.endMilliseconds < chapter.startMilliseconds {
                 throw TagError.invalidChapters(reason: "chapter \(number) ends before it starts")
             }
@@ -37,6 +35,15 @@ public enum ChapterList {
             }
             previousStart = chapter.startMilliseconds
             previousEnd = chapter.endMilliseconds
+        }
+    }
+
+    /// Bestandskapitel dürfen sich überlappen; negative gespeicherte Zeiten
+    /// sind dagegen weder für Archive noch für die Schreiber zulässig.
+    static func validateStoredTimes(_ chapters: [Chapter]) throws {
+        for (index, chapter) in chapters.enumerated()
+        where chapter.startMilliseconds < 0 || chapter.endMilliseconds < 0 {
+            throw TagError.invalidChapters(reason: "chapter \(index + 1) has a negative time")
         }
     }
 

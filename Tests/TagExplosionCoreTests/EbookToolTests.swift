@@ -12,6 +12,38 @@ import ZIPFoundation
 
 @Suite("EbookTool", .serialized)
 struct EbookToolTests {
+    @Test("EPUB lehnt externe Entities beim Lesen und Schreiben unverändert ab",
+          arguments: ["META-INF/container.xml", "OEBPS/content.opf"])
+    func epubRejectsExternalEntities(_ path: String) throws {
+        let url = try Fixtures.workingCopy("book2.epub")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let original = try EbookTool.readCoreFields(url: url)
+        let marker = url.deletingLastPathComponent().appendingPathComponent("private.txt")
+        try Data("Privater Marker".utf8).write(to: marker)
+        try rewriteOpf(in: url, path: path) { xml in
+            let root = path.hasSuffix("container.xml") ? "container" : "package"
+            let declaration = "<!DOCTYPE \(root) [<!ENTITY secret SYSTEM '\(marker.absoluteString)'>]>"
+            let start = xml.range(of: "<\(root)")!
+            var result = xml
+            result.insert(contentsOf: declaration, at: start.lowerBound)
+            if root == "package" {
+                result = result.replacingOccurrences(of: #"<dc:title>[^<]*</dc:title>"#,
+                    with: "<dc:title>&secret;</dc:title>", options: .regularExpression)
+            } else {
+                result = result.replacingOccurrences(of: "</container>", with: "&secret;</container>")
+            }
+            return result
+        }
+        let before = try Data(contentsOf: url)
+        #expect(throws: TagError.self) { _ = try EbookTool.readSnapshot(url: url, includeCover: true) }
+        var edited = original
+        edited.title = "Neuer Titel"
+        #expect(throws: TagError.self) {
+            try EbookTool.write(url: url, fields: edited, original: original, coverUpdate: .unchanged)
+        }
+        #expect(try Data(contentsOf: url) == before)
+    }
+
     @Test("EPUB 2 erhält keine EPUB-3-Attribute beim Anlegen von Serie und Cover")
     func epub2WritesVersionCompatibleMetadata() throws {
         let url = try Fixtures.workingCopy("book2.epub")

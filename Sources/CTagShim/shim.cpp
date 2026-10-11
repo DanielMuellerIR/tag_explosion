@@ -975,13 +975,13 @@ void tx_free_synced_lyrics(tx_synced_line* lines, int32_t count) {
 }
 
 int tx_set_synced_lyrics(tx_file* f, const tx_synced_line* lines, int32_t count,
-                         const char* language) {
+                         const char* language, int preserve_empty) {
     if (!f || f->ref.isNull() || (count > 0 && !lines)) return 0;
     // Beim Entfernen keinen leeren ID3v2-Tag anlegen.
-    TagLib::ID3v2::Tag* tag = id3v2_tag(f, count > 0);
+    TagLib::ID3v2::Tag* tag = id3v2_tag(f, count > 0 || preserve_empty);
     if (!tag) return tx_id3v2_supported(f) ? 1 : 0;
     tag->removeFrames("SYLT");
-    if (count == 0) return 1;
+    if (count == 0 && !preserve_empty) return 1;
 
     auto* sylt = new TagLib::ID3v2::SynchronizedLyricsFrame(TagLib::String::UTF8);
     sylt->setLanguage(language_bytes(language));

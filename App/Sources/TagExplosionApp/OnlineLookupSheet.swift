@@ -465,15 +465,20 @@ struct OnlineLookupSheet: View {
             // Dateien ohne passenden Titel bekommen nur dann Album-Felder,
             // wenn es genau eine Datei ist — bei einem Album bleiben sie unberührt.
             guard row.assignment.track != nil || entries.count == 1 else { continue }
-            entry.properties = row.plan.apply(to: entry.properties)
-            if includeCover, MediaFormats.supportsEmbeddedArtwork(entry.url), let artwork {
-                if entry.artworks.isEmpty {
-                    entry.artworks = [artwork]
-                } else {
-                    entry.artworks[0] = artwork
-                }
-            }
+            entry.applyLookup(row.plan, artwork: includeCover ? artwork : nil)
         }
         dismiss()
+    }
+}
+
+extension FileEntry {
+    func applyLookup(_ plan: LookupPlan, artwork: Artwork?) {
+        properties = plan.apply(to: properties)
+        guard MediaFormats.supportsEmbeddedArtwork(url), let artwork else { return }
+        if let index = artworks.firstIndex(where: { $0.pictureType == "Front Cover" }) {
+            artworks[index] = artwork
+        } else {
+            artworks.insert(artwork, at: 0)
+        }
     }
 }

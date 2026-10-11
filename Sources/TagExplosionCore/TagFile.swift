@@ -284,7 +284,8 @@ public final class TagFile {
 
     /// Ersetzt alle SYLT-Frames (leer = entfernen); nicht public — siehe
     /// `setProperties`. `language`: ISO 639-2 oder leer (= "XXX").
-    func setSyncedLyrics(_ lines: [SyncedLyricLine], language: String) throws {
+    /// Nur Archiv-Restore darf einen leeren Frame samt Sprache wiederherstellen.
+    func setSyncedLyrics(_ lines: [SyncedLyricLine], language: String, preservingEmptyFrame: Bool = false) throws {
         let h = try requireHandle()
         guard supportsSyncedLyrics else { throw TagError.syncedLyricsUnsupported(path: path) }
         var cLines: [tx_synced_line] = []
@@ -294,7 +295,7 @@ public final class TagFile {
         }
         defer { for line in cLines { free(line.text) } }
         let lang = language.isEmpty ? "XXX" : language
-        guard tx_set_synced_lyrics(h, cLines, Int32(cLines.count), lang) == 1 else {
+        guard tx_set_synced_lyrics(h, cLines, Int32(cLines.count), lang, preservingEmptyFrame ? 1 : 0) == 1 else {
             throw TagError.saveFailed(path: path)
         }
     }
@@ -457,7 +458,8 @@ public final class TagFile {
         // Fehler NACH der Papierkorb-Kopie hinterließe eine sinnlose Sicherung.
         if let chapters {
             guard before.supportsChapters else { throw TagError.chaptersUnsupported(path: url.path) }
-            try ChapterList.validate(chapters)
+            if !allowingArchivedValues, chapters != before.chapters { try ChapterList.validate(chapters) }
+            try ChapterList.validateStoredTimes(chapters)
         }
         // `allowingArchivedValues` setzt nur der Archiv-Restore, wie schon beim
         // Bildweg: Ein gesicherter Bestandswert muss in die Datei zurück, aus
@@ -498,7 +500,9 @@ public final class TagFile {
                 let existing = try file.syncedLyricsReading()
                 let syncedLanguage = syncedLyricsLanguage.map(FixedFields.normalizedLanguage)
                     ?? (lyricsLanguage == nil && !existing.lines.isEmpty ? existing.language : language)
-                try file.setSyncedLyrics(syncedLyrics, language: syncedLanguage)
+                let preserveEmpty = allowingArchivedValues && syncedLyrics.isEmpty
+                    && syncedLyricsLanguage != nil && !syncedLanguage.isEmpty
+                try file.setSyncedLyrics(syncedLyrics, language: syncedLanguage, preservingEmptyFrame: preserveEmpty)
             }
             try file.save(id3Version: id3Version)
         } validate: { temp in
@@ -506,6 +510,7 @@ public final class TagFile {
                                     syncedLyrics: syncedLyrics,
                                     lyricsLanguage: lyricsLanguage.map(FixedFields.normalizedLanguage),
                                     syncedLyricsLanguage: syncedLyricsLanguage.map(FixedFields.normalizedLanguage),
+                                    preservingEmptySyncedLyrics: allowingArchivedValues,
                                     comparedTo: before.audio, originalPath: url.path)
         }
     }
@@ -565,6 +570,7 @@ public final class TagFile {
         at url: URL, expecting artworks: [Artwork]?, chapters: [Chapter]?,
         syncedLyrics: [SyncedLyricLine]? = nil,
         lyricsLanguage: String? = nil, syncedLyricsLanguage: String? = nil,
+        preservingEmptySyncedLyrics: Bool = false,
         comparedTo before: AudioInfo?, originalPath: String
     ) throws {
         let file = try TagFile(url: url) // muss überhaupt wieder lesbar sein
@@ -579,7 +585,7 @@ public final class TagFile {
            file.lyricsLanguage() != lyricsLanguage { throw TagError.saveFailed(path: originalPath) }
         if let syncedLyricsLanguage {
             let synced = try file.syncedLyricsReading()
-            if !synced.lines.isEmpty, synced.language != syncedLyricsLanguage {
+            if (!synced.lines.isEmpty || preservingEmptySyncedLyrics), synced.language != syncedLyricsLanguage {
                 throw TagError.saveFailed(path: originalPath)
             }
         }
