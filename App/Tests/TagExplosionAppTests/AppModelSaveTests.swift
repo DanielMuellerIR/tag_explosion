@@ -11,6 +11,27 @@ import TagExplosionCore
 @Suite("AppModel Speichern", .serialized)
 @MainActor
 struct AppModelSaveTests {
+    @Test("Import lädt einen separat geöffneten XMP-Editor neu")
+    func importReloadsSeparateXMP() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent("cover.jpg")
+        try FileManager.default.copyItem(at: AppTestFixtures.directory.appendingPathComponent("cover.jpg"), to: image)
+        let sidecar = MediaFormats.sidecarURL(for: image)
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8).write(to: sidecar)
+        var archive = try TagArchiveIO.build(files: [image], baseDirectory: folder, includeCovers: true)
+        archive.files[0].image?.title = "Imported XMP title"
+        let json = folder.appendingPathComponent("tags.json")
+        try JSONEncoder().encode(archive).write(to: json)
+        let entry = FileEntry(url: sidecar, loaded: .image(try ExifTool.readCoreReading(url: sidecar)))
+        let model = AppModel(); model.entries = [entry]
+        await model.importArchive(from: json)
+        #expect(try ExifTool.readCoreReading(url: sidecar).fields.title == "Imported XMP title")
+        #expect(entry.imageFields.title == "Imported XMP title")
+        #expect(!entry.isDirty)
+    }
+
     @Test("Import mit XMP am ersten Bild lädt nachfolgende Audioeditoren neu")
     func importWithSidecarReloadsFollowingAudio() async throws {
         let audio = try MediaTestFixtures.workingCopy()

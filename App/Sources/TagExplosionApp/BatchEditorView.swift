@@ -58,15 +58,15 @@ struct BatchEditorView: View {
         }
     }
 
-    /// Gemeinsames Cover: zeigt es, wenn alle Dateien dasselbe erste Bild haben.
+    /// Gemeinsames Cover: zeigt es, wenn alle Dateien dasselbe Frontcover haben.
     private var batchCoverWell: some View {
-        let firstData = entries.first?.artworks.first?.data
-        let allSame = entries.allSatisfy { $0.artworks.first?.data == firstData }
+        let firstData = entries.first?.frontCover?.data
+        let allSame = entries.allSatisfy { $0.frontCover?.data == firstData }
         return VStack(spacing: 6) {
             batchCoverImage(firstData: firstData, allSame: allSame)
             // Cover-Werkzeuge für alle Dateien (CoverToolsMenu.swift).
             HStack(alignment: .top, spacing: 4) {
-                if allSame, let cover = entries.first?.artworks.first {
+                if allSame, let cover = entries.first?.frontCover {
                     CoverInfoLine(artwork: cover)
                 }
                 CoverToolsButton(entries: entries)
@@ -109,7 +109,7 @@ struct BatchEditorView: View {
             Button("Bild auswählen …") { pickCover() }
             Button("Cover überall entfernen", role: .destructive) {
                 guard canEditCovers else { return }
-                for entry in entries { entry.artworks = [] }
+                for entry in entries { entry.removeFrontCover() }
             }
             Divider()
             CoverToolsMenuItems(entries: entries)
@@ -235,11 +235,7 @@ struct BatchEditorView: View {
         guard canEditCovers, Artwork.sniffMimeType(from: data) != nil else { return }
         let artwork = Artwork(data: data, pictureType: "Front Cover")
         for entry in entries {
-            if entry.artworks.isEmpty {
-                entry.artworks = [artwork]
-            } else {
-                entry.artworks[0] = artwork
-            }
+            entry.setFrontCover(artwork)
         }
     }
 

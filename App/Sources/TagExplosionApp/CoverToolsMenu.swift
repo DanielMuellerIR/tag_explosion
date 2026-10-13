@@ -10,7 +10,7 @@ import SwiftUI
 import TagExplosionCore
 
 /// Die eigentlichen Aktionen, getrennt von der View, damit sie ohne Fenster
-/// testbar sind. Alle Funktionen wirken auf das erste Bild jedes Eintrags.
+/// testbar sind. Alle Funktionen wirken auf das Frontcover jedes Eintrags.
 @MainActor
 enum CoverToolActions {
     /// Verkleinerungsstufen im Menü.
@@ -31,13 +31,13 @@ enum CoverToolActions {
     static func convert(_ entries: [FileEntry], _ conversion: CoverTools.Conversion) -> Outcome {
         var outcome = Outcome()
         for entry in entries {
-            guard let cover = entry.artworks.first else { outcome.skipped += 1; continue }
+            guard let cover = entry.frontCover else { outcome.skipped += 1; continue }
             do {
                 let converted = try CoverTools.convert(cover, conversion)
                 if converted.data == cover.data {
                     outcome.unchanged += 1
                 } else {
-                    entry.artworks[0] = converted
+                    entry.setFrontCover(converted)
                     outcome.changed += 1
                 }
             } catch {
@@ -69,24 +69,21 @@ enum CoverToolActions {
                 cache[directory] = artwork
             }
             guard let artwork else { outcome.skipped += 1; continue }
-            if entry.artworks.first?.data == artwork.data {
+            if entry.frontCover?.data == artwork.data {
                 outcome.unchanged += 1
-            } else if entry.artworks.isEmpty {
-                entry.artworks = [artwork]
-                outcome.changed += 1
             } else {
-                entry.artworks[0] = artwork
+                entry.setFrontCover(artwork)
                 outcome.changed += 1
             }
         }
         return outcome
     }
 
-    /// Gemeinsames Cover der Einträge (erstes Bild, bei allen byteidentisch);
+    /// Gemeinsames Frontcover der Einträge (bei allen byteidentisch);
     /// nil bei Unterschieden oder ohne Cover.
     static func sharedCover(of entries: [FileEntry]) -> Artwork? {
-        guard let first = entries.first?.artworks.first else { return nil }
-        return entries.allSatisfy { $0.artworks.first?.data == first.data } ? first : nil
+        guard let first = entries.first?.frontCover else { return nil }
+        return entries.allSatisfy { $0.frontCover?.data == first.data } ? first : nil
     }
 
     /// Lesbare Zusammenfassung für die Hinweisbox; nil, wenn nichts zu melden ist.
@@ -147,7 +144,7 @@ struct CoverToolsMenuItems: View {
     @Environment(AppModel.self) private var model
     let entries: [FileEntry]
 
-    private var hasAnyCover: Bool { entries.contains { !$0.artworks.isEmpty } }
+    private var hasAnyCover: Bool { entries.contains { $0.frontCover != nil } }
     private var sharedCover: Artwork? { CoverToolActions.sharedCover(of: entries) }
     private var folderCoverAvailable: Bool {
         entries.contains { FolderCover.find(in: $0.url.deletingLastPathComponent()) != nil }

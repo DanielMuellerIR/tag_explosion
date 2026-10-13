@@ -28,5 +28,16 @@ struct OnlineLookupApplyTests {
         let model = AppModel()
         #expect(await model.save(entry: entry))
         #expect(try TagFile.read(at: copy).artworks == (hasFront ? [booklet, new] : [new, booklet]))
+        #expect(CoverToolActions.sharedCover(of: [entry]) == new)
+        let folderCover = folder.appendingPathComponent("folder.png")
+        try new.data.write(to: folderCover)
+        let outcome = CoverToolActions.applyFolderCover([entry])
+        #expect(outcome.unchanged == 1)
+        #expect(await model.save(entry: entry))
+        let saved = try TagFile.read(at: copy).artworks
+        #expect(saved.filter { $0.pictureType == "Leaflet Page" } == [booklet])
+        #expect(saved.filter { $0.pictureType == "Front Cover" }.count == 1)
+        #expect(saved.first(where: { $0.pictureType == "Front Cover" })?.data == new.data)
+
     }
 }

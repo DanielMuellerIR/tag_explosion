@@ -12,6 +12,22 @@ import TagExplosionCore
 @MainActor
 struct CoverToolActionsTests {
 
+    @Test("Werkzeuge bearbeiten nur das Frontcover hinter einem Booklet")
+    func toolsKeepTypedOtherImages() throws {
+        let booklet = Artwork(data: try makeImage(width: 100, height: 150, format: .jpeg), pictureType: "Leaflet Page")
+        let front = Artwork(data: try makeImage(width: 1200, height: 800, format: .png), pictureType: "Front Cover")
+        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/cover-tools/typed.mp3"),
+            loaded: .audio(TagData(properties: [], artworks: [booklet, front], audio: nil)))
+        #expect(entry.frontCover == front)
+        #expect(CoverToolActions.convert([entry], .init(maxPixelSize: 500)).changed == 1)
+        #expect(entry.artworks.first == booklet)
+        #expect(entry.frontCover?.data != front.data)
+        #expect(entry.frontCover?.pictureType == "Front Cover")
+        entry.removeFrontCover()
+        #expect(entry.artworks == [booklet])
+        #expect(entry.frontCover == nil)
+    }
+
     @Test("Verkleinern ändert das Cover im Puffer und macht den Eintrag dirty")
     func shrinkChangesBufferOnly() throws {
         let large = try makeImage(width: 1200, height: 800, format: .jpeg)

@@ -38,6 +38,27 @@ final class FileEntry: Identifiable {
     /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
     var properties: [TagProperty] = []
     var artworks: [Artwork] = []
+
+    private var frontCoverIndex: Int? {
+        artworks.firstIndex { $0.pictureType == "Front Cover" }
+            ?? artworks.firstIndex { $0.pictureType.isEmpty }
+    }
+
+    // Ein ausdrücklich typisiertes Frontcover hat Vorrang. Untypisierte
+    // Bestandsbilder behalten die bisherige Cover-Bedienung; Booklets nicht.
+    var frontCover: Artwork? { frontCoverIndex.map { artworks[$0] } }
+
+    func setFrontCover(_ artwork: Artwork) {
+        if let index = frontCoverIndex {
+            artworks[index] = artwork
+        } else {
+            artworks.insert(artwork, at: 0)
+        }
+    }
+
+    func removeFrontCover() {
+        if let index = frontCoverIndex { artworks.remove(at: index) }
+    }
     /// Kapitel (nur bei Formaten mit Kapiteln, siehe `supportsChapters`).
     var chapters: [Chapter] = []
     /// Sprache der Lyrics (ISO 639-2; nur ID3v2 speichert sie) und

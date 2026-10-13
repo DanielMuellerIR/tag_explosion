@@ -14,6 +14,20 @@ import Testing
 
 @Suite("TagArchive", .serialized)
 struct TagArchiveTests {
+    @Test("Backup mit gemeinsamem XMP-Ziel scheitert vor dem Anlegen einer Sicherung")
+    func sharedSidecarBackupFailsBeforePublication() throws {
+        let folder = try makeFolder(["cover.jpg", "cover.png"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sidecar = folder.appendingPathComponent("cover.xmp")
+        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8).write(to: sidecar)
+        let files = [folder.appendingPathComponent("cover.jpg"), folder.appendingPathComponent("cover.png")]
+        let export = folder.appendingPathComponent("tags.json")
+        #expect(throws: TagArchiveError.self) { try TagArchiveIO.export(files: files, to: export, includeCovers: true) }
+        #expect(!FileManager.default.fileExists(atPath: export.path))
+        #expect(throws: TagArchiveError.self) { _ = try TagArchiveIO.writeBackups(files: files) }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasPrefix("tags-backup-") }.isEmpty)
+    }
+
     @Test("Lesbare überlappende Kapitel und leere SYLT bleiben archivierbar und wiederherstellbar",
           arguments: ["chapters", "sylt", "both"])
     func archivesLegacyAudioDetails(_ detail: String) throws {

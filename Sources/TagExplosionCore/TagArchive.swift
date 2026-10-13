@@ -139,6 +139,7 @@ public enum TagArchiveIO {
     /// enthält zusätzlich Sidecars und dient Freigabe und Konfliktschutz.
     public struct TargetPlan: Sendable {
         public let sourcesByArchivePath: [String: URL]
+        public let accessURLsByArchivePath: [String: [URL]]
         public let accessURLs: [URL]
     }
 
@@ -256,6 +257,10 @@ public enum TagArchiveIO {
         // Backup; ob sie in ein ZIEL geschrieben werden dürfen, entscheidet
         // erst der Import gegen dessen tatsächlichen Zustand.
         try validate(archive)
+        // Auch ein strukturell gültiges Archiv muss eindeutige Schreibziele
+        // besitzen. Bestandswerte bleiben dabei ohne Schreibbarkeitsprüfung.
+        _ = try validateResolvedEntries(archive, relativeTo: jsonURL.deletingLastPathComponent(),
+            allowExternalTargets: true, validateCapabilities: false)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(archive)
@@ -454,6 +459,7 @@ public enum TagArchiveIO {
         )
         return TargetPlan(
             sourcesByArchivePath: Dictionary(uniqueKeysWithValues: zip(archive.files.map(\.path), targets.map(\.url))),
+            accessURLsByArchivePath: Dictionary(uniqueKeysWithValues: zip(archive.files.map(\.path), targets.map(\.accessURLs))),
             accessURLs: targets.flatMap(\.accessURLs))
     }
 
@@ -817,7 +823,8 @@ public enum TagArchiveIO {
     private static func validateResolvedEntries(
         _ archive: TagArchive,
         relativeTo baseDirectory: URL,
-        allowExternalTargets: Bool
+        allowExternalTargets: Bool,
+        validateCapabilities: Bool = true
     ) throws -> [ValidatedTarget] {
         let canonicalBase = MediaFormats.canonicalFileURL(baseDirectory)
         var canonicalPaths: Set<String> = []
@@ -869,7 +876,7 @@ public enum TagArchiveIO {
             }
             targets.append(ValidatedTarget(url: url, stamp: stamp, destination: destination, destinationState: destinationState))
 
-            guard exists else { continue }
+            guard exists && validateCapabilities else { continue }
             guard MediaFormats.kind(of: url) == entry.kind else {
                 throw TagArchiveError.inconsistentEntry(
                     path: entry.path, detail: "target media type does not match the archive entry")

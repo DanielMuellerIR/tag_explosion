@@ -8,7 +8,7 @@ struct CoverWell: View {
     @Environment(AppModel.self) private var model
     @State private var isTargeted = false
 
-    private var artwork: Artwork? { entry.artworks.first }
+    private var artwork: Artwork? { entry.frontCover }
 
     /// Formate ohne Cover-Speicherort (Tracker-Module, Matroska, reine
     /// Anzeige-Formate): Drop, Auswahl und Kontextmenü bleiben stumm, statt
@@ -51,7 +51,7 @@ struct CoverWell: View {
                 if artwork != nil {
                     Button("Exportieren …") { exportImage() }
                     Button("Cover entfernen", role: .destructive) {
-                        entry.artworks = []
+                        entry.removeFrontCover()
                     }
                 }
                 if supportsArtwork {
@@ -79,11 +79,7 @@ struct CoverWell: View {
     private func setCover(data: Data) {
         guard Artwork.sniffMimeType(from: data) != nil else { return }
         let newArtwork = Artwork(data: data, pictureType: "Front Cover")
-        if entry.artworks.isEmpty {
-            entry.artworks = [newArtwork]
-        } else {
-            entry.artworks[0] = newArtwork
-        }
+        entry.setFrontCover(newArtwork)
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {

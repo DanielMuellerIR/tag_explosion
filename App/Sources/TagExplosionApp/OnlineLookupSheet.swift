@@ -203,7 +203,7 @@ struct OnlineLookupSheet: View {
         artist = query.artist
         album = query.album
         title = query.title
-        includeCover = canIncludeCover && entries.contains { $0.artworks.isEmpty }
+        includeCover = canIncludeCover && entries.contains { $0.frontCover == nil }
     }
 
     /// Erst Einstellung, dann Hinweis, dann Netz.
@@ -475,10 +475,6 @@ extension FileEntry {
     func applyLookup(_ plan: LookupPlan, artwork: Artwork?) {
         properties = plan.apply(to: properties)
         guard MediaFormats.supportsEmbeddedArtwork(url), let artwork else { return }
-        if let index = artworks.firstIndex(where: { $0.pictureType == "Front Cover" }) {
-            artworks[index] = artwork
-        } else {
-            artworks.insert(artwork, at: 0)
-        }
+        setFrontCover(artwork)
     }
 }

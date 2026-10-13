@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.47.7 — 2026-10-13
+
+- Anzeige, Export, Einzel-/Stapeleditor und Cover-Werkzeuge wählen das Frontcover
+  nach Bildtyp. Online- und Ordner-Cover ersetzen dasselbe Bild; Booklets und
+  andere typisierte Bilder bleiben auch beim Entfernen des Covers erhalten.
+- Archivimporte laden separat geöffnete XMP-Editoren neu, wenn ihre Sidecar
+  zu einem erfolgreich geschriebenen Archiveintrag gehört.
+- Exporte und automatische Backups lehnen gemeinsame Schreibziele vor dem
+  Anlegen der Sicherung ab. Zwei Bilder mit derselben XMP-Sidecar erzeugen
+  dadurch kein scheinbar erfolgreiches, nicht wiederherstellbares Backup.
+
 ## 0.47.6 — 2026-10-11
 
 - EPUBs mit externen XML-Entities werden beim Öffnen und vor dem Schreiben

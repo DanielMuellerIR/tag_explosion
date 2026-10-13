@@ -758,9 +758,8 @@ final class AppModel {
         let openedTargets = entries.filter {
             targetSet.contains(MediaFormats.canonicalFileURL($0.url))
         }
-        // Die Zugriffsliste enthält auch XMP-Schreibziele; nur die getrennt
-        // erfassten Quelldateien gehören zu den nachzuladenden Editoren.
-        let targetsByArchivePath = targets.sourcesByArchivePath
+        // Quelle und Sidecar bleiben dem geprüften Archiveintrag zugeordnet.
+        let targetsByArchivePath = targets.accessURLsByArchivePath
         await requestDestructiveAction(
             title: String(localized: "Ungespeicherte Änderungen"),
             message: String(localized:
@@ -777,7 +776,7 @@ final class AppModel {
     private func applyPreparedImport(
         archive: TagArchive,
         relativeTo base: URL,
-        targetsByArchivePath: [String: URL],
+        targetsByArchivePath: [String: [URL]],
         apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
     ) async {
         do {
@@ -788,8 +787,8 @@ final class AppModel {
             // Symlink zeigte sonst auf eine andere Datei, deren offener
             // Editor-Puffer beim Neuladen verlorenginge. `apply` schreibt
             // ausschließlich in die hier hinterlegten, freigegebenen Ziele.
-            let changedPaths = Set(report.applied.compactMap {
-                targetsByArchivePath[$0].map(MediaFormats.canonicalFileURL)
+            let changedPaths = Set(report.applied.flatMap {
+                (targetsByArchivePath[$0] ?? []).map(MediaFormats.canonicalFileURL)
             })
             for entry in entries where changedPaths.contains(MediaFormats.canonicalFileURL(entry.url)) {
                 await reload(entry: entry)
