@@ -5,7 +5,7 @@ Tag Explosion selbst steht unter der MIT-Lizenz, © 2026 Daniel Müller (siehe
 mitgeliefert, gelinkt oder aufgerufen werden, und gibt die Lizenztexte
 vollständig wieder, wo die jeweilige Lizenz das verlangt.
 
-Stand: 2026-10-06. Portabler macOS-Release: TagLib 2.3.2;
+Stand: 2026-10-16. Portabler macOS-Release: TagLib 2.3.2;
 Entwicklungsbuilds verwenden die installierte System-TagLib.
 
 ## Übersicht
@@ -84,12 +84,22 @@ Jansi-Konsolenbibliotheken entfernt; Klassen, Regeln und Lizenzressourcen
 bleiben erhalten. Download-, Verpackungs- und Quellcodeangaben stehen im
 erzeugten Manifest.
 
-Die mitgelieferten Abhängigkeiten, XML-Schemata und Schematron-Regeln haben
-eigene Lizenzbedingungen, insbesondere EUPL-1.2 für die europäischen
-EN-16931-Regeln. Die vollständige Lizenz-/Quellcodezusammenstellung ist vor
-öffentlicher Weitergabe des Prüfpakets noch zu erledigen; der lokale Prototyp
-ist keine Freigabe dieser Distribution. Details und Primärquellen:
-[E-Rechnungsvalidierung](docs/e-invoice-validation.md).
+Die Paketbasis umfasst jetzt ein geprüftes Inventar der tatsächlich enthaltenen
+17 Java-Artefakte, Original-Lizenztexte/-Notices und ein passendes Quellenpaket.
+Die ungenutzte KoSIT-Daemon-Weboberfläche wird ebenfalls aus dem JAR entfernt.
+Die mitgelieferten Abhängigkeiten, XML-Schemata und Schematron-Regeln behalten
+ihre eigenen Bedingungen, insbesondere MPL-2.0 für Saxon und EUPL-1.2 für die
+europäischen EN-16931-Regeln. Runtime-Lizenzen bleiben vollständig erhalten.
+Eine positive Prüfung erfordert auch die passenden OpenJDK-, Java- und
+Regelquellen; Quellenpaket und Binärstand müssen gemeinsam bereitgestellt werden.
+
+Die vollständigen Lizenztexte und komponentenspezifischen Copyrights werden
+beim Vorbereiten des Pakets unter `legal/` zusammengestellt. Versionen, Pins und
+Lizenzbelege: [Komponenteninventar](licenses/validation/components.lock.json).
+Umsetzung, Quellenpflichten und Grenzen neuer Komponenten:
+[Validierungslizenzen](docs/validation-licenses.md). Die reguläre App- und
+Releaseintegration ist weiterhin offen; es wurde kein öffentliches Prüfpaket
+veröffentlicht.
 
 ## Icon
 

@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import urllib.request
 import zipfile
+from validation_compliance import prepare as prepare_compliance
 
 
 RELEASE = "https://github.com/itplr-kosit"
@@ -53,6 +54,10 @@ def package_validator(source, destination):
         for entry in original.infolist():
             if entry.filename.startswith("org/fusesource/jansi/internal/native/") and not entry.is_dir():
                 removed.append(entry.filename)
+            elif entry.filename.startswith("ui/"):
+                # Die native App verwendet die Daemon-Weboberfläche nicht.
+                # Deren ungenutzte Frontend-Abhängigkeiten werden nicht gebündelt.
+                continue
             else:
                 packaged.writestr(entry, original.read(entry))
     if len(removed) != 15:
@@ -64,14 +69,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arch", choices=RUNTIMES, default=platform.machine())
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--sources-output", type=Path, help="Passendes Quellenpaket; Standard: <output>-sources")
     args = parser.parse_args()
     if platform.system() != "Darwin" or args.arch not in RUNTIMES:
         parser.error("Der Paket-Prototyp unterstützt macOS arm64 und x86_64.")
     root = Path(__file__).resolve().parent.parent
     destination = (args.output or root / ".build" / ("xrechnung-validator-" + args.arch)).resolve()
+    source_destination = (args.sources_output or Path(str(destination) + "-sources")).resolve()
     if destination.exists():
         parser.error("Ziel existiert bereits; vorhandene Prüfpakete werden nicht überschrieben.")
+    if source_destination.exists() or source_destination == destination:
+        parser.error("Quellenziel existiert bereits oder entspricht dem Binärziel.")
+    if source_destination in destination.parents or destination in source_destination.parents:
+        parser.error("Binär- und Quellenziel dürfen nicht ineinander liegen.")
     destination.parent.mkdir(parents=True, exist_ok=True)
+    source_destination.parent.mkdir(parents=True, exist_ok=True)
     java_arch, java_hash = RUNTIMES[args.arch]
     artifacts = dict(ARTIFACTS)
     artifacts["runtime.tar.gz"] = (
@@ -102,7 +114,7 @@ def main():
             "xrechnungVersion": "3.0.2",
             "javaVersion": "Temurin 21.0.12.1+1",
             "architecture": args.arch,
-            "packaging": "omit-jansi-native-v1",
+            "packaging": "omit-jansi-native-and-daemon-ui-v2",
             "omittedNativeConsoleLibraries": removed,
             "packagedJarSHA256": hashlib.sha256((package / "validator.jar").read_bytes()).hexdigest(),
             "artifacts": {name: {"url": url, "sha256": sha} for name, (url, sha) in artifacts.items()},
@@ -110,16 +122,24 @@ def main():
         }
         (package / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         # Die vollständige Runtime einschließlich legal/ bleibt unverändert.
-        # Das Paket ist ein lokaler Prototyp; Freigabe der mitgelieferten
-        # Regel-/Schema-Lizenzen und Produktionssignierung stehen noch aus.
+        # Die native Produktintegration und deren Abnahme folgen getrennt.
         (package / "PROTOTYPE.txt").write_text(
             "Lokaler technischer Prototyp, keine freigegebene Distribution.\n"
-            "Lizenzen/Quellcodebereitstellung der Runtime, KoSIT-Abhängigkeiten und "
-            "Regel-/Schema-Pakete vor öffentlicher Weitergabe vollständig prüfen.\n",
+            "Öffentliche Binärdistribution nur zusammen mit dem passenden Quellenpaket "
+            "und nach Prüfung der endgültigen App.\n",
             encoding="utf-8",
         )
-        os.rename(package, destination)
+        source_package = work / "sources"
+        prepare_compliance(package, source_package, root / ".build/validation-downloads")
+        os.rename(source_package, source_destination)
+        try:
+            os.rename(package, destination)
+        except OSError:
+            # Nur das soeben selbst veröffentlichte Quellenpaket zurücknehmen.
+            os.rename(source_destination, source_package)
+            raise
     print(destination)
+    print("Sources: " + str(source_destination))
 
 
 if __name__ == "__main__":

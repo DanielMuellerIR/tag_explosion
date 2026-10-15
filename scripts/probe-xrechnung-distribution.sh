@@ -14,6 +14,8 @@ if [ "$#" = 3 ]; then
 fi
 bundle="$(cd "$1" && pwd)"
 [ -f "$bundle/manifest.json" ] && [ -x "$bundle/runtime/Contents/Home/bin/java" ] || exit 1
+sources="${VALIDATION_SOURCES:-${bundle}-sources}"
+python3 "$here/scripts/validation_compliance.py" "$bundle" --sources "$sources"
 [ ! -e "$2" ] || { echo "Ausgabeordner existiert bereits." >&2; exit 1; }
 mkdir -p "$2"
 output="$(cd "$2" && pwd)"
@@ -47,6 +49,7 @@ codesign --force --options runtime --timestamp --sign "$identity" "$app/Contents
 codesign --force --options runtime --timestamp --sign "$identity" "$app"
 codesign --verify --strict --deep "$app"
 ditto -c -k --keepParent "$app" "$output/XRechnungRuntimeProbe.zip"
+ditto -c -k --keepParent "$sources" "$output/XRechnungValidator-sources.zip"
 if [ "$notarize" = 1 ]; then
     . "$here/scripts/notary-profile.sh"
     tagx_require_notary_profile

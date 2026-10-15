@@ -20,6 +20,11 @@ bzw. `.build/xrechnung-validator-x86_64` ab. Ein vorhandenes Ziel wird nicht
 überschrieben. Die Java-Laufzeit wird vollständig einschließlich ihrer
 Lizenzdateien übernommen. Keine Installation nach `/Library/Java` oder
 Änderung der Shell-Konfiguration ist erforderlich.
+Zusätzlich entsteht unter `<paketpfad>-sources` das passende Quellenpaket.
+Lizenztexte, Original-Notices und Quellen werden anhand des geprüften
+[Komponenteninventars](validation-licenses.md) zusammengestellt. Alte
+Prototyp-Pakete werden nicht nachträglich still überschrieben; für eine neue
+Vorbereitung gegebenenfalls einen neuen Pfad mit `--output` wählen.
 
 ```sh
 .build/debug/tagx validate-xrechnung rechnung.xml \
@@ -59,7 +64,8 @@ Gepinnter Stand:
   erzeugten `manifest.json`. Die Binärpakete werden nicht eingecheckt.
 
 Für die macOS-Verpackung entfernt das Vorbereitungsskript ausschließlich
-die 15 nativen Jansi-Konsolenbibliotheken aus dem JAR. Sie sind teils
+die 15 nativen Jansi-Konsolenbibliotheken und die ungenutzte Daemon-Weboberfläche
+aus dem JAR. Die nativen Bibliotheken sind teils
 unsigniert und enthalten auch 32-Bit-Code, den Apples Notarisierung ablehnt.
 Java-Klassen, Regeln und Lizenzressourcen bleiben bytegleich erhalten;
 `jansi.mode=strip` deaktiviert die Konsolenformatierung. Das Manifest nennt
@@ -129,11 +135,14 @@ Vor einer öffentlichen Auslieferung sind zusätzlich nötig:
 - App-Oberfläche mit klaren Prüfzuständen, Abbruch und dem Hinweis am Ergebnis.
 - Einbindung des Pakets in den regulären Build- und Updateprozess;
   Signaturprüfung und Tests der endgültigen App auf unterstützten Systemen.
-- Vollständige Lizenzhinweise und passende Quellcodebereitstellung für
-  Runtime, KoSIT-Abhängigkeiten und Regel-/Schema-Artefakte. KoSIT ist
-  Apache-2.0, Temurin/OpenJDK GPLv2 mit Classpath Exception; die EN-16931-Regeln
-  haben eine eigene EUPL-1.2-Lizenz. Die MIT-Lizenz des eigenen Codes ersetzt
-  diese Bedingungen nicht.
+- Das erzeugte, zum Binärstand passende Quellenpaket gemeinsam bereitstellen
+  und die vorhandene Lizenz-/Quellenprüfung in den regulären Release aufnehmen.
+  Die Paketbasis und ihre Original-Notices sind inzwischen umgesetzt;
+  neue Komponenten werden vor Bündelung gesondert geprüft. Die MIT-Lizenz
+  des eigenen Codes ersetzt keine fremden Lizenzbedingungen.
+
+Die gesamte weitere Produktintegration steht in den
+[Validierungsmeilensteinen](e-invoice-validation-roadmap.md).
 
 Quellen: [KoSIT-Validator](https://github.com/itplr-kosit/validator),
 [XRechnung-Konfiguration](https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/tag/v2026-08-31),

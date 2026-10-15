@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.48.1 — 2026-10-16
+
+- Lizenz- und Quellenbasis für das KoSIT-/Temurin-Prüfpaket umgesetzt:
+  tatsächlicher Java-Code inventarisiert, Original-Notices/Lizenztexte erhalten
+  und passende Java-, OpenJDK- und Regelquellen mit dem Binärstand verbunden.
+- Die Probe-Verpackung prüft jetzt Lizenzen, Quellen, Runtime, Regeln und JAR
+  vor Signierung. Fehlende Notices, fehlende Quellen oder ungeprüfte Änderungen
+  blockieren den Paketbau. Ungenutzte KoSIT-Daemon-Webressourcen entfallen.
+- Weitere Meilensteine für App-Integration, ZUGFeRD/Factur-X, Peppol, PDF-Prüfung
+  und reguläre Distribution dokumentiert. Die native App hat noch keine
+  vollständige Rechnungsvalidierung.
+
 ## 0.48.0 — 2026-10-16
 
 - Separater CLI-Prototyp `tagx validate-xrechnung`: XRechnung-XML lokal mit
