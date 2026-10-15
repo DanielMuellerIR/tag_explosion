@@ -60,7 +60,7 @@ let package = Package(
             ]
         ),
         // Nur von Tests verwendet; nicht Bestandteil des App-Bundles.
-        .target(name: "TagExplosionTestSupport", path: "Tests/Support"),
+        .target(name: "TagExplosionTestSupport", path: "Tests/Support", exclude: ["XRechnungRuntimeProbe.c"]),
         .testTarget(
             name: "TagExplosionCoreTests",
             dependencies: ["TagExplosionCore", "EInvoiceCore", "TagExplosionTestSupport", "tagx"],

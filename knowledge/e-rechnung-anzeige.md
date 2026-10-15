@@ -17,6 +17,10 @@ Rechnungsansicht der App.
   Verweigerung der Anzeige; `tagx invoice --strict` liefert Exit 3. Die
   Codes sind die Regelkennungen der Norm (BR-02 … BR-15, BR-CO-10/13/14/15/16)
   und der XRechnung (BR-DE-15), damit man sie in Validatoren wiederfindet.
+- Die vollständige XRechnung-Prüfung ist ein separater CLI-Prototyp
+  (`tagx validate-xrechnung`) mit privatem KoSIT-/Java-Paket; die App-Anzeige
+  bleibt bei der Grundprüfung. Details:
+  [xrechnung-kosit-prototyp.md](xrechnung-kosit-prototyp.md).
 - Zwei Syntaxen decken fast alles ab: **CII** (ZUGFeRD 2.x = Factur-X,
   XRechnung-CII) und **UBL** (XRechnung-UBL, Peppol BIS). Gutschriften in UBL
   (`ubl:CreditNote`) werden per Pfad-Normalisierung auf die Invoice-Tabelle

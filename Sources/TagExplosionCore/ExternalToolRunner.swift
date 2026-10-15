@@ -11,14 +11,13 @@ public enum ExternalToolRunner {
     // Queue warten, sonst verzögert Last gerade den benötigten Abbruch.
     private static let signalQueue = DispatchQueue(label: "io.github.tagexplosion.process-signals", qos: .userInitiated)
 
-    /// Interner Fehler für Tests, die einen bewusst kurzen Schutz gegen
-    /// festhängende Hilfsprozesse einschalten. Die normalen Aufrufe verwenden
-    /// keinen Timeout und behalten dadurch ihr bisheriges Verhalten.
+    /// Fehler für Aufrufe mit bewusstem Zeitlimit (Tests und KoSIT-Prototyp).
+    /// Normale Metadaten-Aufrufe verwenden weiterhin keinen Timeout.
     enum ProcessTimeoutError: Error, LocalizedError, Sendable, Equatable {
         case exceeded
 
         var errorDescription: String? {
-            "External process exceeded its test timeout"
+            "External process exceeded its timeout"
         }
     }
 
@@ -128,8 +127,8 @@ public enum ExternalToolRunner {
         return path
     }
 
-    /// Externes Programm ausführen, stdout zurückgeben. Der optionale Timeout
-    /// ist nur für Regressionstests gedacht; Produktivaufrufe übergeben nil.
+    /// Externes Programm ausführen, stdout zurückgeben. Metadaten-Aufrufe
+    /// übergeben kein Zeitlimit; der KoSIT-Prototyp begrenzt seine Prüflaufzeit.
     /// Umgebung für den Werkzeugaufruf mit garantierter UTF-8-Locale.
     /// mediainfo richtet seine Textausgabe nach `LC_ALL`/`LC_CTYPE`/`LANG`;
     /// ohne UTF-8-Locale (Docker-Container, CI-Job, `LANG=C`) ersetzt es

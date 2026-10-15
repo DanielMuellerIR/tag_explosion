@@ -1,6 +1,6 @@
 # Roadmap — Tag Explosion
 
-Stand: 2026-10-05 (AP1–17 abgeschlossen; AP17 mit 0.47.0 als Quick-Look-
+Stand: 2026-10-16 (AP1–17 abgeschlossen; AP17 mit 0.47.0 als Quick-Look-
 Erweiterung und Finder-Dienst ohne Xcode-Projekt umgesetzt). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
 Meilensteine) um die noch offenen Erweiterungen. Jeder Punkt ist ein
 Arbeitspaket (AP) mit Status; abgeschlossene Pakete wandern mit Version in den
@@ -52,6 +52,14 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 | AP15 | **Online-Lookup:** MusicBrainz und Discogs (Release-Suche, Tags übernehmen), optional AcoustID-Fingerprint über `fpcalc`. Nur auf ausdrückliche Aktion, mit Datenschutzhinweis im UI; kein automatischer Netzzugriff. | groß | ✅ 0.38.0 |
 | AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (`XDGTrash`, `scripts/linux-deps.sh`, [knowledge/linux-xdg-papierkorb.md](../knowledge/linux-xdg-papierkorb.md)). | mittel | ✅ 0.39.0 |
 | AP17 | **Finder-Integration:** Quick-Look-Metadatenprovider für Audio/MP4/Matroska und EPUB (installierte EPUB-Vorschau geprüft; MP3 behält hier die Systemvorschau); „In Tag Explosion öffnen" unter Dienste im Finder-Kontextmenü. Eigenes SwiftPM-Executable mit `NSExtensionMain`, bestehender headless Build bleibt erhalten. Grenzen und Prüfstand: [finder-integration.md](../knowledge/finder-integration.md). | groß | ✅ 0.47.0 |
+
+## E-Rechnungsvalidierung
+
+Mit 0.48.0 gibt es einen separaten KoSIT-Prototyp für XRechnung-XML in der
+CLI und einen geprüften Verpackungsweg mit privater Java-Laufzeit.
+Die App-Integration, weitere Rechnungsprofile und die Lizenzzusammenstellung
+für eine öffentliche Distribution bleiben offen. Umfang und Nachweis:
+[E-Rechnungsvalidierung](e-invoice-validation.md).
 
 ## Vorgehen
 

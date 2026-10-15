@@ -59,6 +59,9 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Order-X/Peppol-Bestellungen ohne BT-Nummern, Grundvalidierung (Regelcodes,
   Toleranz, Währungsfalle), CGPDF-Extraktion samt
   Budgets/Dekompressions-Restrisiko, XMP-Präfix-Falle.
+- [xrechnung-kosit-prototyp.md](xrechnung-kosit-prototyp.md) — KoSIT-/Java-Paket,
+  strukturierte XSD-/Schematron-Berichte, Jansi-Notarisierungsfalle,
+  Offline-/Verpackungsnachweis und Grenzen der Gewährleistung.
 - [kapitel-hoerbuch.md](kapitel-hoerbuch.md) — Bei Arbeit an Kapiteln
   (CHAP/CTOC, MP4 Nero/QuickTime, Matroska): was TagLib 2.3 kann, Einheiten
   (ms vs. ns), fehlende MP4-Enden, welche Fremdwerkzeuge was lesen.

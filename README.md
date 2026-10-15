@@ -128,7 +128,9 @@
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
   standalone XML files and on PDFs with an embedded invoice, which get an
-  extra "E-Invoice" tab.
+  extra "E-Invoice" tab. A separate [KoSIT CLI prototype](docs/e-invoice-validation.md)
+  checks XRechnung XML against XSD and Schematron using a private Java runtime;
+  it is not yet integrated into the app or regular distribution.
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target
@@ -440,6 +442,12 @@ file's own volume), where every file manager shows it. See
 ## License
 
 MIT (see [LICENSE](LICENSE)), © 2026 Daniel Müller.
+
+The software and its validation results are provided without warranty of
+accuracy, completeness or fitness for a particular purpose, to the extent
+permitted by law. Mandatory statutory liability remains unaffected. E-invoice
+checks do not establish legal or tax validity or guarantee acceptance by a
+recipient. See [validation scope and limitations](docs/e-invoice-validation.md).
 
 TagLib (LGPL-2.1-only or MPL-1.1) is linked dynamically and shipped
 inside the app bundle, so it stays replaceable. The library code itself is

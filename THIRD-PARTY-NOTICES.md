@@ -69,7 +69,27 @@ dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
   jeweils als kurze faktische Auszüge mit eigenen deutschen Bezeichnungen.
 - „ZUGFeRD“, „Factur-X“, „XRechnung“ und „Peppol“ werden ausschließlich
   beschreibend zur Angabe der gelesenen Formate genannt. Die App behauptet
-  keine Konformität und validiert nicht — sie zeigt an.
+  keine vollständige Konformität; sie zeigt Felder und Hinweise einer Grundprüfung.
+
+## Optionaler KoSIT-Prototyp
+
+`tagx validate-xrechnung` startet ein ausdrücklich angegebenes, separates
+Prüfpaket. Die normalen App-Builds enthalten dieses Paket noch nicht.
+`scripts/prepare-xrechnung-validator.py` lädt für lokale Versuche KoSIT
+Validator 1.6.3 (Apache-2.0), das XRechnung-Regelpaket 2026-08-31 und Eclipse
+Temurin JRE 21.0.12.1+1 (OpenJDK: GPLv2 mit Classpath Exception). Die Runtime
+bleibt vollständig einschließlich `legal/`; die eigenen Swift-Dateien bleiben
+MIT-Code. Aus dem KoSIT-JAR werden ausschließlich die nativen
+Jansi-Konsolenbibliotheken entfernt; Klassen, Regeln und Lizenzressourcen
+bleiben erhalten. Download-, Verpackungs- und Quellcodeangaben stehen im
+erzeugten Manifest.
+
+Die mitgelieferten Abhängigkeiten, XML-Schemata und Schematron-Regeln haben
+eigene Lizenzbedingungen, insbesondere EUPL-1.2 für die europäischen
+EN-16931-Regeln. Die vollständige Lizenz-/Quellcodezusammenstellung ist vor
+öffentlicher Weitergabe des Prüfpakets noch zu erledigen; der lokale Prototyp
+ist keine Freigabe dieser Distribution. Details und Primärquellen:
+[E-Rechnungsvalidierung](docs/e-invoice-validation.md).
 
 ## Icon
 

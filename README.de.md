@@ -131,6 +131,9 @@
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
   Funktioniert für eigenständige XML-Dateien und für PDFs mit eingebetteter
   Rechnung — die bekommen einen zusätzlichen Tab „E-Rechnung“.
+  Ein separater [KoSIT-CLI-Prototyp](docs/e-invoice-validation.md) prüft
+  XRechnung-XML gegen XSD und Schematron mit privater Java-Laufzeit; er ist
+  noch nicht in die App oder die reguläre Distribution integriert.
 - **Dateinamen aus Tags, Tags aus Dateinamen** — Muster im kid3-Stil wie
   `%{track:2} - %{artist} - %{title}` (jeder Tag-Schlüssel geht, `%{track:2}`
   füllt mit Nullen auf). Das Umbenennen zeigt eine Vorschau und verweigert
@@ -453,6 +456,13 @@ stehen in [docs/PLAN.md](docs/PLAN.md), der Release-Ablauf in
 ## Lizenz
 
 MIT (siehe [LICENSE](LICENSE)), © 2026 Daniel Müller.
+
+Die Software und ihre Prüfergebnisse werden im gesetzlich zulässigen Umfang
+ohne Gewähr für Richtigkeit, Vollständigkeit oder Eignung für einen bestimmten
+Zweck bereitgestellt. Zwingende gesetzliche Haftung bleibt unberührt.
+E-Rechnungsprüfungen sichern weder rechtliche oder steuerliche Gültigkeit
+noch die Annahme durch einen Empfänger zu. Siehe
+[Prüfumfang und Grenzen](docs/e-invoice-validation.md).
 
 TagLib (LGPL-2.1-only oder MPL-1.1) wird dynamisch gelinkt und im
 App-Bundle mitgeliefert, bleibt dort also austauschbar. Der Bibliothekscode

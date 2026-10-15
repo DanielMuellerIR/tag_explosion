@@ -8,6 +8,21 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.48.0 — 2026-10-16
+
+- Separater CLI-Prototyp `tagx validate-xrechnung`: XRechnung-XML lokal mit
+  KoSIT gegen XSD, EN-16931- und XRechnung-Schematron prüfen. Strukturierte
+  Ergebnisse unterscheiden bestandene, fehlgeschlagene und nicht unterstützte
+  Prüfungen; ein Werkzeugfehler bestätigt niemals eine Rechnung.
+- Reproduzierbares Prüfpaket mit gepinnten Downloads, SHA-256-Prüfung und
+  privater Temurin-Laufzeit. Signierte App-Hülle zur Untersuchung der
+  Auslieferung ohne zusätzliche Java-Installation; die reguläre App enthält
+  die Funktion noch nicht. Verpackungsnachweis und offene Integrationsarbeit:
+  [KoSIT-Prototyp](knowledge/xrechnung-kosit-prototyp.md).
+- Hinweise zum Prüfumfang sowie zum Gewährleistungs- und Haftungsausschluss
+  in Text-/JSON-Ergebnissen und Dokumentation ergänzt. Zwingende gesetzliche
+  Haftung bleibt unberührt.
+
 ## 0.47.7 — 2026-10-13
 
 - Anzeige, Export, Einzel-/Stapeleditor und Cover-Werkzeuge wählen das Frontcover
