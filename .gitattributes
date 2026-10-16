@@ -1,2 +1,3 @@
 # Originale Lizenztexte samt Zeilenenden und Leerzeichen bytegleich erhalten.
 licenses/validation/*.txt -text -whitespace
+licenses/pdf-validation/*.txt -text -whitespace

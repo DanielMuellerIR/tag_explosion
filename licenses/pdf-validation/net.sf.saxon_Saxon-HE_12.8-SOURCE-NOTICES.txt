@@ -1,0 +1,1770 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains Java classes used to represent character classes in regular expressions.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains a general-purpose implementation of immutable hash trie maps,
+ * used to underpin the Saxon implementation of XSLT 3.0 maps.</p>
+ * <p>The implementation was written by Michael S. Froh (msfroh) and released under an MIT license.
+ * It was forked from github project msfroh/functional_snippets on 28 March 2014. Very little code
+ * has been changed during the integration with Saxon, but a great deal of un-needed code has been
+ * removed.</p>
+ * <p>The code betrays Scala origins in the use of classes such as Option, which is a class that
+ * provided a type-safe way of handling null values, and Tuple2 which can hold any pair of values.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines implementations and subinterfaces of the interface SequenceIterator, which is
+ * used to iterate over an XDM sequence.</p>
+ * <p>The subinterfaces mostly represent iterators with additional capability: for example a LastPositionFinder
+ * can determine the number of items in the sequence without reading to the end; a GroundedIterator can deliver
+ * the original sequence as a list in memory; a LookaheadIterator is capable of one-item look-ahead. Note
+ * that just because a class implements such an interface does not mean it necessarily has this capability;
+ * it is necessary to check the properties of the specific iterator before assuming this.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes that interface Saxon to the Apache AXIOM tree model.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes used to implement XSLT 3.0 accumulators, in particular,
+ * accumulators for non-streamed documents.</p>
+ */
+
+
+
+////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can
+// obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", 
+// as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>This package contains classes responsible for localizing the output of functions such as
+ * format-dateTime and format-integer into various languages.</p>
+ * <p>The languages supported are indicated by the class name, for example Number_da is the support
+ * class for Danish.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>This package provides classes associated with XSLT pattern handling. </p>
+ * <p>The principal classes are:</p>
+ * <p><b>Pattern</b>:<br>
+ * This represents an XSLT Pattern. There is a static method Pattern.make() which is
+ * used to construct a Pattern from a String (it is a factory method rather than a
+ * constructor, because it typically returns some subclass of Pattern according
+ * to the syntax supplied). Subclasses of Pattern represent different kinds of pattern
+ * such as LocationPathPattern and IDKeyPattern. What they all have in common is a match()
+ * method, which determines whether a given node matches the pattern. A pattern is
+ * not in itself an Expression, but the class <code>PatternSponsor</code> is used
+ * to wrap a pattern making it look like an expression for the benefit of the static analysis
+ * (allowing the same mechanisms to be used for example to find all the references to a variable).</p>
+ * <p><b>NodeTest</b>:<br>
+ * This represents a NodeTest within a step of an XPath expression. A NodeTest performs several
+ * roles: as well as its use in conjuction with an axis to form a step of a path expression,
+ * it acts as an ItemType used in handling type checking of nodes, and (wrapped in a NodeTestPattern)
+ * it acts as an XSLT pattern for use in constructs such as the <code>match</code> attribute of
+ * <code>xsl:template</code> and <code>xsl:key</code>.
+ * A NodeTest is used directly to implement simple patterns such as <code>match="item"</code>
+ * or <code>match="*"</code>. There are several subclasses of NodeTest, depending on the conditions
+ * to be matched: node type, node name, namespace URI, and so on. The class AnyNodeTest matches any node,
+ * while NoNodeTest matches nothing. NodeTests can also be combined using the operators of intersection,
+ * difference, and union, to describe the more complex types that are sometimes computed by the type
+ * checking machinery.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package originally provided an alternative API for executing XPath expressions
+ * directly from a Java application. It is no longer recommended for application use,
+ * but is still used internally to underpin the public JAXP and s9api APIs.</p>
+ * <p>The preferred API for executing XPath expressions in Saxon is the <code>s9api</code>
+ * package. This package is older, and provides a lower-level interface that offers access to more
+ * internal details, but is not so convenient to use.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes associated with the implementation of maps, arrays, and JSON
+ * for XSLT 3.0 and XPath 3.1.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes for handling different character sets, especially
+ * when serializing the output of a query or transformation. </p>
+ * <p>Most of the classes in this package are implementations of the interface <code>CharacterSet</code>.
+ * The sole
+ * function of these classes is to determine whether a particular character is present in the
+ * character set or not: if not, Saxon has to replace it with a character reference.</p>
+ * <p>The actual translation of Unicode characters to characters in the selected encoding
+ * is left to the Java run-time library. (Note that different versions of Java support
+ * different sets of encodings, and there is no easy way to find out which encodings
+ * are supported in a given installation).</p>
+ * <p>It is possible to configure Saxon to support additional character sets by writing an
+ * implementation of the <code>CharacterSet</code> interface, and registering this class with the
+ * <code>Configuration</code> using the call <code>getCharacterSetFactory().setCharacterSetImplementation()</code></p>
+ * <p>If an output encoding is requested that Saxon does not recognize, but which the Java
+ * platform does recognize, then Saxon attempts to determine which characters the encoding
+ * can represent, so that unsupported characters can be written as numeric character references.
+ * Saxon wraps the Java <code>CharSet</code> object in a <code>JavaCharacterSet</code> object,
+ * and tests whether a character is encodable by calling the Java interrogative
+ * <code>encoding.canEncode()</code>, caching the result locally. Since this mechanism
+ * appears to have become reliable in JDK 1.5, it is now used much more widely than before,
+ * and most character sets are now supported in Saxon by relying on this mechanism.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines a public API for constructing trees; it represents trees-under-construction
+ * using a lightweight immutable data structure called a <i>sapling</i>; once construction of a sapling
+ * tree is complete, it can be copied to form a fully-functional XDM tree in the form of an
+ * <code>XdmNode</code> or <code>NodeInfo</code> object.</p>
+ * <p>An overview of the API can be found in the Javadoc for class {@link net.sf.saxon.sapling.SaplingNode}.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes used during the compilation of an XSLT stylesheet.
+ * The instances of these classes are discarded once compilation is complete, and they play no role
+ * in executing the transformation at run-time, except when tracing and debugging are invoked.</p>
+ * <p>The class <b>StyleElement</b> represents an element node on the stylesheet tree. Subclasses
+ * of StyleElement represent individual stylesheet elements, and are generally named according to
+ * the XSLT element name, for example XSLApplyTemplates, XSLChoose. The class <b>XSLStylesheet</b>
+ * is used for the <code>xsl:stylesheet</code> element in each stylesheet module, and in particular for the
+ * <code>xsl:stylesheet</code> element in the principal stylesheet module.</p>
+ * <p>During construction of the stylesheet tree, the class <b>StyleNodeFactory</b> is nominated to
+ * the <b>Builder</b> as the factory class responsible for creating element nodes on the tree. It is
+ * this class that decides which subclass of StyleElement to use for each element appearing in the
+ * stylesheet. For extension elements, the decision is delegated to a user-created
+ * <b>ExtensionElementFactory</b>.</p>
+ * <p>Each class provides a number of methods supporting the various phases of processing. The sequence
+ * of events sometimes varies slightly, but in general the first phase is done by <code>prepareAttributes</code>,
+ * which performs local validation of the attributes of each instruction. The second phase is represented
+ * by the <code>validate</code> method, which does global validation, fixup of references, and type checking.
+ * The third phase is done by the <code>compile</code> method, which generates <code>Instruction</code> and
+ * <code>Expression</code> objects. Further processing (local and global optimization) is then done on these
+ * Instruction objects, and is no longer the responsibility of this package.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package implements support for JSON: it includes classes that implement the XPath 3.1 functions
+ * for JSON, and underlying support code for parsing and serializating JSON.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes that implement the XPath 2.0 and 3.1 type system.
+ * It contains that part of the functionality relevant to a non-schema-aware
+ * implementation: that is, the overall structure of the type system, together
+ * with representations of the built-in types.</p>
+ * <p>The hierarchy of schema types is represented by the interfaces
+ * <code>SchemaType</code>, <code>ComplexType</code>, <code>SimpleType</code>,
+ * <code>ListType</code>, and <code>AtomicType</code>. (Union types never arise
+ * in non-schema-aware processing). There are concrete classes representing
+ * built-in types such as <code>AnyType</code>, <code>BuiltInAtomicType</code>,
+ * and <code>BuiltInListType</code>: the corresponding classes for user-defined
+ * types are in the <code>com.saxonica.schema</code> package.</p>
+ * <p>The class <code>SequenceType</code> ought logically to be in this package
+ * but is actually in <code>net.sf.saxon.value</code>. A sequence type contains
+ * an <code>ItemType</code> which may be an <code>AtomicType</code> or a
+ * <code>NodeTest</code>: NodeTests are found in the package <code>net.sf.saxon.pattern</code>.</p>
+ * <p>The logic for performing type checking is partly in the singleton class
+ * <code>Type</code> (which also contains many useful constants), and partly in
+ * the class <code>TypeChecker</code> found in package <code>net.sf.saxon.expr</code>.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines utility classes designed to work with Java iterators, that is, implementations
+ * of <code>java.util.Iterator</code> (not to be confused with Saxon's <code>SequenceIterator</code> class).</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package is an implementation of the Saxon internal tree structure,
+ * designed to minimize memory usage, and the costs of allocating and garbage-collecting
+ * Java objects.</p>
+ * <p>The data structure consists of a set of arrays, held in the <code>TinyTree</code> object.
+ * A <code>TinyTree</code> represents one or more root document or element nodes, together with their
+ * subtrees. If there is more than one root node, these will often be members of a sequence, but
+ * this is not essential and is never assumed.
+ * The arrays are in three groups. </p>
+ * <p>The principal group of arrays contain one entry for each node other
+ * than namespace and attribute nodes. These arrays are in document order. The following
+ * information is maintained for each node: the
+ * depth in the tree, the name code, the index of the next sibling, and two fields labelled "alpha" and "beta".
+ * The meaning of "alpha" and
+ * "beat" depends on the node type. For text nodes, comment nodes, and processing instructions
+ * these fields index into a StringBuffer holding the text. For element nodes, "alpha" is
+ * an index into the attributes table, and "beta" is an offset into the namespaces table.
+ * Either of these may be set to -1 if there are no attributes/namespaces.</p>
+ * <p>A name code is an integer value that indexes into the NamePool object: it can be
+ * used to determine the prefix, local name, or namespace URI of an element or attribute name.</p>
+ * <p>The attribute group holds the following information for each attribute node: parent
+ * element, prefix, name code, attribute type, and attribute value. Attributes
+ * for the same element are adjacent.</p>
+ * <p>The namespace group holds one entry per namespace declaration (not one per namespace
+ * node). The following information is held: a pointer to the element on which the namespace
+ * was declared, and a namespace code. A namespace code is an integer, which the NamePool can
+ * resolve into a prefix and a namespace URI: the top 16 bits identify the prefix, the bottom
+ * 16 bits the URI.</p>
+ * <p>The data structure contains no Java object references: the links between elements and
+ * attributes/namespaces are all held as integer offsets. This reduces size, and also makes
+ * the whole structure relocatable (though this capability is not currently exploited).
+ * All navigation is done by serial traversal of the arrays, using
+ * the node depth as a guide. An array of pointers to the preceding sibling is created on
+ * demand, the first time that backwards navigation is attempted. There are no parent pointers;
+ * Saxon attempts to remember the parent while navigating down the tree, and where this is not
+ * possible it locates the parent by searching through the following siblings; the last sibling
+ * points back to the parent. The absence of the other pointers is a trade-off between tree-building time and
+ * transformation time: I found that in most cases, more time was spent creating these pointers
+ * than actually using them. Occasionally, however, in trees with a very large fan-out, locating
+ * ancestors can be slow.</p>
+ * <p>When the tree is navigated, transient ("flyweight") nodes are created as Java objects.
+ * These disappear as soon as they are no longer needed. Note that to compare two nodes for
+ * identity, you can use either the isSameNode() method, or compare the results of
+ * generateId(). Comparing the Java objects using "==" is incorrect.</p>
+ * <p>The tree structure implements the DOM interface as well as the Saxon NodeInfo interface.
+ * There are limitations in the DOM support, however: especially (a) the tree is immutable, so
+ * all updating methods throw an exception; (b) namespace declarations are not exposed as
+ * attributes, and (c) only the core DOM classes are provided.</p>
+ * <p>The primary way of navigating the tree is through the XPath axes, accessible through the
+ * iterateAxis() method. The familiar DOM methods such as getNextSibling() and getFirstChild()
+ * are not provided as an intrinsic part of the <code>NodeInfo</code> interface: all navigation
+ * is done by iterating the axes, and each tree model provides its own implementations of the axes.
+ * However, there are helper methods in the shared <code>Navigator</code> class which many
+ * of these implementations choose to use.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes associated with parsing and general static analysis of XPath expressions.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines the interface to the Saxon tree structure. This
+ * structure is used to represent both the source document and the stylesheet.
+ * Essentially, this class represents Saxon's realization of the XPath data model.</p>
+ * <p>The classes in the package are rather a miscellany. What they have in common is that
+ * they describe the way the Saxon tree structure is accessed, in a way that it independent
+ * of the two tree implementations (in packages <code>net.sf.saxon.tree</code> and
+ * <code>net.sf.saxon.tinytree</code>).</p>
+ * <p>Broadly speaking, the classes fall into four categories:</p>
+ * <ul>
+ * <li>Interface classes: DocumentInfo, NodeInfo, Item, ValueRepresentation. These describe the interface
+ * offered by the object model to the rest of the system, including the application.
+ * </li>
+ * <li>Iterator classes: SequenceIterator, AxisIterator, ArrayIterator, EmptyIterator, SingletonIterator, and others.
+ * These classes provide mechanisms for iterating over sequences. The most general, and the one which
+ * applications are most likely to use, is the SequenceIterator interface itself. AxisIterator is a
+ * specialization of this interface whose main difference is that it cannot throw exceptions. The other
+ * classes are implementations of SequenceIterator for use in particular circumstances.
+ * </li>
+ * <li>Shared implementation classes: DocumentPool, NamePool, Navigator, XMLChar.
+ * These contain functionality that is shared between the various tree implementations. (However, there is
+ * also some shared functionality in the <code>net.sf.saxon.tree</code> package). These classes are
+ * not generally needed by applications, with the exception of NamePool, which complex applications may
+ * need to manipulate.</li>
+ * <li>Information classes: Axis, NamespaceConstant. These contain constants.</li>
+ * </ul>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package implements maps, as introduced in XSLT 3.0 and XQuery 3.1:
+ * maps provide a dictionary-like data structure.</p>
+ * <p>Maps are immutable, so that adding a new entry to a map creates a new map.</p>
+ * <p>The entries in a map are (Key, Value) pairs. The key is always an atomic value; the value
+ * may be any XPath sequence.</p>
+ * <p>There are functions (each supported by its own implementation class) to create a new map,
+ * to add an entry to a map, to get an entry from a map, and to list all the keys that are present
+ * in a map.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains libraries of function signatures for the standard functions available in various Saxon-HE environments.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides glue classes that enable Saxon to process a source
+ * document supplied as a DOM tree in the form of a DOMSource object; it also provides
+ * classes that present a DOM view of Saxon's native tree structures.</p>
+ * <p>The native Saxon tree structures (the linked tree and tiny tree) do not
+ * implement DOM interfaces directly. However, Saxon supports the DOM at two levels:</p>
+ * <ul>
+ * <li><p>The input to a transformation or query may be supplied in the form of
+ * a <code>DOMSource</code> (which contains a DOM document). Saxon is capable of either performing the
+ * query or transformation on the DOM <i>in situ</i>, by wrapping the DOM nodes in
+ * a layer that make them appear to be Saxon nodes, or of converting the DOM to Saxon's native tree
+ * implementation. </p></li>
+ * <li><p>It is possible for a transformation or query to call extension functions
+ * that use DOM interfaces to access a Saxon tree. If the Saxon tree is in fact a wrapper
+ * around the DOM, then extension functions will be presented with the underlying
+ * DOM nodes. In other cases, Saxon adds a wrapper to the native Saxon nodes to make
+ * them implement the DOM interfaces.</p>
+ * <p>Note that Saxon's tree structures are immutable. Updating interfaces
+ * in the DOM API are therefore not supported.</p></li>
+ * </ul>
+ * <p>The classes {@code net.sf.saxon.dom.DOMNodeWrapper} and {@link net.sf.saxon.dom.DocumentWrapper} implement the Saxon
+ * interface
+ * {@link net.sf.saxon.om.NodeInfo} on top of an underlying DOM
+ * <code>Node</code> or <code>Document</code> object. This enables XPath expressions to be executed
+ * directly against
+ * the DOM.</p>
+ * <p>The classes {@link net.sf.saxon.dom.NodeOverNodeInfo},
+ * {@link net.sf.saxon.dom.DocumentOverNodeInfo}, and the like do the converse:
+ * they provide a DOM wrapper over a native Saxon node.</p>
+ * <p><b>Note that using the DOM with Saxon is considerably less efficient than using
+ * Saxon's native tree implementations, the TinyTree and the LinkedTree.
+ * The DOM should be used only where there is some good reason, e.g. where other parts
+ * of the application have to use DOM interfaces.</b></p>
+ * <p>Saxon doesn't stop you modifying the contents of the DOM in the course of a
+ * transformation (for example, from an extension function, or in a different thread)
+ * but the consequences of doing so are unpredictable.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can
+// obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", 
+// as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides a miscellaneous collection of
+ * helper classes for XSLT transformation. They are of no direct interest to user applications,
+ * except for the <code>XPathException</code> class, which is used to represent many
+ * errors in public methods.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2013-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes responsible for evaluation of FLWOR expressions.</p>
+ * <p>FLWOR expressions are implemented as a pipeline of clauses, much as described in the specification.
+ * The pipeline can be evaluated in push or pull mode: in push mode, the supplier of tuples activates the consumer
+ * of tuples when a tuple is ready to be processed, while in pull mode, the consumer of tuples calls the supplier
+ * to request the next tuple. In both cases the "tuple" is not actually passed as an argument or result of this call,
+ * but is represented by the state of local variables in the XPathContext stack on completion of the call. The only
+ * time tuples are represented as real objects is when the processing is not pipelined, for example when tuples need
+ * to be sorted or grouped.</p>
+ * <p>Simple "for" and "let" expressions do not use this mechanism: instead, they are compiled to a
+ * {@link net.sf.saxon.expr.ForExpression} or {@link net.sf.saxon.expr.LetExpression}.</p>
+ */
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides supporting code for the Gizmo utility, found at <code>net.sf.saxon.Gizmo</code>.</p>
+ * <p>It is chiefly concerned with interfacing to the JLine2 library, which provides supporting services
+ * to handle command line editing, content completion, and session history</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains Java classes used to represent abstractions of resources of different
+ * kinds that can be retrieved as part of a collection (using the <code>fn:collection()</code> function).</p>
+ * <p>This framework was introduced in Saxon 9.8, reflecting the change in specification of <code>fn:collection()</code>
+ * to allow any kind of resources to be returned, not only XML documents.</p>
+ * <p>The set of media types that are recognized, and the way in which they are processed, can be customized via the
+ * Saxon Configuration file.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides a number of classes supporting the general capability to wrap external
+ * XML tree models as instances of the Saxon {@link net.sf.saxon.om.NodeInfo} interface, making them
+ * amenable to XPath processing.</p>
+ * <p>The {@link net.sf.saxon.tree.wrapper.SpaceStrippedNode} class provides a virtual tree in which whitespace text nodes
+ * in the underlying real tree are ignored.</p>
+ * <p>The {@link net.sf.saxon.tree.wrapper.TypeStrippedNode} class provides a virtual tree in which type annotations in the
+ * underlying real tree are ignored.</p>
+ * <p>The {@link net.sf.saxon.tree.wrapper.VirtualCopy} class provides a tree that is the same as the underlying tree in
+ * everything except node identity.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>This package contains the code to map XML Schema and XPath regular expressions
+ * to a regular expression engine of the underlying Java platform.</p>
+ * <p>Most of the classes implement a regular expression engine derived from Apache's Jakarta
+ * project. The code of Jakarta has been modified so that the regular expressions implement
+ * the syntax of XSD/XPath regular expressions. There have also been extensive changes
+ * for performance reasons</p>
+ * <p>In addition, there are classes to provide direct access to the native JDK
+ * regular expression engine. The flags value ";j" may be used to select this
+ * engine. The resulting syntax/semantics will not be an exact match to the XPath
+ * definition.</p>
+ * <p>Users should not normally need to use these classes directly.</p>
+ * <p>Earlier versions of Saxon included a translator from XPath regular expressions
+ * to Java regular expressions, based on that produced by James Clark. This
+ * mechanism is no longer used.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>
+ * This package provides glue classes that enable Saxon to process a source document supplied
+ * as a XOM tree (see <a href="http://www.cafeconleche.org/XOM">http://www.cafeconleche.org/XOM</a>).</p>
+ * <p>
+ * The package provides implementations of the Saxon DocumentInfo and NodeInfo interfaces that act as wrappers to
+ * the relevant XOM classes.</p>
+ * <p>Much of the implemention of this package was done by Wolfgang Hoschek, based on Michael Kay's similar
+ * package for JDOM.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>This package provides implementations of the functions defined in <a href="http://www.exslt.org">EXSLT</a>.</p>
+ * <p>The implementation of EXSLT functions is by no means complete (the specifications in many cases were never finally finished),
+ * but the major functions are provided - even where they are effectively superseded by functions available
+ * in XPath 2.0.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package collects together interfaces intended for user applications to implement
+ * in order to customize Saxon's behavior, default implementations of these interfaces,
+ * and classes containing constants that are used in public Saxon interfaces.</p>
+ * <p>These interfaces were brought together into this package in Saxon 9.3, having previously
+ * been dispersed around the package hierarchy and mixed with classes and interfaces intended
+ * only for internal use.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides Saxon's preferred Java API for XSLT, XQuery, XPath, and XML Schema processing.
+ * The interface is designed to hide as much as possible of the detail of the
+ * implementation. However, the API architecture faithfully reflects the internal architecture
+ * of the Saxon product, unlike standard APIs such as JAXP and XQJ which in many cases force
+ * compromises in the design and performance of the application.</p>
+ * <p>An application starts by loading a {@link net.sf.saxon.s9api.Processor}, which allows configuration options
+ * to be set. As far as possible, an application should instantiate a single <code>Processor</code>.</p>
+ * <p>The interfaces for XSLT, XQuery, and XPath processing all follow the same pattern. There is a three-stage
+ * execution model: first a compiler is created using a factory method in the <code>Processor</code> object.
+ * The compiler holds compile-time options and the static context information. Then the compiler's
+ * <code>compile()</code> method is called to create an executable, a representation of the compiled stylesheet,
+ * query, or expression. This is thread-safe and immutable once created. To run the query or transformation,
+ * first call the <code>load()</code> method to create a run-time object called variously an {@link
+ * net.sf.saxon.s9api.XsltTransformer},
+ * {@link net.sf.saxon.s9api.XQueryEvaluator}, or {@link net.sf.saxon.s9api.XPathSelector}. This holds run-time context
+ * information
+ * such as parameter settings and the initial context node; the object is therefore not shareable and should
+ * only be run in a single thread; indeed it should normally only be used once. This object also provides
+ * methods allowing the transformation or query to be executed.</p>
+ * <p>In Saxon-EE the <code>Processor</code> owns a {@link net.sf.saxon.s9api.SchemaManager} that holds
+ * the cache of schema components and can be used to load new schema components from source schema documents.
+ * It can also be used to create a {@link net.sf.saxon.s9api.SchemaValidator}, which in turn is used to validate
+ * instance
+ * documents.</p>
+ * <p>Source documents can be constructed using a {@link net.sf.saxon.s9api.DocumentBuilder}, which holds all the options
+ * and parameters to control document building.</p>
+ * <p>The output of a transformation, or of any other process that generates an XML tree, can be sent to a
+ * {@link net.sf.saxon.s9api.Destination}. There are a number of implementations of this interface, including a
+ * {@link net.sf.saxon.s9api.Serializer} which translates the XML document tree into lexical XML form.</p>
+ * <p>There are classes to represent the objects of the XDM data model, including {@link net.sf.saxon.s9api.XdmValue},
+ * {@link net.sf.saxon.s9api.XdmItem}, {@link net.sf.saxon.s9api.XdmNode}, and {@link
+ * net.sf.saxon.s9api.XdmAtomicValue}. These can be manipulated using methods based on the Java 8 streams
+ * processing model: for details see package {@link net.sf.saxon.s9api.streams}.</p>
+ * <hr>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Originally part of Apache's Jakarta project (downloaded January 2012),
+ * this file has been extensively modified for integration into Saxon by
+ * Michael Kay, Saxonica.
+ */
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes used to connect to StAX (pull-parser) events for input and output.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides support for push pipeline processing based on the {@link net.sf.saxon.event.Receiver} interface
+ * and its implementation classes. The classes are mainly for internal use, but are available for use in advanced
+ * applications. The classes provided feed SAX-like events from one tree to another.
+ * Some of these classes are associated with serializing the output of a stylesheet, but there
+ * are also classes for building a tree from a stream of events, for stripping whitespace, and
+ * so on.</p>
+ * <p>The {@link net.sf.saxon.event.Receiver} interface defines a class that accepts a stream of events, with one method
+ * defined for each kind of event. The events are modelled on the design of SAX, but adapted
+ * to the XPath data model and to the use of Saxon's NamePool. Attributes and namespaces are
+ * notified individually <i>after</i> the start of the relevant element. Many of the classes
+ * in this package are implementations of the <code>Receiver</code> interface.</p>
+ * <p>The immediate output of node constructors in a query or stylesheet goes to a {@link
+ * net.sf.saxon.event.Outputter}. When constructing the content of an element,
+ * a {@link net.sf.saxon.event.ComplexContentOutputter}
+ * is used;
+ * when constructing the content of a node such as a text node or attribute, a <code>SequenceOutputter</code>
+ * is used instead.</p>
+ * <p>The final destination of the push pipeline is sometimes a serializer, and sometimes a tree builder.
+ * The final serialization classes are subclasses of <code>Emitter</code>, but some of the serialization work
+ * (such as indentation or application of character maps) is done by other classes on the pipeline. These
+ * are generally constructed by extending the <code>ProxyReceiver</code> class.</p>
+ * <p>The Emitter is an abstract implementation of the Receiver interface. As well as supporting
+ * the Receiver interface, it provides methods for controlling the destination of serialized output
+ * (a Writer or OutputStream) and for setting serialization properties (in a Properties object).
+ * In practice nearly all the implementations of Receiver are currently subclasses of Emitter,
+ * but this may change in the future.</p>
+ * <p>The package includes emitters for the standard output methods xml, html, and text, and
+ * proxy emitters to allow a sequence of filters to be applied to the output.</p>
+ * <p>The class <code>ContentHandlerProxy</code> allows events to be converted into standard SAX events and
+ * sent to a SAX2 <code>ContentHandler</code>. Similarly, the class <code>ProxyReceiver</code> acts as a
+ * <code>ContentHandler</code>, accepting SAX2 events and feeding them into a <code>Receiver</code> pipeline.</p>
+ * <p>The class <code>Builder</code> is a <code>Receiver</code> that constructs a tree representation of the
+ * document in memory. There are two subclasses for Saxon's two native tree models. Other classes such as
+ * a <code>Stripper</code> and a <code>NamespaceReducer</code> are used to modify the document by adding
+ * filters to the pipeline.</p>
+ * <p>Saxon's schema validator and serializer are both implemented using this push pipeline model.
+ * The classes that perform
+ * schema validation are part of package: {@link com.saxonica.ee.validate}, while the serialization classes
+ * are in {@link net.sf.saxon.serialize}.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes associated with numbering and the <code>xsl:number</code> instruction. </p>
+ * <p>It is possible to extend the range of numberings available by providing a Numberer
+ * for a specific language. This must be registered with the <code>Configuration</code>.
+ * In earlier releases, there was a fixed relationship between the language and the
+ * implementing class (the Numberer was always named Numberer_xx where xx is the language code,
+ * corresponding to the value of the lang attribute in <code>xsl:number</code>). From Saxon 9.2,
+ * this relationship no longer exists.</p>
+ * <p>These classes also include code to support the localization of dates as defined
+ * in the XSLT <code>format-dateTime()</code> group of functions.</p>
+ * <p>The class <code>Numberer_en</code> provides the standard numbering options. As well as the
+ * format tokens defined in the XSLT 1.0 specification (for example, "1", "001", "a", "i") it supports
+ * other numbering options including:</p>
+ * <ul>
+ * <li>Greek upper and lower case letters</li>
+ * <li>Cyrillic upper and lower case letters</li>
+ * <li>Hebrew letters</li>
+ * <li>Japanese: Hiragana-A, Hiragana-B, Katakana-A, or Katakana-B letters, and Kanji digits</li>
+ * <li>English words: the format token "one" produces numbers such as "twenty five"</li>
+ * </ul>
+ * <p>Localizations for a number of European languages are provided in package <code>net.sf.saxon.option.local</code>.
+ * In Saxon-PE and Saxon-EE these are issued in binary form as part of the Saxon JAR. For Saxon-HE, they are
+ * issued only in source code form.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2021 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes to implement matching of patterns for selection
+ * of template rules within a mode.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides utility routines for sorting and grouping.
+ * Specifically, it contains a QuickSort implementation,
+ * and some <code>AtomicComparer</code> objects that handle character and numeric comparisons, together
+ * with the important <code>DocumentOrderIterator</code> which iterates over a set of nodes in document
+ * order.</p>
+ * <p>The package also
+ * contains the classes to support the implementation of the XSLT 2.0 instruction
+ * <code>xsl:for-each-group</code>, and some utilities for maintaining sets and maps whose keys
+ * are unboxed integer values.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>The package <code>com.saxonica.functions.hof</code> contains code to support higher-order functions.</p>
+ * <p>Higher-order functions are supported in XSLT 3.0, XPath 3.1, and XQuery 3.1, in Saxon-PE and Saxon-EE only.</p>
+ * <p>The package includes code to support both the core facilities of dynamic creation and invocation of function
+ * objects, and also specific higher-order functions defined in the <i>Functions and Operators</i> library
+ * such as <code>fn:filter</code>, <code>fn:for-each</code> and <code>fn:fold-left</code>.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes associated with XPath expression handling. Generally, these
+ * classes are not intended to be used directly by user-written applications; the API for XPath
+ * evaluation is now provided by classes in the package <code>net.sf.saxon.xpath</code></p>
+ * <p>The principal classes are:</p>
+ * <p><b>Expression</b>:<br>
+ * This represents an XPath Expression. There is a static method Expression.make() which is
+ * used to construct an Expression from a String (it is a factory method rather than a
+ * constructor, because it typically returns some subclass of Expression according
+ * to the syntax supplied). Subclasses of Expression represent different kinds of expression
+ * such as StringExpression and BooleanExpression. What they all have in common is an evaluate()
+ * method, which evaluates the expression in a given context to yield a Value, and an iterate() method,
+ * which treats the result of the expression as a sequence, and iterates over the items in the sequence.</p>
+ * <p><b>ExpressionParser</b>:<br>
+ * This class does the work of parsing both Expressions and Patterns. Applications should not call
+ * it directly. It uses the class Tokenizer for lexical analysis.</p>
+ * <p><b>StaticContext</b>:<br>
+ * This interface defines the information available at the time an expression is being parsed. This
+ * includes the names of variables, the bindings of namespace prefixes, the functions that are available,
+ * the names of collating sequences, and so on. When an XPath expression appears in a stylesheet, the
+ * class <code>net.sf.saxon.style.ExpressionContext</code> provides the StaticContext. For a free-standing XPath
+ * expression, the class <code>net.sf.saxon.xpath.StandaloneContext</code> is available, though a user-written
+ * class that implements <code>StaticContext</code> can also be used.</p>
+ * <p><b>XPathContext</b>:<br>
+ * This class defines the context information available at run-time, for example the context node, position,
+ * and size. (It actually does this by wrapping a SequenceIterator that represents the current sequence.)
+ * When expressions are used during an XSLT transformation, the XPathContext also provides access to the
+ * Controller, which contains all the context information about XSLT processing (for example the current template,
+ * the current group, and so on).</p>
+ * <p>Most of the classes in this package represent individual syntactic constructs found in XPath or XQuery expressions:
+ * for example <code>ValueComparison</code>, <code>UserFunctionCall</code>, and <code>RootExpression</code>. The
+ * objects
+ * that instantiate these classes form the nodes on the Abstract Syntax Tree constructed by the compiler and modified
+ * by the optimizer; at run-time their methods are used to drive a pipelined evaluation of the expression.</p>
+ * <p>The distinction between the compiled form of XSLT instructions and the compiled form of XPath expressions has
+ * become blurred. Generally, the compiled form of instructions is in the package <code>net.sf.saxon.instruct</code>
+ * (this includes expressions in XQuery that are equivalent to XSLT instructions, for example element constructors).
+ * However, some constructs such as conditional expressions now exist in both languages and may generate the same
+ * run-time constructs.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package is Saxon's implementation of the JAXP API designed for executing XPath 1.0 expressions
+ * directly from a Java application. Saxon extends the interface to handle XPath 2.0, though if the application
+ * makes extensive use of XPath 2.0 features, then the <b>s9api</b> interface offers a better fit
+ * to the XPath 2.0 data model. The API can be used either in a free-standing
+ * Java application (that is, where there is no XSLT stylesheet), or it can be
+ * used from within Java extension functions called from XPath expressions within
+ * a stylesheet.</p>
+ * <p>The API itself is defined by JAXP 1.3, in interfaces such as <code>javax.xml.xpath.XPath</code>.
+ * These interfaces are included in Java Standard Edition from JDK 1.5 onwards.</p>
+ * <p>The interfaces provided by Saxon extend the JAXP 1.3 interfaces in various ways. There
+ * are three reasons for this:</p>
+ * <ul>
+ * <li><p>Saxon supports XPath 2.0 rather than 1.0</p></li>
+ * <li><p>The package retains support for some interfaces that were provided before JAXP 1.3 was released.
+ * (Most of these extensions have been deprecated for several releases, and most removed in Saxon 9.6).</p></li>
+ * <li><p>There are methods that allow an escape into Saxon's more low-level APIs, needed by
+ * anyone doing serious software integration.</p></li>
+ * </ul>
+ * <p>For most applications the preferred interface is
+ * the s9api {@link net.sf.saxon.s9api.XPathCompiler}</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines a number of utility and helper classes for implementing tree models.</p>
+ * <p>The {@link net.sf.saxon.tree.util.Navigator} class provides many utility methods, for example to implement various
+ * axes in terms of other axes, and to support numbering.</p>
+ * <p>The {@link net.sf.saxon.tree.util.Orphan} class is a general-purpose implementation of a node with no parent, no
+ * attributes, and no children.</p>
+ */
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes used to support creation of XSLT 3.0 packages. Note that
+ * creation of packages is specific to Saxon-EE, but such packages can in general be loaded
+ * and executed by Saxon-HE or Saxon-PE.</p>
+ * <p>None of these classes will be used by typical user applications.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes representing XPath values (that is, the results of
+ * an expression). There are different classes for different types of value.</p>
+ * <p>The principal class is:</p>
+ * <p><b>Value</b>: <br>
+ * This represents the result of evaluating an expression. But a Value is also an expression in its
+ * own right, reflecting the fact that literal values can be used syntactically wherever expressions
+ * can be used. <code>AtomicValue</code> is a subclass of <code>Value</code>
+ * that represents an atomic value: this in turn has subclasses for the different built-in data types:
+ * StringValue, NumericValue, BooleanValue, DateValue, and so on.</p>
+ * <p>There are two classes used to represent integer values: <code>IntegerValue</code> for integers that
+ * fit comfortably in 64 bits, and <code>BigIntegerValue</code> for anything longer. Built-in subtypes
+ * of xs:integer, such as <code>xs:int</code> and <code>xs:short</code>, are always represented using
+ * an <code>IntegerValue</code>, except for <code>xs:unsignedLong</code>, which uses a <code>BigIntegerValue</code>.
+ * </p>
+ * <p>In general a value is a sequence. A sequence that is instantiated in memory is represented by a
+ * <code>SequenceExtent</code> object. The code tries to pipeline execution so that a <code>SequenceExtent</code>
+ * is created as rarely as possible.</p>
+ * <p>When an expression is evaluated lazily, the result is a <code>Closure</code>. A Closure contains the original
+ * expression, and a copy of the run-time context at the time evaluation was requested: that is, all the local
+ * variables
+ * and other information that it depends on, such as the context item. There are two kinds of Closure, and the system
+ * decides at compile time which to use. An ordinary Closure re-evaluates the expression every time the value is
+ * referenced;
+ * this is used only when the compiler decides that the value is likely to be referenced only once. A MemoClosure
+ * remembers
+ * the value the first time it is needed, so that subsequent references do not cause repeated evaluation of the
+ * expression.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides classes for the compiled representation of the various elements
+ * and other instructions found in an XSLT stylesheet. The same constructs are also used for
+ * evaluating similar constructs in XQuery, in particular, expressions that construct new nodes.</p>
+ * <p>Instances of these classes are constructed when the stylesheet or query is compiled. In the
+ * case of XSLT, the objects
+ * representing the compile-time stylesheet (in package {@link net.sf.saxon.style}) can then be
+ * discarded and garbage-collected.</p>
+ * <p>The most important class is {@link net.sf.saxon.expr.instruct.Instruction}, which represents an XSLT
+ * Instruction. In most cases
+ * these instructions have a one-to-one relationship with instructions in the original source XSLT
+ * stylesheet, and the names of the subclasses (for example ApplyImports, ApplyTemplates, Choose)
+ * reflect this.</p>
+ * <p>In XSLT 1.0, XSLT instructions and XPath expressions were quite distinct, and were evaluated in different
+ * ways: XSLT instructions in "push" mode (they were described as "writing to the result tree"), and XPath expressions
+ * in "pull" mode (reading from the source tree). This distinction is no longer present in the XSLT 2.0 processing
+ * model, and the boundary between the <code>Instruction</code> and <code>Expression</code> classes is therefore
+ * a rather fuzzy one. Both instructions and expressions can now be evaluated in either push or pull mode.
+ * Flow-of-control constructs such as conditional expressions and FOR expressions are evaluated in either mode
+ * depending on their parent expression.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains an implementation of XDM sequences known as the ZenoSequence.</p>
+ * <p>A ZenoChain is a list of elements, organized as a sequence of contiguous chunks; it is
+ * designed to ensure that elements can be efficiently added to either end of the sequence
+ * without copying the entire sequence, while also leaving the original sequence intact.</p>
+ * <p>It is thus an implementation of immutable persistent lists optimized for a scenario
+ * where changes typically occur only at the ends of the sequence.</p>
+ * <p>The ZenoSequence is a specialization of a ZenoChain for implementing XDM sequences.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * <p>This package provides classes that interface Saxon to an XML parser that supplies data in the form
+ * of a stream of events. It provides an interface, <code>PullProvider</code>, that is an abstraction
+ * over the pull parser interfaces provided on Java and .NET, and that can in principle be implemented
+ * by other data sources to deliver input documents as if they came from a parser.</p>
+ * <p>The API, defined in class <code>PullProvider</code>, is loosely modelled on the StAX <code>XMLReader</code>
+ * API. It is not identical, because it is designed as an intimate and efficient interface that integrates with
+ * Saxon concepts such as the <code>SequenceIterator</code> and the <code>NamePool</code>. A class
+ * <code>StaxBridge</code> is available that provides the <code>PullProvider</code> interface on top of a
+ * StAX pull parser. In the .NET build, a similar class <code>DotNetPullProvider</code> interfaces Saxon to the
+ * Microsoft <code>XmlTextReader</code>.</p>
+ * <p>A source of data delivered by a <code>PullProvider</code> may be presented either as a <code>PullSource</code>
+ * or as a <code>StaxSource</code>. Both these are accepted by any Saxon interface that allows a JAXP
+ * <code>Source</code> object to be supplied.</p>
+ * <p>Additional implementations of <code>PullProvider</code> are available in <code>Saxon-PE</code> and
+ * <code>Saxon-EE</code>, specifically, implementations that deliver data by walking a Saxon tree structure
+ * (represented by class <code>NodeInfo</code>), and implementations that allow queries to be evaluated
+ * in pull mode, with lazy construction of temporary document and element nodes.</p>
+ * <p>Some examples of application code using the pull interface with Saxon are provided in the
+ * <code>PullExamples.java</code> file in the samples directory.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes used to handle Unicode strings: notably implementations of the
+ * <code>UnicodeString</code> interface, which represents a string as a sequence of directly-addressible
+ * Unicode codepoints (without relying on surrogate pairs).</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This is the top-level package containing the code used to build Saxon-HE.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package defines the implementation of the so-called "linked tree" structure. This
+ * structure can be used to represent both the source document and the stylesheet.
+ * It is no longer the default structure for source documents, but is always used for
+ * stylesheets and for schema documents, because it allows each element to be represented
+ * by a subclass of <code>Element</code> with application-specific functionality.</p>
+ * <p>The classes represent the various kinds of node on the tree. Most of them
+ * are not visible outside the package, with the notable exception of ElementImpl,
+ * which can be subclassed to contain properties for a particular kind of element.
+ * This capability is exploited especially in the stylesheet tree.</p>
+ * <p>As well as classes representing nodes, there are classes representing
+ * iterators over the various XPath axes, for example <code>ChildEnumeration</code>
+ * and <code>PrecedingEnumeration</code>.</p>
+ * <p>The <code>TreeBuilder</code> performs the work of constructing a tree, from a
+ * sequence of SAX-like <code>Receiver</code> events.</p>
+ * <p>The package also contains some helper classes such as <code>SystemIdMap</code>
+ * and <code>LineNumberMap</code> that are used also by the TinyTree implementation.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides utility routines for handling integer sets and maps.</p>
+ * <p>The main classes are <code>IntSet</code> which represents a set of 32-bit integers
+ * (int values), <code>IntIterator</code> which is an iterator over a sequence of 32-bit
+ * integers, <code>IntHashMap</code> which is a map from 32-bit integers to arbitrary
+ * objects, and <code>IntToIntMap</code> which is a map from 32-bit integers to 32-bit
+ * integers.</p>
+ * <p>The package name is a pun on the conventional use by mathematicians
+ * of the symbol <b>Z</b> to denote the set of all natural integers.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes and sub-packages used to implement Saxon's various tree models including
+ * the linked tree and tiny tree.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes that interface Saxon to the JDOM2 tree model.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains Saxon code that is specific to the Java platform, as distinct from .NET</p>
+ * <p>The areas where Saxon has different implementations for the two platforms are primarily
+ * URI handling, interfaces to XML parsers, regular expression handling, and use of collations.</p>
+ * <p>Access to these classes is generally via the <code>Platform</code> object, of which the
+ * implementation for the Java platform is named <code>JavaPlatform</code>. This is obtained in turn
+ * via the static method <code>Version.platform</code></p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package (introduced in Saxon 9.9) provides methods to manipulate XDM values using Java 8 streams.
+ * It provides an alternative to XPath navigation of XDM trees, avoiding the high parsing cost and poor
+ * compile-time diagnostics of XPath expressions, while being a much higher-level interface
+ * than DOM-style navigation from node to node.</p>
+ * <p>A value in the XDM data model is represented by an instance of {@link net.sf.saxon.s9api.XdmValue}.
+ * This is in general a sequence; the members of the sequence are instances of {@link net.sf.saxon.s9api.XdmItem}.
+ * <code>XdmItem</code> is an abstract class; its concrete subclasses include {@link net.sf.saxon.s9api.XdmNode} for
+ * nodes, {@link net.sf.saxon.s9api.XdmAtomicValue} for atomic values, {@link net.sf.saxon.s9api.XdmFunctionItem}
+ * for function items, {@link net.sf.saxon.s9api.XdmMap} for maps, and {@link net.sf.saxon.s9api.XdmArray}
+ * for arrays.</p>
+ * <p>Given an <code>XdmNode</code> <code>N</code>, it is possible to select other nodes using an expression
+ * such as <code>N.select(child("author")).asNode()</code>. The way this works is as follows:</p>
+ * <ul>
+ * <li>The <code>select()</code> method (which applies to any <code>XdmValue</code>, not only
+ * an <code>XdmNode</code>) takes as its argument a {@link net.sf.saxon.s9api.streams.Step},
+ * and returns as its result an {@link net.sf.saxon.s9api.streams.XdmStream}. A <code>Step</code>
+ * is a function that takes an <code>XdmItem</code> as input, and returns a stream of items
+ * as its result; the <code>select()</code> method combines these streams into a single stream
+ * (in much the same way as the Java 8 <code>flatMap()</code> operation) and returns the result.</li>
+ * <li><code>child("author")</code> invokes a static method in class {@link net.sf.saxon.s9api.streams.Steps},
+ * which delivers a <code>Step</code> whose effect is to find the children of a supplied node that have
+ * local name <code>"author"</code>, returning these as a Stream. The <code>Steps</code> class provides
+ * a large collection of useful implementations of <code>Step</code>, including support for all the
+ * XPath axes (parent, child, descendant, following-sibling and so on).</li>
+ * <li>The class <code>XdmStream</code> (which will typically not be used explicitly) implements
+ * the standard Java 8 {@link java.util.stream.Stream} class; it does so by wrapping a standard
+ * Java 8 stream and delegating all standard methods to the wrapped stream. By subclassing the standard
+ * <code>Stream</code> interface, however, it is able to supply additional methods appropriate to
+ * streams of XDM items. For example, the <code>asNode()</code> example terminates the Stream pipeline
+ * by converting the result of the stream to a single <code>XdmNode</code> value (an unchecked
+ * exception occurs if the content of the stream is anything other than a single node).</li>
+ * </ul>
+ * <p>The power of the approach rests in the range of <code>Step</code> implementations available, and the way
+ * these can be combined; and in the terminal operations to deliver the result of a stream in a useful way.
+ * Although many standard implementations are available, these can be augmented with user-written methods;
+ * since a <code>Step</code> is just a Java 8 <code>Function</code>, and an <code>XdmStream</code> is just a
+ * Java 8 <code>Stream</code>,
+ * all the standard Java 8 facilities for creating and combining functions and streams are available.</p>
+ * <h2>Steps</h2>
+ * <p>The steps that are available "off the shelf" from the {@link net.sf.saxon.s9api.streams.Steps}
+ * class include the following:</p>
+ * <ul>
+ * <li><p>For each of the 13 XPath axes, taking <code>child</code> as an example, four <code>Step</code>
+ * implementations are provided:</p>
+ * <ul>
+ * <li><code>child()</code> selects all the children of a node.</li>
+ * <li><code>child("lname")</code> selects all the children of a node that have the local name "lname".</li>
+ * <li><code>child("ns", "lname")</code> selects all the children of a node that have the namespace URI "ns"
+ * and local name "lname".</li>
+ * <li><code>child(predicate)</code> selects all the children of a node that satisfy the given predicate.
+ * The predicate may be any Java 8 {@link java.util.function.Predicate}, but the class
+ * {@link net.sf.saxon.s9api.streams.Predicates} provides some off-the-shelf predicates that are
+ * particularly designed for navigating XDM information.</li>
+ * </ul>
+ * </li>
+ * <li><p>Two steps <code>S</code> and <code>T</code> may be combined into a single step using the <code>then</code>
+ * method: for example <code>child("X").then(attribute("A"))</code>.</p></li>
+ * <li><p>More generally, any sequence of steps may be combined using the <code>path()</code> function, for example
+ * <code>path(child("table"), child("thead"), child("trow"), attribute("class"))</code></p></li>
+ * <li><p>Where the steps in a path are the most commonly used variety, a path may be written using an abbreviated notation:
+ * <code>path("table", "thead", "trow", "@class")</code> is equivalent to the previous example.</p></li>
+ * <li><p>The results of two steps may also be concatenated: for example <code>child("author").cat(child("editor"))</code>
+ * concatenates the results of the two steps into a single stream.</p></li>
+ * <li><p>The <code>atomize()</code> step reduces nodes (and arrays) to atomic values, as defined in the XPath
+ * specification.</p></li>
+ * <li><p>If <code>S</code> is a <code>Step</code>, and <code>P</code> is a <code>Predicate</code>,
+ * then <code>S.where(P)</code> is also a <code>Step</code>, which selects those elements selected by
+ * <code>S</code> that satisfy <code>P</code>. For example <code>child().where(isElement())</code>
+ * selects those children of the starting node that are elements. (But this particular example can be
+ * written more easily as <code>child(isElement())</code>).</p></li>
+ * </ul>
+ * <h2>Predicates</h2>
+ * <p>Predicates can be used either in the <code>where()</code> method to construct a new <code>Step</code>,
+ * or they may be used in the standard Java 8 <code>filter()</code> method to filter the items in a stream.
+ * Any predicate may be used in either context. The utility class {@link net.sf.saxon.s9api.streams.Predicates}
+ * provides a range of predicates that are particularly suited to XDM navigation.</p>
+ * <p>These predicates include:</p>
+ * <ul>
+ * <li>Predicates <code>isNode()</code>, <code>isAtomicValue()</code>, <code>isMap()</code>, <code>isArray()</code>
+ * etc to test whether an <code>XdmItem</code> is a particular kind of item;</li>
+ * <li>Predicates <code>isElement()</code>, <code>isAttribute()</code>, <code>isText()</code>
+ * etc to test the kind of a node;</li>
+ * <li>The predicate <code>hasType()</code> to test whether an item matches a specific item type: for example
+ * <code>hasType(ItemType.XS_DATE_TIME)</code> tests whether it is an instance of <code>xs:dateTime</code>;</li>
+ * <li>The predicate <code>eq("string")</code> tests whether the string value of the item is equal
+ * to "string"</li>
+ * <li>The predicate <code>eq(XdmAtomicValue)</code> performs a typed comparison, for example comparing two
+ * values as numbers
+ * </li>
+ * <li>The predicate <code>matchesRegex("regex")</code> tests whether the string value of the item matches
+ * the regular expression "regex"</li>
+ * <li>If <code>S</code> is a <code>Step</code> and <code>P</code> is a <code>Predicate</code>, then
+ * <code>some(S, P)</code> is a predicate that returns true if some item returned by <code>S</code>
+ * satisfies <code>P</code>; similarly <code>every(S, P)</code> tests if all items returned by <code>S</code>
+ * satisfy <code>P</code>. For example <code>some(attribute("id"), eq("A123"))</code> is true for an element
+ * that has an <code>id</code> attribute equal to "A123". This particular condition can also be expressed
+ * more concisely as <code>eq(attribute("id"), "A123")</code></li>
+ * </ul>
+ * <h2>Operations on XDM streams</h2>
+ * <p>An <code>XdmStream</code> (as delivered by <code>XdmValue.select(step)</code>) is an implementation of
+ * a Java 8 Stream, so all the standard methods on <code>Stream</code> are available: for example <code>filter</code>,
+ * <code>map()</code>, <code>flatMap</code>, <code>reduce</code>, <code>collect</code>. Where appropriate, these
+ * are specialized to return an <code>XdmStream</code> rather than a generic <code>Stream</code>.</p>
+ * <p><code>XdmStream</code> provides some additional terminal operations designed to make it convenient to convert
+ * the contents of the stream into usable form. These include:</p>
+ * <ul>
+ * <li><code>first()</code> - deliver the first item of the stream</li>
+ * <li><code>last()</code> - deliver the last item of the stream</li>
+ * <li><code>at()</code> - deliver the item at position N the stream</li>
+ * <li><code>exists()</code> - return true if the stream is non-empty</li>
+ * <li><code>subStream()</code> - deliver a stream containing a subsequence of the input stream</li>
+ * <li><code>asXdmValue()</code> - deliver the contents as an <code>XdmValue</code></li>
+ * <li><code>asList()</code> - deliver the contents as a <code>List&lt;XdmItem&gt;</code></li>
+ * <li><code>asListOfNodes()</code> - deliver the contents as a <code>List&lt;XdmNode&gt;</code></li>
+ * <li><code>asOptionalNode()</code> - deliver the contents as an <code>Optional&lt;XdmNode&gt;</code></li>
+ * <li><code>asNode()</code> - deliver the contents as a single <code>XdmNode</code></li>
+ * <li><code>asListOfAtomic()</code> - deliver the contents as a <code>List&lt;XdmAtomicValue&gt;</code></li>
+ * <li><code>asOptionalAtomic()</code> - deliver the contents as an <code>Optional&lt;XdmAtomicValue&gt;</code></li>
+ * <li><code>asAtomic()</code> - deliver the contents as a single <code>XdmAtomicValue</code></li>
+ * <li><code>asOptionalString()</code> - deliver the contents as an <code>Optional&lt;String&gt;</code> by taking
+ * the string value of each item</li>
+ * <li><code>asString()</code> - deliver the contents as a single <code>String</code></li>
+ * </ul>
+ * <p>The choice of terminal operation determines the return type (for example <code>asOptionalNode()</code>
+ * returns <code>Optional&lt;XdmNode&gt;)</code>, and also causes a run-time check that the value actually
+ * conforms to these expectations. For example, if <code>asNode()</code> is used, then an unchecked exception
+ * occurs if the sequence has a length other than 1 (one), or if its single item is not a node.</p>
+ * <p>Other ways of generating an <code>XdmStream</code> include:</p>
+ * <ul>
+ * <li>As the result of an XPath expression, using the method <code>XPathSelector.stream()</code></li>
+ * <li>As the result of an XQuery expression, using the method <code>XQueryEvaluator.stream()</code></li>
+ * <li>As the result of <code>XdmSequenceIterator.stream()</code></li>
+ * </ul>
+ * <hr>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains a class used to handle expressions with an array of operands.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2020 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes concerned with evaluation of expressions in XPath 1.0 compatibility mode.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2015-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2017-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides implementations of all the core functions available for use
+ * in XPath expressions. This includes all the functions defined in the XPath 2.0
+ * <i>Functions and Operators</i> specification, as well as the additional functions
+ * defined for use in XSLT. The package also includes Saxon extension functions. Most
+ * of these are in a single class <code>Extensions</code>, but some of the more
+ * complex functions are in their own classes, for example <code>Evaluate</code> implements
+ * <code>saxon:evaluate()</code>.</p>
+ * <p>There is one class for group of closely-related functions. These all inherit from the class
+ * net.sf.saxon.expr.Function. The class <code>StandardFunction</code> is used to map a function
+ * name to its implementation; it contains tables of information describing the signature of each
+ * function, so that the type-checking code is completely generic.</p>
+ * <p>The package also contains machinery for defining user extension functions. A collection
+ * of functions is represented by a <code>FunctionLibrary</code> object. There are several
+ * standard function libraries available, covering core functions, Saxon extension functions
+ * constructor functions, and user extension functions: each category is covered by a subclass
+ * of <code>FunctionLibrary</code>, and there is also a <code>FunctionLibraryList</code> that
+ * represents the total collection of functions in these individual libraries. The
+ * <code>JavaExtensionLibrary</code> contains the logic for binding Java extension functions
+ * given their name and arity and the types of their arguments. The class <code>ExtensionFunctionCall</code>
+ * contains the run-time logic for converting XPath values to the required Java types, and for converting
+ * the result back to an XPath value.</p>
+ * <p>These classes, although public, will not normally be used directly by user-written
+ * Java applications. There are a few exceptions, such as <code>ResolveURI</code> which deliberately
+ * expose functionality equivalent to the XPath function in a static method.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains classes that provide Saxon's implementation of JAXP interfaces.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides a relatively low-level API for executing XQuery queries
+ * directly from a Java application. This is no longer the recommended API for writing Java
+ * applications using XQuery: there are two higher-level APIs, s9api ({@link net.sf.saxon.s9api}),
+ * and XQJ ({@link javax.xml.xquery}). This package also includes internal supporting code
+ * that implements XQuery within Saxon.</p>
+ * <p>For details of the API, see the JavaDoc documentation of individual classes, starting
+ * with the {@link net.sf.saxon.query.StaticQueryContext}.</p>
+ * <p>The first thing you need to do is to create a {@link net.sf.saxon.Configuration} object.
+ * This holds values of all the system settings, corresponding to flags available on the command line.
+ * You don't need to set any properties in the <code>Configuration</code> object if you are happy
+ * with the default settings. For schema-aware processing, you will need to create a
+ * {@link com.saxonica.config.EnterpriseConfiguration} instead.</p>
+ * <p>Then you need to create a {@link net.sf.saxon.query.StaticQueryContext} object, which you can
+ * do using the <code>newStaticQueryContext()</code> method on the <code>Configuration</code>. As the name
+ * implies, this holds information about the static (compile-time) context for a query. Most aspects
+ * of the static context can be defined in the Query Prolog, but this object allows you to initialize
+ * the static context from the application instead if you need to. Some of the facilities provided are
+ * very much for advanced users only, for example the ability to declare variables and functions, and
+ * the ability to specify a <code>NamePool</code> to be used. One aspect of the static context that you may need
+ * to use is the ability to declare collations. Using the method <code>declareCollation</code> you can
+ * create a mapping between a collation URI (which can then be used anywhere in the Query) and a Java
+ * <code>StringCollator</code> object used to implement that collation.</p>
+ * <p>Having created, and possibly configured, the <code>Configuration</code> and
+ * <code>StaticQueryContext</code> objects, you can now compile a Query using the <code>compileQuery</code>
+ * method on the <code>StaticQueryContext</code>. The text of the
+ * Query can be supplied either as a <code>String</code> or as a Java <code>Reader</code>. There
+ * are thus two different <code>compileQuery</code> methods. Each of them returns the compiled
+ * query in the form of a <code>XQueryExpression</code>. The <code>XQueryExpression</code>, as you would expect,
+ * can be executed repeatedly, as often as you want, in the same or in different threads.</p>
+ * <p>Before you run your query, you may want to build one or more trees representing
+ * XML documents that can be used as input to your query. You don't need to do this: if the query
+ * loads its source documents using the <code>doc()</code> function then this will be done
+ * automatically, but doing it yourself gives you more control. A document node at the root of
+ * a tree is represented in Saxon by the {@link net.sf.saxon.om.TreeInfo} interface.
+ * </p>
+ * <p>To execute your compiled query, you need to create a {@link net.sf.saxon.query.DynamicQueryContext} object
+ * that holds the run-time context information. The main things you can set in the run-time context are:</p>
+ * <ul>
+ * <li>Values of parameters (external global variables). You can set these using the <code>setParameter()</code>
+ * method. The mappings from Java classes to XQuery/XPath data types is the same as the mapping used for the
+ * returned values from an external Java method call, and is described in the main Saxon documentation under
+ * "Converting Java values to XDM values".
+ * </li>
+ * <li>The context item can be set using the method <code>setContextItem()</code>.
+ * </li>
+ * <li>You can also set a URIResolver and/or ErrorListener. These default to the ones that were
+ * used during Query compilation.
+ * </li>
+ * </ul>
+ * <p>You are now ready to evaluate the query. There are several methods on the <code>QueryExpression</code>
+ * object that you can use to achieve this. The <code>evaluate()</code> method returns the result sequence
+ * as a Java <code>java.util.List</code>. The <code>evaluateSingle()</code> method is suitable when you know
+ * that the result sequence will contain a single item: this returns this item as an Object, or returns null
+ * if the result is an empty sequence. There is also an <code>iterator</code> method that returns an iterator
+ * over the results. This is a Saxon object of class <code>net.sf.saxon.om.SequenceIterator</code>: it is similar
+ * to the standard Java iterator, but not quite identical; for example, it can throw exceptions.</p>
+ * <p>The <code>evaluate()</code> and <code>evaluateSingle()</code> methods return the result as a Java object
+ * of the most appropriate type: for example a String is returned as a <code>java.lang.String</code>, a
+ * boolean as a <code>java.lang.Boolean</code>. A node is returned using the Saxon representation of a node,
+ * <code>net.sf.saxon.om.NodeInfo</code>. With the standard and tinytree models, this object also implements
+ * the DOM <code>Node</code> interface (but any attempt to update the node throws an error).</p>
+ * <p>The <code>iterator()</code> method, by contrast, does not do any conversion of the result. It is returned
+ * using its native Saxon representation, for example a String is returned as an instance of
+ * <code>sf.net.saxon.value.StringValue</code>. You can then use all the methods available on this class
+ * to process the returned value.</p>
+ * <p>If you want to process the results of the query in your application, that's all there is to it. But you
+ * may want to output the results as serialized XML. Saxon provides two ways of doing this: you can produce
+ * wrapped output, or raw output. Raw output works only if the result consists of a single document or element
+ * node, and it outputs the subtree rooted at that element node in the form of a serialized XML document. Wrapped
+ * output works for any result sequence, for example a sequence of integers or a sequence of attribute and
+ * comment nodes; this works by wrapping each item in the result sequence as an XML element, with details
+ * of its type and value.</p>
+ * <p>To produce wrapped output, you first wrap the result sequence as an XML tree, and then serialize the
+ * tree. To produce unwrapped output, you skip the wrapping stage and just call the serializer directly.</p>
+ * <p>Both steps can be done using the <code>QueryResult</code> class. This class doesn't need to be
+ * instantiated, its methods are static. The method <code>QueryResult.wrap</code> takes as input the iterator
+ * produced by evaluating the query using the <code>iterator()</code> method, and produces as output
+ * a <code>DocumentInfo</code> object representing the results wrapped as an XML tree. The method
+ * <code>QueryResult.serialize</code> takes any document or element node as input, and writes it to
+ * a specified destination, using specified output properties. The destination is supplied as an object
+ * of class <code>javax.xml.transform.Result</code>. Like the <code>Source</code>, this is part of the
+ * JAXP API, and allows the destination to be specified as a StreamResult (representing a byte stream or
+ * character stream), a SAXResult (which wraps a SAX ContentHandler), or a DOMResult
+ * (which delivers the result as a DOM). The output properties are used only when writing to
+ * a StreamResult: they correspond to the properties available in the <code>xsl:output</code> element
+ * for XSLT. The property names are defined by constants in the JAXP <code>javax.xml.transform.OutputKeys</code>
+ * class (or <code>net.sf.saxon.lib.SaxonOutputKeys</code> for Saxon extensions): for details of the
+ * values that are accepted, see the JavaDoc documentation or the JAXP specification.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package implements arrays, as introduced in XPath/XQuery 3.1:
+ * arrays provide a list-like data structure that (unlike sequences) allows nesting.</p>
+ * <p>Arrays are immutable, so that adding a new entry to an array creates a new array.</p>
+ * <p>The entries in a array are arbitrary XDM sequences.</p>
+ * <p>There are functions (each supported by its own implementation class) to create a new array,
+ * to add an entry to a array, to get an entry from an array, to get the size of an array,
+ * and so on..</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2012 Michael Froh.
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides an interface to Saxon tracing and debugging capabilities.</p>
+ * <p>The package includes three tracing modules that can be optionally selected:
+ * <code>XSLTTraceListener</code>, <code>XQueryTraceListener</code>, and
+ * <code>TimedTraceListener</code>. These all receive notification of the same events,
+ * but select and format the events in different ways to meet different requirements.
+ * Other events are notified through the <code>TraceListener</code> interface that
+ * are ignored by tracing applications, but may be of interest to debuggers.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains code for serializing trees using the standard W3C-defined serialization methods
+ * (xml, html, text, etc). Additional Saxon-specific serialization methods are in package {@link
+ * com.saxonica.serialize}.</p>
+ * <p>Serialization in Saxon operates as a push-based event pipeline in which the components of the pipeline
+ * implement the {@link net.sf.saxon.event.Receiver} interface.
+ * This defines a class that accepts a stream of events, with one method
+ * defined for each kind of event. The events are modelled on the design of SAX, but adapted
+ * to the XPath data model and to the use of Saxon's NamePool. Attributes and namespaces are
+ * notified individually <i>after</i> the start of the relevant element.</p>
+ * <p>The pipeline for serialization is assembled by the {@link net.sf.saxon.lib.SerializerFactory} based
+ * on a supplied set of serialization parameters. Only those components needed for the chosen serialization
+ * parameters are included in the pipeline; for example, a Unicode normalizer is inserted at the appropriate
+ * place in the pipeline if Unicode normalization is requested in the serialization parameters.</p>
+ * <p>The immediate output of node constructors in a query or stylesheet goes to a {@link
+ * net.sf.saxon.event.Outputter}.
+ * This is a subclass of <code>Receiver</code> that can handle an arbitrary sequence, containing atomic values
+ * as well as nodes. When constructing the content of an element, a {@link net.sf.saxon.event.ComplexContentOutputter}
+ * is used;
+ * when constructing the content of a node such as a text node or attribute, a <code>SequenceOutputter</code>
+ * is used instead.</p>
+ * <p>The final serialization classes are subclasses of {@link net.sf.saxon.serialize.Emitter}, but much of the
+ * serialization work
+ * (such as indentation or application of character maps) is done by other classes on the pipeline. These
+ * are generally constructed by extending the {@link net.sf.saxon.event.ProxyReceiver} class.</p>
+ * <p>The Emitter is an abstract implementation of the Receiver interface. As well as supporting
+ * the Receiver interface, it provides methods for controlling the destination of serialized output
+ * (a Writer or OutputStream) and for setting serialization properties (in a Properties object).
+ * In practice nearly all the implementations of Receiver are currently subclasses of Emitter,
+ * but this may change in the future.</p>
+ * <p>The package includes emitters for the standard output methods xml, html, and text, and
+ * proxy emitters to allow a sequence of filters to be applied to the output.</p>,
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package contains an API for lightweight document construction. The objects created are immutable;
+ * they do not directly implement the {@link net.sf.saxon.om.NodeInfo} interface, but create a data structure
+ * that can be easily converted to a {@link net.sf.saxon.om.NodeInfo} tree when construction is complete.</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2018-2023 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * <p>This package provides glue classes that enable Saxon to process a source
+ * document supplied as a DOM4J tree (see <a href="https://dom4j.github.io">https://dom4j.github.io</a>). </p>
+ * <p>The package provides implementations of the Saxon <code>DocumentInfo</code> and <code>NodeInfo</code>
+ * classes that act as wrappers to the relevant DOM4J classes</p>
+ */
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2020 Saxonica Limited
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+

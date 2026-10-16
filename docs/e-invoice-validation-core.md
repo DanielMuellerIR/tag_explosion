@@ -113,9 +113,15 @@ nicht in JSON eingebettet.
 
 Bei mehreren Dateien gilt die Reihenfolge technischer Fehler, Zeitüberschreitung,
 Abbruch, veraltete Quelle, Rechnungsfehler, nicht unterstützt, Teilprüfung.
-Aufruffehler behalten ArgumentParsers Exit 64. `xmlStatus` nennt bei ausgeführter
-Prüfung das gesonderte XML-Ergebnis. Bei PDF bleiben `pdfa` und `pdf-embedding`
-ausdrücklich `notChecked`; sichtbarer PDF-Inhalt und XML werden nicht verglichen.
+Diese Tabelle gilt für die gemeinsame Ausgabe. In der Legacy-Ausgabe bleibt
+ein Timeout ein Werkzeugfehler mit Exit 1. Aufruffehler behalten ArgumentParsers Exit 64. `xmlStatus` nennt bei ausgeführter
+Prüfung das gesonderte XML-Ergebnis. Seit 0.52.0 ergänzt das optionale Feld `pdf`
+Engine, Hybridregelstand, Trägerprofil sowie `pdfaStatus` und `embeddingStatus`.
+App und `validate-invoice` prüfen beide PDF-Schritte mit dem gebündelten
+PDF-Paket. Ein Dienstaufruf ohne `pdfBundle` und der kompatible Befehl
+`validate-xrechnung --format common` bleiben ausdrücklich auf XML im PDF
+begrenzt und liefern bei XML-Erfolg `partial`. Sichtbarer PDF-Inhalt und XML
+werden nicht verglichen. [PDF-Prüfumfang](e-invoice-validation-pdf.md).
 Meldungen haben typisierte Schweregrade, Regelcodes und Fundstellen. Der
 Gewährleistungshinweis aus dem Prototyp steht auch in diesem Ergebnis.
 

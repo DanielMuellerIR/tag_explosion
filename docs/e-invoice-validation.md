@@ -5,8 +5,8 @@ XRechnung-XML-Dateien über `tagx validate-xrechnung`. Seit 0.49.0 ergänzt
 `--format common` den [gemeinsamen Validierungsdienst](e-invoice-validation-core.md)
 mit unveränderten PDF-Anhängen, Ergebnisbindung und weiteren Fehlerzuständen.
 Seit 0.50.0 bietet die [App](e-invoice-validation-app.md) die vollständige
-XRechnungsprüfung zusätzlich zur getrennten Grundprüfung. PDF/A und hybride
-Containerprüfung folgen getrennt.
+XRechnungsprüfung zusätzlich zur getrennten Grundprüfung. Seit 0.52.0
+prüfen App und allgemeiner CLI-Befehl auch [hybride PDF-Träger](e-invoice-validation-pdf.md).
 
 ## Verwendung
 

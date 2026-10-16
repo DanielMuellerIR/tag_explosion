@@ -1,8 +1,8 @@
 # E-Rechnungen in der App prüfen
 
-Ab Version 0.51.0 steht **E-Rechnung prüfen** sowohl bei eigenständigen
+Ab Version 0.52.0 steht **E-Rechnung prüfen** sowohl bei eigenständigen
 Rechnungs-XMLs als auch im E-Rechnungstab eines PDFs bereit. Die Prüfung läuft
-lokal mit dem mitgelieferten KoSIT-/Java-Paket. Nutzer brauchen dafür keine
+lokal mit den mitgelieferten KoSIT-/veraPDF-Paketen und privatem Java. Nutzer brauchen dafür keine
 zusätzliche Installation. Rechnungsdateien werden ausschließlich gelesen.
 
 ## Bedienung und Ergebnisse
@@ -39,10 +39,15 @@ Anzeige und Validierung verwenden bei einer ausdrücklich gestarteten Prüfung
 denselben frischen Eingabeschnappschuss. Die XML-Anhangsauswahl folgt weiterhin
 XMP-Deklaration und den bevorzugten Dateinamen des Lesers.
 
-Eine erfolgreiche XML-Prüfung im PDF ergibt **Teilweise geprüft**, mit einem
-eigenen XML-Ergebnis. PDF/A, hybride Einbettung und die Übereinstimmung mit dem
-sichtbaren PDF werden dadurch nicht bestätigt. Diese Grenzen stehen auch im
-Textbericht. PDF-Containerprüfung folgt als eigener Meilenstein.
+Seit 0.52.0 prüft die App zusätzlich PDF/A und die technische hybride Einbettung.
+Die Prüfleiste zeigt XML, PDF/A und Einbettung getrennt; der Bericht nennt auch
+veraPDF-Version, Trägerprofil und Hybridregelstand. Ein gültiges XML kann in
+einem fehlerhaften PDF liegen. Ein Werkzeugfehler erhält das bereits ermittelte
+XML-Ergebnis, bestätigt aber keinen vollständigen Gesamterfolg.
+
+Die Übereinstimmung des sichtbaren Inhalts mit dem XML, Echtheit, Signaturen
+und steuerliche Voraussetzungen bleiben ungeprüft. Details und bewusst
+begrenzte Aussagen: [Hybride PDF-Prüfung](e-invoice-validation-pdf.md).
 
 ## Grundprüfung und weitere Profile
 
@@ -72,10 +77,11 @@ Release-Builds bereinigten Swift-Ordner. Sein Schlüssel stammt aus dem
 Lizenzinventar; ein veränderter oder unvollständiger Cache wird abgewiesen.
 
 Vor dem Bündeln prüft das Skript das vollständige Lizenz-/Quellenpaket. Daneben
-entsteht `TagExplosion-<version>-validation-sources.zip`; dieses muss bei einer
+entstehen `TagExplosion-<version>-validation-sources.zip` und
+`TagExplosion-<version>-pdf-validation-sources.zip`; beide müssen bei einer
 Weitergabe zusammen mit genau diesem Binärstand zugänglich sein. Der
 Mindestversions-Check erfasst auch die nativen Dateien der privaten Runtime.
-Peppol, PDF-Containerprüfung, DMG-/Updatewege und die abschließende Systemabnahme bleiben
+Peppol, DMG-/Updatewege und die abschließende Systemabnahme bleiben
 eigene [Meilensteine](e-invoice-validation-roadmap.md).
 
 ## Gewährleistung

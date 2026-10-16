@@ -19,7 +19,7 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 
 - `Sources/CTagShim/` — eigener C++-Shim (MIT) über System-TagLib (Homebrew/apt,
   LGPL/MPL) mit C-Schnittstelle. **Einziger** TagLib-Berührungspunkt.
-- `Sources/EInvoiceCore/` — E-Rechnungs-Leser (nur Anzeige), ohne
+- `Sources/EInvoiceCore/` — E-Rechnungs-Leser und begrenzte PDF-Inspektion, ohne
   TagLib-/ZIP-Abhängigkeit; PDF-Extraktion via CoreGraphics ist der einzige
   Apple-only-Teil. Fallen: [knowledge/e-rechnung-anzeige.md](knowledge/e-rechnung-anzeige.md).
 - `Sources/TagExplosionCore/` — portables Swift: Datenmodell, Tag-IO über Shim,
@@ -42,7 +42,10 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - **Keine echten Mediendateien committen** (Urheberrecht) — Test-Fixtures werden
   per `Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh` (ffmpeg) erzeugt.
 - Lizenz-Regel: Abhängigkeiten müssen MIT-kompatibel bleiben (TagLib nur dynamisch
-  als Systembibliothek linken; mediainfo/exiftool nur als CLI aufrufen).
+  als Systembibliothek linken; mediainfo/exiftool nur als CLI aufrufen). KoSIT/veraPDF und private Java-
+  Laufzeit bleiben getrennte Programme mit eigenen Lizenzen. Beide gepinnten
+  Komponenten-/Quelleninventare müssen vor Auslieferung bestehen; beide
+  versionsgleichen Quellen-ZIPs gehören zur Binärdistribution.
   KoSIT/Java/Regeln werden als getrenntes Paket gebündelt; Inventar, Original-
   Lizenzen und passende Quellen vor Auslieferung mit `validation_compliance.py`
   prüfen. Details: [docs/validation-licenses.md](docs/validation-licenses.md).

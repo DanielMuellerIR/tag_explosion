@@ -34,6 +34,7 @@ def pdf(xml):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--pdf", action="store_true", help="PDF/A-/Hybridfälle ergänzen")
     parser.add_argument("--facturx", action="store_true", help="Eigene aktuelle Factur-X-Profilfälle ergänzen")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
@@ -52,7 +53,7 @@ def main():
     (args.output / "failed.xml").write_text(changed, encoding="utf-8")
     (args.output / "unknown.xml").write_text(ubl.replace("xrechnung_3.0", "xrechnung_9.9"), encoding="utf-8")
     (args.output / "invoice.pdf").write_bytes(pdf(data["ubl"]))
-    if args.facturx:
+    if args.facturx or args.pdf:
         root = Path(__file__).resolve().parent.parent
         with tempfile.TemporaryDirectory(prefix="invoice-fixture-generator-") as temporary:
             work = Path(temporary)
@@ -60,11 +61,17 @@ def main():
 for profile in InvoiceValidationFixtures.facturXProfiles {
     try Data(InvoiceValidationFixtures.facturX(profile: profile.name).utf8).write(to: URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent(profile.name + ".xml"))
 }
+if CommandLine.arguments.count > 2 {
+    let xml = Data(InvoiceValidationFixtures.facturX(profile: "EN16931").utf8)
+    for (name, variant) in [("HYBRID-valid", "valid"), ("HYBRID-4f", "pdfa4f"), ("HYBRID-failed", "missing-schema"), ("HYBRID-warning", "wrong-profile")] {
+        try InvoiceValidationFixtures.hybridPDF(xml: xml, variant: variant).write(to: URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent(name + ".pdf"))
+    }
+}
 ''')
             subprocess.run(["xcrun", "swiftc", str(root / "Tests/Support/InvoiceValidationFixtures.swift"),
-                            str(root / "Tests/Support/FacturXValidationFixtures.swift"), str(work / "main.swift"),
+                            str(root / "Tests/Support/FacturXValidationFixtures.swift"), str(root / "Tests/Support/HybridInvoiceFixtures.swift"), str(work / "main.swift"),
                             "-o", str(work / "generate")], check=True)
-            subprocess.run([str(work / "generate"), str(args.output.resolve())], check=True)
+            subprocess.run([str(work / "generate"), str(args.output.resolve())] + (["pdf"] if args.pdf else []), check=True)
         minimum = (args.output / "MINIMUM.xml").read_text()
         (args.output / "FACTURX-schema.xml").write_text(minimum.replace("<ram:TypeCode>380", "<ram:Unexpected/><ram:TypeCode>380"))
         (args.output / "FACTURX-rule.xml").write_text(minimum.replace(

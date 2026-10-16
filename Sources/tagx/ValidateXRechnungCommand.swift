@@ -14,8 +14,9 @@ struct ValidateXRechnung: ParsableCommand {
         discussion: """
             Default format preserves the XML prototype output. --format common adds versioned
             source-bound results and PDF attachment input, including current Factur-X profiles. No system Java or network service is used.
-            Exit 0: XML passed; 3: failed; 4: unsupported; 5: partial; 6: stale input;
-            124: timeout; 130: cancelled; 1: tool/report error. No warranty of results.
+            Both formats: 0: passed; 3: failed; 4: unsupported; 130: cancelled;
+            1: tool/report error (including legacy timeout). Common format additionally:
+            5: partial; 6: stale input; 124: timeout. No warranty of results.
             """
     )
 
@@ -26,6 +27,7 @@ struct ValidateXRechnung: ParsableCommand {
     enum Format: String, ExpressibleByArgument { case legacy, common }
     @Option(name: .long, help: "Result format: legacy (compatible XML output) or common (XML/PDF)")
     var format: Format = .legacy
+    var pdfBundle: URL?
 
     func run() throws {
         guard !files.isEmpty else { throw ValidationError("Provide at least one invoice file.") }
@@ -91,7 +93,7 @@ struct ValidateXRechnung: ParsableCommand {
         let reports = try files.map { file in
             let url = try resolveFile(file)
             return Report(file: url.path, validation: InvoiceValidationService.validate(
-                url: url, bundle: URL(fileURLWithPath: bundle), cancellation: cancellation))
+                url: url, bundle: URL(fileURLWithPath: bundle), pdfBundle: pdfBundle, cancellation: cancellation))
         }
         if json {
             try printJSON(reports)
@@ -103,6 +105,11 @@ struct ValidateXRechnung: ParsableCommand {
                 if let xmlStatus = result.xmlStatus { print("XML STATUS: \(xmlStatus.rawValue)") }
                 if let ruleSet = result.ruleSet {
                     print("RULESET: \(ruleSet.id) · \(ruleSet.engine)")
+                }
+                if let pdf = result.pdf {
+                    print("PDF ENGINE: \(pdf.engine)")
+                    print("PDF RULES: \(pdf.rules)")
+                    print("PDF PROFILE: \(pdf.profile ?? "unknown")")
                 }
                 if let source = result.source { print("XML SHA256: \(source.xmlSHA256)") }
                 for step in result.steps { print("STEP [\(step.id)]: \(step.status.rawValue)") }
@@ -134,6 +141,7 @@ struct ValidateInvoice: ParsableCommand {
         command.bundle = bundle
         command.json = json
         command.format = .common
+        command.pdfBundle = URL(fileURLWithPath: bundle).deletingLastPathComponent().appendingPathComponent("PDFValidator")
         try command.run()
     }
 }

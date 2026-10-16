@@ -32,6 +32,7 @@ public struct InvoiceValidationInput: Sendable {
     public static let maximumPDFBytes = 64 * 1024 * 1024
     public let payload: EInvoicePayload
     public let source: InvoiceValidationSource
+    public let pdf: Data?
 
     public enum Failure: Error, LocalizedError {
         case notRegularFile, tooLarge, changed
@@ -59,7 +60,8 @@ public struct InvoiceValidationInput: Sendable {
         try snapshot.requireCurrent(at: url)
         try cancellation?.check()
         return Self(payload: payload, source: .init(url: url, stamp: snapshot.stamp,
-            fileSHA256: validationDigest(snapshot.value), xmlSHA256: validationDigest(payload.xml), origin: payload.source))
+            fileSHA256: validationDigest(snapshot.value), xmlSHA256: validationDigest(payload.xml), origin: payload.source),
+            pdf: url.pathExtension.lowercased() == "pdf" ? snapshot.value : nil)
     }
 
     static func limit(for url: URL) -> Int {

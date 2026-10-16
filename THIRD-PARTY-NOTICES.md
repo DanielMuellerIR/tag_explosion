@@ -20,7 +20,8 @@ Entwicklungsbuilds verwenden die installierte System-TagLib.
 | [ExifTool](https://exiftool.org) | Bild- und PDF-Metadaten; **nicht gebündelt**, nur aufgerufen | Perl Artistic License / GPL-1.0-or-later |
 | [Calibre](https://calibre-ebook.com) `ebook-meta` | mobi/azw3/fb2; **nicht gebündelt**, nur aufgerufen, falls installiert | GPL-3.0 |
 | [KoSIT Validator](https://github.com/itplr-kosit/validator) | Eigenständiges Java-Programm im App-Bundle zur lokalen XRechnungsprüfung | Apache-2.0; zusätzliche Bibliothekslizenzen laut Inventar |
-| [Eclipse Temurin / OpenJDK](https://adoptium.net) | Private Java-Laufzeit für KoSIT; keine Systeminstallation | GPLv2 mit Classpath Exception und Original-Modulhinweisen |
+| [veraPDF](https://verapdf.org) | Eigenständiger PDF/A-Validator; unveränderte CLI 1.30.3, eigenes Komponenten-/Quelleninventar | Gewählte MPL-2.0-Fassung; transitive Apache-/BSD-/CDDL-Lizenzen und Originalhinweise erhalten |
+| [Eclipse Temurin / OpenJDK](https://adoptium.net) | Private Java-Laufzeit für KoSIT und veraPDF; keine Systeminstallation | GPLv2 mit Classpath Exception und Original-Modulhinweisen |
 | XRechnung-/EN-16931-Regeln | Versionsgebundene XSD-/Schematron-Dateien im Prüfpaket | Apache-2.0, EUPL-1.2 und erhaltene Schema-/Template-Hinweise |
 
 Der eigene C++-Shim in `Sources/CTagShim/` ist Teil dieses Projekts und steht
@@ -109,8 +110,15 @@ Ab 0.51.0 kommen die fünf technischen ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profile
 unter Apache-2.0 hinzu. Originaldateien, Codelisten, passende Quellen und
 [FeRD-/CEN-/DIN-Nutzungshinweis](licenses/validation/Factur-X-NOTICE.txt)
 sind enthalten. Spezifikationstabellen, Norm-PDFs und Logos werden nicht gebündelt.
-Peppol, PDF/A sowie die abschließende DMG-/Updateabnahme folgen getrennt;
-es wurde kein öffentliches Prüfpaket veröffentlicht.
+Ab 0.52.0 enthält `Contents/Resources/PDFValidator/` veraPDF CLI 1.30.3.
+[PDF-Inventar](licenses/pdf-validation/components.lock.json), originale
+Lizenztexte/-Notices und vollständige passende Sources werden zusätzlich
+geprüft. Die MPL-2.0-Fassung wird gewählt; ältere JAXB-Teile behalten CDDL-1.1,
+weitere Bibliotheken Apache-/BSD-Bedingungen. Ursprüngliche XMP-/Adobe-Hinweise
+bleiben vollständig erhalten. Das zweite Quellenpaket
+`TagExplosion-<version>-pdf-validation-sources.zip` muss ebenfalls bei jeder
+Weitergabe zugänglich sein. Peppol-Rechte und abschließende DMG-/Updateabnahme
+sind gesondert offen; es wurde kein öffentliches Prüfpaket veröffentlicht.
 
 ## Icon
 

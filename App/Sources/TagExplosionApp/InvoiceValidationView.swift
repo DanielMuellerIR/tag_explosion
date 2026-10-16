@@ -13,7 +13,7 @@ struct InvoiceValidationView: View {
             HStack(spacing: 10) {
                 if model.isRunning { ProgressView().controlSize(.small) }
                 else { Image(systemName: symbol).foregroundStyle(color) }
-                Text(model.isRunning ? String(localized: "Prüfung läuft …") : InvoiceValidationPresentation.title(model.status))
+                Text(model.isRunning ? String(localized: "Prüfung läuft …") : InvoiceValidationPresentation.title(model.status, includesPDF: model.result?.pdf != nil))
                     .font(.subheadline.weight(.semibold))
                     .accessibilityIdentifier("invoice.validation.status")
                 Spacer(minLength: 8)
@@ -45,8 +45,15 @@ struct InvoiceValidationView: View {
                     if result.xmlStatus != nil {
                         Text(InvoiceValidationPresentation.title(result.xmlStatus)).font(.callout.weight(.medium))
                     }
-                    Text("Prüfumfang: Rechnungs-XML. PDF/A, Einbettung und sichtbarer PDF-Inhalt sind nicht geprüft.")
-                        .font(.callout).foregroundStyle(.orange)
+                    if let pdf = result.pdf {
+                        Text("PDF/A: \(InvoiceValidationPresentation.stepStatus(pdf.pdfaStatus)) · Einbettung: \(InvoiceValidationPresentation.stepStatus(pdf.embeddingStatus))")
+                            .font(.callout)
+                        Text("Sichtbarer Inhalt, Signaturen und steuerliche Voraussetzungen sind nicht geprüft.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("Prüfumfang: Rechnungs-XML. PDF/A, Einbettung und sichtbarer PDF-Inhalt sind nicht geprüft.")
+                            .font(.callout).foregroundStyle(.orange)
+                    }
                 } else if result.status == .partial {
                     Text("Nicht alle erforderlichen Prüfschritte wurden bestätigt.").font(.callout).foregroundStyle(.orange)
                 }
@@ -120,7 +127,7 @@ struct InvoiceValidationReportView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("E-Rechnungsprüfung").font(.title2.weight(.semibold))
-                    Text(InvoiceValidationPresentation.title(model.status)).font(.headline)
+                    Text(InvoiceValidationPresentation.title(model.status, includesPDF: model.result?.pdf != nil)).font(.headline)
                     Text(model.url?.lastPathComponent ?? "").font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -131,6 +138,12 @@ struct InvoiceValidationReportView: View {
                 Text([result.ruleSet?.engine, result.ruleSet?.id, result.checkedAt].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 if let scenario = result.scenario { Text(scenario).font(.caption).textSelection(.enabled) }
+                if let pdf = result.pdf {
+                    Text([pdf.engine, pdf.rules, pdf.profile].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                    Text("Sichtbarer Inhalt, Signaturen und steuerliche Voraussetzungen sind nicht geprüft.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), alignment: .leading)], alignment: .leading, spacing: 8) {
                     ForEach(InvoiceValidationPresentation.steps(result)) { step in
                         VStack(alignment: .leading, spacing: 2) {

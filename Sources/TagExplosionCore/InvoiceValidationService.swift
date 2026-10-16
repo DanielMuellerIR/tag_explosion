@@ -41,6 +41,7 @@ public struct InvoiceValidationResult: Codable, Sendable {
     public let steps: [Step]
     public let issues: [Issue]
     public let notice: String
+    public internal(set) var pdf: InvoicePDFValidationSummary? = nil
 
     public func isCurrent(at url: URL) -> Bool { source?.isCurrent(at: url) == true }
 
@@ -62,7 +63,7 @@ public struct InvoiceValidationResult: Codable, Sendable {
 /// Synchroner, UI-freier Dienst; die Session darunter führt ihn im Hintergrund
 /// aus. Die CLI nutzt exakt denselben Dienst für die gemeinsame JSON-Ausgabe.
 public enum InvoiceValidationService {
-    public static func validate(url: URL, bundle: URL, timeout: TimeInterval = 60,
+    public static func validate(url: URL, bundle: URL, pdfBundle: URL? = nil, timeout: TimeInterval = 60,
                                 cancellation: ExternalToolRunner.Cancellation? = nil) -> InvoiceValidationResult {
         do {
             try cancellation?.check()
@@ -73,13 +74,13 @@ public enum InvoiceValidationService {
                 ])
             }
             let input = try InvoiceValidationInput.capture(at: url, cancellation: cancellation)
-            return validate(input: input, bundle: bundle, timeout: timeout, cancellation: cancellation)
+            return validate(input: input, bundle: bundle, pdfBundle: pdfBundle, timeout: timeout, cancellation: cancellation)
         } catch {
             return failure(error, input: nil, profile: nil)
         }
     }
 
-    public static func validate(input: InvoiceValidationInput, bundle: URL, timeout: TimeInterval = 60,
+    public static func validate(input: InvoiceValidationInput, bundle: URL, pdfBundle: URL? = nil, timeout: TimeInterval = 60,
                                 cancellation: ExternalToolRunner.Cancellation? = nil) -> InvoiceValidationResult {
         var profile: InvoiceValidationProfile?
         var selectedRules: InvoiceValidationRuleSet?
@@ -110,7 +111,7 @@ public enum InvoiceValidationService {
             guard report.scenario == scenario else { throw XRechnungValidator.Failure.invalidReport }
             let xmlStatus = xmlStatus(for: report)
             let embedded: Bool = if case .pdfEmbedded = input.payload.source { true } else { false }
-            let status: InvoiceValidationStatus = embedded && [.passed, .passedWithWarnings].contains(xmlStatus) ? .partial : xmlStatus
+            var status: InvoiceValidationStatus = embedded && [.passed, .passedWithWarnings].contains(xmlStatus) ? .partial : xmlStatus
             var steps = report.steps.map { InvoiceValidationResult.Step(id: $0.id, status: $0.valid ? .passed : .failed) }
             var issues = report.issues.map { issue in
                 InvoiceValidationResult.Issue(severity: severity(issue.severity), code: issue.code,
@@ -124,13 +125,35 @@ public enum InvoiceValidationService {
                         message: "Dieses reduzierte Profil wird gegen seine eigenen Regeln geprüft. Das Ergebnis bestätigt keine vollständige EN-16931-Konformität."))
                 }
             }
-            if embedded {
+            var pdfSummary: InvoicePDFValidationSummary?
+            if embedded, let pdfBundle {
+                do {
+                    let pdf = try InvoicePDFValidator.validate(input: input, bundle: pdfBundle, kositBundle: bundle,
+                        ruleSet: ruleSet, timeout: timeout, cancellation: cancellation)
+                    pdfSummary = pdf.summary
+                    steps += [.init(id: "pdfa", status: pdf.summary.pdfaStatus), .init(id: "pdf-embedding", status: pdf.summary.embeddingStatus)]
+                    issues += pdf.issues
+                    if xmlStatus == .failed || pdf.summary.status == .failed { status = .failed }
+                    else if pdf.summary.status == .partial { status = .partial }
+                    else if xmlStatus == .passedWithWarnings || pdf.summary.status == .passedWithWarnings { status = .passedWithWarnings }
+                    else { status = .passed }
+                } catch is CancellationError { throw CancellationError() }
+                catch {
+                    status = error is ExternalToolRunner.ProcessTimeoutError ? .timedOut : .technicalError
+                    pdfSummary = .init(engine: "veraPDF 1.30.3", rules: InvoicePDFValidator.rules, profile: nil,
+                        status: status, pdfaStatus: .notChecked, embeddingStatus: .notChecked)
+                    steps += [.init(id: "pdfa", status: .notChecked), .init(id: "pdf-embedding", status: .notChecked)]
+                    issues.append(.init(severity: .error, code: "PDF_VALIDATION_ERROR", location: nil,
+                        message: "PDF-Prüfung nicht vollständig: " + error.localizedDescription))
+                }
+            } else if embedded {
                 steps += [.init(id: "pdfa", status: .notChecked), .init(id: "pdf-embedding", status: .notChecked)]
                 issues.append(.init(severity: .information, code: "PDF_NOT_CHECKED", location: nil,
                     message: "Geprüft wurde ausschließlich das eingebettete XML. PDF/A, Einbettung und Übereinstimmung mit dem sichtbaren PDF sind nicht geprüft."))
             }
+            if status != .timedOut { try cancellation?.check() }
             return result(status, input: input, profile: profile, ruleSet: ruleSet,
-                          xmlStatus: xmlStatus, scenario: report.scenario, steps: steps, issues: issues)
+                          xmlStatus: xmlStatus, scenario: report.scenario, steps: steps, issues: issues, pdf: pdfSummary)
         } catch {
             return failure(error, input: input, profile: profile, ruleSet: selectedRules)
         }
@@ -220,17 +243,19 @@ public enum InvoiceValidationService {
                                profile: InvoiceValidationProfile?, ruleSet: InvoiceValidationRuleSet? = nil,
                                xmlStatus: InvoiceValidationStatus? = nil, scenario: String? = nil,
                                steps: [InvoiceValidationResult.Step] = [],
-                               issues: [InvoiceValidationResult.Issue] = []) -> InvoiceValidationResult {
-        let needsSourceCheck = [.passed, .passedWithWarnings, .partial, .failed, .unsupported].contains(status)
+                               issues: [InvoiceValidationResult.Issue] = [], pdf: InvoicePDFValidationSummary? = nil) -> InvoiceValidationResult {
+        let needsSourceCheck = [.passed, .passedWithWarnings, .partial, .failed, .unsupported].contains(status) || xmlStatus != nil
         let stale = needsSourceCheck && (input.map { !$0.source.isCurrent(at: $0.source.url) } ?? false)
         let status: InvoiceValidationStatus = stale ? .stale : status
         let issues = status == .stale && !issues.contains(where: { $0.code == "SOURCE_CHANGED" })
             ? issues + [.init(severity: .error, code: "SOURCE_CHANGED", location: nil,
                               message: "Die Datei wurde seit dem Einlesen verändert. Bitte erneut prüfen.")]
             : issues
-        return .init(schemaVersion: 1, id: UUID(), checkedAt: ISO8601DateFormatter().string(from: Date()),
+        var output = InvoiceValidationResult(schemaVersion: 1, id: UUID(), checkedAt: ISO8601DateFormatter().string(from: Date()),
               status: status, xmlStatus: status == .stale ? nil : xmlStatus, source: input?.source, profile: profile, ruleSet: ruleSet,
               scenario: scenario, steps: status == .stale ? [] : steps, issues: issues, notice: XRechnungValidationReport.notice)
+        output.pdf = status == .stale ? nil : pdf
+        return output
     }
 }
 
@@ -249,14 +274,18 @@ public actor InvoiceValidationSession {
     private var cancelRequested = false
     private let operation: @Sendable (URL, URL, TimeInterval, ExternalToolRunner.Cancellation) -> InvoiceValidationResult
 
-    public init() {
+    private let pdfBundle: URL?
+
+    public init(pdfBundle: URL? = nil) {
+        self.pdfBundle = pdfBundle
         operation = { url, bundle, timeout, control in
-            InvoiceValidationService.validate(url: url, bundle: bundle, timeout: timeout, cancellation: control)
+            InvoiceValidationService.validate(url: url, bundle: bundle, pdfBundle: pdfBundle, timeout: timeout, cancellation: control)
         }
     }
 
     init(operation: @escaping @Sendable (URL, URL, TimeInterval, ExternalToolRunner.Cancellation) -> InvoiceValidationResult) {
         self.operation = operation
+        self.pdfBundle = nil
     }
 
     public func invalidate() {
@@ -279,7 +308,8 @@ public actor InvoiceValidationSession {
     }
 
     public func validate(input: InvoiceValidationInput, bundle: URL, timeout: TimeInterval = 60) async -> InvoiceValidationResult? {
-        await perform { InvoiceValidationService.validate(input: input, bundle: bundle, timeout: timeout, cancellation: $0) }
+        let pdfBundle = pdfBundle
+        return await perform { InvoiceValidationService.validate(input: input, bundle: bundle, pdfBundle: pdfBundle, timeout: timeout, cancellation: $0) }
     }
 
     private func perform(_ operation: @escaping @Sendable (ExternalToolRunner.Cancellation) -> InvoiceValidationResult) async -> InvoiceValidationResult? {
@@ -295,7 +325,7 @@ public actor InvoiceValidationSession {
         } onCancel: { control.cancel() }
         guard revision == id else { return nil }
         if cancelRequested || Task.isCancelled { result = result.cancelled() }
-        else if [.passed, .passedWithWarnings, .failed, .partial, .unsupported].contains(result.status),
+        else if ([.passed, .passedWithWarnings, .failed, .partial, .unsupported].contains(result.status) || result.xmlStatus != nil),
                 let source = result.source, !source.isCurrent(at: source.url) {
             result = result.stale()
         }

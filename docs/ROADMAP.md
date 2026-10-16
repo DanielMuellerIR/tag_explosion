@@ -62,7 +62,8 @@ ergänzt. 0.49.0 liefert den gemeinsamen Validierungskern mit unveränderten
 PDF-Anhängen, Ergebnisbindung und geregeltem Abbruch. 0.50.0 ergänzt die
 Prüf-/Berichtsansicht in der App und bündelt das geprüfte XRechnung-Paket.
 0.51.0 ergänzt alle fünf aktuellen Factur-X-/ZUGFeRD-Profile.
-Peppol, PDF-Containerprüfung und abschließende Distribution-/Updateabnahme
+0.52.0 ergänzt veraPDF und getrennte PDF/A-/Einbettungsergebnisse.
+Peppol (noch fehlender Rechtebeleg) und abschließende Distribution-/Updateabnahme
 folgen den [Validierungsmeilensteinen](e-invoice-validation-roadmap.md).
 Umfang und Nachweis: [E-Rechnungsvalidierung](e-invoice-validation.md),
 [Lizenzinventar](validation-licenses.md).

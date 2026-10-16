@@ -10,14 +10,16 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 guard AXIsProcessTrusted() else { kitFail("Bedienungshilfen für den Test-Client nicht freigegeben") }
 let language = testArguments.first ?? "de"
 let allowFocus = testArguments.dropFirst().contains("--allow-focus")
+let pdfOnly = testArguments.dropFirst().contains("--pdf-only")
 guard !allowFocus || CGPreflightScreenCaptureAccess() else { kitFail("Bildschirmaufnahme für eigene Fensterbelege nicht freigegeben") }
 guard ["de", "en"].contains(language) else { kitFail("Sprache muss de oder en sein") }
 let resultURL = outDir.appendingPathComponent("ui-result.json")
 guard !FileManager.default.fileExists(atPath: resultURL.path) else { kitFail("Testverzeichnis enthält bereits ein Ergebnis") }
 let foreground = NSWorkspace.shared.frontmostApplication?.processIdentifier
 let hasProfiles = FileManager.default.fileExists(atPath: outDir.appendingPathComponent("MINIMUM.xml").path)
-let deadline = Date().addingTimeInterval(hasProfiles ? 160 : (allowFocus ? 35 : 70))
-guard let app = launchTestInstance(activates: false, arguments: ["--invoice-ui-selftest", outDir.path, "-AppleLanguages", "(\(language))"]) else {
+let requestedLimit = testArguments.first { $0.hasPrefix("--limit-seconds=") }.flatMap { Int($0.split(separator: "=").last ?? "") } ?? 160
+let deadline = Date().addingTimeInterval(Double(min(max(10, requestedLimit), hasProfiles ? 160 : (allowFocus ? 35 : 70))))
+guard let app = launchTestInstance(activates: false, arguments: ["--invoice-ui-selftest", outDir.path, "-AppleLanguages", "(\(language))"] + (pdfOnly ? ["--pdf-only"] : [])) else {
     shutDownOwnedInstances(followUpFor: 8)
     kitFail("Test-App nicht gestartet")
 }

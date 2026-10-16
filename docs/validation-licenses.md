@@ -123,11 +123,11 @@ python3 Tests/validation-compliance-tests.py \
   Noch nicht als gebündelte Komponente freigegeben.
   [KoSIT-Konfiguration](https://github.com/itplr-kosit/validator-configuration-bis),
   [OpenPeppol-Copyright](https://docs.peppol.eu/poacc/billing/3.0/bis/).
-- **PDF/A-Validator:** veraPDF ist ein geeigneter Kandidat mit Wahl zwischen
-  GPLv3+ und MPLv2+. Vorgesehen ist der MPL-Zweig samt passenden Sources; vor
-  Bündelung des konkreten CLI-/Bibliothekspakets werden dessen transitive
-  Abhängigkeiten und Original-Notices genauso geprüft. Noch keine veraPDF-
-  Binärdatei im Paket. [veraPDF-Lizenzangaben](https://github.com/veraPDF/veraPDF-library).
+- **PDF/A-Validator:** veraPDF CLI 1.30.3 wird seit 0.52.0 unverändert gebündelt.
+  Die gewählte MPL-2.0-Fassung und sämtliche ursprünglichen Hinweise bleiben
+  erhalten. Das eigene Swift-Programm kommuniziert über eine Prozessgrenze.
+  Details zum tatsächlich enthaltenen Code stehen unten.
+  [veraPDF-Lizenzangaben](https://github.com/veraPDF/veraPDF-library).
 
 Damit sind die vorhandenen Paketbestandteile konkret erfasst. Neue Profile oder
 PDF-Validatoren werden nicht allein wegen einer passenden Projektüberschrift
@@ -140,3 +140,50 @@ Primärquellen zur gewählten Umsetzung:
 [Adoptium-Lizenzen](https://adoptium.net/about),
 [EUPL-1.2](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12),
 [EN-16931-Lizenz](https://github.com/ConnectingEurope/eInvoicing-EN16931/blob/validation-1.3.16/LICENSE.txt).
+
+## Tatsächlich gebündeltes PDF-Paket
+
+Das [eigene PDF-Inventar](../licenses/pdf-validation/components.lock.json)
+erfasst 26 Maven-Artefakte. Von 6.824 Klassen sind 6.811 bytegleich zu ihren
+Originalbibliotheken; 13 weitere sind konkret gepinnte CLI-Klassen mit passenden
+Source-Dateien derselben Version. Das unveränderte CLI-Fat-JAR wird nicht selbst
+als Vergleichsquelle für fremde Klassen zugelassen. Alle 15 enthaltenen
+PDF-Profil-XMLs sind bytegleich im bevorzugten Original-Quellarchiv der
+Release-Linie `rel/1.30`, Commit `c4f57effb0d3618827c87bd71882930d752be6e3`.
+
+| Komponenten | Gewählte Bedingungen |
+|---|---|
+| veraPDF 1.30.3, Saxon-HE 12.8, Rhino 1.7.15.1 | MPL-2.0, passende Sources und ursprüngliche Notices mitliefern |
+| Jackson 2.22.3, JCommander 1.81, XML Resolver 5.3.3 | Apache-2.0; zusätzliche ursprüngliche Ressourcenhinweise erhalten |
+| Neuere JAXB 2.3.2 / stax-utils 20070216 | BSD-3-Clause mit ursprünglichen Copyrights |
+| Ältere JAXB 2.3.1/2.3.0.1, Activation 1.2.0, Istack 3.0.5 | Gewählte CDDL-1.1-Fassung; vollständige Lizenz und passende Originalquellen |
+| XMP Core in veraPDF | MPL-Header mit Adobe-Basis plus ursprünglicher abweichender BSD-Lizenzdatei; sämtliche Quellkopfhinweise und originale Adobe-BSD-Lizenz erhalten |
+
+Die XMP-POM-Angabe allein beschreibt die gemischten Quellkopfhinweise nicht
+vollständig. Deshalb bleiben die ursprüngliche Datei und die vollständigen
+Header zusätzlich erhalten; fremder Code wird nicht zu MIT umdeklariert.
+Alle konkreten Koordinaten, Original-POMs, Pins und Lizenzbelege stehen im Inventar.
+
+70 eindeutige Original-Quell-/Belegartefakte einschließlich der vollständigen
+veraPDF-Repositories und der passenden Profilquellen werden bereitgestellt.
+Die Runtime wird aus dem schon geprüften KoSIT-Paket mitbenutzt. Vorbereitung
+und unabhängige Prüfung:
+
+```sh
+python3 scripts/prepare-pdf-validator.py
+python3 scripts/pdf_validation_compliance.py <PDF-Paket> --sources <PDF-Sources>
+python3 Tests/pdf-validation-compliance-tests.py --bundle <PDF-Paket> --sources <PDF-Sources>
+```
+
+Der App-Build erzeugt zusätzlich
+`TagExplosion-<version>-pdf-validation-sources.zip`. **Beide** Quellen-ZIPs
+gehören zu jeder Weitergabe des betreffenden App-/DMG-/Update-Binärstands.
+Fehlende Quellen, veränderte Klassen, Profile, Lizenzen oder Notices verhindern
+die Verpackung. Ein bloßer Verweis auf Upstream ersetzt die gewählte
+Quellenbereitstellung nicht.
+
+Der konkrete Peppol-BIS-Stand 3.0.21 enthält im geprüften KoSIT-Release keine
+eindeutige LICENSE-/NOTICE-Freigabe für die kompilierten OpenPeppol-Regeln.
+Die Einschränkung zur Spezifikationsdokumentation wird nicht pauschal auf die
+Technikdateien übertragen; deren eigene Weitergaberechte sind separat zu
+belegen. Bis dahin werden diese Dateien nicht eingebaut.

@@ -132,11 +132,13 @@
   checks the original XML against XSD and Schematron using the bundled private
   Java runtime, without a separate installation. Results distinguish warnings,
   invoice errors, unsupported profiles, cancellation and tool errors; reports
-  include source hashes and a warranty notice. PDF attachments receive a separate
-  XML result with explicit partial coverage. All five current ZUGFeRD 2.5.2 /
+  include source hashes and a warranty notice. Hybrid PDFs receive separate XML,
+  PDF/A and embedding results using bundled veraPDF. All five current ZUGFeRD 2.5.2 /
   Factur-X 1.09.2 profiles have their own schema and profile rules. Reduced
-  profiles and ambiguous document versions are stated explicitly. PDF/A,
-  hybrid embedding checks and Peppol validation remain upcoming milestones.
+  profiles and ambiguous document versions are stated explicitly. PDF/A-3a/3b/3u
+  and PDF/A-4f carriers are supported. Visible invoice content, signatures and
+  tax eligibility are not verified. Peppol validation awaits documented rule
+  redistribution rights.
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target

@@ -458,5 +458,146 @@ enum PDFEmbeddedInvoice {
         default: break
         }
     }
+    static func inspect(data: Data, selectedXML: Data) throws -> EInvoicePDFInspection {
+        guard let provider = CGDataProvider(data: data as CFData),
+              let document = CGPDFDocument(provider), let catalog = document.catalog else {
+            throw EInvoiceError.pdfUnreadable("PDF-Schnappschuss")
+        }
+        struct Item {
+            let dictionary: CGPDFDictionaryRef
+            var associated = false
+            var named = false
+        }
+        var items: [CGPDFDictionaryRef: Item] = [:]
+        var order: [CGPDFDictionaryRef] = []
+        var remaining = maxInspectedEntries
+        var complete = true
+        func consume() -> Bool {
+            guard remaining > 0 else { complete = false; return false }
+            remaining -= 1
+            return true
+        }
+        func add(_ dictionary: CGPDFDictionaryRef, associated: Bool, named: Bool) {
+            guard consume() else { return }
+            let key = dictionary
+            if items[key] == nil {
+                guard items.count < 128 else { complete = false; return }
+                items[key] = Item(dictionary: dictionary)
+                order.append(key)
+            }
+            var item = items[key]!
+            item.associated = item.associated || associated
+            item.named = item.named || named
+            items[key] = item
+        }
+        var af: CGPDFArrayRef?
+        if CGPDFDictionaryGetArray(catalog, "AF", &af), let af {
+            for index in 0..<CGPDFArrayGetCount(af) {
+                guard consume() else { break }
+                var dictionary: CGPDFDictionaryRef?
+                if CGPDFArrayGetDictionary(af, index, &dictionary), let dictionary {
+                    add(dictionary, associated: true, named: false)
+                } else { complete = false }
+            }
+        }
+        var visited = Set<CGPDFDictionaryRef>()
+        func walk(_ dictionary: CGPDFDictionaryRef, depth: Int) {
+            guard depth < 32, consume(), visited.insert(dictionary).inserted else {
+                complete = false
+                return
+            }
+            var names: CGPDFArrayRef?
+            if CGPDFDictionaryGetArray(dictionary, "Names", &names), let names {
+                let count = CGPDFArrayGetCount(names)
+                if count % 2 != 0 { complete = false }
+                for index in stride(from: 0, to: count - count % 2, by: 2) {
+                    guard consume() else { break }
+                    var entry: CGPDFDictionaryRef?
+                    if CGPDFArrayGetDictionary(names, index + 1, &entry), let entry {
+                        add(entry, associated: false, named: true)
+                    } else { complete = false }
+                }
+            }
+            var kids: CGPDFArrayRef?
+            if CGPDFDictionaryGetArray(dictionary, "Kids", &kids), let kids {
+                for index in 0..<CGPDFArrayGetCount(kids) {
+                    guard consume() else { break }
+                    var child: CGPDFDictionaryRef?
+                    if CGPDFArrayGetDictionary(kids, index, &child), let child { walk(child, depth: depth + 1) }
+                    else { complete = false }
+                }
+            }
+        }
+        var names: CGPDFDictionaryRef?
+        var embedded: CGPDFDictionaryRef?
+        if CGPDFDictionaryGetDictionary(catalog, "Names", &names), let names,
+           CGPDFDictionaryGetDictionary(names, "EmbeddedFiles", &embedded), let embedded {
+            walk(embedded, depth: 0)
+        }
+        func string(_ dictionary: CGPDFDictionaryRef, _ key: String) -> String? {
+            var value: CGPDFStringRef?
+            guard CGPDFDictionaryGetString(dictionary, key, &value), let value,
+                  let text = CGPDFStringCopyTextString(value) else { return nil }
+            return text as String
+        }
+        func name(_ dictionary: CGPDFDictionaryRef, _ key: String) -> String? {
+            var value: UnsafePointer<CChar>?
+            guard CGPDFDictionaryGetName(dictionary, key, &value), let value else { return nil }
+            return String(cString: value)
+        }
+        var materialized = 0
+        let attachments = order.compactMap { key -> EInvoicePDFInspection.Attachment? in
+            guard let item = items[key] else { return nil }
+            let fileName = string(item.dictionary, "F")
+            let unicodeName = string(item.dictionary, "UF")
+            let stream = filespecStream(item.dictionary)
+            let mime = stream.flatMap { CGPDFStreamGetDictionary($0) }.flatMap { name($0, "Subtype") }
+            var invoice = false
+            var matches = false
+            let candidate = unicodeName ?? fileName ?? ""
+            if candidate.lowercased().hasSuffix(".xml") {
+                guard let stream, materialized < 32 * 1024 * 1024,
+                      acceptableStreamLength(stream, byteBudget: 16 * 1024 * 1024) != nil else {
+                    complete = false
+                    return .init(fileName: fileName, unicodeFileName: unicodeName,
+                        relationship: name(item.dictionary, "AFRelationship"), mimeType: mime,
+                        inAssociatedFiles: item.associated, inNameTree: item.named,
+                        isInvoice: false, matchesSelectedXML: false)
+                }
+                var format = CGPDFDataFormat.raw
+                guard let value = CGPDFStreamCopyData(stream, &format) else { complete = false; return nil }
+                let bytes = value as Data
+                materialized += bytes.count
+                if bytes.count > 16 * 1024 * 1024 || materialized > 32 * 1024 * 1024 { complete = false }
+                else {
+                    matches = bytes == selectedXML
+                    if Data(bytes.filter { $0 != 0 }).range(of: Data("<!DOCTYPE".utf8)) != nil { complete = false }
+                    else if let root = try? XMLTree.parse(bytes) {
+                        let local = root.name.components(separatedBy: ":").last ?? root.name
+                        invoice = (local == "CrossIndustryInvoice" && root.namespaceURI == "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100")
+                            || (local == "Invoice" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2")
+                            || (local == "CreditNote" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2")
+                    }
+                }
+            }
+            return .init(fileName: fileName, unicodeFileName: unicodeName,
+                relationship: name(item.dictionary, "AFRelationship"), mimeType: mime,
+                inAssociatedFiles: item.associated, inNameTree: item.named,
+                isInvoice: invoice, matchesSelectedXML: matches)
+        }
+        return .init(attachments: attachments, metadata: metadataBytes(catalog: catalog), complete: complete)
+    }
+
+    private static func metadataBytes(catalog: CGPDFDictionaryRef) -> Data? {
+        var stream: CGPDFStreamRef?
+        guard CGPDFDictionaryGetStream(catalog, "Metadata", &stream), let stream,
+              acceptableStreamLength(stream, maxCompressed: maxCompressedMetadataBytes,
+                byteBudget: maxMetadataBytes) != nil else { return nil }
+        var format = CGPDFDataFormat.raw
+        guard let bytes = CGPDFStreamCopyData(stream, &format) else { return nil }
+        let data = bytes as Data
+        return data.count <= maxMetadataBytes ? data : nil
+    }
+
 }
 #endif

@@ -27,12 +27,15 @@ final class InvoiceValidationModel {
     private var revision = UUID()
     private var task: Task<Void, Never>?
     private var inputCancellation: ExternalToolRunner.Cancellation?
-    private var session = InvoiceValidationSession()
+    private var session: InvoiceValidationSession
+    private let pdfBundle: URL
     private var watcher: DispatchSourceFileSystemObject?
 
     init(bundle: URL? = nil, initialResult: InvoiceValidationResult? = nil) {
         self.bundle = bundle ?? (Bundle.main.resourceURL ?? Bundle.main.bundleURL)
             .appendingPathComponent("XRechnungValidator")
+        self.pdfBundle = self.bundle.deletingLastPathComponent().appendingPathComponent("PDFValidator")
+        self.session = InvoiceValidationSession(pdfBundle: self.pdfBundle)
         if let initialResult {
             result = initialResult
             status = initialResult.status
@@ -75,7 +78,7 @@ final class InvoiceValidationModel {
         inputCancellation?.cancel()
         inputCancellation = nil
         let previous = session
-        session = InvoiceValidationSession()
+        session = InvoiceValidationSession(pdfBundle: pdfBundle)
         Task { await previous.invalidate() }
         isRunning = false
         isCancelling = false
@@ -228,11 +231,11 @@ enum InvoiceValidationPresentation {
         case .notChecked: String(localized: "Nicht geprüft")
         }
     }
-    static func title(_ status: InvoiceValidationStatus?) -> String {
+    static func title(_ status: InvoiceValidationStatus?, includesPDF: Bool = false) -> String {
         switch status {
-        case .passed: String(localized: "XML-Prüfung bestanden")
-        case .passedWithWarnings: String(localized: "XML-Prüfung bestanden · Warnungen")
-        case .failed: String(localized: "Prüfung fehlgeschlagen")
+        case .passed: includesPDF ? String(localized: "Technische Prüfung bestanden") : String(localized: "XML-Prüfung bestanden")
+        case .passedWithWarnings: includesPDF ? String(localized: "Technische Prüfung bestanden · Warnungen") : String(localized: "XML-Prüfung bestanden · Warnungen")
+        case .failed: includesPDF ? String(localized: "Prüfung fehlgeschlagen") : String(localized: "XML-Prüfung fehlgeschlagen")
         case .unsupported: String(localized: "Profil nicht unterstützt")
         case .partial: String(localized: "Teilweise geprüft")
         case .cancelled: String(localized: "Prüfung abgebrochen")
@@ -290,20 +293,24 @@ enum InvoiceValidationPresentation {
 
     static func report(result: InvoiceValidationResult?, status: InvoiceValidationStatus?, error: String?, url: URL?,
                        document: EInvoiceDocument? = nil) -> String {
-        var lines = [String(localized: "E-Rechnungsprüfung"), url?.path ?? "", title(status)]
+        var lines = [String(localized: "E-Rechnungsprüfung"), url?.path ?? "", title(status, includesPDF: result?.pdf != nil)]
         lines.append(String(localized: "Das Ergebnis gilt ausschließlich für den dokumentierten Dateistand."))
         if let result {
             lines += [result.checkedAt, result.ruleSet?.id ?? "", result.ruleSet?.engine ?? "",
                       result.profile?.guidelineID ?? "", result.source.map { "XML SHA-256: " + $0.xmlSHA256 } ?? "",
                       result.source.map { "FILE SHA-256: " + $0.fileSHA256 } ?? ""]
-            if let xmlStatus = result.xmlStatus, xmlStatus != result.status { lines.append(title(xmlStatus)) }
+            if let xmlStatus = result.xmlStatus, xmlStatus != result.status || result.pdf != nil { lines.append(title(xmlStatus)) }
+            if let pdf = result.pdf {
+                lines += [pdf.engine, pdf.rules, pdf.profile ?? "", title(pdf.status, includesPDF: true)]
+                lines.append(String(localized: "Sichtbarer Inhalt, Signaturen und steuerliche Voraussetzungen sind nicht geprüft."))
+            }
             for item in steps(result) { lines.append("\(step(item.id, ruleSet: result.ruleSet)) [\(item.id)]: \(stepStatus(item.status))") }
             for issue in result.issues {
                 lines.append("\(severity(issue.severity)) [\(issue.code ?? "XML")]: \(issue.message)")
                 if let field = field(for: issue, document: document) { lines.append(field) }
                 if let location = issue.location { lines.append(location) }
             }
-            if result.source?.url.pathExtension.lowercased() == "pdf" {
+            if result.source?.url.pathExtension.lowercased() == "pdf", result.pdf == nil {
                 lines.append(String(localized: "Prüfumfang: Rechnungs-XML. PDF/A, Einbettung und sichtbarer PDF-Inhalt sind nicht geprüft."))
             }
         }

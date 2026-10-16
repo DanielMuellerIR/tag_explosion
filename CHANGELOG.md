@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.52.0 — 2026-10-16
+
+- Hybride Rechnungen lokal mit veraPDF 1.30.3 auf PDF/A-3a, 3b, 3u oder 4f
+  prüfen. XML, PDF/A und Einbettung erhalten getrennte Ergebnisse in App,
+  Bericht und allgemeinem CLI-Befehl `validate-invoice`.
+- Originale PDF-Schnappschüsse, XMP-Erweiterung, eindeutige Rechnungsanhänge,
+  AF-/Namensbaum-Zuordnung, MIME-Typ, Dateiname und Profil prüfen. Warnungen
+  bleiben Warnungen; technische PDF/A-Fehler bestätigen keinen gültigen Träger.
+- Privates Java mitbenutzen; kein zusätzlicher Installationsschritt. Gepinntes
+  PDF-Lizenzinventar, originale Notices und passendes zweites Quellenpaket
+  werden vor der Bündelung verbindlich geprüft.
+- Sichtbaren Inhalt, Signaturen und steuerliche Voraussetzungen ausdrücklich
+  als ungeprüft ausweisen. Gewährleistungshinweis gilt auch für PDF-Ergebnisse.
+- CLI-Hilfe präzisiert: Exit 124 für Zeitüberschreitung gehört zur gemeinsamen
+  Ausgabe; die kompatible Prototyp-Ausgabe behält Exit 1.
+
 ## 0.51.0 — 2026-10-16
 
 - Alle fünf aktuellen ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profile mit eigenen

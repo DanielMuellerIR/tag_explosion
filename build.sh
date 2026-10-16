@@ -110,6 +110,17 @@ ditto "$validation_bundle" "$app/Contents/Resources/XRechnungValidator"
 # AppleDouble-Dateien würden beim portablen Entpacken das geprüfte Quelleninventar ändern.
 ditto --norsrc --noextattr --noqtn -c -k --keepParent "$validation_sources" "$here/TagExplosion-$version-validation-sources.zip"
 
+# veraPDF nutzt dieselbe geprüfte Java-Laufzeit, behält aber ein eigenes Inventar.
+pdf_key="$(shasum -a 256 "$here/licenses/pdf-validation/components.lock.json" | cut -c1-16)"
+pdf_bundle="${PDF_VALIDATOR_BUNDLE:-$here/.validation-build/pdf-$pdf_key}"
+pdf_sources="${PDF_VALIDATION_SOURCES:-${pdf_bundle}-sources}"
+if [ ! -d "$pdf_bundle" ]; then
+    python3 "$here/scripts/prepare-pdf-validator.py" --output "$pdf_bundle" --sources-output "$pdf_sources"
+fi
+python3 "$here/scripts/pdf_validation_compliance.py" "$pdf_bundle" --sources "$pdf_sources"
+ditto "$pdf_bundle" "$app/Contents/Resources/PDFValidator"
+ditto --norsrc --noextattr --noqtn -c -k --keepParent "$pdf_sources" "$here/TagExplosion-$version-pdf-validation-sources.zip"
+
 # Lokalisierung: Der String Catalog (Quelle Deutsch, Übersetzung Englisch)
 # wird zu .lproj/Localizable.strings kompiliert. swift build kann .xcstrings
 # nicht selbst kompilieren (nur Xcodes Build-System), deshalb hier explizit.

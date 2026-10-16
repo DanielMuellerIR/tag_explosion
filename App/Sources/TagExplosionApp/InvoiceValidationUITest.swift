@@ -32,18 +32,23 @@ enum InvoiceValidationUITest {
             NSApp.windows.filter { $0 != panel }.forEach { $0.orderOut(nil) }
             let bundle = try require(Bundle.main.resourceURL, "Bundle-Ressourcen fehlen")
                 .appendingPathComponent("XRechnungValidator")
+            let pdfOnly = CommandLine.arguments.contains("--pdf-only")
+            let fullPDF = FileManager.default.fileExists(atPath: bundle.deletingLastPathComponent().appendingPathComponent("PDFValidator").path)
             var cases = [("ubl", InvoiceValidationStatus.passed), ("cii", .passed),
-                         ("failed", .failed), ("unknown", .unsupported), ("invoice", .partial)]
+                         ("failed", .failed), ("unknown", .unsupported), ("invoice", fullPDF ? .failed : .partial)]
             let profiles = ["MINIMUM", "BASICWL", "BASIC", "EN16931", "EXTENDED"]
             let profileFiles = profiles.filter { FileManager.default.fileExists(atPath: directory.appendingPathComponent($0 + ".xml").path) }
             try expect(profileFiles.isEmpty || profileFiles.count == profiles.count, "Profilfixtures unvollständig")
             cases += profileFiles.map { ($0, .passed) }
             if profileMode {
                 cases += [("FACTURX-schema", .failed), ("FACTURX-rule", .failed),
-                          ("FACTURX-warning", .passedWithWarnings), ("FACTURX-pdf", .partial)]
+                          ("FACTURX-warning", .passedWithWarnings), ("FACTURX-pdf", fullPDF ? .failed : .partial)]
+            }
+            if pdfOnly {
+                cases = [("HYBRID-valid", .passed), ("HYBRID-4f", .passed), ("HYBRID-failed", .failed), ("HYBRID-warning", .passedWithWarnings)]
             }
             for (name, expected) in cases {
-                let isPDF = name == "invoice" || name == "FACTURX-pdf"
+                let isPDF = name == "invoice" || name == "FACTURX-pdf" || name.hasPrefix("HYBRID-")
                 let url = directory.appendingPathComponent(name + (isPDF ? ".pdf" : ".xml"))
                 let document = try EInvoiceReader.read(url: url)
                 let model = InvoiceValidationModel(bundle: bundle)
@@ -73,9 +78,14 @@ enum InvoiceValidationUITest {
                     try capture(host, at: directory.appendingPathComponent("narrow.png"))
                     panel.setContentSize(NSSize(width: 900, height: 680))
                 }
+                if pdfOnly {
+                    try expect(model.result?.pdf != nil, "PDF-Metadaten fehlen")
+                    try expect(model.result?.xmlStatus == .passed, "XML-Teilergebnis fehlt")
+                    try expect(model.result?.steps.contains { $0.id == "pdfa" && $0.status != .notChecked } == true, "PDF/A-Schritt fehlt")
+                }
                 let text = try require(await model.currentReport(), "Bericht fehlt")
                 try expect(text.contains(InvoiceValidationPresentation.notice), "Vollständiger Gewährleistungshinweis fehlt")
-                try expect(text.contains(InvoiceValidationPresentation.title(model.status)), "Berichtszustand fehlt")
+                try expect(text.contains(InvoiceValidationPresentation.title(model.status, includesPDF: model.result?.pdf != nil)), "Berichtszustand fehlt")
                 if profiles.contains(name), let result = model.result {
                     try expect(result.ruleSet == .facturX, "Falscher Profilregelstand")
                     try expect(InvoiceValidationPresentation.steps(result).count == 3, "Falsche Prüfkette")
@@ -86,7 +96,8 @@ enum InvoiceValidationUITest {
                 }
                 try text.write(to: directory.appendingPathComponent(name + "-report.txt"), atomically: true, encoding: .utf8)
                 checks.append(["case": name, "status": model.status!.rawValue, "button": "AXPress"])
-                if ["failed", "invoice", "MINIMUM", "EXTENDED"].contains(name) {
+                if pdfOnly && name == "HYBRID-valid" { panel.setContentSize(NSSize(width: 620, height: 600)) }
+                if ["failed", "invoice", "MINIMUM", "EXTENDED", "HYBRID-valid", "HYBRID-failed", "HYBRID-warning"].contains(name) {
                     try await press("invoice.validation.report", in: host)
                     try await wait { panel.attachedSheet?.contentView != nil }
                     let reportHost = try require(panel.attachedSheet?.contentView, "Berichtsfenster fehlt")
@@ -94,6 +105,7 @@ enum InvoiceValidationUITest {
                     try await press("invoice.validation.report.close", in: reportHost)
                     try await wait { panel.attachedSheet == nil }
                 }
+                if pdfOnly && name == "HYBRID-valid" { panel.setContentSize(NSSize(width: 900, height: 680)) }
                 if name == "ubl", let result = model.result {
                     // Reine Darstellung einer Warnung; kein behaupteter KoSIT-Nachweis.
                     var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(result)) as! [String: Any]

@@ -172,6 +172,31 @@ public enum ExternalToolRunner {
         environment: [String: String]? = nil,
         cancellation: Cancellation? = nil
     ) throws -> Data {
+        let result = try runResult(executable, arguments, processTimeout: processTimeout,
+            outputLimit: outputLimit, environment: environment, cancellation: cancellation)
+        guard result.exitCode == 0 else {
+            throw TagError.toolFailed(name: (executable as NSString).lastPathComponent,
+                exitCode: result.exitCode, stderr: ExternalToolText.decodeLossyPlainText(result.stderr))
+        }
+        return result.stdout
+    }
+
+    struct ProcessResult {
+        let stdout: Data
+        let stderr: Data
+        let exitCode: Int32
+    }
+
+    // Validatoren können bei regulärer Zurückweisung einen vollständigen
+    // Bericht auf stdout liefern. Der Aufrufer muss Exit und Bericht abgleichen.
+    static func runResult(
+        _ executable: String,
+        _ arguments: [String],
+        processTimeout: TimeInterval? = nil,
+        outputLimit: Int? = nil,
+        environment: [String: String]? = nil,
+        cancellation: Cancellation? = nil
+    ) throws -> ProcessResult {
         let stdinIsOpen = fcntl(STDIN_FILENO, F_GETFD) != -1
         let stdout = Pipe()
         let stderr = Pipe()
@@ -223,14 +248,7 @@ public enum ExternalToolRunner {
         let exitCode = (status & 0x7f) == 0 ? (status >> 8) & 0xff : status & 0x7f
         let outData = outCollector.data()
         let errData = errCollector.data()
-        guard exitCode == 0 else {
-            throw TagError.toolFailed(
-                name: (executable as NSString).lastPathComponent,
-                exitCode: exitCode,
-                stderr: ExternalToolText.decodeLossyPlainText(errData)
-            )
-        }
-        return outData
+        return .init(stdout: outData, stderr: errData, exitCode: exitCode)
     }
 
     /// posix_spawn legt vor exec eine eigene Prozessgruppe an. Ein nachträgliches

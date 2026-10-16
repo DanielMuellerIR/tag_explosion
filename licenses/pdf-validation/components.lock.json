@@ -1,0 +1,893 @@
+{
+  "schemaVersion": 1,
+  "reviewed": "2026-10-16",
+  "engineVersion": "1.30.3",
+  "jar": {
+    "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/cli/1.30.3/cli-1.30.3.jar",
+    "sha256": "4c8acbaeb16405456c8d6d76deac8cf40d94618cb4e33aedf44e51ee1b68be91",
+    "file": "pdf-org.verapdf.apps_cli_1.30.3.jar"
+  },
+  "javaComponents": [
+    {
+      "coordinate": "org.verapdf:parser:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/parser/1.30.3/parser-1.30.3.jar",
+          "sha256": "f6318245ddd4aeb7ceebb4a946f226c2d4e0f7ee129517c265048398186ac354",
+          "file": "pdf-org.verapdf_parser_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/parser/1.30.3/parser-1.30.3-sources.jar",
+          "sha256": "3fda6615e2ee9c61319062e3aec3427d394413c581ab4780356a8ca11ba09834",
+          "file": "pdf-org.verapdf_parser_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_parser_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "a1b4887bf412600caf4bb7a6c607eb9ed5e3843e11dd4a8204dd9c1ebf8052a1",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/parser/1.30.3/parser-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf:metadata-fixer:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/metadata-fixer/1.30.3/metadata-fixer-1.30.3.jar",
+          "sha256": "89a9ed3757b8c9bb4091bf37d591f8fce3dbd9c26b454f6ac1f2268eeeaa2988",
+          "file": "pdf-org.verapdf_metadata-fixer_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/metadata-fixer/1.30.3/metadata-fixer-1.30.3-sources.jar",
+          "sha256": "36695b958917e0cd8ddad82a89d6557c8e62c31a8aa98a06492f827ec4f0580c",
+          "file": "pdf-org.verapdf_metadata-fixer_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_metadata-fixer_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "4d5ecc31daa4d9016734f8e50d627be7ea9f8f3e8a0b0509466d914c9a0e3927",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/metadata-fixer/1.30.3/metadata-fixer-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf.apps:apps:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/apps/1.30.3/apps-1.30.3.jar",
+          "sha256": "7e38b42b748e771ff58de7ea879297e6786640830f6669b5d9fe731c54494f57",
+          "file": "pdf-org.verapdf.apps_apps_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/apps/1.30.3/apps-1.30.3-sources.jar",
+          "sha256": "440d4798862fcd7965ad2aa1201ea1a8583fd689dd7ca675c98d7a05b69a8157",
+          "file": "pdf-org.verapdf.apps_apps_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf.apps_apps_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "ded3f69be21595c08dfcc81caa51223a1d39c3fb040d3be50d7ad64b1efb5cea",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/apps/apps/1.30.3/apps-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf:feature-reporting:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/feature-reporting/1.30.3/feature-reporting-1.30.3.jar",
+          "sha256": "bf94dc85aec1c464344e2238866eb29927da277749c946095575a5654d0dde01",
+          "file": "pdf-org.verapdf_feature-reporting_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/feature-reporting/1.30.3/feature-reporting-1.30.3-sources.jar",
+          "sha256": "784eff3ab167e08e4cdd0df492cf344c77363d5f2e388948c217bf3999c4a1d9",
+          "file": "pdf-org.verapdf_feature-reporting_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_feature-reporting_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "9b7cba0c4cb19596bd3ab3bbe935c51f5c318ea79aa536f6b0aa9ea57f330623",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/feature-reporting/1.30.3/feature-reporting-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf:verapdf-xmp-core:1.30.3",
+      "license": "MPL-2.0 AND BSD-3-Clause",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-xmp-core/1.30.3/verapdf-xmp-core-1.30.3.jar",
+          "sha256": "0568b92f256526c5eaab36f0112f3098fbffd67d7174e256f694ade955880d0a",
+          "file": "pdf-org.verapdf_verapdf-xmp-core_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-xmp-core/1.30.3/verapdf-xmp-core-1.30.3-sources.jar",
+          "sha256": "71930b706b27687b81beabd907991d40ae861f5c49d844f9574966dd8d59b518",
+          "file": "pdf-org.verapdf_verapdf-xmp-core_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_verapdf-xmp-core_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "790dbaaa8646386e471b2a12d12fe530e10cf1531f708125bbfa7aaccd2dc80d",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-xmp-core/1.30.3/verapdf-xmp-core-1.30.3.pom",
+      "additionalLicenseFile": "veraPDF-XMP-original-LICENSE.txt"
+    },
+    {
+      "coordinate": "javax.xml.bind:jaxb-api:2.3.1",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar",
+          "sha256": "88b955a0df57880a26a74708bc34f74dcaf8ebf4e78843a28b50eae945732b06",
+          "file": "pdf-javax.xml.bind_jaxb-api_2.3.1.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1-sources.jar",
+          "sha256": "d69dc2c28833df5fb6e916efae01477ae936326b342d479a43539b0131c96b9d",
+          "file": "pdf-javax.xml.bind_jaxb-api_2.3.1-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.txt": "5c9d2d07ef2e47ae9c2af9f192c30549b148b9b57a06043ac2fd236250ef8521"
+      },
+      "sourceNoticeFile": "javax.xml.bind_jaxb-api_2.3.1-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "966d8dfb523e1b580edab26477b4c74b03effa0267227a99bc9ed7e5ddf6b0f7",
+      "pomURL": "https://repo.maven.apache.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.pom"
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-databind:2.22.3",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.22.3/jackson-databind-2.22.3.jar",
+          "sha256": "556db5439e206114346043f68d200497dc96a0bca62a360a81784092ebd0e0a9",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-databind_2.22.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.22.3/jackson-databind-2.22.3-sources.jar",
+          "sha256": "e6237bfb27df92e14edb4555ebb7b32f325b66d956e213644b720b65cb273fbb",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-databind_2.22.3-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "612b14bc77c944ce229cbba0d14919162cfea8ed802cbf06a8e865e032d03201"
+      },
+      "sourceNoticeFile": "com.fasterxml.jackson.core_jackson-databind_2.22.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "20ae24b7b91049785b620b49a68f2fb70b622a32c63f9c92c33e019e3d731055",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.22.3/jackson-databind-2.22.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf:validation-model:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/validation-model/1.30.3/validation-model-1.30.3.jar",
+          "sha256": "368de78a2143f62b871e2f5eb0bb27d26a04eff2883a44d426f840d87b7fc55c",
+          "file": "pdf-org.verapdf_validation-model_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/validation-model/1.30.3/validation-model-1.30.3-sources.jar",
+          "sha256": "890f5797a04f3782291427f1e3452cd087a970a4a23068a7661c24abe4676f5d",
+          "file": "pdf-org.verapdf_validation-model_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_validation-model_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "46ea0e458d0e02e24dc0fa8e52597a802c6469d57238bd706de0ea9cdbb091e6",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/validation-model/1.30.3/validation-model-1.30.3.pom"
+    },
+    {
+      "coordinate": "javax.activation:javax.activation-api:1.2.0",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar",
+          "sha256": "43fdef0b5b6ceb31b0424b208b930c74ab58fac2ceeb7b3f6fd3aeb8b5ca4393",
+          "file": "pdf-javax.activation_javax.activation-api_1.2.0.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0-sources.jar",
+          "sha256": "d7411fb29089cafa4b77493f10bfb52832cd1976948903d0b039e12b0bd70334",
+          "file": "pdf-javax.activation_javax.activation-api_1.2.0-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.txt": "a14851d626df4d0298a117ac41788bca73a9c24c2ecc2a12fa2a1101ee9fddc8"
+      },
+      "sourceNoticeFile": "javax.activation_javax.activation-api_1.2.0-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "a9de1af375db3884f710e0c00d38bad39ebd044b7d472342de15ef1ecc815290",
+      "pomURL": "https://repo.maven.apache.org/maven2/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.pom"
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-annotations:2.22",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.22/jackson-annotations-2.22.jar",
+          "sha256": "21ddb598807d3a51a876704eb979d9296e1c6a6f47ab1826ff88c6d6a127a2d0",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-annotations_2.22.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.22/jackson-annotations-2.22-sources.jar",
+          "sha256": "f5375c756ee3c585808f9937eb087d074743fd3f05f6aeff9b183cf19230c9f7",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-annotations_2.22-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "612b14bc77c944ce229cbba0d14919162cfea8ed802cbf06a8e865e032d03201"
+      },
+      "sourceNoticeFile": null,
+      "sourceNoticeSHA256": null,
+      "pomURL": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.22/jackson-annotations-2.22.pom"
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-core:2.22.3",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.22.3/jackson-core-2.22.3.jar",
+          "sha256": "8a501126a385b25841915d839508f8a66e2a0dbc8a6709d055ef3b3e852b094c",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-core_2.22.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.22.3/jackson-core-2.22.3-sources.jar",
+          "sha256": "547caff8197f49beccdcbab1b0178e1aba628aa3c4269302b0067f529101e0e4",
+          "file": "pdf-com.fasterxml.jackson.core_jackson-core_2.22.3-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/FastDoubleParser-LICENSE": "59067508e44346bf93dc9c5e4d673a67ecd77988c2020bb5e0f8667eb199f396",
+        "META-INF/FastDoubleParser-ThirdParty-LICENSE": "dbc36f9422a40d58d1a214080583667cfd37d61c2fae1657d981edda2a60727f",
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/Schubfach-LICENSE": "12d39a6615219d73202300715e365bec2b958f858d1e837c8f2dace57f905969",
+        "META-INF/NOTICE": "e6aef1c0f4cf5b0f802c16b31fce309b3c3737450b93c40d6291bf6540aae3d1"
+      },
+      "sourceNoticeFile": "com.fasterxml.jackson.core_jackson-core_2.22.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "4680f48893adbf1cb89bdd20c8cb795dd4cb09724c7c2ba29430bc5668086a2f",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.22.3/jackson-core-2.22.3.pom"
+    },
+    {
+      "coordinate": "com.sun.istack:istack-commons-runtime:3.0.5",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/istack/istack-commons-runtime/3.0.5/istack-commons-runtime-3.0.5.jar",
+          "sha256": "f19ac45cfbbe12fa952be1e691eae80a74c9c7f4ac46ab3f760ca9cfa3bc694b",
+          "file": "pdf-com.sun.istack_istack-commons-runtime_3.0.5.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/istack/istack-commons-runtime/3.0.5/istack-commons-runtime-3.0.5-sources.jar",
+          "sha256": "92235ba19d5776456a89b469100de2033e838aaeffc69ad98044603b8e8f0ea1",
+          "file": "pdf-com.sun.istack_istack-commons-runtime_3.0.5-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "com.sun.istack_istack-commons-runtime_3.0.5-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "14eecd765e3f96ae7fc434b18e0cc2e9c54f54ee4a855c3fd13d79ddd9ed75fd",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/sun/istack/istack-commons-runtime/3.0.5/istack-commons-runtime-3.0.5.pom"
+    },
+    {
+      "coordinate": "org.glassfish.jaxb:jaxb-core:2.3.0.1",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.jar",
+          "sha256": "2c18be9ca61964ad5a6f37f6c92b50a0c20539a64c04af885ce5d6b4524dbbcd",
+          "file": "pdf-org.glassfish.jaxb_jaxb-core_2.3.0.1.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1-sources.jar",
+          "sha256": "c3b2ac8a47dc81dbb99818283c23e83e63fc6dccb01ee3062437b46614f4e11f",
+          "file": "pdf-org.glassfish.jaxb_jaxb-core_2.3.0.1-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.glassfish.jaxb_jaxb-core_2.3.0.1-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "e4bc10c856b4f64771b875d0b04babbce915274327b67729a326c15ac2ff08ad",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.pom"
+    },
+    {
+      "coordinate": "org.glassfish.jaxb:txw2:2.3.0.1",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/txw2/2.3.0.1/txw2-2.3.0.1.jar",
+          "sha256": "2c9c288ddeee4a601d0229a18303ea89cb2fcd1295ba2a1127fffe68c611eca3",
+          "file": "pdf-org.glassfish.jaxb_txw2_2.3.0.1.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/txw2/2.3.0.1/txw2-2.3.0.1-sources.jar",
+          "sha256": "7815dad139de674d13fa73af7ae70dfee1db3b4d631f2d2596416ff2ba883cd3",
+          "file": "pdf-org.glassfish.jaxb_txw2_2.3.0.1-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.glassfish.jaxb_txw2_2.3.0.1-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "0a4a8cdb02a4bc461ae97455913cced3c9519ec2113622cf638ca29e65c0daa0",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/txw2/2.3.0.1/txw2-2.3.0.1.pom"
+    },
+    {
+      "coordinate": "com.sun.xml.bind:jaxb-core:2.3.0.1",
+      "license": "CDDL-1.1",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.jar",
+          "sha256": "d2ecba63615f317a11fb55c6468f6a9480f6411c10951d9881bafd9a9a8d0467",
+          "file": "pdf-com.sun.xml.bind_jaxb-core_2.3.0.1.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1-sources.jar",
+          "sha256": "d628f0d4d24e5a89842a81533da9f5eb4dd7c9bd5e2321c3ded3785e3f28a65f",
+          "file": "pdf-com.sun.xml.bind_jaxb-core_2.3.0.1-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "com.sun.xml.bind_jaxb-core_2.3.0.1-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "fe3a59c09826aa559ed21227d08e64cc61aa1ab95b860a46219ef2596d3e4368",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.pom"
+    },
+    {
+      "coordinate": "org.glassfish.jaxb:jaxb-runtime:2.3.2",
+      "license": "BSD-3-Clause",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.2/jaxb-runtime-2.3.2.jar",
+          "sha256": "e6e0a1e89fb6ff786279e6a0082d5cef52dc2ebe67053d041800737652b4fd1b",
+          "file": "pdf-org.glassfish.jaxb_jaxb-runtime_2.3.2.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.2/jaxb-runtime-2.3.2-sources.jar",
+          "sha256": "b85c2e314e6565e7dc4fb7e00ec8688c1c0fe9c9f7275125fb8dee43898f3743",
+          "file": "pdf-org.glassfish.jaxb_jaxb-runtime_2.3.2-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.md": "c56e52168c596cb8ca8dca3a648886f19924461928eb8102f5eb31710aee9e31",
+        "META-INF/NOTICE.md": "757d97415f437b8e48ee96694425bbcf25330a2b355348272494fdf57950391a"
+      },
+      "sourceNoticeFile": "org.glassfish.jaxb_jaxb-runtime_2.3.2-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "54b47f4a2a841e468ca60d5425828316f90ad245b3e1008c2573df5a45b0cd0f",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.2/jaxb-runtime-2.3.2.pom"
+    },
+    {
+      "coordinate": "com.sun.xml.bind:jaxb-impl:2.3.2",
+      "license": "BSD-3-Clause",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-impl/2.3.2/jaxb-impl-2.3.2.jar",
+          "sha256": "b3a3d3aeaa5503cadc24dca9539b87efcd7bc3bd8c48018887a1489f2a77bdc0",
+          "file": "pdf-com.sun.xml.bind_jaxb-impl_2.3.2.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-impl/2.3.2/jaxb-impl-2.3.2-sources.jar",
+          "sha256": "f9b79e69b82e52160fea14388eedc895109f56199e4bb4bedfb21adb273a86d8",
+          "file": "pdf-com.sun.xml.bind_jaxb-impl_2.3.2-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.md": "c56e52168c596cb8ca8dca3a648886f19924461928eb8102f5eb31710aee9e31",
+        "META-INF/NOTICE.md": "757d97415f437b8e48ee96694425bbcf25330a2b355348272494fdf57950391a"
+      },
+      "sourceNoticeFile": "com.sun.xml.bind_jaxb-impl_2.3.2-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "54b47f4a2a841e468ca60d5425828316f90ad245b3e1008c2573df5a45b0cd0f",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-impl/2.3.2/jaxb-impl-2.3.2.pom"
+    },
+    {
+      "coordinate": "org.verapdf:pdf-model:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/pdf-model/1.30.3/pdf-model-1.30.3.jar",
+          "sha256": "5678ba09f16d7c9f8e8c764f1706efb9f875ee066a0a9fe8d6b3fb5dceb691a5",
+          "file": "pdf-org.verapdf_pdf-model_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/pdf-model/1.30.3/pdf-model-1.30.3-sources.jar",
+          "sha256": "03f10a686b88ddc28721ad28aa5b904f1eb2049511579734bc0c01bfcd6644aa",
+          "file": "pdf-org.verapdf_pdf-model_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_pdf-model_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "064eec39d2d2366357f6df9526ad81ca9b8baeb8ad137011de4e2dfd5d6c5f94",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/pdf-model/1.30.3/pdf-model-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.verapdf:core:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/core/1.30.3/core-1.30.3.jar",
+          "sha256": "c8b461a8542de34cb99a26496dfdc3b5a97a5deceb41fd417c7914aeffbede42",
+          "file": "pdf-org.verapdf_core_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/core/1.30.3/core-1.30.3-sources.jar",
+          "sha256": "acf33e82a7343e149247a4dae32c20514832cc4a98495b53dba3a17427051b7f",
+          "file": "pdf-org.verapdf_core_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.verapdf_core_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "6bd0c3bf75e8efebd5688932f83bd139df508f38820ecaca852932970ee1a2c7",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/core/1.30.3/core-1.30.3.pom"
+    },
+    {
+      "coordinate": "com.beust:jcommander:1.81",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.81/jcommander-1.81.jar",
+          "sha256": "9d8b42979c99f3daa99102fe9ba1fb25f52226cb48cf58bc18acb93132e41a05",
+          "file": "pdf-com.beust_jcommander_1.81.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.81/jcommander-1.81-sources.jar",
+          "sha256": "5f6c8ad27ede729855c7fabc9fd0a15d31ce1a458c030387fb8ed355a982281b",
+          "file": "pdf-com.beust_jcommander_1.81-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "com.beust_jcommander_1.81-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "e84d0fef4d2fcf5063529754a12d8c3f037ae3cca4a245d1be9b5ada67f58bae",
+      "pomURL": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.81/jcommander-1.81.pom"
+    },
+    {
+      "coordinate": "net.sf.saxon:Saxon-HE:12.8",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/net/sf/saxon/Saxon-HE/12.8/Saxon-HE-12.8.jar",
+          "sha256": "58220adcb289dbebe0053e7a73ee70c97545c88f4886943d64241bf24701b72a",
+          "file": "pdf-net.sf.saxon_Saxon-HE_12.8.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/net/sf/saxon/Saxon-HE/12.8/Saxon-HE-12.8-sources.jar",
+          "sha256": "995a335a4615132012516122cdfbc4f43db8d50bf5bee20df8a9c5c785fffad5",
+          "file": "pdf-net.sf.saxon_Saxon-HE_12.8-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "net.sf.saxon_Saxon-HE_12.8-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "f789b4df0f108f66f38353be283f6f0a8b0ec924ab726d9997bb14621ff6899c",
+      "pomURL": "https://repo.maven.apache.org/maven2/net/sf/saxon/Saxon-HE/12.8/Saxon-HE-12.8.pom"
+    },
+    {
+      "coordinate": "org.xmlresolver:xmlresolver:5.3.3",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3.jar",
+          "sha256": "1fe4d5b92f708dcdb82dbce12919e0171e6b5ca62c6dca6220483625098feb5f",
+          "file": "pdf-org.xmlresolver_xmlresolver_5.3.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3-sources.jar",
+          "sha256": "97606e7622b51b0177436102446377468fbc871b7eac415bacd8b23c77bf7085",
+          "file": "pdf-org.xmlresolver_xmlresolver_5.3.3-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "org.xmlresolver_xmlresolver_5.3.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "40900d1439946a96daefff8d94c56d9723c9dc03fab362ceafcfa36862e3705a",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3.pom"
+    },
+    {
+      "coordinate": "org.mozilla:rhino:1.7.15.1",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/mozilla/rhino/1.7.15.1/rhino-1.7.15.1.jar",
+          "sha256": "f3520a0e2e22d550f1216a456be233eb5385bf08e3219407dece7a16369eb38f",
+          "file": "pdf-org.mozilla_rhino_1.7.15.1.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/mozilla/rhino/1.7.15.1/rhino-1.7.15.1-sources.jar",
+          "sha256": "bb6c4b860ea690199b5da29789244eba2f82c4ced9e11ffa4f1b23e386161e94",
+          "file": "pdf-org.mozilla_rhino_1.7.15.1-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.txt": "ada0787f27b581e024972a18b51db92c8e8508d0f05017d104a1c70a61b59951",
+        "META-INF/NOTICE.txt": "31a77e21118d03bc44cce490e260c09c25818fd8d3632814cfe3a9a5c4b45c68",
+        "META-INF/NOTICE-tools.txt": "9246f7f820e791b7328d46ba341bb5a2bb08c3e2e1b9d36803ab0c3899e0462f"
+      },
+      "sourceNoticeFile": "org.mozilla_rhino_1.7.15.1-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "42458819076f6b6960a7956a6395e1365c794ab5ac13647ed7b9b24a5de8179f",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/mozilla/rhino/1.7.15.1/rhino-1.7.15.1.pom"
+    },
+    {
+      "coordinate": "net.java.dev.stax-utils:stax-utils:20070216",
+      "license": "BSD-3-Clause",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/net/java/dev/stax-utils/stax-utils/20070216/stax-utils-20070216.jar",
+          "sha256": "7c7fd0892cb3362ed2e43ce2f76c8f18f2d7ff1d371ed7490775b7368f3fee9a",
+          "file": "pdf-net.java.dev.stax-utils_stax-utils_20070216.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/net/java/dev/stax-utils/stax-utils/20070216/stax-utils-20070216-sources.jar",
+          "sha256": "4b832af3dff0834726e0ce23ff2ef2da68fc6299a731915ffe94ee00f3e90ae3",
+          "file": "pdf-net.java.dev.stax-utils_stax-utils_20070216-sources.jar"
+        }
+      },
+      "noticeEntries": {},
+      "sourceNoticeFile": "net.java.dev.stax-utils_stax-utils_20070216-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "374ab2622698a65fcc6ae8dcf7b2605adb58ffa8687fbbed931289a796feb1d5",
+      "pomURL": "https://repo.maven.apache.org/maven2/net/java/dev/stax-utils/stax-utils/20070216/stax-utils-20070216.pom"
+    },
+    {
+      "coordinate": "org.verapdf.apps:cli:1.30.3",
+      "license": "MPL-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/cli/1.30.3/cli-1.30.3.jar",
+          "sha256": "4c8acbaeb16405456c8d6d76deac8cf40d94618cb4e33aedf44e51ee1b68be91",
+          "file": "pdf-org.verapdf.apps_cli_1.30.3.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/cli/1.30.3/cli-1.30.3-sources.jar",
+          "sha256": "93106dd9c62f4862e205814df063234aadf6232e84a3854cd0e676718767c8a0",
+          "file": "pdf-org.verapdf.apps_cli_1.30.3-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "META-INF/LICENSE.txt": "ada0787f27b581e024972a18b51db92c8e8508d0f05017d104a1c70a61b59951",
+        "META-INF/NOTICE.txt": "31a77e21118d03bc44cce490e260c09c25818fd8d3632814cfe3a9a5c4b45c68",
+        "META-INF/NOTICE-tools.txt": "9246f7f820e791b7328d46ba341bb5a2bb08c3e2e1b9d36803ab0c3899e0462f",
+        "org/xmlresolver/notices/w3c-license.txt": "9a3ac27f4c5954a3e4afcf8311e36be7cd84c32a3681312de7563ce112b9cad0",
+        "META-INF/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "META-INF/NOTICE": "612b14bc77c944ce229cbba0d14919162cfea8ed802cbf06a8e865e032d03201",
+        "META-INF/FastDoubleParser-LICENSE": "59067508e44346bf93dc9c5e4d673a67ecd77988c2020bb5e0f8667eb199f396",
+        "META-INF/FastDoubleParser-ThirdParty-LICENSE": "dbc36f9422a40d58d1a214080583667cfd37d61c2fae1657d981edda2a60727f",
+        "META-INF/Schubfach-LICENSE": "12d39a6615219d73202300715e365bec2b958f858d1e837c8f2dace57f905969",
+        "META-INF/LICENSE.md": "c56e52168c596cb8ca8dca3a648886f19924461928eb8102f5eb31710aee9e31",
+        "META-INF/NOTICE.md": "757d97415f437b8e48ee96694425bbcf25330a2b355348272494fdf57950391a"
+      },
+      "sourceNoticeFile": "org.verapdf.apps_cli_1.30.3-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "e644366c92c1f3cf221cd742d0bf7dd47f8e0ed2837a18fded0c560d97eee0b1",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/verapdf/apps/cli/1.30.3/cli-1.30.3.pom"
+    },
+    {
+      "coordinate": "org.xmlresolver:xmlresolver:5.3.3:data",
+      "license": "Apache-2.0",
+      "downloads": {
+        "binary": {
+          "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3-data.jar",
+          "sha256": "b0c487ad2f3e558be8d829c916d2458d10aca6a5bafa7a4d0524b70845e48a5c",
+          "file": "pdf-xmlresolver-5.3.3-data.jar"
+        },
+        "source": {
+          "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3-sources.jar",
+          "sha256": "97606e7622b51b0177436102446377468fbc871b7eac415bacd8b23c77bf7085",
+          "file": "pdf-org.xmlresolver_xmlresolver_5.3.3-sources.jar"
+        }
+      },
+      "noticeEntries": {
+        "org/xmlresolver/notices/w3c-license.txt": "9a3ac27f4c5954a3e4afcf8311e36be7cd84c32a3681312de7563ce112b9cad0"
+      },
+      "sourceNoticeFile": "org.xmlresolver_xmlresolver_5.3.3_data-SOURCE-NOTICES.txt",
+      "sourceNoticeSHA256": "40900d1439946a96daefff8d94c56d9723c9dc03fab362ceafcfa36862e3705a",
+      "pomURL": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3.pom"
+    }
+  ],
+  "sourceArtifacts": [
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-library/zip/refs/tags/v1.30.3",
+      "sha256": "2dc5f87eb30605fe28417a8d9ad8f72ed8bea794d41c24e5475c01adc6722125",
+      "name": "veraPDF-library-1.30.3-source.zip"
+    },
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-parser/zip/refs/tags/v1.30.3",
+      "sha256": "a09b89ff52444624c9f59b2e1aeef277280c7f86cb1eb63f0847bbc8ae214e0e",
+      "name": "veraPDF-parser-1.30.3-source.zip"
+    },
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-model/zip/refs/tags/v1.30.3",
+      "sha256": "0ad04cfb04ef4648beed15d2bb5a145c4a548b4229c72767721b0fadc5484b6f",
+      "name": "veraPDF-model-1.30.3-source.zip"
+    },
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-validation/zip/refs/tags/v1.30.3",
+      "sha256": "5cedfffe9de5e5df62c8d6eccdcca84f90ab100d427b0baa3dfca02fb91e9a01",
+      "name": "veraPDF-validation-1.30.3-source.zip"
+    },
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-apps/zip/refs/tags/v1.30.3",
+      "sha256": "2e31181c8e41e70c79a1840a579fdede3c2dc896e2f2bfe8050cae0d1df117f8",
+      "name": "veraPDF-apps-1.30.3-source.zip"
+    },
+    {
+      "url": "https://codeload.github.com/veraPDF/veraPDF-validation-profiles/zip/c4f57effb0d3618827c87bd71882930d752be6e3",
+      "sha256": "2ce9b513efa48a651f5eab6a4b8b1eb2474be2e4cb278c139dc9368abb23a310",
+      "name": "veraPDF-profiles-c4f57ef-source.zip"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.81/jcommander-1.81.pom",
+      "sha256": "f0205d0799d4b1d734252fd9fa0dd3eb7c751f5ffbeb67b255e412b55fe2e355",
+      "name": "com.beust_jcommander_1.81.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.22/jackson-annotations-2.22.pom",
+      "sha256": "38c3ba52a0eade3e3eacc5b13499d56e1038ccbad8ec4bb79426dc21432b46d0",
+      "name": "com.fasterxml.jackson.core_jackson-annotations_2.22.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.22.3/jackson-core-2.22.3.pom",
+      "sha256": "bc74c18b24f3ebbfd42741f2b29b37eca9b25e512e6fa7add77f6973cee50bf1",
+      "name": "com.fasterxml.jackson.core_jackson-core_2.22.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.22.3/jackson-databind-2.22.3.pom",
+      "sha256": "27a5c6657b955d088daf586f2be9769224e33618ab4f44682a1b36ed98f7b904",
+      "name": "com.fasterxml.jackson.core_jackson-databind_2.22.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/activation/all/1.2.0/all-1.2.0.pom",
+      "sha256": "1d8518e3ac7532a104e4f7be77def37c982e530723c6bdb3d67708cce2b0c2c4",
+      "name": "com.sun.activation_all_1.2.0.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/istack/istack-commons-runtime/3.0.5/istack-commons-runtime-3.0.5.pom",
+      "sha256": "fb892aff4c68f0efc4756c97112e044cdd44e73276d3641f9cc1d6ba3c1366e6",
+      "name": "com.sun.istack_istack-commons-runtime_3.0.5.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/istack/istack-commons/3.0.5/istack-commons-3.0.5.pom",
+      "sha256": "8ef035349ffd2ff11b8d9bdb9c0b4e78dbbf0add31b192f767d089dc6599724e",
+      "name": "com.sun.istack_istack-commons_3.0.5.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-bundles/2.3.0.1/jaxb-bundles-2.3.0.1.pom",
+      "sha256": "9d705266c0f01695d897b67465115984b3a9b6487087aba4ece1d798a6c344f8",
+      "name": "com.sun.xml.bind.mvn_jaxb-bundles_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-bundles/2.3.2/jaxb-bundles-2.3.2.pom",
+      "sha256": "98f694769f99fec316c1f8ac3e1c00b9533c57146027c0bb6ea04cf9dc018657",
+      "name": "com.sun.xml.bind.mvn_jaxb-bundles_2.3.2.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-parent/2.3.0.1/jaxb-parent-2.3.0.1.pom",
+      "sha256": "1d366597d77b073448399cbda35d1ace25eda213c593714dd6b1e6742aa162e2",
+      "name": "com.sun.xml.bind.mvn_jaxb-parent_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-parent/2.3.2/jaxb-parent-2.3.2.pom",
+      "sha256": "20dd6dc34ab7549ac40da1d82e92222ec4347ad0ec0cb118ef6c5703bed53a18",
+      "name": "com.sun.xml.bind.mvn_jaxb-parent_2.3.2.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-runtime-parent/2.3.2/jaxb-runtime-parent-2.3.2.pom",
+      "sha256": "b24f8d51f184a68bc1b86d48c0e3cfefeb21a44ede1c5f7303c58ae0488533ec",
+      "name": "com.sun.xml.bind.mvn_jaxb-runtime-parent_2.3.2.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/mvn/jaxb-txw-parent/2.3.0.1/jaxb-txw-parent-2.3.0.1.pom",
+      "sha256": "991c209d3e06faa18458df7c72b722f7eba50615128f7b934538e2393dddd13c",
+      "name": "com.sun.xml.bind.mvn_jaxb-txw-parent_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.pom",
+      "sha256": "ee7bb74f42fdc4db10e3cc9c68c0e9b5beaf8ebb36cce91d495b479b026c6aab",
+      "name": "com.sun.xml.bind_jaxb-core_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-impl/2.3.2/jaxb-impl-2.3.2.pom",
+      "sha256": "565c155012967597ce8d35140f262094a12612172289a4fe6453c3f0337877a1",
+      "name": "com.sun.xml.bind_jaxb-impl_2.3.2.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.pom",
+      "sha256": "da2926f3c8be898643cc10acdec6de0b0351a57fb2735770fa0177b06ade71b9",
+      "name": "javax.activation_javax.activation-api_1.2.0.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/javax/xml/bind/jaxb-api-parent/2.3.1/jaxb-api-parent-2.3.1.pom",
+      "sha256": "cd1beaa4560dc4dfdb826b9d809e464db22526dfb54264bae78a6ff7efb08e1f",
+      "name": "javax.xml.bind_jaxb-api-parent_2.3.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.pom",
+      "sha256": "12b20cf922773445c3445c2883cbf671fa982111e9bf9f875020f9313b3814b1",
+      "name": "javax.xml.bind_jaxb-api_2.3.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/net/java/dev/stax-utils/stax-utils/20070216/stax-utils-20070216.pom",
+      "sha256": "04a3e8e716abaca4e68f8f5ff9d77126e4d6151d7de157ca15a96ea7d251b5e4",
+      "name": "net.java.dev.stax-utils_stax-utils_20070216.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/net/sf/saxon/Saxon-HE/12.8/Saxon-HE-12.8.pom",
+      "sha256": "15116031263f91da7f7c680681d60532b9521a787e30c19b0d36a863480d0b91",
+      "name": "net.sf.saxon_Saxon-HE_12.8.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-core/2.3.0.1/jaxb-core-2.3.0.1.pom",
+      "sha256": "c1a3d3fda56df5fabe6fbf9eb39b2a8ce7b53c04801498601e9e4df6d6d85166",
+      "name": "org.glassfish.jaxb_jaxb-core_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.2/jaxb-runtime-2.3.2.pom",
+      "sha256": "9448a5ad7fa68a6083dfbe4f42c8c83e082b9202a105401fc68e944c26548b34",
+      "name": "org.glassfish.jaxb_jaxb-runtime_2.3.2.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/glassfish/jaxb/txw2/2.3.0.1/txw2-2.3.0.1.pom",
+      "sha256": "38b91b6e93dbe1b4b73464a563545bb6213cc09947fa43bffaafb397379ccbe1",
+      "name": "org.glassfish.jaxb_txw2_2.3.0.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/mozilla/rhino/1.7.15.1/rhino-1.7.15.1.pom",
+      "sha256": "b40decfa0e24c80bfd957ba3adfac7f6e3eed7730a06b551c01493faa2e76883",
+      "name": "org.mozilla_rhino_1.7.15.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/apps/apps/1.30.3/apps-1.30.3.pom",
+      "sha256": "f0585db6a48817a9bd8ced4e3133533136bb9726e22bbd987a7ca7e690b59f21",
+      "name": "org.verapdf.apps_apps_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/core/1.30.3/core-1.30.3.pom",
+      "sha256": "7c0aa3491d1f7cb503fba08e3c86a0bf0ac33b2e75fd0d9d16a7cd08385367ad",
+      "name": "org.verapdf_core_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/feature-reporting/1.30.3/feature-reporting-1.30.3.pom",
+      "sha256": "4c1969c6ba2a1723e082bd266ce2498e20a02ab9877a4bdd705c8a4a552ba842",
+      "name": "org.verapdf_feature-reporting_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/metadata-fixer/1.30.3/metadata-fixer-1.30.3.pom",
+      "sha256": "48176de05b444bc3a747a03383ccf0a48b327dd8d82ec113682cb6b9026af7ad",
+      "name": "org.verapdf_metadata-fixer_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/parser/1.30.3/parser-1.30.3.pom",
+      "sha256": "11414a014ebfe643c23dd12000a8a324280d91478002e462ea56096fe1af9c1d",
+      "name": "org.verapdf_parser_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/pdf-model/1.30.3/pdf-model-1.30.3.pom",
+      "sha256": "14dc096ea9425d68ed07ee21d3e5b34338845c4f7d636a7506ac5a17d0d95fec",
+      "name": "org.verapdf_pdf-model_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/validation-model/1.30.3/validation-model-1.30.3.pom",
+      "sha256": "b2107bc33363241cce48d32fd3544790bb38e4a9bc0da64c46282b75bf9cf341",
+      "name": "org.verapdf_validation-model_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/validation/1.30.3/validation-1.30.3.pom",
+      "sha256": "c4d3123f6c0c298ee6ee1fe65eea3ceada6ac4856cf6a299d2865695c73eaff7",
+      "name": "org.verapdf_validation_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-apps/1.30.3/verapdf-apps-1.30.3.pom",
+      "sha256": "499757d1b7f0d819098e24c079b23908c562711f01bcbaeefaa8ee02ac749308",
+      "name": "org.verapdf_verapdf-apps_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-library/1.30.3/verapdf-library-1.30.3.pom",
+      "sha256": "2f4d0c03094513d3a982357c91c4a45f3a54f1ac85c291b325dbccf7188a4814",
+      "name": "org.verapdf_verapdf-library_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-parent/1.30.1/verapdf-parent-1.30.1.pom",
+      "sha256": "08760b168e9447c7be4d7462a63aeb644f5702d18db9de1baa55f48bb909db62",
+      "name": "org.verapdf_verapdf-parent_1.30.1.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/verapdf/verapdf-xmp-core/1.30.3/verapdf-xmp-core-1.30.3.pom",
+      "sha256": "72a708df42540baad9449c2d68dde575ad92a3e03e71215ad77364df6279080e",
+      "name": "org.verapdf_verapdf-xmp-core_1.30.3.pom"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3.pom",
+      "sha256": "261ada76d9e6676008dcac377a4d4589749166b606559f59f2e45ea62d8b75ec",
+      "name": "org.xmlresolver_xmlresolver_5.3.3.pom"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/adobe/XMP-Toolkit-SDK/7093513bd3caaad29da01db0f275d88a39d6bcc2/LICENSE",
+      "sha256": "99678ec755c91c9400a989fef7c6e1bd2907aff40eef4cf855c111bbd282c1d4",
+      "name": "Adobe-XMP-BSD-3-Clause.txt"
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/org/xmlresolver/xmlresolver/5.3.3/xmlresolver-5.3.3-data.jar",
+      "sha256": "b0c487ad2f3e558be8d829c916d2458d10aca6a5bafa7a4d0524b70845e48a5c",
+      "name": "xmlresolver-5.3.3-original-xml-data.jar"
+    }
+  ],
+  "licenseFiles": {
+    "Apache-2.0.txt": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9",
+    "CDDL-GPL-1.1.txt": "5c9d2d07ef2e47ae9c2af9f192c30549b148b9b57a06043ac2fd236250ef8521",
+    "MPL-2.0.txt": "66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172",
+    "com.beust_jcommander_1.81-SOURCE-NOTICES.txt": "e84d0fef4d2fcf5063529754a12d8c3f037ae3cca4a245d1be9b5ada67f58bae",
+    "com.fasterxml.jackson.core_jackson-core_2.22.3-SOURCE-NOTICES.txt": "4680f48893adbf1cb89bdd20c8cb795dd4cb09724c7c2ba29430bc5668086a2f",
+    "com.fasterxml.jackson.core_jackson-databind_2.22.3-SOURCE-NOTICES.txt": "20ae24b7b91049785b620b49a68f2fb70b622a32c63f9c92c33e019e3d731055",
+    "com.sun.istack_istack-commons-runtime_3.0.5-SOURCE-NOTICES.txt": "14eecd765e3f96ae7fc434b18e0cc2e9c54f54ee4a855c3fd13d79ddd9ed75fd",
+    "com.sun.xml.bind_jaxb-core_2.3.0.1-SOURCE-NOTICES.txt": "fe3a59c09826aa559ed21227d08e64cc61aa1ab95b860a46219ef2596d3e4368",
+    "com.sun.xml.bind_jaxb-impl_2.3.2-SOURCE-NOTICES.txt": "54b47f4a2a841e468ca60d5425828316f90ad245b3e1008c2573df5a45b0cd0f",
+    "javax.activation_javax.activation-api_1.2.0-SOURCE-NOTICES.txt": "a9de1af375db3884f710e0c00d38bad39ebd044b7d472342de15ef1ecc815290",
+    "javax.xml.bind_jaxb-api_2.3.1-SOURCE-NOTICES.txt": "966d8dfb523e1b580edab26477b4c74b03effa0267227a99bc9ed7e5ddf6b0f7",
+    "net.java.dev.stax-utils_stax-utils_20070216-SOURCE-NOTICES.txt": "374ab2622698a65fcc6ae8dcf7b2605adb58ffa8687fbbed931289a796feb1d5",
+    "org.glassfish.jaxb_jaxb-core_2.3.0.1-SOURCE-NOTICES.txt": "e4bc10c856b4f64771b875d0b04babbce915274327b67729a326c15ac2ff08ad",
+    "org.glassfish.jaxb_jaxb-runtime_2.3.2-SOURCE-NOTICES.txt": "54b47f4a2a841e468ca60d5425828316f90ad245b3e1008c2573df5a45b0cd0f",
+    "org.glassfish.jaxb_txw2_2.3.0.1-SOURCE-NOTICES.txt": "0a4a8cdb02a4bc461ae97455913cced3c9519ec2113622cf638ca29e65c0daa0",
+    "org.mozilla_rhino_1.7.15.1-SOURCE-NOTICES.txt": "42458819076f6b6960a7956a6395e1365c794ab5ac13647ed7b9b24a5de8179f",
+    "org.verapdf.apps_apps_1.30.3-SOURCE-NOTICES.txt": "ded3f69be21595c08dfcc81caa51223a1d39c3fb040d3be50d7ad64b1efb5cea",
+    "org.verapdf.apps_cli_1.30.3-SOURCE-NOTICES.txt": "e644366c92c1f3cf221cd742d0bf7dd47f8e0ed2837a18fded0c560d97eee0b1",
+    "org.verapdf_core_1.30.3-SOURCE-NOTICES.txt": "6bd0c3bf75e8efebd5688932f83bd139df508f38820ecaca852932970ee1a2c7",
+    "org.verapdf_feature-reporting_1.30.3-SOURCE-NOTICES.txt": "9b7cba0c4cb19596bd3ab3bbe935c51f5c318ea79aa536f6b0aa9ea57f330623",
+    "org.verapdf_metadata-fixer_1.30.3-SOURCE-NOTICES.txt": "4d5ecc31daa4d9016734f8e50d627be7ea9f8f3e8a0b0509466d914c9a0e3927",
+    "org.verapdf_parser_1.30.3-SOURCE-NOTICES.txt": "a1b4887bf412600caf4bb7a6c607eb9ed5e3843e11dd4a8204dd9c1ebf8052a1",
+    "org.verapdf_pdf-model_1.30.3-SOURCE-NOTICES.txt": "064eec39d2d2366357f6df9526ad81ca9b8baeb8ad137011de4e2dfd5d6c5f94",
+    "org.verapdf_validation-model_1.30.3-SOURCE-NOTICES.txt": "46ea0e458d0e02e24dc0fa8e52597a802c6469d57238bd706de0ea9cdbb091e6",
+    "org.verapdf_verapdf-xmp-core_1.30.3-SOURCE-NOTICES.txt": "790dbaaa8646386e471b2a12d12fe530e10cf1531f708125bbfa7aaccd2dc80d",
+    "veraPDF-XMP-original-LICENSE.txt": "d0439747694d37583e49e8754c2262fa0710e7c44cbe4c0db8adce2e64b0f895",
+    "Adobe-XMP-BSD-3-Clause.txt": "99678ec755c91c9400a989fef7c6e1bd2907aff40eef4cf855c111bbd282c1d4",
+    "net.sf.saxon_Saxon-HE_12.8-SOURCE-NOTICES.txt": "f789b4df0f108f66f38353be283f6f0a8b0ec924ab726d9997bb14621ff6899c",
+    "org.xmlresolver_xmlresolver_5.3.3-SOURCE-NOTICES.txt": "40900d1439946a96daefff8d94c56d9723c9dc03fab362ceafcfa36862e3705a",
+    "org.xmlresolver_xmlresolver_5.3.3_data-SOURCE-NOTICES.txt": "40900d1439946a96daefff8d94c56d9723c9dc03fab362ceafcfa36862e3705a"
+  },
+  "classAudit": {
+    "classes": 6824,
+    "ownClasses": {
+      "org/verapdf/apps/GreenfieldCliWrapper.class": {
+        "sha256": "3e66c3e07508b2f9b15fa2a4a8c78360e0ce01d5ede58059bde5374a9aa50539",
+        "source": "org/verapdf/apps/GreenfieldCliWrapper.java"
+      },
+      "org/verapdf/cli/VeraPdfCli.class": {
+        "sha256": "4bf0393e4e64fe363caf3c1a62c7b8dd5aeac4b3fe90f87c181d0d8b41180c44",
+        "source": "org/verapdf/cli/VeraPdfCli.java"
+      },
+      "org/verapdf/cli/CliConstants$ExitCodes.class": {
+        "sha256": "0c4cbccda6846577c1f404f231361e0b572fcd79f056f1efb1cad0c8014ba52b",
+        "source": "org/verapdf/cli/CliConstants.java"
+      },
+      "org/verapdf/cli/FormatterHelper.class": {
+        "sha256": "7009ba57382f8429e9fa30dadb45c0c047ccab85d16ef50a71602253a84e9b88",
+        "source": "org/verapdf/cli/FormatterHelper.java"
+      },
+      "org/verapdf/cli/VeraPdfCliProcessor.class": {
+        "sha256": "e93301c8623aba2d30ec4cb1c0da796c16ca627f0295f2d88015d5bad7866e5c",
+        "source": "org/verapdf/cli/VeraPdfCliProcessor.java"
+      },
+      "org/verapdf/cli/multithread/BaseCliRunner.class": {
+        "sha256": "4167e09ec0a8e9da55b35b9fe15b23cf145bd2e7b11366fae83f8866b6b3fe48",
+        "source": "org/verapdf/cli/multithread/BaseCliRunner.java"
+      },
+      "org/verapdf/cli/multithread/MultiThreadProcessor.class": {
+        "sha256": "d49293022a7cf8d189be8825e65ceefc5e16b27d68a9468a542a29572b529e5d",
+        "source": "org/verapdf/cli/multithread/MultiThreadProcessor.java"
+      },
+      "org/verapdf/cli/CliConstants.class": {
+        "sha256": "59491263dc562c0ff80e772c1219dde3b2d5ff3e19a47188823a76f1d7c99e83",
+        "source": "org/verapdf/cli/CliConstants.java"
+      },
+      "org/verapdf/cli/commands/VeraCliArgParser.class": {
+        "sha256": "edd2a4e6433880b2d0a717aa5b3c7ad1075849e738e32ba48365d75f9bc30b4f",
+        "source": "org/verapdf/cli/commands/VeraCliArgParser.java"
+      },
+      "org/verapdf/cli/commands/VeraCliArgParser$FeatureConverter.class": {
+        "sha256": "f900a53d29e3ff8a80f23a86a68914e5cb058e163fd05da60184a5bd9de85558",
+        "source": "org/verapdf/cli/commands/VeraCliArgParser.java"
+      },
+      "org/verapdf/cli/commands/VeraCliArgParser$FlavourConverter.class": {
+        "sha256": "fab4319d1b524fd9fa901c2fb3da3872a658cec690de13f2f819bb20c7f21ed5",
+        "source": "org/verapdf/cli/commands/VeraCliArgParser.java"
+      },
+      "org/verapdf/cli/commands/VeraCliArgParser$FileValidator.class": {
+        "sha256": "75f02be48ded50f896e8300a40d8ce57a7600091232dd815f5aa86cd7f27fad3",
+        "source": "org/verapdf/cli/commands/VeraCliArgParser.java"
+      },
+      "org/verapdf/cli/commands/VeraCliArgParser$FormatConverter.class": {
+        "sha256": "3012e27090d9299935e5fbe8df52f0f26412764f6f20def7af1aeb8fa7049c57",
+        "source": "org/verapdf/cli/commands/VeraCliArgParser.java"
+      }
+    },
+    "ownSourceSHA256": "93106dd9c62f4862e205814df063234aadf6232e84a3854cd0e676718767c8a0",
+    "unknown": 0,
+    "dependencyClasses": 6811
+  },
+  "profilesSourceCommit": "c4f57effb0d3618827c87bd71882930d752be6e3"
+}

@@ -6720,6 +6720,56 @@
           }
         }
       }
+    },
+    "Technische Prüfung bestanden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technical validation passed"
+          }
+        }
+      }
+    },
+    "Technische Prüfung bestanden · Warnungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technical validation passed · warnings"
+          }
+        }
+      }
+    },
+    "Sichtbarer Inhalt, Signaturen und steuerliche Voraussetzungen sind nicht geprüft.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visible content, signatures and tax requirements have not been checked."
+          }
+        }
+      }
+    },
+    "PDF/A: %@ · Einbettung: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF/A: %@ · Embedding: %@"
+          }
+        }
+      }
+    },
+    "XML-Prüfung fehlgeschlagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML validation failed"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

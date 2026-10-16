@@ -151,3 +151,5 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Berichtsgruppierung, Track-/Disc-Lücken und `tagx check`.
 
 - [Factur-X-Validierungsartefakte](facturx-validierungsartefakte.md) — Profilketten, mehrdeutige URNs, KoSIT-Fallback, Warnungen und MINIMUM-Summenprüfung.
+
+- [Hybride PDF-Validierung](hybride-pdf-validierung.md) — getrennte Ergebnisse, Dictionary-Identität, veraPDF-Exit und exakte bevorzugte Profilquellen.
