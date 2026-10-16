@@ -28,6 +28,11 @@ case "${VTOOL_MODE:-ok}" in
             */PlugIns/*) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 26.0\n' ;;
             *) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 14.0\n' ;;
         esac ;;
+    runtime_new)
+        case "$3" in
+            */XRechnungValidator/runtime/*) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 26.0\n' ;;
+            *) printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 14.0\n' ;;
+        esac ;;
     ok)      printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 14.0\n  sdk 14.0\n' ;;
     new)     printf 'Load command 1\n  cmd LC_BUILD_VERSION\n  minos 26.0\n  sdk 26.0\n' ;;
     nominos) printf 'Load command 1\n  cmd LC_VERSION_MIN_MACOSX\n' ;;
@@ -91,6 +96,11 @@ mkdir -p "$bundle/Contents/PlugIns/Preview.appex/Contents/MacOS"
 printf 'binary\n' > "$bundle/Contents/PlugIns/Preview.appex/Contents/MacOS/Preview"
 VTOOL_MODE=plugin_new expect_failure "zu neues Erweiterungs-Binary" "$bundle"
 rm -rf "$bundle/Contents/PlugIns"
+
+mkdir -p "$bundle/Contents/Resources/XRechnungValidator/runtime/Contents/Home/bin"
+printf 'binary\n' > "$bundle/Contents/Resources/XRechnungValidator/runtime/Contents/Home/bin/java"
+VTOOL_MODE=runtime_new expect_failure "zu neue private Java-Laufzeit" "$bundle"
+rm -rf "$bundle/Contents/Resources/XRechnungValidator"
 
 # vtool selbst scheitert: ungeprueft ist nicht in Ordnung.
 VTOOL_MODE=fail expect_failure "vtool-Fehler" "$bundle"

@@ -1,7 +1,7 @@
 # Gemeinsamer Validierungskern
 
-Stand: 2026-10-16, ab Version 0.49.0. Die App-Oberfläche folgt getrennt;
-der hier beschriebene Dienst wird bereits von der CLI verwendet.
+Stand: 2026-10-16, ab Version 0.49.0. Der hier beschriebene Dienst wird von
+der CLI und seit 0.50.0 von der [App-Oberfläche](e-invoice-validation-app.md) verwendet.
 
 ## Quelldaten und Ergebnisbindung
 

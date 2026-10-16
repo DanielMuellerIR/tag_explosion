@@ -9,12 +9,18 @@ import UniformTypeIdentifiers
 
 struct EbookEditorView: View {
     @Bindable var entry: FileEntry
+    let validation: InvoiceValidationModel?
     @State private var tab: Tab = .metadata
     /// Eingebettete E-Rechnung dieses PDFs (nil = keine oder Prüfung läuft).
     /// Das Dokument wird genau EINMAL im Hintergrund gelesen und danach für
-    /// Tab-Sichtbarkeit UND Tab-Inhalt verwendet — Extraktion und Parsen pro
-    /// angezeigtem PDF nicht doppelt.
+    /// Tab-Sichtbarkeit UND Tab-Inhalt verwendet. Eine ausdrücklich gestartete
+    /// Validierung liest danach einen frischen, gebundenen Schnappschuss.
     @State private var invoiceDocument: EInvoiceDocument?
+
+    init(entry: FileEntry, validation: InvoiceValidationModel? = nil) {
+        self.entry = entry
+        self.validation = validation
+    }
 
     enum Tab: Hashable {
         case metadata
@@ -29,7 +35,7 @@ struct EbookEditorView: View {
             if invoiceDocument != nil {
                 Picker("", selection: $tab) {
                     Text("Metadaten").tag(Tab.metadata)
-                    Text("E-Rechnung").tag(Tab.invoice)
+                    Text("E-Rechnung").tag(Tab.invoice).accessibilityIdentifier("ebook.invoice.tab")
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -44,7 +50,7 @@ struct EbookEditorView: View {
                 metadataTab
             case .invoice:
                 if let invoiceDocument {
-                    InvoiceContentView(document: invoiceDocument)
+                    InvoiceContentView(document: invoiceDocument, sourceURL: entry.url, displayedStamp: entry.diskStamp, validation: validation)
                 }
             }
         }

@@ -33,6 +33,18 @@ struct InvoiceValidationServiceTests {
         #expect(try input.payload.document().summary.invoiceNumber == "ABC")
     }
 
+    @Test("DOCTYPE wird schon vor der Bereitstellung für die Anzeige abgewiesen")
+    func doctypeBeforeDisplay() throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("invoice.xml")
+        let xml = "<!DOCTYPE Invoice [<!ENTITY x 'value'>]><Invoice>&x;</Invoice>"
+        for bytes in [Data(xml.utf8), try #require(xml.data(using: .utf16)), try #require(xml.data(using: .utf32))] {
+            try bytes.write(to: url)
+            #expect(throws: XRechnungValidator.Failure.doctypeNotAllowed) { try InvoiceValidationInput.capture(at: url) }
+        }
+    }
+
     @Test("PDF-Auswahl und XML-Bytes stimmen mit der Anzeige überein",
           .enabled(if: EInvoiceReader.isPDFExtractionAvailable))
     func pdfSource() throws {

@@ -7,8 +7,9 @@
   (alles, was kid3 kann: Tags + Cover für mp3, m4a/m4b, flac, ogg, opus, wav, aiff …),
   Apple-like und schnell. Dazu Bilder (EXIF/IPTC/XMP via exiftool), Video,
   E-Books (EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre-CLI) und
-  E-Rechnungen (ZUGFeRD/Factur-X/XRechnung/Peppol, CII + UBL — nur Anzeige:
-  Profil aus BT-24 plus alle Felder mit EN-16931-Bezeichnungen).
+  E-Rechnungen (ZUGFeRD/Factur-X/XRechnung/Peppol, CII + UBL — lesende Anzeige:
+  Profil aus BT-24 plus alle Felder mit EN-16931-Bezeichnungen;
+  XRechnung zusätzlich lokal mit XSD/Schematron über KoSIT prüfen).
 - **Plattform:** macOS (App); Core/CLI Linux-portabel gehalten. Open Source, MIT.
 
 ## Architektur
@@ -21,7 +22,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   TagLib-/ZIP-Abhängigkeit; PDF-Extraktion via CoreGraphics ist der einzige
   Apple-only-Teil. Fallen: [knowledge/e-rechnung-anzeige.md](knowledge/e-rechnung-anzeige.md).
 - `Sources/TagExplosionCore/` — portables Swift: Datenmodell, Tag-IO über Shim,
-  MediaInfo-JSON-Wrapper (Prozessaufruf). Kein AppKit/SwiftUI hier.
+  MediaInfo-JSON-Wrapper und Rechnungsvalidierung über Prozessaufrufe.
+  `InvoiceValidationInput` bindet Anzeige/Prüfung an Originalbytes;
+  `InvoiceValidationService` liefert abgestufte Ergebnisse. Kein AppKit/SwiftUI hier.
 - `Sources/tagx/` — CLI (maschinenlesbare Ausgabe, Exit-Codes) für Headless-Betrieb
   und Tests.
 - `App/` — SwiftUI-App; wird als SPM-Executable gebaut und per `build.sh` zu
@@ -39,6 +42,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   per `Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh` (ffmpeg) erzeugt.
 - Lizenz-Regel: Abhängigkeiten müssen MIT-kompatibel bleiben (TagLib nur dynamisch
   als Systembibliothek linken; mediainfo/exiftool nur als CLI aufrufen).
+  KoSIT/Java/Regeln werden als getrenntes Paket gebündelt; Inventar, Original-
+  Lizenzen und passende Quellen vor Auslieferung mit `validation_compliance.py`
+  prüfen. Details: [docs/validation-licenses.md](docs/validation-licenses.md).
 
 ## Test
 

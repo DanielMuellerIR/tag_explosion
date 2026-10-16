@@ -97,6 +97,19 @@ rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPC
 # Binärpaket (LGPL-/Apache-Hinweispflicht), nicht nur in den Quelltext.
 cp "$here/THIRD-PARTY-NOTICES.md" "$app/Contents/Resources/Third-Party-Licenses.md"
 
+# Private XRechnung-Laufzeit: Nutzer benötigen weder Python noch System-Java.
+# Vor dem Kopieren ist das zugehörige Quellen-/Lizenzpaket verbindlich geprüft.
+validation_key="$(shasum -a 256 "$here/licenses/validation/components.lock.json" | cut -c1-16)"
+validation_bundle="${XRECHNUNG_VALIDATOR_BUNDLE:-$here/.validation-build/xrechnung-$validation_key-$(uname -m)}"
+validation_sources="${VALIDATION_SOURCES:-${validation_bundle}-sources}"
+if [ ! -d "$validation_bundle" ]; then
+    python3 "$here/scripts/prepare-xrechnung-validator.py" --output "$validation_bundle" --sources-output "$validation_sources"
+fi
+python3 "$here/scripts/validation_compliance.py" "$validation_bundle" --sources "$validation_sources"
+ditto "$validation_bundle" "$app/Contents/Resources/XRechnungValidator"
+# AppleDouble-Dateien würden beim portablen Entpacken das geprüfte Quelleninventar ändern.
+ditto --norsrc --noextattr --noqtn -c -k --keepParent "$validation_sources" "$here/TagExplosion-$version-validation-sources.zip"
+
 # Lokalisierung: Der String Catalog (Quelle Deutsch, Übersetzung Englisch)
 # wird zu .lproj/Localizable.strings kompiliert. swift build kann .xcstrings
 # nicht selbst kompilieren (nur Xcodes Build-System), deshalb hier explizit.

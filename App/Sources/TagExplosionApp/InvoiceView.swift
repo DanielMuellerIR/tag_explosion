@@ -1,6 +1,6 @@
 // E-Rechnungs-Ansicht: Profilkopf, Hinweise der Grundvalidierung und alle
 // Felder mit EN-16931-Bezeichnungen (BT-/BG-Nummern; Bestellungen mit
-// Order-X-Bezeichnungen). Reine Anzeige, filterbar, kopierbar. Wird zweifach
+// Order-X-Bezeichnungen). Lesende Ansicht mit technischer Prüfung und Bericht. Wird zweifach
 // genutzt: als Editor-Ersatz für XML-Rechnungen und als Tab im
 // E-Book-Editor, wenn ein PDF eine eingebettete Rechnung trägt.
 import EInvoiceCore
@@ -10,6 +10,12 @@ import TagExplosionCore
 /// Detailansicht für einen .invoice-Eintrag (XML-Rechnung).
 struct InvoiceView: View {
     @Bindable var entry: FileEntry
+    let validation: InvoiceValidationModel?
+
+    init(entry: FileEntry, validation: InvoiceValidationModel? = nil) {
+        self.entry = entry
+        self.validation = validation
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +34,7 @@ struct InvoiceView: View {
             .padding([.horizontal, .top], 20)
 
             if let document = entry.invoiceDocument {
-                InvoiceContentView(document: document)
+                InvoiceContentView(document: document, sourceURL: entry.url, displayedStamp: entry.diskStamp, validation: validation)
             } else {
                 ContentUnavailableView(
                     "Keine E-Rechnung erkannt",
@@ -45,7 +51,21 @@ struct InvoiceView: View {
 /// nutzt ihn für sein Rechnungs-Tab mit dem dort bereits gelesenen Dokument —
 /// das PDF wird dafür nicht ein zweites Mal extrahiert und geparst.
 struct InvoiceContentView: View {
-    let document: EInvoiceDocument
+    let initialDocument: EInvoiceDocument
+    let sourceURL: URL
+    let displayedStamp: FileStamp?
+    @State private var validation: InvoiceValidationModel
+    @State private var basicWarningsExpanded = false
+
+    init(document: EInvoiceDocument, sourceURL: URL, displayedStamp: FileStamp? = nil,
+         validation: InvoiceValidationModel? = nil) {
+        self.initialDocument = document
+        self.sourceURL = sourceURL
+        self.displayedStamp = displayedStamp
+        self._validation = State(initialValue: validation ?? InvoiceValidationModel())
+    }
+
+    private var document: EInvoiceDocument { validation.document ?? initialDocument }
 
     @State private var filter = ""
     /// Nur Felder mit EN-16931-Zuordnung zeigen (blendet Struktur-Rauschen aus).
@@ -55,16 +75,42 @@ struct InvoiceContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            if !validation.hasFreshDocument || validation.document != nil {
+                header
+                Divider()
+            }
+            InvoiceValidationView(model: validation)
             Divider()
+            if validation.hasFreshDocument && validation.document == nil {
+                ContentUnavailableView("Rechnungs-XML nicht lesbar", systemImage: "doc.questionmark",
+                                       description: Text("Die aktuelle Quelle kann nicht als Rechnung angezeigt werden."))
+            } else {
             if !document.warnings.isEmpty {
-                warningsSection
+                DisclosureGroup(isExpanded: $basicWarningsExpanded) {
+                    ScrollView { warningsSection }.frame(maxHeight: 120)
+                } label: {
+                    HStack {
+                        Text("Grundprüfung (ohne XSD/Schematron)")
+                        Text(document.warnings.count.formatted()).font(.caption.monospacedDigit())
+                            .padding(.horizontal, 6).background(.quaternary, in: Capsule())
+                    }
+                }.padding(10)
                 Divider()
             }
             filterBar
             Divider()
             fieldList
+            }
         }
+        .task(id: sourceURL) {
+            validation.observe(sourceURL)
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(2)) } catch { break }
+                validation.checkSource()
+            }
+        }
+        .onChange(of: displayedStamp) { validation.reset() }
+        .onDisappear { validation.stopObserving() }
     }
 
     // MARK: - Hinweise

@@ -157,10 +157,13 @@ let guiTestSignalSources: [DispatchSourceSignal] = [SIGINT, SIGTERM, SIGHUP].map
 /// Instanz. `newInstance: true` sorgt dafür, dass eine bereits laufende, fremde
 /// Tag Explosion unberührt bleibt.
 func launchTestInstance(documents: [URL] = [],
-                        newInstance: Bool = true) -> NSRunningApplication? {
+                        newInstance: Bool = true,
+                        activates: Bool = true,
+                        arguments: [String] = []) -> NSRunningApplication? {
     let configuration = NSWorkspace.OpenConfiguration()
     configuration.createsNewApplicationInstance = newInstance
-    configuration.activates = true
+    configuration.activates = activates
+    configuration.arguments = arguments
     let bundle = URL(fileURLWithPath: appPath)
     var launched: NSRunningApplication?
     let done = DispatchSemaphore(value: 0)

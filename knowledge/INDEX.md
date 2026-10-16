@@ -67,6 +67,8 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
   Rechte von technischen Regeln, Spezifikationen und Logos.
 - [validierungsquellen.md](validierungsquellen.md) — Unveränderte XML-/PDF-Quellen,
   Ergebnisbindung, Abbruch/Auswahlrevision und physische Pfadbasis der Paketprüfung.
+- [validierungs-app.md](validierungs-app.md) — Bei App-Validierung: Dateiwächter
+  und Swift-6-Isolation, Auftragsende, geschützter Berichtexport und Paketcache.
 - [kapitel-hoerbuch.md](kapitel-hoerbuch.md) — Bei Arbeit an Kapiteln
   (CHAP/CTOC, MP4 Nero/QuickTime, Matroska): was TagLib 2.3 kann, Einheiten
   (ms vs. ns), fehlende MP4-Enden, welche Fremdwerkzeuge was lesen.

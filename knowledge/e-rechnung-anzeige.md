@@ -19,11 +19,11 @@ Rechnungsansicht der App.
   und der XRechnung (BR-DE-15), damit man sie in Validatoren wiederfindet.
 - Die vollständige XRechnung-Prüfung ist ein separater CLI-Prototyp
   (`tagx validate-xrechnung`) mit privatem KoSIT-/Java-Paket; die App-Anzeige
-  bleibt bei der Grundprüfung. Details:
+  hält die Grundprüfung getrennt von der seit 0.50.0 verfügbaren Prüfaktion. Details:
   [xrechnung-kosit-prototyp.md](xrechnung-kosit-prototyp.md).
 - Ab 0.49.0 bewahrt `EInvoicePayload` die gemeinsamen Originalbytes für
   Anzeige und Validierungsdienst. `--format common` prüft auch PDF-Anhänge;
-  die App-GUI folgt getrennt. Ergebnisbindung und Abbruch:
+  die App-GUI nutzt ihn ab 0.50.0. Ergebnisbindung und Abbruch:
   [validierungsquellen.md](validierungsquellen.md).
 - Zwei Syntaxen decken fast alles ab: **CII** (ZUGFeRD 2.x = Factur-X,
   XRechnung-CII) und **UBL** (XRechnung-UBL, Peppol BIS). Gutschriften in UBL

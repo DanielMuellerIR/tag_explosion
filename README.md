@@ -122,17 +122,19 @@
   numbers. The document kind (invoice, credit note, order, order response)
   is shown separately. A basic validation lists warnings: missing EN 16931
   mandatory fields (XRechnung: also the Leitweg-ID) and the totals
-  arithmetic BT-106 … BT-115 with a tolerance of 0.01 — no full Schematron
-  check. Every populated
+  arithmetic BT-106 … BT-115 with a tolerance of 0.01. These basic checks remain
+  separate from the explicit full validation. Every populated
   field is shown with its EN 16931 business term (BT/BG number and label);
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
   standalone XML files and on PDFs with an embedded invoice, which get an
-  extra "E-Invoice" tab. A separate [KoSIT validation service](docs/e-invoice-validation-core.md)
-  checks XRechnung XML against XSD and Schematron using a private Java runtime.
-  The CLI's `--format common` also checks the original XML attachment of a PDF,
-  with explicit partial coverage, source hashes and distinct error states.
-  Full validation is not yet integrated into the app or regular distribution.
+  extra "E-Invoice" tab. [Validate XRechnung](docs/e-invoice-validation-app.md)
+  checks the original XML against XSD and Schematron using the bundled private
+  Java runtime, without a separate installation. Results distinguish warnings,
+  invoice errors, unsupported profiles, cancellation and tool errors; reports
+  include source hashes and a warranty notice. PDF attachments receive a separate
+  XML result with explicit partial coverage. PDF/A and hybrid embedding checks,
+  and full Factur-X/Peppol validation, remain upcoming milestones.
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target

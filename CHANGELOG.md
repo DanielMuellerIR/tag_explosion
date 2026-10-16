@@ -8,6 +8,23 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.50.0 — 2026-10-16
+
+- XRechnung in der App prüfen: XML-Ansicht und PDF-Rechnungstab erhalten eine
+  gemeinsame Prüfleiste mit Fortschritt, Abbruch, klaren Ergebniszuständen und
+  sichtbarem Gewährleistungshinweis. Die bisherige Grundprüfung bleibt getrennt.
+- Prüfbericht mit Meldungsstufen, Regelcodes, eindeutigen Feldbezeichnungen,
+  Original-Fundstellen, Prüfschritten und Regelstand; Kopieren und sicherer
+  Textexport einschließlich vollständigem Hinweis und Quellenprüfsummen.
+  Rechnung, Symlinks und Hardlinks darauf sind als Exportziel geschützt.
+- Dateiwächter und Auswahlrevision verwerfen überholte Ergebnisse. Anzeige und
+  Prüfung verwenden bei der Prüfaktion denselben frischen Quellstand.
+- Geprüfte private KoSIT-/Java-Laufzeit samt Lizenzen im App-Build; passendes
+  Quellen-ZIP wird mit erzeugt. Der Paketcache bleibt außerhalb der Swift-
+  Release-Bereinigung erhalten. Der Mindestversions-Check erfasst auch Java.
+- Eigene Prüfbeschriftungen und Gewährleistungshinweise auf Deutsch/Englisch.
+  PDF/A-/Einbettungsprüfung und weitere E-Rechnungsprofile folgen getrennt.
+
 ## 0.49.0 — 2026-10-16
 
 - Gemeinsamer Rechnungsvalidierungsdienst mit unveränderten XML-Quelldaten

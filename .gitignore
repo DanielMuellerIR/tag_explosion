@@ -1,5 +1,6 @@
 # Build-Artefakte
 .build/
+.validation-build/
 build/
 DerivedData/
 *.xcresult

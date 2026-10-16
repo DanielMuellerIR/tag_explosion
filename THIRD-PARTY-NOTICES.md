@@ -19,6 +19,9 @@ Entwicklungsbuilds verwenden die installierte System-TagLib.
 | [MediaInfo](https://mediaarea.net/MediaInfo) | Technik-Ansicht; **nicht gebündelt**, nur als externes Programm aufgerufen | BSD-2-Clause |
 | [ExifTool](https://exiftool.org) | Bild- und PDF-Metadaten; **nicht gebündelt**, nur aufgerufen | Perl Artistic License / GPL-1.0-or-later |
 | [Calibre](https://calibre-ebook.com) `ebook-meta` | mobi/azw3/fb2; **nicht gebündelt**, nur aufgerufen, falls installiert | GPL-3.0 |
+| [KoSIT Validator](https://github.com/itplr-kosit/validator) | Eigenständiges Java-Programm im App-Bundle zur lokalen XRechnungsprüfung | Apache-2.0; zusätzliche Bibliothekslizenzen laut Inventar |
+| [Eclipse Temurin / OpenJDK](https://adoptium.net) | Private Java-Laufzeit für KoSIT; keine Systeminstallation | GPLv2 mit Classpath Exception und Original-Modulhinweisen |
+| XRechnung-/EN-16931-Regeln | Versionsgebundene XSD-/Schematron-Dateien im Prüfpaket | Apache-2.0, EUPL-1.2 und erhaltene Schema-/Template-Hinweise |
 
 Der eigene C++-Shim in `Sources/CTagShim/` ist Teil dieses Projekts und steht
 unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
@@ -71,11 +74,11 @@ dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
   beschreibend zur Angabe der gelesenen Formate genannt. Die App behauptet
   keine vollständige Konformität; sie zeigt Felder und Hinweise einer Grundprüfung.
 
-## Optionaler KoSIT-Prototyp
+## Gebündelte XRechnungsvalidierung
 
 `tagx validate-xrechnung` startet ein ausdrücklich angegebenes, separates
-Prüfpaket. Die normalen App-Builds enthalten dieses Paket noch nicht.
-`scripts/prepare-xrechnung-validator.py` lädt für lokale Versuche KoSIT
+Prüfpaket. Ab 0.50.0 enthalten die App-Builds dieses freigegebene Paket ebenfalls.
+`scripts/prepare-xrechnung-validator.py` lädt hierfür KoSIT
 Validator 1.6.3 (Apache-2.0), das XRechnung-Regelpaket 2026-08-31 und Eclipse
 Temurin JRE 21.0.12.1+1 (OpenJDK: GPLv2 mit Classpath Exception). Die Runtime
 bleibt vollständig einschließlich `legal/`; die eigenen Swift-Dateien bleiben
@@ -97,9 +100,13 @@ Die vollständigen Lizenztexte und komponentenspezifischen Copyrights werden
 beim Vorbereiten des Pakets unter `legal/` zusammengestellt. Versionen, Pins und
 Lizenzbelege: [Komponenteninventar](licenses/validation/components.lock.json).
 Umsetzung, Quellenpflichten und Grenzen neuer Komponenten:
-[Validierungslizenzen](docs/validation-licenses.md). Die reguläre App- und
-Releaseintegration ist weiterhin offen; es wurde kein öffentliches Prüfpaket
-veröffentlicht.
+[Validierungslizenzen](docs/validation-licenses.md). Der App-Build prüft die
+Vollständigkeit vor dem Bündeln und erzeugt daneben ein zur Version passendes
+`TagExplosion-<version>-validation-sources.zip`. Dieses Quellenpaket muss bei
+einer Weitergabe gemeinsam mit dem Binärstand zugänglich sein. Die Regeln und
+Lizenzen liegen in der App unter `Contents/Resources/XRechnungValidator/`.
+Weitere Profile sowie die abschließende DMG-/Updateabnahme folgen getrennt;
+es wurde kein öffentliches Prüfpaket veröffentlicht.
 
 ## Icon
 

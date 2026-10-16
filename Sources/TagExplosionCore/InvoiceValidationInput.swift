@@ -55,6 +55,7 @@ public struct InvoiceValidationInput: Sendable {
             ? try EInvoiceReader.payload(fromPDF: snapshot.value)
             : EInvoicePayload(xml: snapshot.value)
         guard payload.xml.count <= maximumXMLBytes else { throw Failure.tooLarge }
+        try XRechnungValidator.checkInput(payload.xml)
         try snapshot.requireCurrent(at: url)
         try cancellation?.check()
         return Self(payload: payload, source: .init(url: url, stamp: snapshot.stamp,

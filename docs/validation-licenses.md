@@ -88,8 +88,9 @@ Die Probe-Verpackung erzeugt neben dem App-ZIP ein
 zugehörige Quellenpaket neben genau diesem Binärstand bereitstehen und für die
 Empfänger zugänglich bleiben. Ein bloßer Link auf fremde Upstream-Server ist
 nicht der hier gewählte Weg zur Erfüllung der Quellcodepflichten. Die Integration
-dieser verbindlichen Prüfung in den regulären Release ist ein eigener Meilenstein.
-Es wurde noch kein öffentliches Release veröffentlicht.
+dieser verbindlichen Prüfung ist seit 0.50.0 für XRechnung auch im App-Build
+umgesetzt. Die abschließende Distribution-/Updateabnahme sämtlicher Profile
+bleibt ein eigener Meilenstein. Es wurde noch kein öffentliches Release veröffentlicht.
 
 Negative und positive Prüfungen:
 

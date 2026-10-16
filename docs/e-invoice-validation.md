@@ -4,8 +4,9 @@ Stand: 2026-10-16. Die kompatible Prototyp-Ausgabe prüft eigenständige
 XRechnung-XML-Dateien über `tagx validate-xrechnung`. Seit 0.49.0 ergänzt
 `--format common` den [gemeinsamen Validierungsdienst](e-invoice-validation-core.md)
 mit unveränderten PDF-Anhängen, Ergebnisbindung und weiteren Fehlerzuständen.
-Die Rechnungsansicht der App behält ihre bisherige Grundvalidierung.
-PDF/A-Prüfung und Integration in die Oberfläche folgen getrennt.
+Seit 0.50.0 bietet die [App](e-invoice-validation-app.md) die vollständige
+XRechnungsprüfung zusätzlich zur getrennten Grundprüfung. PDF/A und hybride
+Containerprüfung folgen getrennt.
 
 ## Verwendung
 
@@ -122,7 +123,8 @@ gespeichert.
 Das private Prüfpaket kann unverändert in einer App liegen; der Aufrufer
 adressiert dessen Java-Executable direkt. Der lokale Paketversuch und seine
 Messwerte sind in [xrechnung-kosit-prototyp.md](../knowledge/xrechnung-kosit-prototyp.md)
-festgehalten. Der normale App-Build bündelt den Prototyp noch nicht.
+festgehalten. Ab 0.50.0 bündelt der normale App-Build das freigegebene Paket
+und erzeugt das passende Quellen-ZIP.
 
 Die signierte headless App-Hülle lässt sich separat nachbauen. Sie zeigt
 keine Oberfläche und wird nicht installiert. Für `--notarize` sind ein
@@ -138,11 +140,11 @@ python3 scripts/test-xrechnung-prototype.py \
 
 Vor einer öffentlichen Auslieferung sind zusätzlich nötig:
 
-- App-Oberfläche mit klaren Prüfzuständen, Abbruch und dem Hinweis am Ergebnis.
-- Einbindung des Pakets in den regulären Build- und Updateprozess;
+- Abschluss der weiteren Profile und ihrer Lizenz-/Quellenprüfung.
+- Abnahme des vollständigen Pakets im regulären Updateprozess;
   Signaturprüfung und Tests der endgültigen App auf unterstützten Systemen.
 - Das erzeugte, zum Binärstand passende Quellenpaket gemeinsam bereitstellen
-  und die vorhandene Lizenz-/Quellenprüfung in den regulären Release aufnehmen.
+  und die vorhandene Lizenz-/Quellenprüfung für alle weiteren Komponenten erweitern.
   Die Paketbasis und ihre Original-Notices sind inzwischen umgesetzt;
   neue Komponenten werden vor Bündelung gesondert geprüft. Die MIT-Lizenz
   des eigenen Codes ersetzt keine fremden Lizenzbedingungen.

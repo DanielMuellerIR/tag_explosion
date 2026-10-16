@@ -29,6 +29,13 @@ CLI tagx ───────────┘          │
 ZIP-Abhängigkeit. Die App verwendet ihn zusätzlich direkt für die Anzeige.
 Core und CLI bleiben Linux-portabel; App und Finder-Vorschau sind macOS-only.
 
+Die XRechnungsvalidierung liegt in `TagExplosionCore`: Ein unveränderter
+XML-/PDF-Schnappschuss verbindet Anzeige und Prüfergebnis. Der gemeinsame Dienst
+startet das geprüfte private KoSIT-/Java-Paket; die App bündelt es samt Regeln und
+Lizenzen. Bericht, Abbruch und Dateiwächter liegen in den Rechnungsansichten.
+Andere Profile und PDF-Containerprüfungen folgen der
+[Validierungs-Roadmap](e-invoice-validation-roadmap.md).
+
 ### Warum TagLib + eigener Shim?
 
 - Der portable macOS-Release bündelt TagLib 2.3.2 für macOS 14;

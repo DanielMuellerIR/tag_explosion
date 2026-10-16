@@ -11,7 +11,7 @@ import TagExplosionCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
+        startingUpdater: InvoiceValidationUITest.directory == nil,
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
@@ -26,6 +26,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let directory = InvoiceValidationUITest.directory {
+            Task { await InvoiceValidationUITest.run(at: directory) }
+            return
+        }
         NSApp.servicesProvider = self
         showWindowIfHidden()
     }
@@ -62,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let sessions = WindowSessions.shared
-        guard sessions.needsTerminationConfirmation else { return .terminateNow }
+        guard sessions.needsTerminationConfirmation || InvoiceValidationModel.hasActiveJobs else { return .terminateNow }
         // AppKit kann die Anfrage wiederholen, solange wir terminateLater
         // gemeldet haben. Genau ein Modellauftrag darf darauf antworten.
         guard !terminationReplyPending else { return .terminateLater }
@@ -70,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor [weak self] in
             // Jedes Fenster wird einzeln gefragt; ein Abbrechen hält die App.
             let shouldTerminate = await sessions.confirmTermination()
+            if shouldTerminate { await InvoiceValidationModel.finishAllJobs() }
             self?.terminationReplyPending = false
             NSApp.reply(toApplicationShouldTerminate: shouldTerminate)
         }
@@ -116,7 +121,8 @@ struct TagExplosionApp: App {
 
     var body: some Scene {
         WindowGroup(id: Self.windowGroupID) {
-            MainWindow()
+            if InvoiceValidationUITest.directory == nil { MainWindow() }
+            else { Color.clear.frame(width: 1, height: 1) }
         }
         .defaultSize(width: 1100, height: 760)
         .commands {

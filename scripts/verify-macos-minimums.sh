@@ -21,6 +21,9 @@ find "$app/Contents/MacOS" "$app/Contents/Frameworks" -type f -print > "$list"
 if [ -d "$app/Contents/PlugIns" ]; then
     find "$app/Contents/PlugIns" -type f -print >> "$list"
 fi
+if [ -d "$app/Contents/Resources/XRechnungValidator/runtime" ]; then
+    find "$app/Contents/Resources/XRechnungValidator/runtime" -type f -print >> "$list"
+fi
 
 checked=0
 while IFS= read -r binary; do

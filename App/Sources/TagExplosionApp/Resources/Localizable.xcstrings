@@ -6230,6 +6230,456 @@
           }
         }
       }
+    },
+    "XML-Prüfung bestanden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML validation passed"
+          }
+        }
+      }
+    },
+    "XML-Prüfung bestanden · Warnungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML validation passed · warnings"
+          }
+        }
+      }
+    },
+    "Prüfung fehlgeschlagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation failed"
+          }
+        }
+      }
+    },
+    "Profil nicht unterstützt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported profile"
+          }
+        }
+      }
+    },
+    "Teilweise geprüft": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partially validated"
+          }
+        }
+      }
+    },
+    "Prüfung abgebrochen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation cancelled"
+          }
+        }
+      }
+    },
+    "Zeitlimit überschritten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time limit exceeded"
+          }
+        }
+      }
+    },
+    "Technischer Prüffehler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation tool error"
+          }
+        }
+      }
+    },
+    "Datei verändert · erneut prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File changed · validate again"
+          }
+        }
+      }
+    },
+    "Noch nicht geprüft": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not validated yet"
+          }
+        }
+      }
+    },
+    "Prüfung läuft …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validating …"
+          }
+        }
+      }
+    },
+    "Wird abgebrochen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelling …"
+          }
+        }
+      }
+    },
+    "XRechnung prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validate XRechnung"
+          }
+        }
+      }
+    },
+    "Prüfbericht …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation report …"
+          }
+        }
+      }
+    },
+    "Lokal · XSD und Schematron · XRechnung 3.0.2 / Regeln 2026-08-31": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local · XSD and Schematron · XRechnung 3.0.2 / rules 2026-08-31"
+          }
+        }
+      }
+    },
+    "Technische Prüfung ohne Gewähr. Keine Zusicherung rechtlicher oder steuerlicher Gültigkeit.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technical validation without warranty. No assurance of legal or tax validity."
+          }
+        }
+      }
+    },
+    "Gewährleistungshinweis": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warranty notice"
+          }
+        }
+      }
+    },
+    "Fehler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errors"
+          }
+        }
+      }
+    },
+    "Warnung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning"
+          }
+        }
+      }
+    },
+    "Information": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Information"
+          }
+        }
+      }
+    },
+    "Warnungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warnings"
+          }
+        }
+      }
+    },
+    "Informationen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Information"
+          }
+        }
+      }
+    },
+    "E-Rechnungsprüfung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-invoice validation"
+          }
+        }
+      }
+    },
+    "Käuferreferenz (z. B. Leitweg-ID)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buyer reference (e.g. Leitweg-ID)"
+          }
+        }
+      }
+    },
+    "Meldungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Messages"
+          }
+        }
+      }
+    },
+    "Alle Meldungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All messages"
+          }
+        }
+      }
+    },
+    "Keine Meldungen aus den ausgeführten Prüfungen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No messages from the checks performed."
+          }
+        }
+      }
+    },
+    "Bericht sichern …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save report …"
+          }
+        }
+      }
+    },
+    "Grundprüfung (ohne XSD/Schematron)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basic checks (without XSD/Schematron)"
+          }
+        }
+      }
+    },
+    "Rechnungs-XML nicht lesbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invoice XML cannot be read"
+          }
+        }
+      }
+    },
+    "Die aktuelle Quelle kann nicht als Rechnung angezeigt werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current source cannot be displayed as an invoice."
+          }
+        }
+      }
+    },
+    "Nicht alle erforderlichen Prüfschritte wurden bestätigt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not all required validation steps were confirmed."
+          }
+        }
+      }
+    },
+    "Prüfpaket oder Werkzeug nicht verwendbar. Es liegt kein vollständiges Prüfergebnis vor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The validation package or tool is unavailable. No complete validation result is available."
+          }
+        }
+      }
+    },
+    "XML-Syntax": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML syntax"
+          }
+        }
+      }
+    },
+    "XML-Schema (XSD)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML schema (XSD)"
+          }
+        }
+      }
+    },
+    "EN-16931-Regeln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EN 16931 rules"
+          }
+        }
+      }
+    },
+    "XRechnung-Regeln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XRechnung rules"
+          }
+        }
+      }
+    },
+    "PDF-Einbettung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF embedding"
+          }
+        }
+      }
+    },
+    "Technische Prüfung ausschließlich gegen das genannte Regelpaket. Keine Zusicherung rechtlicher oder steuerlicher Gültigkeit und keine Garantie der Annahme durch einen Empfänger. Die Software und ihre Prüfergebnisse werden ohne Gewähr für Richtigkeit, Vollständigkeit oder Eignung für einen bestimmten Zweck bereitgestellt. Gewährleistung und Haftung sind nach Maßgabe der MIT-Lizenz im gesetzlich zulässigen Umfang ausgeschlossen; zwingende gesetzliche Haftung bleibt unberührt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technical validation only against the stated rule package. No assurance of legal or tax validity and no guarantee of acceptance by a recipient. The software and its validation results are provided without warranty of accuracy, completeness or fitness for a particular purpose. Warranty and liability are excluded under the MIT License to the extent permitted by law; mandatory statutory liability remains unaffected."
+          }
+        }
+      }
+    },
+    "Bestanden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passed"
+          }
+        }
+      }
+    },
+    "Nicht geprüft": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked"
+          }
+        }
+      }
+    },
+    "Das Ergebnis gilt ausschließlich für den dokumentierten Dateistand.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The result applies only to the documented file version."
+          }
+        }
+      }
+    },
+    "Prüfumfang: Rechnungs-XML. PDF/A, Einbettung und sichtbarer PDF-Inhalt sind nicht geprüft.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation scope: invoice XML. PDF/A, embedding and visible PDF content were not checked."
+          }
+        }
+      }
+    },
+    "Der Prüfbericht darf die Rechnungsdatei nicht überschreiben. Bitte ein anderes Ziel wählen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The report must not overwrite the invoice. Please choose a different destination."
+          }
+        }
+      }
+    },
+    "Das Prüfergebnis ist nicht mehr aktuell. Bitte erneut prüfen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The validation result is no longer current. Please validate again."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
