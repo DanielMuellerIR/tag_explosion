@@ -207,8 +207,24 @@ enum InvoicePDFValidator {
             issues.append(.init(severity: severity, code: code, location: "PDF-Einbettung/XMP", message: message))
         }
         if !inspection.complete { add("PDF_INSPECTION_INCOMPLETE", "Die Grenzen der Containerinspektion wurden erreicht. Nicht alle Einbettungen konnten geprüft werden.", .warning) }
-        let invoices = inspection.attachments.filter(\.isInvoice)
-        if invoices.count > 1 || (inspection.complete && invoices.count != 1) { add("BR-HYBRID-12", "Der PDF-Träger muss genau ein strukturiertes Rechnungsdokument enthalten.") }
+        func isSupplementaryUBL(_ attachment: EInvoicePDFInspection.Attachment) -> Bool {
+            (attachment.syntax == .ublInvoice || attachment.syntax == .ublCreditNote)
+                && attachment.fileName == "factur-xubl.xml"
+                && (attachment.unicodeFileName == nil || attachment.unicodeFileName == "factur-xubl.xml")
+                && !attachment.matchesSelectedXML
+        }
+        let supplements = inspection.attachments.filter(isSupplementaryUBL)
+        let invoices = inspection.attachments.filter { $0.isInvoice && !isSupplementaryUBL($0) }
+        if invoices.count > 1 || (inspection.complete && invoices.count != 1) { add("BR-HYBRID-12", "Der PDF-Träger muss genau ein primäres CII-Rechnungsdokument enthalten.") }
+        if document.syntax != .cii { add("HYBRID_PRIMARY_SYNTAX", "Das primäre Rechnungsdokument muss CII verwenden, auch beim XRechnung-Referenzprofil. Das gesonderte XML-Ergebnis bleibt erhalten.") }
+        if supplements.count > 1 { add("HYBRID_SUPPLEMENT_COUNT", "Die zusätzliche UBL-Darstellung ist mehrfach eingebettet.") }
+        if !supplements.isEmpty {
+            add("HYBRID_SUPPLEMENT_NOT_CHECKED", "Die zusätzliche Darstellung factur-xubl.xml ist zulässig. Ihre eigenen XML-Regeln und die inhaltliche Übereinstimmung mit der primären CII-Rechnung sind nicht geprüft.", .information)
+        }
+        for attachment in inspection.attachments where (attachment.syntax == .ublInvoice || attachment.syntax == .ublCreditNote)
+            && !attachment.matchesSelectedXML && !isSupplementaryUBL(attachment) {
+            add("HYBRID_SUPPLEMENT_NAME", "Eine zusätzliche UBL-Rechnungsdarstellung muss factur-xubl.xml heißen.")
+        }
         guard let selected = inspection.attachments.first(where: \.matchesSelectedXML) else {
             add("BR-HYBRID-12", "Das geprüfte XML lässt sich keiner eindeutigen PDF-Einbettung zuordnen.", inspection.complete ? .error : .warning)
             return issues

@@ -553,6 +553,7 @@ enum PDFEmbeddedInvoice {
             let stream = filespecStream(item.dictionary)
             let mime = stream.flatMap { CGPDFStreamGetDictionary($0) }.flatMap { name($0, "Subtype") }
             var invoice = false
+            var syntax: EInvoiceSyntax?
             var matches = false
             let candidate = unicodeName ?? fileName ?? ""
             if candidate.lowercased().hasSuffix(".xml") || ["text/xml", "application/xml"].contains(mime?.lowercased() ?? "") {
@@ -562,7 +563,7 @@ enum PDFEmbeddedInvoice {
                     return .init(fileName: fileName, unicodeFileName: unicodeName,
                         relationship: name(item.dictionary, "AFRelationship"), mimeType: mime,
                         inAssociatedFiles: item.associated, inNameTree: item.named,
-                        isInvoice: false, matchesSelectedXML: false)
+                        isInvoice: false, syntax: nil, matchesSelectedXML: false)
                 }
                 var format = CGPDFDataFormat.raw
                 guard let value = CGPDFStreamCopyData(stream, &format) else { complete = false; return nil }
@@ -574,16 +575,17 @@ enum PDFEmbeddedInvoice {
                     if Data(bytes.filter { $0 != 0 }).range(of: Data("<!DOCTYPE".utf8)) != nil { complete = false }
                     else if let root = try? XMLTree.parse(bytes) {
                         let local = root.name.components(separatedBy: ":").last ?? root.name
-                        invoice = (local == "CrossIndustryInvoice" && root.namespaceURI == "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100")
-                            || (local == "Invoice" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2")
-                            || (local == "CreditNote" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2")
+                        if local == "CrossIndustryInvoice" && root.namespaceURI == "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" { syntax = .cii }
+                        else if local == "Invoice" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" { syntax = .ublInvoice }
+                        else if local == "CreditNote" && root.namespaceURI == "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2" { syntax = .ublCreditNote }
+                        invoice = syntax != nil
                     }
                 }
             }
             return .init(fileName: fileName, unicodeFileName: unicodeName,
                 relationship: name(item.dictionary, "AFRelationship"), mimeType: mime,
                 inAssociatedFiles: item.associated, inNameTree: item.named,
-                isInvoice: invoice, matchesSelectedXML: matches)
+                isInvoice: invoice, syntax: syntax, matchesSelectedXML: matches)
         }
         return .init(attachments: attachments, metadata: metadataBytes(catalog: catalog), complete: complete)
     }

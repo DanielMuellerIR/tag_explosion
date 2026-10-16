@@ -21,3 +21,12 @@ Der Anhang enthält eine abweichende Schreibweise. Eigene Regeln folgen der
 klaren Definition und den Beispielen. Legacy-ZUGFeRD-XMP unterstützt kein
 XRechnung-Referenzprofil. Fehler und Empfehlungen aus der Hybridtabelle nicht
 pauschal auf dieselbe Schwere hochstufen.
+
+
+Zusätzliche Darstellungen nicht mit primären Rechnungen verwechseln: Kapitel 4
+verlangt CII auch für das XRechnung-Referenzprofil; Kapitel 6.4 erlaubt daneben
+UBL unter `factur-xubl.xml`. Nur die primäre CII-Rechnung wird mit KoSIT geprüft.
+Ein beliebiger zweiter CII-Anhang bleibt Fehler; erlaubte UBL-Zusätze erhalten
+einen sichtbaren Hinweis auf ungeprüfte eigene Regeln und Inhaltsgleichheit.
+Dateiendung allein reicht zur Kandidatenerkennung nicht: XML-MIME muss auch
+bei beispielsweise `.txt` zur begrenzten Inhaltsprüfung führen.

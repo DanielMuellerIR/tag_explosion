@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.53.2 — 2026-10-16
+
+- Eigene vollständige MIT-Lizenz im Bundle mitliefern; Auslieferungsprüfung
+  verlangt auch unveränderte eigene und Drittanbieter-Lizenzhinweise.
+- Primäres CII-Dokument für das hybride XRechnung-Referenzprofil verlangen.
+  Ein gültiges UBL-XML wird weiterhin getrennt bestätigt, erhält aber keinen
+  unzutreffenden Erfolg für diesen Hybridträger.
+- Die zulässige zusätzliche UBL-Darstellung `factur-xubl.xml` berücksichtigen.
+  Andere Namen und doppelte primäre Rechnungen bleiben Fehler. Der Bericht
+  kennzeichnet Regeln und Inhaltsgleichheit des Zusatzdokuments als ungeprüft.
+
 ## 0.53.1 — 2026-10-16
 
 - Zusätzliche, über ihren MIME-Typ als XML deklarierte Rechnungsanhänge auch

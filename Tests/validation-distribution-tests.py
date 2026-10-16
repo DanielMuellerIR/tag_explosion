@@ -40,6 +40,15 @@ class DistributionTests(unittest.TestCase):
         with self.assertRaises(distribution.core.ComplianceError):
             distribution.verify_app(options.app, options.artifacts, '999.0.0')
 
+    def test_own_mit_license_is_required(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            app = Path(temporary) / 'App.app'
+            resources = app / 'Contents/Resources'
+            resources.mkdir(parents=True)
+            shutil.copyfile(options.app / 'Contents/Info.plist', app / 'Contents/Info.plist')
+            with self.assertRaisesRegex(distribution.core.ComplianceError, 'LICENSE'):
+                distribution.verify_app(app, options.artifacts, options.version)
+
     def test_unsafe_archive_is_rejected(self):
         for name, mode in [('source/../../outside', stat.S_IFREG), ('source/link', stat.S_IFLNK)]:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:

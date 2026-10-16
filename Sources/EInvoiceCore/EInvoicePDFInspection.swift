@@ -9,6 +9,7 @@ public struct EInvoicePDFInspection: Sendable {
         public let inAssociatedFiles: Bool
         public let inNameTree: Bool
         public let isInvoice: Bool
+        public let syntax: EInvoiceSyntax?
         public let matchesSelectedXML: Bool
     }
     public let attachments: [Attachment]

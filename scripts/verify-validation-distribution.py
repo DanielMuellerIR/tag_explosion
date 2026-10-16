@@ -47,6 +47,11 @@ def verify_app(app, artifacts, version):
             or info.get("CFBundleShortVersionString") != version
             or info.get("CFBundleVersion") != version):
         raise core.ComplianceError("App und Releaseversion passen nicht zusammen")
+    for source, name in [(core.ROOT / "LICENSE", "LICENSE"),
+                         (core.ROOT / "THIRD-PARTY-NOTICES.md", "Third-Party-Licenses.md")]:
+        target = app / "Contents/Resources" / name
+        if not target.is_file() or target.is_symlink() or core.digest(target) != core.digest(source):
+            raise core.ComplianceError("Vollständiger App-Lizenzhinweis fehlt oder wurde verändert: " + name)
     result = {"version": version, "status": "passed", "sources": {}}
     with tempfile.TemporaryDirectory(prefix="tagx-release-sources-") as temporary:
         for label, verifier, bundle, suffix in [

@@ -91,6 +91,10 @@ ist dort abrufbar, im Bericht zugänglich und in jedem kopierten/exportierten
 Text enthalten. Er sagt ausdrücklich keine rechtliche/steuerliche Gültigkeit
 oder Empfängerannahme zu; zwingende gesetzliche Haftung bleibt unberührt.
 Die [MIT-Lizenz](../LICENSE) und fremde Lizenzbedingungen bleiben maßgeblich.
+Der Hinweis begrenzt Zusagen im gesetzlich zulässigen Rahmen und schafft keine
+absolute Haftungsfreistellung. Beispielsweise lässt sich die Haftung für Vorsatz
+nach [§ 276 Abs. 3 BGB](https://www.gesetze-im-internet.de/bgb/__276.html) nicht
+im Voraus erlassen. Eine abschließende juristische Prüfung wird nicht zugesichert.
 
 ## Prüfung
 
@@ -127,3 +131,5 @@ korrekt ab; ihre Geometrie allein bestätigt deshalb keine korrekte Farbgebung.
 Die tatsächlichen System-/Architekturgrenzen sind gesondert zu beachten:
 Ein bestandener Apple-Silicon-Lauf auf aktuellem macOS bestätigt weder Intel
 noch das gesamte Verhalten auf macOS 14.
+
+Ausgeführte Prüfungen und offene Systemnachweise: [Abnahmematrix](e-invoice-validation-acceptance.md).

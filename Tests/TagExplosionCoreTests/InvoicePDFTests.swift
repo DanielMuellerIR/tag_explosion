@@ -124,6 +124,30 @@ struct InvoicePDFRuntimeTests {
         #expect(result.pdf?.embeddingStatus == .passed)
     }
 
+    @Test("Primäres Referenzprofil verlangt CII; zusätzliche UBL-Darstellung hat einen eigenen Namen", .enabled(if: ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"] != nil))
+    func primaryAndSupplementarySyntax() throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fixtures = URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"]!)
+        let ubl = try Data(contentsOf: fixtures.appendingPathComponent("ubl.xml"))
+        let file = dir.appendingPathComponent("invoice.pdf")
+        try InvoiceValidationFixtures.hybridPDF(xml: ubl, profile: "XRECHNUNG").write(to: file)
+        let primary = InvoiceValidationService.validate(url: file, bundle: core, pdfBundle: pdf)
+        #expect(primary.xmlStatus == .passed)
+        #expect(primary.status == .failed)
+        #expect(primary.issues.contains { $0.code == "HYBRID_PRIMARY_SYNTAX" })
+        let cii = Data(InvoiceValidationFixtures.facturX(profile: "EN16931").utf8)
+        for (variant, expected): (String, InvoiceValidationStatus) in [("valid", .passed), ("wrong-ubl-name", .failed)] {
+            try InvoiceValidationFixtures.hybridPDF(xml: cii, variant: variant, supplement: ubl).write(to: file)
+            let result = InvoiceValidationService.validate(url: file, bundle: core, pdfBundle: pdf)
+            #expect(result.xmlStatus == .passed)
+            #expect(result.status == expected, "\(variant): \(result.issues)")
+            if variant == "valid" {
+                #expect(result.issues.contains { $0.code == "HYBRID_SUPPLEMENT_NOT_CHECKED" })
+            }
+        }
+    }
+
     @Test("Fehlendes oder manipuliertes PDF-Werkzeug bestätigt keinen Container und erhält das XML-Ergebnis")
     func unavailablePDFTool() throws {
         let dir = try directory()

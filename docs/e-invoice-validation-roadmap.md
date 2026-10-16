@@ -13,7 +13,7 @@ enthält Detailausarbeitung, Implementierung, passende Tests und Dokumentation.
 | EIV5 — Peppol Billing | UBL Invoice/CreditNote mit offizieller Regelkombination; technische Artefakt-Rechte vorher belegen | blockiert durch fehlenden eindeutigen Rechtebeleg für die technischen Regeln |
 | EIV6 — Hybride PDF-Rechnung | PDF/A, XML-Einbettung und XMP-/AF-Metadaten mit eigenem Containerergebnis | umgesetzt; notarisiert und native DE/EN-Abnahme mit 0.53.1 bestanden |
 | EIV7 — Distribution und Updates | Laufzeit/Regeln im regulären App-Build, Quellenpaket, Lizenzprüfung, signiertes Bundle/DMG und Updateweg | Auslieferungssperren und notarisiertes DMG lokal geprüft in 0.53.1; echtes Update offen |
-| EIV8 — Gesamtabnahme | Reale GUI-/Offline-/Systemtests, korrigierte Restfehler, aktuelle Supportmatrix und Produktdokumentation | offen |
+| EIV8 — Gesamtabnahme | Reale GUI-/Offline-/Systemtests, korrigierte Restfehler, aktuelle Supportmatrix und Produktdokumentation | GUI/Offline/Kern geprüft; Peppol-, Update- und Plattformlücken offen |
 
 Die Ausführung folgt dieser Reihenfolge. EIV3 benötigt EIV2; EIV4/EIV5 nutzen
 denselben Kern und dieselbe Ergebnisansicht. EIV6 ergänzt die Profile aus EIV4.
@@ -60,3 +60,6 @@ erforderlich. Unterstützte Architekturen und ältere macOS-Versionen werden
 durch tatsächliche Läufe belegt. Ein aktueller arm64-Build allein bestätigt
 weder Intel noch macOS 14. Normdokumente, Logos und echte Rechnungen werden
 nicht automatisch als Testmaterial oder Produktressourcen übernommen.
+
+Die ausgeführten Nachweise und tatsächlichen Systemgrenzen stehen in der
+[Abnahmematrix](e-invoice-validation-acceptance.md).

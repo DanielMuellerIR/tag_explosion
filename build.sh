@@ -96,6 +96,7 @@ rm -rf "$fw/Sparkle.framework/Versions/B/XPCServices" "$fw/Sparkle.framework/XPC
 # Lizenzhinweise der Dritt-Komponenten gehören auch ins ausgelieferte
 # Binärpaket (LGPL-/Apache-Hinweispflicht), nicht nur in den Quelltext.
 cp "$here/THIRD-PARTY-NOTICES.md" "$app/Contents/Resources/Third-Party-Licenses.md"
+cp "$here/LICENSE" "$app/Contents/Resources/LICENSE"
 
 # Private XRechnung-Laufzeit: Nutzer benötigen weder Python noch System-Java.
 # Vor dem Kopieren ist das zugehörige Quellen-/Lizenzpaket verbindlich geprüft.

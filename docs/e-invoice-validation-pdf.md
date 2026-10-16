@@ -8,16 +8,23 @@ zusätzliche Installation. Rechnungsdateien werden nicht verändert.
 
 ## Technischer Umfang
 
-Unterstützt sind PDF/A-3a, 3b, 3u und 4f als Träger von XRechnung bzw. aktuellen
+Unterstützt sind PDF/A-3a, 3b, 3u und 4f als Träger von CII-XRechnung bzw. aktuellen
 ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profilen. Maßgeblich für die eigenen Hybridregeln
 sind Kapitel 6 und Anhang 3.d des zugehörigen Herstellerpakets.
 
-Die Inspektion prüft genau einen Rechnungsanhang, seine Übereinstimmung mit den
+Die Inspektion prüft genau einen primären CII-Rechnungsanhang, seine Übereinstimmung mit den
 validierten XML-Bytes, Katalog-AF und EmbeddedFiles-Namensbaum, Dateiname,
 MIME-Typ `text/xml`, AF-Beziehung und die vier XMP-Eigenschaften einschließlich
 der eingebetteten Erweiterungsschema-Definitionen. Profilabhängige Empfehlungen
 bleiben Warnungen. Zusätzliche Anhänge werden gegen die abschließende Formatliste
 aus Kapitel 6.4 geprüft. Eine überschriebene Profilkennung ersetzt keine XML-Regeln.
+
+Das XRechnung-Referenzprofil verlangt nach Kapitel 4 ebenfalls CII. Ein
+XRechnung-UBL-Dokument kann als XML gültig sein, erfüllt aber dieses hybride
+Referenzprofil nicht. Die nach Kapitel 6.4 zulässige zusätzliche UBL-Darstellung
+muss `factur-xubl.xml` heißen. Sie zählt nicht als zweite primäre CII-Rechnung;
+ihre eigenen XML-Regeln und Inhaltsgleichheit werden ausdrücklich als ungeprüft
+ausgewiesen. Ein anders benannter UBL-Rechnungsanhang bleibt ein Fehler.
 
 Die kanonische XMP-URI lautet gemäß Kapitel 6.3.1 und dessen Beispiel
 `urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#`. Der abweichende Schreibfehler
