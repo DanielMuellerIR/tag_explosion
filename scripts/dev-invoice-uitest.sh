@@ -8,9 +8,9 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
     cat "$here/scripts/lib/gui-testkit.swift"
     cat <<'SW'
 guard AXIsProcessTrusted() else { kitFail("Bedienungshilfen für den Test-Client nicht freigegeben") }
-guard CGPreflightScreenCaptureAccess() else { kitFail("Bildschirmaufnahme für eigene Fensterbelege nicht freigegeben") }
 let language = testArguments.first ?? "de"
 let allowFocus = testArguments.dropFirst().contains("--allow-focus")
+guard !allowFocus || CGPreflightScreenCaptureAccess() else { kitFail("Bildschirmaufnahme für eigene Fensterbelege nicht freigegeben") }
 guard ["de", "en"].contains(language) else { kitFail("Sprache muss de oder en sein") }
 let resultURL = outDir.appendingPathComponent("ui-result.json")
 guard !FileManager.default.fileExists(atPath: resultURL.path) else { kitFail("Testverzeichnis enthält bereits ein Ergebnis") }
@@ -91,10 +91,10 @@ while !app.isTerminated, Date() < deadline {
        let nonce = request["nonce"], nonce != handledRequest,
        let identifier = request["identifier"],
        let button = target(axApp, identifier: identifier, label: request["label"] ?? "") {
-        if identifier == "invoice.validation.report" {
+        if allowFocus && identifier == "invoice.validation.report" {
             reportNumber += 1
             captureOwnedWindows("native-report-\(reportNumber)-before")
-        } else if identifier == "invoice.validation.report.close" {
+        } else if allowFocus && identifier == "invoice.validation.report.close" {
             captureOwnedWindows("native-report-\(reportNumber)-sheet")
         }
         let result = AXUIElementPerformAction(button, kAXPressAction as CFString)

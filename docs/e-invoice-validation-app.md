@@ -101,11 +101,18 @@ python3 scripts/prepare-invoice-ui-fixtures.py /tmp/invoice-ui-fixtures
 scripts/dev-invoice-uitest.sh /Applications/TagExplosion.app /tmp/invoice-ui-fixtures de
 ```
 
-Der externe Test-Client benötigt freigegebene Bedienungshilfen und
-Bildschirmaufnahme für eigene Fensterbelege. Er fragt den echten SwiftUI-AX-Baum
-ab und kontrolliert, dass der Fensterfokus erhalten bleibt.
+Der externe Test-Client benötigt freigegebene Bedienungshilfen. Er fragt den
+echten SwiftUI-AX-Baum ab und bricht bei einer erkannten Fokusübernahme ab.
 Er startet eine eigene Instanz und beendet ausschließlich eigene Prozesse.
 Für Englisch ein frisches Fixture-Verzeichnis und `en` verwenden.
+
+Für native Fensterbelege zusätzlich `--allow-focus` verwenden, nachdem der
+kurze Fokuszugriff ausdrücklich freigegeben wurde. Dieser Lauf benötigt auch
+Bildschirmaufnahme für die eigenen Fenster, ist zeitlich begrenzt und stellt
+anschließend das vorherige Vordergrundprogramm wieder her. Modale Berichte
+können Tastaturfokus übernehmen, obwohl das Hauptpanel nicht aktiviert wird.
+Eingebettete View-Bitmaps bilden native Vibrancy-Hintergründe teilweise nicht
+korrekt ab; ihre Geometrie allein bestätigt deshalb keine korrekte Farbgebung.
 
 Die tatsächlichen System-/Architekturgrenzen sind gesondert zu beachten:
 Ein bestandener Apple-Silicon-Lauf auf aktuellem macOS bestätigt weder Intel
