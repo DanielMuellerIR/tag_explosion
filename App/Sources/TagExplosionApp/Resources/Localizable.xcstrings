@@ -6351,32 +6351,12 @@
         }
       }
     },
-    "XRechnung prüfen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Validate XRechnung"
-          }
-        }
-      }
-    },
     "Prüfbericht …": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Validation report …"
-          }
-        }
-      }
-    },
-    "Lokal · XSD und Schematron · XRechnung 3.0.2 / Regeln 2026-08-31": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local · XSD and Schematron · XRechnung 3.0.2 / rules 2026-08-31"
           }
         }
       }
@@ -6677,6 +6657,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "The validation result is no longer current. Please validate again."
+          }
+        }
+      }
+    },
+    "E-Rechnung prüfen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validate e-invoice"
+          }
+        }
+      }
+    },
+    "Lokal · XSD und Schematron · XRechnung / ZUGFeRD / Factur-X": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local · XSD and Schematron · XRechnung / ZUGFeRD / Factur-X"
+          }
+        }
+      }
+    },
+    "Factur-X-Profilregeln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Factur-X profile rules"
+          }
+        }
+      }
+    },
+    "Reduziertes Profil: keine vollständige EN-16931-Prüfung.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reduced profile: no full EN 16931 validation."
+          }
+        }
+      }
+    },
+    "Regelstand der Prüfung; die Profilkennung legt keine eindeutige Dokumentversion fest.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation rule version; the profile identifier does not specify a unique document version."
+          }
+        }
+      }
+    },
+    "Diese Anwendung setzt den ZUGFeRD-/Factur-X-Standard um. Die Wiedergabe der zugrunde liegenden Veröffentlichung erfolgt nach den von FeRD veröffentlichten Nutzungsbedingungen mit Erlaubnis von CEN und DIN als Copyright-Inhabern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This application implements the ZUGFeRD/Factur-X standard. The underlying publication is reproduced under the terms published by FeRD, with permission from CEN and DIN as copyright holders."
           }
         }
       }

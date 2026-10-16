@@ -29,7 +29,7 @@ CLI tagx ───────────┘          │
 ZIP-Abhängigkeit. Die App verwendet ihn zusätzlich direkt für die Anzeige.
 Core und CLI bleiben Linux-portabel; App und Finder-Vorschau sind macOS-only.
 
-Die XRechnungsvalidierung liegt in `TagExplosionCore`: Ein unveränderter
+Die E-Rechnungsvalidierung für XRechnung und aktuelle Factur-X-Profile liegt in `TagExplosionCore`: Ein unveränderter
 XML-/PDF-Schnappschuss verbindet Anzeige und Prüfergebnis. Der gemeinsame Dienst
 startet das geprüfte private KoSIT-/Java-Paket; die App bündelt es samt Regeln und
 Lizenzen. Bericht, Abbruch und Dateiwächter liegen in den Rechnungsansichten.

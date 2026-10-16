@@ -3,7 +3,7 @@
 // gelesenen Modell sicher ableiten lassen:
 //
 // 1. Pflichtfelder nach EN 16931 (Kopfangaben und Summen), bei XRechnung
-//    zusätzlich die Leitweg-ID (BT-10).
+//    zusätzlich die Käuferreferenz (BT-10, etwa eine Leitweg-ID).
 // 2. Die Summenrechnung der Gesamtsummen (BG-22) mit einer Toleranz von
 //    0,01 je Rechnung: BT-106 = Σ BT-131, BT-109 = BT-106 − BT-107 + BT-108,
 //    BT-112 = BT-109 + BT-110, BT-115 = BT-112 − BT-113 + BT-114 und
@@ -50,7 +50,7 @@ enum EInvoiceValidation {
                 warnings.append(missing(code: rule.code, term: rule.term))
             }
         }
-        // XRechnung verlangt die Leitweg-ID in der Käuferreferenz (BT-10).
+        // XRechnung verlangt eine Käuferreferenz (BT-10).
         if document.profile.standard == "XRechnung", document.firstValue(term: "BT-10") == nil {
             warnings.append(missing(code: "BR-DE-15", term: "BT-10"))
         }
@@ -109,7 +109,10 @@ enum EInvoiceValidation {
         // auf null; bei unlesbaren Angaben wird die Regel ausgelassen.
         let taxTotal = amount("BT-110", ifMissing: 0)
         let taxParts = sum("BT-117")
-        if let taxTotal, let taxParts {
+        // MINIMUM enthält keine Steueraufschlüsselung. Deren fehlende Beträge
+        // dürfen bei diesem Profil nicht als Steuerbetrag null behandelt werden.
+        let minimumWithoutBreakdown = document.profile.profile.uppercased() == "MINIMUM" && taxParts?.count == 0
+        if let taxTotal, let taxParts, !minimumWithoutBreakdown {
             compare("BR-CO-14", term: "BT-110", actual: taxTotal, expected: taxParts.total,
                     formula: "Summe der Steuerbeträge (BT-117)", into: &warnings)
         }

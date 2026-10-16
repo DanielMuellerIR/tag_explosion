@@ -18,8 +18,9 @@ enum InvoiceValidationUITest {
                             styleMask: [.titled, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.title = "Tag Explosion · Invoice UI Test"
         panel.isReleasedWhenClosed = false
+        let profileMode = FileManager.default.fileExists(atPath: directory.appendingPathComponent("MINIMUM.xml").path)
         let watchdog = Task { @MainActor in
-            do { try await Task.sleep(for: .seconds(80)) } catch { return }
+            do { try await Task.sleep(for: .seconds(profileMode ? 180 : 80)) } catch { return }
             let result = ["status": "failed", "error": "GUI-Gesamtfrist überschritten"]
             try? JSONSerialization.data(withJSONObject: result).write(to: directory.appendingPathComponent("ui-result.json"))
             panel.orderOut(nil)
@@ -31,13 +32,23 @@ enum InvoiceValidationUITest {
             NSApp.windows.filter { $0 != panel }.forEach { $0.orderOut(nil) }
             let bundle = try require(Bundle.main.resourceURL, "Bundle-Ressourcen fehlen")
                 .appendingPathComponent("XRechnungValidator")
-            for (name, expected) in [("ubl", InvoiceValidationStatus.passed), ("cii", .passed),
-                                      ("failed", .failed), ("unknown", .unsupported), ("invoice", .partial)] {
-                let url = directory.appendingPathComponent(name == "invoice" ? "invoice.pdf" : name + ".xml")
+            var cases = [("ubl", InvoiceValidationStatus.passed), ("cii", .passed),
+                         ("failed", .failed), ("unknown", .unsupported), ("invoice", .partial)]
+            let profiles = ["MINIMUM", "BASICWL", "BASIC", "EN16931", "EXTENDED"]
+            let profileFiles = profiles.filter { FileManager.default.fileExists(atPath: directory.appendingPathComponent($0 + ".xml").path) }
+            try expect(profileFiles.isEmpty || profileFiles.count == profiles.count, "Profilfixtures unvollständig")
+            cases += profileFiles.map { ($0, .passed) }
+            if profileMode {
+                cases += [("FACTURX-schema", .failed), ("FACTURX-rule", .failed),
+                          ("FACTURX-warning", .passedWithWarnings), ("FACTURX-pdf", .partial)]
+            }
+            for (name, expected) in cases {
+                let isPDF = name == "invoice" || name == "FACTURX-pdf"
+                let url = directory.appendingPathComponent(name + (isPDF ? ".pdf" : ".xml"))
                 let document = try EInvoiceReader.read(url: url)
                 let model = InvoiceValidationModel(bundle: bundle)
                 let content: AnyView
-                if name == "invoice" {
+                if isPDF {
                     let entry = FileEntry(url: url, loaded: .ebook(EbookCoreFields(), cover: nil))
                     content = AnyView(EbookEditorView(entry: entry, validation: model).environment(AppModel()))
                 } else {
@@ -47,7 +58,7 @@ enum InvoiceValidationUITest {
                 let host = NSHostingView(rootView: content)
                 panel.contentView = host
                 panel.orderFront(nil)
-                if name == "invoice" {
+                if isPDF {
                     try await press("ebook.invoice.tab", label: String(localized: "E-Rechnung"), in: host)
                 }
                 try await wait { model.url == url }
@@ -65,9 +76,17 @@ enum InvoiceValidationUITest {
                 let text = try require(await model.currentReport(), "Bericht fehlt")
                 try expect(text.contains(InvoiceValidationPresentation.notice), "Vollständiger Gewährleistungshinweis fehlt")
                 try expect(text.contains(InvoiceValidationPresentation.title(model.status)), "Berichtszustand fehlt")
+                if profiles.contains(name), let result = model.result {
+                    try expect(result.ruleSet == .facturX, "Falscher Profilregelstand")
+                    try expect(InvoiceValidationPresentation.steps(result).count == 3, "Falsche Prüfkette")
+                    try expect(text.contains("1.09.2"), "Regelversion fehlt")
+                    try expect(!text.contains("[val-sch.2]"), "Nicht ausgeführte XRechnung-Regeln im Bericht")
+                    try expect(document.warnings.isEmpty, "Widersprüchliche Grundprüfung")
+                    try expect(text.contains(InvoiceValidationPresentation.standardNotice), "Standard-Nutzungshinweis fehlt")
+                }
                 try text.write(to: directory.appendingPathComponent(name + "-report.txt"), atomically: true, encoding: .utf8)
                 checks.append(["case": name, "status": model.status!.rawValue, "button": "AXPress"])
-                if name == "failed" || name == "invoice" {
+                if ["failed", "invoice", "MINIMUM", "EXTENDED"].contains(name) {
                     try await press("invoice.validation.report", in: host)
                     try await wait { panel.attachedSheet?.contentView != nil }
                     let reportHost = try require(panel.attachedSheet?.contentView, "Berichtsfenster fehlt")

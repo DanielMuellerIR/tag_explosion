@@ -12,6 +12,7 @@ import tempfile
 import urllib.request
 import zipfile
 from validation_compliance import prepare as prepare_compliance
+from validation_facturx import prepare as prepare_facturx
 
 
 RELEASE = "https://github.com/itplr-kosit"
@@ -101,6 +102,7 @@ def main():
         removed = package_validator(work / "validator.jar", package / "validator.jar")
         with zipfile.ZipFile(work / "configuration.zip") as archive:
             archive.extractall(package / "configuration")
+        prepare_facturx(package / "configuration", root / ".validation-build/downloads")
         runtime = work / "runtime"
         runtime.mkdir()
         subprocess.run(["/usr/bin/tar", "-xzf", str(work / "runtime.tar.gz"), "-C", str(runtime)], check=True)
@@ -112,6 +114,8 @@ def main():
             "validatorVersion": "1.6.3",
             "configurationRelease": "2026-08-31",
             "xrechnungVersion": "3.0.2",
+            "facturXVersion": "1.09.2",
+            "zugferdVersion": "2.5.2",
             "javaVersion": "Temurin 21.0.12.1+1",
             "architecture": args.arch,
             "packaging": "omit-jansi-native-and-daemon-ui-v2",

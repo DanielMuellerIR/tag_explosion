@@ -102,6 +102,24 @@ struct InvoiceValidationServiceTests {
                 == "EN16931 XRechnung Extension (UBL Invoice)")
     }
 
+    @Test("Factur-X-Kennungen wählen eigene Regeln; historische Aliase und falsche Syntax bleiben unbekannt")
+    func facturXRouting() throws {
+        for profile in InvoiceValidationFixtures.facturXProfiles {
+            let xml = InvoiceValidationFixtures.facturX(profile: profile.name)
+            let detected = try InvoiceValidationService.detectProfile(Data(xml.utf8))
+            #expect(InvoiceValidationService.ruleSet(for: detected) == .facturX)
+            let foreignContext = xml.replacingOccurrences(of: "rsm:ExchangedDocumentContext", with: "foreign:ExchangedDocumentContext")
+                .replacingOccurrences(of: "xmlns:ram=", with: "xmlns:foreign=\"urn:example:foreign\" xmlns:ram=")
+            #expect(InvoiceValidationService.ruleSet(for: try InvoiceValidationService.detectProfile(Data(foreignContext.utf8))) == nil)
+            for identifier in [profile.guideline + ":unknown", "urn:zugferd.de:2p0:basic", "urn:factur-x.eu:9p9:minimum"] {
+                let unknown = xml.replacingOccurrences(of: profile.guideline, with: identifier)
+                #expect(InvoiceValidationService.ruleSet(for: try InvoiceValidationService.detectProfile(Data(unknown.utf8))) == nil)
+            }
+            let ubl = InvoiceValidationFixtures.ubl.replacingOccurrences(of: InvoiceValidationFixtures.guideline, with: profile.guideline)
+            #expect(InvoiceValidationService.ruleSet(for: try InvoiceValidationService.detectProfile(Data(ubl.utf8))) == nil)
+        }
+    }
+
     @Test("Unbekannt, XML-Fehler und fehlendes Werkzeug sind verschiedene Ergebnisse")
     func typedFailures() throws {
         let dir = try directory()

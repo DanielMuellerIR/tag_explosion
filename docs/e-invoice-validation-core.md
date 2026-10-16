@@ -39,9 +39,29 @@ KoSIT-Szenario sind darin als Metadaten hinterlegt:
 
 Unbekannte Versionssuffixe, mehrere Spezifikationskennungen oder gleichnamige
 Elemente in fremden Namensräumen werden nicht als bekannte Profile geraten.
-CVD, reine EN 16931, Factur-X und Peppol sind hier noch keine freigegebenen
+CVD, UBL ohne unterstützte Spezialisierung und Peppol sind hier noch keine freigegebenen
 Prüfprofile. Die Anzeigeerkennung ist absichtlich großzügiger als das Routing
 einer verbindlich benannten technischen Prüfung.
+
+Ab 0.51.0 ergänzt `InvoiceValidationRuleSet.facturX` die Profile MINIMUM,
+BASIC WL, BASIC, EN 16931 und EXTENDED für CII mit den technischen Regeln
+ZUGFeRD 2.5.2 / Factur-X 1.09.2 (2026-08-04, wirksam ab 2026-09-01).
+Jedes Profil verwendet sein eigenes D22B-XSD und originales Schematron-XSLT
+samt Codelisten. Der allgemeine CII-Fallback wird in der erzeugten Konfiguration
+ersetzt, damit die gemeinsame EN-16931-Kennung nicht zwei Szenarien trifft.
+XRechnung behält seine spezifischen Szenarien und seine beiden Schematron-Stufen.
+
+Factur-X verlangt XML, XSD und einen vollständigen Profilregel-Schritt.
+Nichtfatale Schematron-Warnungen bleiben mit ihrem Schweregrad erhalten; die
+eigene Berichtsschicht lässt sie zu. Fehlender SVRL-Output und technische Fehler
+bleiben ablehnend. Die eigentlichen Profilregeln werden nicht verändert.
+MINIMUM, BASIC WL und BASIC bestätigen keine vollständige EN-16931-Konformität.
+Die gemeinsamen Profil-URNs enthalten keine eindeutige Releaseversion. Ein
+Ergebnis bestätigt daher den genannten aktuellen Regelstand, keine historische
+Dokumentversion. Nicht unterstützte ältere Aliase werden nicht geraten.
+Die reine CII-Kennung `urn:cen.eu:en16931:2017` wird gegen das aktuelle Factur-X-
+EN16931-Profil geprüft; dies identifiziert den Ersteller oder Markenstandard
+nicht eindeutig.
 
 Vor und nach dem KoSIT-Lauf werden JAR, vollständige Regeldateien und Runtime
 gegen das vertrauenswürdig gepinnte Inventar geprüft. Ein fehlender oder
@@ -67,6 +87,12 @@ der private Java-Prozess nach einem Terminal-Abbruch nicht zurückbleibt.
 .build/debug/tagx validate-xrechnung rechnung.pdf \
   --bundle .build/xrechnung-validator-licensed-arm64 --format common --json
 ```
+
+Ab 0.51.0 ist `tagx validate-invoice <datei> --bundle <paket> --json` der
+allgemeine XML-/PDF-Befehl für XRechnung und die aktuellen Factur-X-Profile.
+Er verwendet dieselbe gemeinsame Ausgabe wie `validate-xrechnung --format common`.
+Der Standardaufruf `validate-xrechnung` bleibt auf die bisherige XRechnung-
+Ausgabe begrenzt und bestätigt Factur-X nicht als XRechnung.
 
 `--format legacy` ist der Standard und erhält die bisherige XML-JSON-Struktur
 sowie deren Exit-Codes. PDF-Eingaben benötigen die gemeinsame Ausgabe. Das

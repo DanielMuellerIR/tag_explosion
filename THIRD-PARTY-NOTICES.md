@@ -74,7 +74,7 @@ dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
   beschreibend zur Angabe der gelesenen Formate genannt. Die App behauptet
   keine vollständige Konformität; sie zeigt Felder und Hinweise einer Grundprüfung.
 
-## Gebündelte XRechnungsvalidierung
+## Gebündelte E-Rechnungsvalidierung
 
 `tagx validate-xrechnung` startet ein ausdrücklich angegebenes, separates
 Prüfpaket. Ab 0.50.0 enthalten die App-Builds dieses freigegebene Paket ebenfalls.
@@ -105,7 +105,11 @@ Vollständigkeit vor dem Bündeln und erzeugt daneben ein zur Version passendes
 `TagExplosion-<version>-validation-sources.zip`. Dieses Quellenpaket muss bei
 einer Weitergabe gemeinsam mit dem Binärstand zugänglich sein. Die Regeln und
 Lizenzen liegen in der App unter `Contents/Resources/XRechnungValidator/`.
-Weitere Profile sowie die abschließende DMG-/Updateabnahme folgen getrennt;
+Ab 0.51.0 kommen die fünf technischen ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profile
+unter Apache-2.0 hinzu. Originaldateien, Codelisten, passende Quellen und
+[FeRD-/CEN-/DIN-Nutzungshinweis](licenses/validation/Factur-X-NOTICE.txt)
+sind enthalten. Spezifikationstabellen, Norm-PDFs und Logos werden nicht gebündelt.
+Peppol, PDF/A sowie die abschließende DMG-/Updateabnahme folgen getrennt;
 es wurde kein öffentliches Prüfpaket veröffentlicht.
 
 ## Icon

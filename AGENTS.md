@@ -9,7 +9,8 @@
   E-Books (EPUB nativ, PDF via exiftool, mobi/azw3/fb2 via Calibre-CLI) und
   E-Rechnungen (ZUGFeRD/Factur-X/XRechnung/Peppol, CII + UBL — lesende Anzeige:
   Profil aus BT-24 plus alle Felder mit EN-16931-Bezeichnungen;
-  XRechnung zusätzlich lokal mit XSD/Schematron über KoSIT prüfen).
+  XRechnung und aktuelle ZUGFeRD-/Factur-X-Profile zusätzlich lokal mit
+  XSD/Schematron über KoSIT prüfen).
 - **Plattform:** macOS (App); Core/CLI Linux-portabel gehalten. Open Source, MIT.
 
 ## Architektur

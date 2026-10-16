@@ -1,0 +1,18 @@
+ZUGFeRD 2.5.2 / Factur-X 1.09.2 — technische Validierungsartefakte
+Herausgeber: FeRD (AWV e.V.) und FNFE-MPE; Stand 2026-08-04.
+Die technischen Schemata und Schematron-Regeln werden unter Apache-2.0 genutzt.
+Lizenztext: Apache-2.0.txt. Originaldateien werden unverändert weitergegeben.
+Quelle und SHA-256 jeder Datei: components.lock.json, facturXArtifacts/sourceArtifacts.
+Öffentliche technische Kopie: LandrixSoftware/validator-configuration-zugferd,
+Commit 8399f5459df34b2af9cae0d613870649b3f17a58.
+Eigene KoSIT-Szenarien: Tag Explosion, MIT; keine Änderungen an Profilregeln.
+
+Diese Anwendung setzt den ZUGFeRD-/Factur-X-Standard um. Die Wiedergabe der
+zugrunde liegenden Veröffentlichung erfolgt mit Erlaubnis von CEN und DIN als
+Copyright-Inhabern nach den von FeRD veröffentlichten Nutzungsbedingungen.
+Eine Zertifizierung oder Empfehlung dieser Anwendung ist damit nicht verbunden.
+Nutzungsbedingungen, geprüft 2026-10-16:
+https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte
+
+Norm-PDFs, Spezifikationstabellen und Logos sind nicht Bestandteil dieses Pakets.
+Das Prüfergebnis gilt ausschließlich für den genannten technischen Regelstand.

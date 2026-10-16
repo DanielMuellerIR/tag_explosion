@@ -1,6 +1,6 @@
-# XRechnung in der App prüfen
+# E-Rechnungen in der App prüfen
 
-Ab Version 0.50.0 steht **XRechnung prüfen** sowohl bei eigenständigen
+Ab Version 0.51.0 steht **E-Rechnung prüfen** sowohl bei eigenständigen
 Rechnungs-XMLs als auch im E-Rechnungstab eines PDFs bereit. Die Prüfung läuft
 lokal mit dem mitgelieferten KoSIT-/Java-Paket. Nutzer brauchen dafür keine
 zusätzliche Installation. Rechnungsdateien werden ausschließlich gelesen.
@@ -52,9 +52,13 @@ vollständigen KoSIT-Lauf. Die eingeklappte Ansicht nennt ihre Meldungsanzahl,
 damit sie die Feldliste bei kleinen Fenstern nicht verdrängt.
 
 Aktuell freigegeben sind die in den [Kern-Metadaten](e-invoice-validation-core.md)
-genannten XRechnung-Profile. Factur-X/ZUGFeRD und Peppol werden weiterhin gelesen;
-ihre vollständigen Prüfprofile sind noch nicht eingebaut. Eine passende
-Anzeigeerkennung wird nicht als bestandene Validierung ausgegeben.
+genannten XRechnung- und fünf aktuellen ZUGFeRD-/Factur-X-Profile. Die
+Prüfleiste und der Bericht nennen den tatsächlich verwendeten Regelstand.
+Reduzierte Profile erhalten einen sichtbaren Hinweis auf ihren begrenzten
+Umfang; der Bericht zeigt nur ihre eigene Prüfkette. Die Profilkennung allein
+bestätigt keine historische Dokumentversion. Peppol wird gelesen, sein eigenes
+vollständiges Prüfprofil ist noch nicht eingebaut. Eine passende Anzeigeerkennung
+wird nicht als bestandene Validierung ausgegeben.
 
 Bereits beim Öffnen unlesbare XML-Dateien erscheinen als Ladefehler. Für diesen
 Importfall erzeugt die App noch keinen KoSIT-Prüfbericht; die CLI kann solche
@@ -71,7 +75,7 @@ Vor dem Bündeln prüft das Skript das vollständige Lizenz-/Quellenpaket. Daneb
 entsteht `TagExplosion-<version>-validation-sources.zip`; dieses muss bei einer
 Weitergabe zusammen mit genau diesem Binärstand zugänglich sein. Der
 Mindestversions-Check erfasst auch die nativen Dateien der privaten Runtime.
-Weitere Profile, DMG-/Updatewege und die abschließende Systemabnahme bleiben
+Peppol, PDF-Containerprüfung, DMG-/Updatewege und die abschließende Systemabnahme bleiben
 eigene [Meilensteine](e-invoice-validation-roadmap.md).
 
 ## Gewährleistung
@@ -97,7 +101,7 @@ als reiner Oberflächentest gekennzeichnet.
 Testdaten vorbereiten:
 
 ```sh
-python3 scripts/prepare-invoice-ui-fixtures.py /tmp/invoice-ui-fixtures
+python3 scripts/prepare-invoice-ui-fixtures.py /tmp/invoice-ui-fixtures --facturx
 scripts/dev-invoice-uitest.sh /Applications/TagExplosion.app /tmp/invoice-ui-fixtures de
 ```
 

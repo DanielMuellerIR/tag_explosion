@@ -13,7 +13,7 @@ struct ValidateXRechnung: ParsableCommand {
         abstract: "Validate XRechnung locally with a private KoSIT/Java bundle.",
         discussion: """
             Default format preserves the XML prototype output. --format common adds versioned
-            source-bound results and PDF attachment input. No system Java or network service is used.
+            source-bound results and PDF attachment input, including current Factur-X profiles. No system Java or network service is used.
             Exit 0: XML passed; 3: failed; 4: unsupported; 5: partial; 6: stale input;
             124: timeout; 130: cancelled; 1: tool/report error. No warranty of results.
             """
@@ -118,5 +118,22 @@ struct ValidateXRechnung: ParsableCommand {
             (.technicalError, 1), (.timedOut, 124), (.cancelled, 130), (.stale, 6),
             (.failed, 3), (.unsupported, 4), (.partial, 5),
         ] where statuses.contains(status) { throw ExitCode(code) }
+    }
+}
+
+struct ValidateInvoice: ParsableCommand {
+    static let configuration = CommandConfiguration(commandName: "validate-invoice",
+        abstract: "Validate XRechnung and current ZUGFeRD/Factur-X XML or PDF locally.")
+    @Argument(help: "Invoice XML or PDF file(s)") var files: [String]
+    @Option(name: .long, help: "Prepared KoSIT bundle") var bundle: String
+    @Flag(name: .long, help: "Output reports as JSON") var json = false
+
+    func run() throws {
+        var command = ValidateXRechnung()
+        command.files = files
+        command.bundle = bundle
+        command.json = json
+        command.format = .common
+        try command.run()
     }
 }

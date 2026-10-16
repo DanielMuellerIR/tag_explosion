@@ -21,9 +21,26 @@ public struct InvoiceValidationRuleSet: Codable, Sendable, Equatable {
     public let inventorySHA256: String
     public let profiles: [Profile]
 
+    public var requiredSteps: [String] {
+        id == Self.facturX.id ? ["val-xml", "val-xsd", "val-sch.1"] : ["val-xml", "val-xsd", "val-sch.1", "val-sch.2"]
+    }
+
+    public static let supported: [Self] = [.xrechnung, .facturX]
+    public static let trustedInventorySHA256 = "58854808b0a90a7ab09f9d38128f515bcfcbf02c7622f0435b675f9d2a382306"
+
     public static let xrechnung = Self(id: "xrechnung-3.0.2-2026-08-31", standard: "XRechnung", version: "3.0.2",
         configurationRelease: "2026-08-31", engine: "KoSIT Validator 1.6.3",
-        inventorySHA256: "17cd67d096d9fcba19afe78d9689ce31d7f3ff1bd33db760cd210db1f3ba9bcb", profiles: xrechnungProfiles)
+        inventorySHA256: trustedInventorySHA256, profiles: xrechnungProfiles)
+
+    public static let facturX = Self(id: "facturx-1.09.2-zugferd-2.5.2", standard: "ZUGFeRD / Factur-X",
+        version: "2.5.2 / 1.09.2", configurationRelease: "2026-08-04", engine: "KoSIT Validator 1.6.3",
+        inventorySHA256: trustedInventorySHA256, profiles: [
+            ("MINIMUM", "urn:factur-x.eu:1p0:minimum"),
+            ("BASICWL", "urn:factur-x.eu:1p0:basicwl"),
+            ("BASIC", "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic"),
+            ("EN16931", "urn:cen.eu:en16931:2017"),
+            ("EXTENDED", "urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended"),
+        ].map { .init(syntax: .cii, guidelineID: $0.1, scenario: "Factur-X 1.09.2 / ZUGFeRD 2.5.2 (\($0.0))") })
 
     private static let xrechnungProfiles: [Profile] = {
         let base = "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
@@ -51,6 +68,8 @@ enum InvoiceValidationPackage {
         let validatorVersion: String
         let configurationRelease: String
         let xrechnungVersion: String
+        let facturXVersion: String
+        let zugferdVersion: String
         let architecture: String
         let packaging: String
     }
@@ -79,6 +98,7 @@ enum InvoiceValidationPackage {
         #endif
         guard manifest.validatorVersion == "1.6.3", manifest.configurationRelease == ruleSet.configurationRelease,
               manifest.xrechnungVersion == ruleSet.version, manifest.packaging == policy.packaging,
+              manifest.facturXVersion == "1.09.2", manifest.zugferdVersion == "2.5.2",
               manifest.architecture == architecture,
               FileManager.default.isExecutableFile(atPath: bundle.appendingPathComponent("runtime/Contents/Home/bin/java").path)
         else { throw Failure.changed("Version oder Laufzeitarchitektur") }

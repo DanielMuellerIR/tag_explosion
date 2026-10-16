@@ -121,20 +121,22 @@
   Order/OrderResponse — order fields carry Order-X labels instead of BT
   numbers. The document kind (invoice, credit note, order, order response)
   is shown separately. A basic validation lists warnings: missing EN 16931
-  mandatory fields (XRechnung: also the Leitweg-ID) and the totals
+  mandatory fields (XRechnung: also the buyer reference, such as a Leitweg-ID) and the totals
   arithmetic BT-106 … BT-115 with a tolerance of 0.01. These basic checks remain
   separate from the explicit full validation. Every populated
   field is shown with its EN 16931 business term (BT/BG number and label);
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
   standalone XML files and on PDFs with an embedded invoice, which get an
-  extra "E-Invoice" tab. [Validate XRechnung](docs/e-invoice-validation-app.md)
+  extra "E-Invoice" tab. [Validate e-invoices](docs/e-invoice-validation-app.md)
   checks the original XML against XSD and Schematron using the bundled private
   Java runtime, without a separate installation. Results distinguish warnings,
   invoice errors, unsupported profiles, cancellation and tool errors; reports
   include source hashes and a warranty notice. PDF attachments receive a separate
-  XML result with explicit partial coverage. PDF/A and hybrid embedding checks,
-  and full Factur-X/Peppol validation, remain upcoming milestones.
+  XML result with explicit partial coverage. All five current ZUGFeRD 2.5.2 /
+  Factur-X 1.09.2 profiles have their own schema and profile rules. Reduced
+  profiles and ambiguous document versions are stated explicitly. PDF/A,
+  hybrid embedding checks and Peppol validation remain upcoming milestones.
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target
@@ -303,7 +305,7 @@ the notice).
 | E-books | epub, pdf · mobi, azw3, fb2 (with Calibre) | EPUB OPF, PDF Info/XMP (PDF: no series/cover; AZW3: no series changes) |
 | Documents | docx, xlsx, pptx · odt, ods, odp · cbz · md, markdown | OOXML core.xml (+ app.xml view only), ODF meta.xml, ComicInfo.xml (cover = first page, view only), YAML front matter (unknown keys preserved) |
 | Playlists | cue · m3u, m3u8 · pls · xspf | Cue header/track lines, `#PLAYLIST`/`#EXTINF`, `TitleN`, XSPF title/creator (view: paths, existence, duration; edit: labels only; export: m3u8/pls/xspf) |
-| E-invoices (view only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms; Order-X and Peppol orders with Order-X labels; basic validation warnings |
+| E-invoices (read only) | xml · pdf (embedded invoice) | ZUGFeRD/Factur-X, XRechnung, Peppol BIS, EN 16931 — CII and UBL, fields labeled with BT/BG terms; Order-X and Peppol orders with Order-X labels; basic validation warnings |
 
 ![Start screen with the format overview](docs/screenshots/en/empty.png)
 *The start screen lists every supported file and tag format.*

@@ -22,7 +22,7 @@ struct InvoiceValidationView: View {
                         .disabled(model.isCancelling)
                         .accessibilityIdentifier("invoice.validation.cancel")
                 } else {
-                    Button("XRechnung prüfen") { model.start() }
+                    Button("E-Rechnung prüfen") { model.start() }
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("invoice.validation.start")
                 }
@@ -30,9 +30,17 @@ struct InvoiceValidationView: View {
                     .disabled(model.status == nil || model.isRunning)
                     .accessibilityIdentifier("invoice.validation.report")
             }
-            Text("Lokal · XSD und Schematron · XRechnung 3.0.2 / Regeln 2026-08-31")
+            Text(model.result?.ruleSet.map { "\($0.standard) \($0.version) · \($0.configurationRelease)" } ?? String(localized: "Lokal · XSD und Schematron · XRechnung / ZUGFeRD / Factur-X"))
                 .font(.caption).foregroundStyle(.secondary)
             if let result = model.result {
+                if result.issues.contains(where: { $0.code == "REDUCED_PROFILE_SCOPE" }) {
+                    Text("Reduziertes Profil: keine vollständige EN-16931-Prüfung.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                if result.ruleSet?.id == InvoiceValidationRuleSet.facturX.id {
+                    Text("Regelstand der Prüfung; die Profilkennung legt keine eindeutige Dokumentversion fest.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if result.source?.url.pathExtension.lowercased() == "pdf" {
                     if result.xmlStatus != nil {
                         Text(InvoiceValidationPresentation.title(result.xmlStatus)).font(.callout.weight(.medium))
@@ -69,6 +77,7 @@ struct InvoiceValidationView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Gewährleistungshinweis").font(.headline)
                 Text(InvoiceValidationPresentation.notice).textSelection(.enabled)
+                Text(InvoiceValidationPresentation.standardNotice).font(.caption).textSelection(.enabled)
                 Button("Schließen") { notice = false }
             }.padding(20).frame(width: 460)
         }
@@ -125,7 +134,7 @@ struct InvoiceValidationReportView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), alignment: .leading)], alignment: .leading, spacing: 8) {
                     ForEach(InvoiceValidationPresentation.steps(result)) { step in
                         VStack(alignment: .leading, spacing: 2) {
-                            Label(InvoiceValidationPresentation.step(step.id), systemImage: step.status == .passed ? "checkmark.circle" : step.status == .failed ? "xmark.circle" : "minus.circle")
+                            Label(InvoiceValidationPresentation.step(step.id, ruleSet: result.ruleSet), systemImage: step.status == .passed ? "checkmark.circle" : step.status == .failed ? "xmark.circle" : "minus.circle")
                                 .foregroundStyle(step.status == .passed ? Color.green : step.status == .failed ? .red : .secondary)
                                 .help(step.id)
                             Text(InvoiceValidationPresentation.stepStatus(step.status)).foregroundStyle(.secondary)
@@ -163,6 +172,7 @@ struct InvoiceValidationReportView: View {
             }
             DisclosureGroup("Gewährleistungshinweis") {
                 Text(InvoiceValidationPresentation.notice).font(.caption).textSelection(.enabled).padding(.top, 4)
+                Text(InvoiceValidationPresentation.standardNotice).font(.caption).textSelection(.enabled)
             }
             if let exportError { Text(exportError).foregroundStyle(.red).font(.caption) }
             HStack {

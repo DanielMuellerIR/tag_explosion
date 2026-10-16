@@ -82,6 +82,7 @@ public enum InvoiceValidationService {
     public static func validate(input: InvoiceValidationInput, bundle: URL, timeout: TimeInterval = 60,
                                 cancellation: ExternalToolRunner.Cancellation? = nil) -> InvoiceValidationResult {
         var profile: InvoiceValidationProfile?
+        var selectedRules: InvoiceValidationRuleSet?
         do {
             try cancellation?.check()
             guard input.source.isCurrent(at: input.source.url) else { throw InvoiceValidationInput.Failure.changed }
@@ -96,13 +97,14 @@ public enum InvoiceValidationService {
                                    message: "Die XML-Datei ist nicht wohlgeformt.")])
             }
             try cancellation?.check()
-            guard let profile, let scenario = expectedScenario(for: profile) else {
+            selectedRules = profile.flatMap { ruleSet(for: $0) }
+            guard let profile, let ruleSet = ruleSet(for: profile), let scenario = expectedScenario(for: profile) else {
                 return result(.unsupported, input: input, profile: profile,
                     issues: [.init(severity: .information, code: "PROFILE_UNSUPPORTED", location: nil,
                                    message: "Für diese Syntax und Spezifikationskennung ist kein freigegebenes Regelpaket vorhanden.")])
             }
             let report = try XRechnungValidator.validate(xml: input.payload.xml, bundle: bundle,
-                processTimeout: timeout, cancellation: cancellation)
+                processTimeout: timeout, ruleSet: ruleSet, cancellation: cancellation)
             try cancellation?.check()
             guard input.source.isCurrent(at: input.source.url) else { throw InvoiceValidationInput.Failure.changed }
             guard report.scenario == scenario else { throw XRechnungValidator.Failure.invalidReport }
@@ -114,22 +116,36 @@ public enum InvoiceValidationService {
                 InvoiceValidationResult.Issue(severity: severity(issue.severity), code: issue.code,
                     location: issue.location, message: issue.message)
             }
+            if ruleSet.id == InvoiceValidationRuleSet.facturX.id {
+                issues.append(.init(severity: .information, code: "RULE_VERSION_SCOPE", location: nil,
+                    message: "Geprüft gegen ZUGFeRD 2.5.2 / Factur-X 1.09.2. Die Profilkennung enthält keine eindeutige Dokumentversion; eine historische Version wird damit nicht bestätigt."))
+                if ["urn:factur-x.eu:1p0:minimum", "urn:factur-x.eu:1p0:basicwl", "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic"].contains(profile.guidelineID) {
+                    issues.append(.init(severity: .information, code: "REDUCED_PROFILE_SCOPE", location: nil,
+                        message: "Dieses reduzierte Profil wird gegen seine eigenen Regeln geprüft. Das Ergebnis bestätigt keine vollständige EN-16931-Konformität."))
+                }
+            }
             if embedded {
                 steps += [.init(id: "pdfa", status: .notChecked), .init(id: "pdf-embedding", status: .notChecked)]
                 issues.append(.init(severity: .information, code: "PDF_NOT_CHECKED", location: nil,
                     message: "Geprüft wurde ausschließlich das eingebettete XML. PDF/A, Einbettung und Übereinstimmung mit dem sichtbaren PDF sind nicht geprüft."))
             }
-            return result(status, input: input, profile: profile, ruleSet: .xrechnung,
+            return result(status, input: input, profile: profile, ruleSet: ruleSet,
                           xmlStatus: xmlStatus, scenario: report.scenario, steps: steps, issues: issues)
         } catch {
-            return failure(error, input: input, profile: profile)
+            return failure(error, input: input, profile: profile, ruleSet: selectedRules)
         }
     }
 
     static func expectedScenario(for profile: InvoiceValidationProfile) -> String? {
-        InvoiceValidationRuleSet.xrechnung.profiles.first {
+        ruleSet(for: profile)?.profiles.first {
             $0.guidelineID == profile.guidelineID && $0.syntax == profile.syntax
         }?.scenario
+    }
+
+    static func ruleSet(for profile: InvoiceValidationProfile) -> InvoiceValidationRuleSet? {
+        InvoiceValidationRuleSet.supported.first { rules in
+            rules.profiles.contains { $0.guidelineID == profile.guidelineID && $0.syntax == profile.syntax }
+        }
     }
 
     static func xmlStatus(for report: XRechnungValidationReport) -> InvoiceValidationStatus {
@@ -156,7 +172,8 @@ public enum InvoiceValidationService {
         case ("CrossIndustryInvoice", "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"):
             syntax = .cii
             let ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
-            identifiers = XMLTools.elements(named: "ExchangedDocumentContext", in: root).flatMap {
+            identifiers = XMLTools.elements(named: "ExchangedDocumentContext", in: root,
+                namespaceURI: "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100").flatMap {
                 XMLTools.elements(named: "GuidelineSpecifiedDocumentContextParameter", in: $0, namespaceURI: ram)
             }.flatMap { XMLTools.elements(named: "ID", in: $0, namespaceURI: ram) }
         default:
@@ -177,7 +194,7 @@ public enum InvoiceValidationService {
     }
 
     private static func failure(_ error: any Error, input: InvoiceValidationInput?,
-                                profile: InvoiceValidationProfile?) -> InvoiceValidationResult {
+                                profile: InvoiceValidationProfile?, ruleSet: InvoiceValidationRuleSet? = nil) -> InvoiceValidationResult {
         let status: InvoiceValidationStatus
         let code: String
         switch error {
@@ -194,7 +211,7 @@ public enum InvoiceValidationService {
         case .timedOut: "Die Prüfung hat das Zeitlimit überschritten. Es liegt kein vollständiges Prüfergebnis vor."
         default: error.localizedDescription
         }
-        return result(status, input: input, profile: profile,
+        return result(status, input: input, profile: profile, ruleSet: ruleSet,
             issues: [.init(severity: status == .cancelled ? .information : .error, code: code, location: nil,
                            message: message)])
     }

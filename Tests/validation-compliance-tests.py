@@ -69,6 +69,14 @@ class ReleaseComplianceTests(unittest.TestCase):
         rule = self.bundle / "configuration/resources/ubl/2.1/xsl/EN16931-UBL-validation.xsl"
         self.mutate(rule, lambda path: path.write_bytes(path.read_bytes() + b"\n<!-- changed -->\n"))
 
+    def test_changed_facturx_codelist_blocks_release(self):
+        codelist = self.bundle / "configuration/resources/facturx/MINIMUM/_XSLT_MINIMUM/FACTUR-X_MINIMUM_codedb.xml"
+        self.mutate(codelist, lambda path: path.write_bytes(path.read_bytes() + b"\n<!-- changed -->\n"))
+
+    def test_missing_facturx_schematron_source_blocks_release(self):
+        source = self.sources / "artifacts/facturx-MINIMUM-FACTUR-X_MINIMUM.sch"
+        self.mutate(source, lambda path: path.unlink())
+
     def test_added_unknown_bytecode_blocks_release(self):
         def add_code(path):
             with zipfile.ZipFile(path, "a") as archive:

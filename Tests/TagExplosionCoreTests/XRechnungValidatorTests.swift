@@ -34,6 +34,23 @@ struct XRechnungValidatorTests {
         }
     }
 
+    @Test("Factur-X verlangt seine vollständige Profilprüfung und bestätigt keine XRechnung")
+    func facturXReport() throws {
+        let steps = ["val-xml", "val-xsd", "val-sch.1"].map {
+            "<r:validationStepResult id=\"\($0)\" valid=\"true\"/>"
+        }.joined()
+        let data = report(scenario: "Factur-X 1.09.2 / ZUGFeRD 2.5.2 (MINIMUM)", steps: steps)
+        #expect(try XRechnungValidator.parseReport(data, configurationRelease: "2026-08-04", ruleSet: .facturX).status == .passed)
+        #expect(try XRechnungValidator.parseReport(data, configurationRelease: "2026-08-31").status == .unsupported)
+        for id in ["val-xml", "val-xsd", "val-sch.1"] {
+            let incomplete = Data(String(decoding: data, as: UTF8.self)
+                .replacingOccurrences(of: "<r:validationStepResult id=\"\(id)\" valid=\"true\"/>", with: "").utf8)
+            #expect(throws: XRechnungValidator.Failure.incompleteReport) {
+                try XRechnungValidator.parseReport(incomplete, configurationRelease: "2026-08-04", ruleSet: .facturX)
+            }
+        }
+    }
+
     @Test("Reine EN-16931-Prüfung bestätigt keine XRechnung")
     func genericScenario() throws {
         let result = try XRechnungValidator.parseReport(

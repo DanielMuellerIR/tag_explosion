@@ -382,6 +382,206 @@
       "name": "schxslt-license.txt",
       "url": "https://codeberg.org/SchXslt/schxslt/raw/tag/v1.10.1/LICENSE",
       "sha256": "74a1f0e7dcb8d2d4a619180c331e1ed5692850cc278866fc21f460e1252f2f42"
+    },
+    {
+      "name": "facturx-MINIMUM-FACTUR-X_MINIMUM.sch",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/FACTUR-X_MINIMUM.sch",
+      "sha256": "c570a628498e0b633a3dd66dd745653a8a2bc66fc6ee346b1971b9dc2d5f6778"
+    },
+    {
+      "name": "facturx-MINIMUM-FACTUR-X_MINIMUM_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/FACTUR-X_MINIMUM_codedb.xml",
+      "sha256": "5c575cf37533a12a758f08b6b9691841c1691f2af214f21e040a07ec892e1f20"
+    },
+    {
+      "name": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/Factur-X_1.09.2_MINIMUM.xsd",
+      "sha256": "313e86212eaf9921f8cfe040d2acb72f718a580db3c19b8c8b3ca0a6a02b4216"
+    },
+    {
+      "name": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "sha256": "c65c4929cb6f51d59aec498851a9026f0a915555555b1c3e5eafd99f191be5f5"
+    },
+    {
+      "name": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "sha256": "8a9c1826ac156d8d2faf47de8dcd8a41fff54e6cf3ba1d44503876c086c7d9db"
+    },
+    {
+      "name": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "sha256": "7110f93a32e20af6fbc3b8c308ec77f75be18bafca9a933584eb457a187bd539"
+    },
+    {
+      "name": "facturx-MINIMUM-_XSLT_MINIMUM--FACTUR-X_MINIMUM.xslt",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/_XSLT_MINIMUM/FACTUR-X_MINIMUM.xslt",
+      "sha256": "81d75c0f1a38363e4f77dde732bdb01e1aa4810dd03c16f61e1319af76228793"
+    },
+    {
+      "name": "facturx-MINIMUM-_XSLT_MINIMUM--FACTUR-X_MINIMUM_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/0_Factur-X_1.09.2_MINIMUM/_XSLT_MINIMUM/FACTUR-X_MINIMUM_codedb.xml",
+      "sha256": "5c575cf37533a12a758f08b6b9691841c1691f2af214f21e040a07ec892e1f20"
+    },
+    {
+      "name": "facturx-BASICWL-FACTUR-X_BASIC-WL.sch",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/FACTUR-X_BASIC-WL.sch",
+      "sha256": "c32dd6eb4ef9c3e88772726ff86aca796476b719152edd6d95aa96ddb17a63f0"
+    },
+    {
+      "name": "facturx-BASICWL-FACTUR-X_BASIC-WL_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/FACTUR-X_BASIC-WL_codedb.xml",
+      "sha256": "a34cd66dda00a9260368fa02dad97e966ded1c1ad100787a5318074328d20abb"
+    },
+    {
+      "name": "facturx-BASICWL-Factur-X_1.09.2_BASICWL.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/Factur-X_1.09.2_BASICWL.xsd",
+      "sha256": "6cd8f22081b659ebeb0a86a741ed454d1771460b822579a55b43f5f0cdd81356"
+    },
+    {
+      "name": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "sha256": "5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e"
+    },
+    {
+      "name": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "sha256": "17d5300dcb6d7c1d7ac70c4d28c89fd3b778abb820129ac320b9010d4dc6bed3"
+    },
+    {
+      "name": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "sha256": "2f4686c41172611f7fc2347a7103a12c01746da17a5f7eded53254ceeff2469f"
+    },
+    {
+      "name": "facturx-BASICWL-_XSLT_BASIC-WL--FACTUR-X_BASIC-WL.xslt",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/_XSLT_BASIC-WL/FACTUR-X_BASIC-WL.xslt",
+      "sha256": "e71093e4ac9e582ce7166cd7318cbef47743af5d16741c140fee862ef28986bf"
+    },
+    {
+      "name": "facturx-BASICWL-_XSLT_BASIC-WL--FACTUR-X_BASIC-WL_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/1_Factur-X_1.09.2_BASICWL/_XSLT_BASIC-WL/FACTUR-X_BASIC-WL_codedb.xml",
+      "sha256": "a34cd66dda00a9260368fa02dad97e966ded1c1ad100787a5318074328d20abb"
+    },
+    {
+      "name": "facturx-BASIC-FACTUR-X_BASIC.sch",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/FACTUR-X_BASIC.sch",
+      "sha256": "b2a84cee0e497733bf595c435db18ba720a9f2e16f6741a972667a2f277f6bed"
+    },
+    {
+      "name": "facturx-BASIC-FACTUR-X_BASIC_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/FACTUR-X_BASIC_codedb.xml",
+      "sha256": "a150b48359a72e1c1629edddb147d5133aabd03adb6ce8b3d287d0c2a6936d21"
+    },
+    {
+      "name": "facturx-BASIC-Factur-X_1.09.2_BASIC.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/Factur-X_1.09.2_BASIC.xsd",
+      "sha256": "808f07370fbbeaaceabbd674ee4d7d2cb358894112366989ff7d600d0432d444"
+    },
+    {
+      "name": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "sha256": "5d72dd3f0df511b2994ea41b199685f9cc538e9ce57d50c84d21988fe1455c6e"
+    },
+    {
+      "name": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "sha256": "2ca9ab167afd99ae0455db1d7119007ab1de27941752dcc55e9e24bec0511c61"
+    },
+    {
+      "name": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "sha256": "ad32b1828200bdb0afd24fbe92fe90880bf357c6a51a9da95cddbdf593e3e35b"
+    },
+    {
+      "name": "facturx-BASIC-_XSLT_BASIC--FACTUR-X_BASIC.xslt",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/_XSLT_BASIC/FACTUR-X_BASIC.xslt",
+      "sha256": "65f08bf924a7beb97f90149276100799bbe3c5c7e09052c41597ca6659b6cad5"
+    },
+    {
+      "name": "facturx-BASIC-_XSLT_BASIC--FACTUR-X_BASIC_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/2_Factur-X_1.09.2_BASIC/_XSLT_BASIC/FACTUR-X_BASIC_codedb.xml",
+      "sha256": "a150b48359a72e1c1629edddb147d5133aabd03adb6ce8b3d287d0c2a6936d21"
+    },
+    {
+      "name": "facturx-EN16931-FACTUR-X_EN16931.sch",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/FACTUR-X_EN16931.sch",
+      "sha256": "ef8c8380b499d1267b2dcf1fa709b45631a77d6d5f220c6cc2ade2fdade59473"
+    },
+    {
+      "name": "facturx-EN16931-FACTUR-X_EN16931_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/FACTUR-X_EN16931_codedb.xml",
+      "sha256": "70339a41d71b02bb97683f8eea04acbd764e077a88a446b32860d89c3351b62f"
+    },
+    {
+      "name": "facturx-EN16931-Factur-X_1.09.2_EN16931.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/Factur-X_1.09.2_EN16931.xsd",
+      "sha256": "cb98b34e59398fcd8d48f29963a3fd6f4c49af9a8307569f4a1ced634f1aa885"
+    },
+    {
+      "name": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "sha256": "4bd1753b1f078ecc50468ec90e505a63a72c6c1f2449a893f37c72a2e933fe04"
+    },
+    {
+      "name": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "sha256": "d6bf8e38c3d5595c670655ccb7ee89655ae244943aaf09a31758160caabc7894"
+    },
+    {
+      "name": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "sha256": "60ee4d11da40c7ec42a4da1fb77b5d7bbffcdce42afd863fcd9da9334765315c"
+    },
+    {
+      "name": "facturx-EN16931-_XSLT_EN16931--FACTUR-X_EN16931.xslt",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/_XSLT_EN16931/FACTUR-X_EN16931.xslt",
+      "sha256": "67f03050e3add4c83dc93de36e4501f6a11aae1ac790b3f9558feb0581019bcb"
+    },
+    {
+      "name": "facturx-EN16931-_XSLT_EN16931--FACTUR-X_EN16931_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/3_Factur-X_1.09.2_EN16931/_XSLT_EN16931/FACTUR-X_EN16931_codedb.xml",
+      "sha256": "70339a41d71b02bb97683f8eea04acbd764e077a88a446b32860d89c3351b62f"
+    },
+    {
+      "name": "facturx-EXTENDED-FACTUR-X_EXTENDED.sch",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/FACTUR-X_EXTENDED.sch",
+      "sha256": "5b9039e31f86e90f1a34925e84d3fad206efa3ca5639bb98a0cefd3661d3e36a"
+    },
+    {
+      "name": "facturx-EXTENDED-FACTUR-X_EXTENDED_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/FACTUR-X_EXTENDED_codedb.xml",
+      "sha256": "6e23aedbba0e3b32b3b1211d145186193215f56f755201555306c42327e75fbc"
+    },
+    {
+      "name": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/Factur-X_1.09.2_EXTENDED.xsd",
+      "sha256": "2accff44dbdc405f38fd35d789ff5e6262396940356ed362009509cd024556c6"
+    },
+    {
+      "name": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "sha256": "ece13000d4f99c97ef09b909e9f8646d45415c46fd24d19d3c9b771c72ae2b34"
+    },
+    {
+      "name": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "sha256": "83cef3c48a6c83149733ffdced362e230e9ae482f62acdfb8c0fb3a919452fdb"
+    },
+    {
+      "name": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "sha256": "c6c9f7b3f36c821999f20d7b7fff30db64112bc7b2a8f132e3d048d859855d00"
+    },
+    {
+      "name": "facturx-EXTENDED-_XSLT_EXTENDED--FACTUR-X_EXTENDED.xslt",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/_XSLT_EXTENDED/FACTUR-X_EXTENDED.xslt",
+      "sha256": "52b44e77be20de05ee090eec0c4bbe69df239b608aefcaca2e24ffb1a0e50a6e"
+    },
+    {
+      "name": "facturx-EXTENDED-_XSLT_EXTENDED--FACTUR-X_EXTENDED_codedb.xml",
+      "url": "https://raw.githubusercontent.com/LandrixSoftware/validator-configuration-zugferd/8399f5459df34b2af9cae0d613870649b3f17a58/Schema/factur-x-1.09.2/4_Factur-X_1.09.2_EXTENDED/_XSLT_EXTENDED/FACTUR-X_EXTENDED_codedb.xml",
+      "sha256": "6e23aedbba0e3b32b3b1211d145186193215f56f755201555306c42327e75fbc"
     }
   ],
   "licenseFiles": {
@@ -391,7 +591,8 @@
     "MPL-2.0.txt": "66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172",
     "SchXslt-MIT.txt": "74a1f0e7dcb8d2d4a619180c331e1ed5692850cc278866fc21f460e1252f2f42",
     "XRechnung-LICENSE.txt": "73f2898ad26e1fcb9ec4649cdf8466ea0bda47644b7c12efc10a703bdfb94a9f",
-    "XRechnung-NOTICE.txt": "aaba5a88c905a8d421877698396755abb3b9563b7655bfb02b76d634c9e861e4"
+    "XRechnung-NOTICE.txt": "aaba5a88c905a8d421877698396755abb3b9563b7655bfb02b76d634c9e861e4",
+    "Factur-X-NOTICE.txt": "544ab16152595700d03f4b31672b23dbcad5cb27afd6fa2e04ed11a5268c674d"
   },
   "classAudit": {
     "classes": 4954,
@@ -437,6 +638,15 @@
       "license": "GPL-2.0-only WITH Classpath-exception-2.0",
       "source": "openjdk-source.tar.gz",
       "notice": "All module-specific notices remain under runtime/Contents/Home/legal."
+    },
+    {
+      "id": "facturx-1.09.2-zugferd-2.5.2",
+      "license": "Apache-2.0",
+      "source": "facturXArtifacts",
+      "origin": "FeRD / FNFE-MPE",
+      "mirrorCommit": "8399f5459df34b2af9cae0d613870649b3f17a58",
+      "permissionURL": "https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte",
+      "notice": "Nur technische Originaldateien; eigene Szenarien. Keine Norm-PDFs, Tabellen oder Logos. Eigenes Berichtslayout lässt nichtfatale Schematron-Warnungen zu; Warntexte und Schweregrade bleiben erhalten. Der allgemeine CII-Fallback wird durch das konkrete EN16931-Profil ersetzt."
     }
   ],
   "packagedJarSHA256": "2d96394a78c5037101f2681d62bca2aae1e17b9042ed0ebb2798a921f6e6b147",
@@ -444,5 +654,169 @@
     "arm64": "447849d4a44a948519cc891ab1c5cfcc7d8c2535fb94200e9d11da5af9ed16d0",
     "x86_64": "9440ec443b89aef962202dd3db4a0d6d563123cc6d8a83deaed79e0275c0a63e"
   },
-  "configurationTreeSHA256": "a11d5ab7ee3d457ced790c3e39dccfa00eb3de6bf7e2e2a4cc7ec6943ef3bf1f"
+  "configurationTreeSHA256": "8351a6d622da9860a8f202cd12915c4e02ee13a8227ce1d2305f57dfbc7abb5d",
+  "facturXVersion": "1.09.2",
+  "zugferdVersion": "2.5.2",
+  "facturXArtifacts": [
+    {
+      "source": "facturx-MINIMUM-FACTUR-X_MINIMUM.sch",
+      "path": "resources/facturx/MINIMUM/FACTUR-X_MINIMUM.sch"
+    },
+    {
+      "source": "facturx-MINIMUM-FACTUR-X_MINIMUM_codedb.xml",
+      "path": "resources/facturx/MINIMUM/FACTUR-X_MINIMUM_codedb.xml"
+    },
+    {
+      "source": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM.xsd",
+      "path": "resources/facturx/MINIMUM/Factur-X_1.09.2_MINIMUM.xsd"
+    },
+    {
+      "source": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "path": "resources/facturx/MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "path": "resources/facturx/MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd"
+    },
+    {
+      "source": "facturx-MINIMUM-Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "path": "resources/facturx/MINIMUM/Factur-X_1.09.2_MINIMUM_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-MINIMUM-_XSLT_MINIMUM--FACTUR-X_MINIMUM.xslt",
+      "path": "resources/facturx/MINIMUM/_XSLT_MINIMUM/FACTUR-X_MINIMUM.xslt"
+    },
+    {
+      "source": "facturx-MINIMUM-_XSLT_MINIMUM--FACTUR-X_MINIMUM_codedb.xml",
+      "path": "resources/facturx/MINIMUM/_XSLT_MINIMUM/FACTUR-X_MINIMUM_codedb.xml"
+    },
+    {
+      "source": "facturx-BASICWL-FACTUR-X_BASIC-WL.sch",
+      "path": "resources/facturx/BASICWL/FACTUR-X_BASIC-WL.sch"
+    },
+    {
+      "source": "facturx-BASICWL-FACTUR-X_BASIC-WL_codedb.xml",
+      "path": "resources/facturx/BASICWL/FACTUR-X_BASIC-WL_codedb.xml"
+    },
+    {
+      "source": "facturx-BASICWL-Factur-X_1.09.2_BASICWL.xsd",
+      "path": "resources/facturx/BASICWL/Factur-X_1.09.2_BASICWL.xsd"
+    },
+    {
+      "source": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "path": "resources/facturx/BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "path": "resources/facturx/BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd"
+    },
+    {
+      "source": "facturx-BASICWL-Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "path": "resources/facturx/BASICWL/Factur-X_1.09.2_BASICWL_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-BASICWL-_XSLT_BASIC-WL--FACTUR-X_BASIC-WL.xslt",
+      "path": "resources/facturx/BASICWL/_XSLT_BASIC-WL/FACTUR-X_BASIC-WL.xslt"
+    },
+    {
+      "source": "facturx-BASICWL-_XSLT_BASIC-WL--FACTUR-X_BASIC-WL_codedb.xml",
+      "path": "resources/facturx/BASICWL/_XSLT_BASIC-WL/FACTUR-X_BASIC-WL_codedb.xml"
+    },
+    {
+      "source": "facturx-BASIC-FACTUR-X_BASIC.sch",
+      "path": "resources/facturx/BASIC/FACTUR-X_BASIC.sch"
+    },
+    {
+      "source": "facturx-BASIC-FACTUR-X_BASIC_codedb.xml",
+      "path": "resources/facturx/BASIC/FACTUR-X_BASIC_codedb.xml"
+    },
+    {
+      "source": "facturx-BASIC-Factur-X_1.09.2_BASIC.xsd",
+      "path": "resources/facturx/BASIC/Factur-X_1.09.2_BASIC.xsd"
+    },
+    {
+      "source": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "path": "resources/facturx/BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "path": "resources/facturx/BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd"
+    },
+    {
+      "source": "facturx-BASIC-Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "path": "resources/facturx/BASIC/Factur-X_1.09.2_BASIC_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-BASIC-_XSLT_BASIC--FACTUR-X_BASIC.xslt",
+      "path": "resources/facturx/BASIC/_XSLT_BASIC/FACTUR-X_BASIC.xslt"
+    },
+    {
+      "source": "facturx-BASIC-_XSLT_BASIC--FACTUR-X_BASIC_codedb.xml",
+      "path": "resources/facturx/BASIC/_XSLT_BASIC/FACTUR-X_BASIC_codedb.xml"
+    },
+    {
+      "source": "facturx-EN16931-FACTUR-X_EN16931.sch",
+      "path": "resources/facturx/EN16931/FACTUR-X_EN16931.sch"
+    },
+    {
+      "source": "facturx-EN16931-FACTUR-X_EN16931_codedb.xml",
+      "path": "resources/facturx/EN16931/FACTUR-X_EN16931_codedb.xml"
+    },
+    {
+      "source": "facturx-EN16931-Factur-X_1.09.2_EN16931.xsd",
+      "path": "resources/facturx/EN16931/Factur-X_1.09.2_EN16931.xsd"
+    },
+    {
+      "source": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "path": "resources/facturx/EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "path": "resources/facturx/EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd"
+    },
+    {
+      "source": "facturx-EN16931-Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "path": "resources/facturx/EN16931/Factur-X_1.09.2_EN16931_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-EN16931-_XSLT_EN16931--FACTUR-X_EN16931.xslt",
+      "path": "resources/facturx/EN16931/_XSLT_EN16931/FACTUR-X_EN16931.xslt"
+    },
+    {
+      "source": "facturx-EN16931-_XSLT_EN16931--FACTUR-X_EN16931_codedb.xml",
+      "path": "resources/facturx/EN16931/_XSLT_EN16931/FACTUR-X_EN16931_codedb.xml"
+    },
+    {
+      "source": "facturx-EXTENDED-FACTUR-X_EXTENDED.sch",
+      "path": "resources/facturx/EXTENDED/FACTUR-X_EXTENDED.sch"
+    },
+    {
+      "source": "facturx-EXTENDED-FACTUR-X_EXTENDED_codedb.xml",
+      "path": "resources/facturx/EXTENDED/FACTUR-X_EXTENDED_codedb.xml"
+    },
+    {
+      "source": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED.xsd",
+      "path": "resources/facturx/EXTENDED/Factur-X_1.09.2_EXTENDED.xsd"
+    },
+    {
+      "source": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd",
+      "path": "resources/facturx/EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_QualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd",
+      "path": "resources/facturx/EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_ReusableAggregateBusinessInformationEntity_100.xsd"
+    },
+    {
+      "source": "facturx-EXTENDED-Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd",
+      "path": "resources/facturx/EXTENDED/Factur-X_1.09.2_EXTENDED_urn_un_unece_uncefact_data_standard_UnqualifiedDataType_100.xsd"
+    },
+    {
+      "source": "facturx-EXTENDED-_XSLT_EXTENDED--FACTUR-X_EXTENDED.xslt",
+      "path": "resources/facturx/EXTENDED/_XSLT_EXTENDED/FACTUR-X_EXTENDED.xslt"
+    },
+    {
+      "source": "facturx-EXTENDED-_XSLT_EXTENDED--FACTUR-X_EXTENDED_codedb.xml",
+      "path": "resources/facturx/EXTENDED/_XSLT_EXTENDED/FACTUR-X_EXTENDED_codedb.xml"
+    }
+  ]
 }

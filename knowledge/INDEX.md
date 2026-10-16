@@ -149,3 +149,5 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 
 - [bibliothekspruefung.md](bibliothekspruefung.md) — Bei Konsistenzprüfung,
   Berichtsgruppierung, Track-/Disc-Lücken und `tagx check`.
+
+- [Factur-X-Validierungsartefakte](facturx-validierungsartefakte.md) — Profilketten, mehrdeutige URNs, KoSIT-Fallback, Warnungen und MINIMUM-Summenprüfung.

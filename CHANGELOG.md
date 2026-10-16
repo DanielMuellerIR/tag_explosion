@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.51.0 — 2026-10-16
+
+- Alle fünf aktuellen ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profile mit eigenen
+  D22B-Schemata, originalen Schematron-Regeln und Codelisten lokal prüfen.
+  App und allgemeiner CLI-Befehl `validate-invoice` nutzen denselben Dienst.
+- Profilabhängige Prüfkette und Regelmetadaten; reduzierte Profile und die
+  Mehrdeutigkeit der Dokumentversion stehen ausdrücklich am Ergebnis.
+  Nichtfatale Factur-X-Warnungen bleiben sichtbar und verhindern keinen Erfolg.
+- Lizenzinventar und verpflichtendes Quellenpaket um 40 technische
+  Originaldateien erweitert; Apache-Lizenz und FeRD-/CEN-/DIN-Nutzungshinweis
+  mitgeliefert. Norm-PDFs, Spezifikationstabellen und Logos werden nicht verpackt.
+- Grundprüfung für MINIMUM korrigiert: eine nicht vorhandene
+  Steueraufschlüsselung wird nicht mehr als Steuerbetrag null behandelt.
+
 ## 0.50.0 — 2026-10-16
 
 - XRechnung in der App prüfen: XML-Ansicht und PDF-Rechnungstab erhalten eine

@@ -83,11 +83,12 @@ public enum XRechnungValidator {
     }
 
     static func validate(xml data: Data, bundle: URL, processTimeout: TimeInterval = 60,
+                         ruleSet: InvoiceValidationRuleSet = .xrechnung,
                          cancellation: ExternalToolRunner.Cancellation? = nil) throws -> XRechnungValidationReport {
         try cancellation?.check()
         try checkInput(data)
         guard processTimeout.isFinite, processTimeout > 0 else { throw Failure.invalidTimeLimit }
-        let ruleSet = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
+        _ = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
         let fm = FileManager.default
         let bundle = bundle.standardizedFileURL
         let java = bundle.appendingPathComponent("runtime/Contents/Home/bin/java")
@@ -132,13 +133,14 @@ public enum XRechnungValidator {
             throw Failure.invalidReport
         }
         try checkInput(reportData)
-        let report = try parseReport(reportData, configurationRelease: ruleSet.configurationRelease)
+        let report = try parseReport(reportData, configurationRelease: ruleSet.configurationRelease, ruleSet: ruleSet)
         guard !processRejected || report.status != .passed else { throw Failure.invalidReport }
         _ = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
         return report
     }
 
-    static func parseReport(_ data: Data, configurationRelease: String) throws -> XRechnungValidationReport {
+    static func parseReport(_ data: Data, configurationRelease: String,
+                            ruleSet: InvoiceValidationRuleSet = .xrechnung) throws -> XRechnungValidationReport {
         let reportNS = "http://www.xoev.de/de/validator/varl/1"
         let scenarioNS = "http://www.xoev.de/de/validator/framework/1/scenarios"
         guard let document = try? XMLTools.document(from: data, path: "KoSIT-Bericht"),
@@ -183,10 +185,10 @@ public enum XRechnungValidator {
         if steps.contains(where: { $0.id == "val-xml" && !$0.valid }) {
             guard rejected else { throw Failure.invalidReport }
             status = .failed
-        } else if !supportedScenarios.contains(scenario ?? "") {
+        } else if !ruleSet.profiles.contains(where: { $0.scenario == scenario }) {
             status = .unsupported
         } else if accepted {
-            let required = ["val-xml", "val-xsd", "val-sch.1", "val-sch.2"]
+            let required = ruleSet.requiredSteps
             guard XMLTools.attribute(root, "valid") == "true",
                   steps.allSatisfy(\.valid),
                   !issues.contains(where: { ["error", "fatal"].contains($0.severity) }) else {
@@ -207,5 +209,4 @@ public enum XRechnungValidator {
                      steps: steps, issues: issues, notice: XRechnungValidationReport.notice)
     }
 
-    private static let supportedScenarios = Set(InvoiceValidationRuleSet.xrechnung.profiles.map(\.scenario))
 }

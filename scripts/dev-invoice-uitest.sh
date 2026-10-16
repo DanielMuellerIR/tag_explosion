@@ -15,7 +15,8 @@ guard ["de", "en"].contains(language) else { kitFail("Sprache muss de oder en se
 let resultURL = outDir.appendingPathComponent("ui-result.json")
 guard !FileManager.default.fileExists(atPath: resultURL.path) else { kitFail("Testverzeichnis enthält bereits ein Ergebnis") }
 let foreground = NSWorkspace.shared.frontmostApplication?.processIdentifier
-let deadline = Date().addingTimeInterval(allowFocus ? 35 : 70)
+let hasProfiles = FileManager.default.fileExists(atPath: outDir.appendingPathComponent("MINIMUM.xml").path)
+let deadline = Date().addingTimeInterval(hasProfiles ? 160 : (allowFocus ? 35 : 70))
 guard let app = launchTestInstance(activates: false, arguments: ["--invoice-ui-selftest", outDir.path, "-AppleLanguages", "(\(language))"]) else {
     shutDownOwnedInstances(followUpFor: 8)
     kitFail("Test-App nicht gestartet")

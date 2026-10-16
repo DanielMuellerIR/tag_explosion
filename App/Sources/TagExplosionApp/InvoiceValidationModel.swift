@@ -216,7 +216,7 @@ enum InvoiceValidationPresentation {
     }
 
     static func steps(_ result: InvoiceValidationResult) -> [DisplayedStep] {
-        var ids = result.ruleSet == nil ? [] : ["val-xml", "val-xsd", "val-sch.1", "val-sch.2"]
+        var ids = result.ruleSet?.requiredSteps ?? []
         for step in result.steps where !ids.contains(step.id) { ids.append(step.id) }
         return ids.map { id in .init(id: id, status: result.steps.first { $0.id == id }?.status ?? .notChecked) }
     }
@@ -251,6 +251,10 @@ enum InvoiceValidationPresentation {
         String(localized: "Technische Prüfung ausschließlich gegen das genannte Regelpaket. Keine Zusicherung rechtlicher oder steuerlicher Gültigkeit und keine Garantie der Annahme durch einen Empfänger. Die Software und ihre Prüfergebnisse werden ohne Gewähr für Richtigkeit, Vollständigkeit oder Eignung für einen bestimmten Zweck bereitgestellt. Gewährleistung und Haftung sind nach Maßgabe der MIT-Lizenz im gesetzlich zulässigen Umfang ausgeschlossen; zwingende gesetzliche Haftung bleibt unberührt.")
     }
 
+    static var standardNotice: String {
+        String(localized: "Diese Anwendung setzt den ZUGFeRD-/Factur-X-Standard um. Die Wiedergabe der zugrunde liegenden Veröffentlichung erfolgt nach den von FeRD veröffentlichten Nutzungsbedingungen mit Erlaubnis von CEN und DIN als Copyright-Inhabern.")
+    }
+
     static func severity(_ severity: InvoiceValidationResult.Issue.Severity) -> String {
         switch severity {
         case .error: String(localized: "Fehler")
@@ -259,11 +263,11 @@ enum InvoiceValidationPresentation {
         }
     }
 
-    static func step(_ id: String) -> String {
+    static func step(_ id: String, ruleSet: InvoiceValidationRuleSet? = nil) -> String {
         switch id {
         case "val-xml": String(localized: "XML-Syntax")
         case "val-xsd": String(localized: "XML-Schema (XSD)")
-        case "val-sch.1": String(localized: "EN-16931-Regeln")
+        case "val-sch.1": ruleSet?.id == InvoiceValidationRuleSet.facturX.id ? String(localized: "Factur-X-Profilregeln") : String(localized: "EN-16931-Regeln")
         case "val-sch.2": String(localized: "XRechnung-Regeln")
         case "pdfa": "PDF/A"
         case "pdf-embedding": String(localized: "PDF-Einbettung")
@@ -293,7 +297,7 @@ enum InvoiceValidationPresentation {
                       result.profile?.guidelineID ?? "", result.source.map { "XML SHA-256: " + $0.xmlSHA256 } ?? "",
                       result.source.map { "FILE SHA-256: " + $0.fileSHA256 } ?? ""]
             if let xmlStatus = result.xmlStatus, xmlStatus != result.status { lines.append(title(xmlStatus)) }
-            for item in steps(result) { lines.append("\(step(item.id)) [\(item.id)]: \(stepStatus(item.status))") }
+            for item in steps(result) { lines.append("\(step(item.id, ruleSet: result.ruleSet)) [\(item.id)]: \(stepStatus(item.status))") }
             for issue in result.issues {
                 lines.append("\(severity(issue.severity)) [\(issue.code ?? "XML")]: \(issue.message)")
                 if let field = field(for: issue, document: document) { lines.append(field) }
@@ -304,7 +308,7 @@ enum InvoiceValidationPresentation {
             }
         }
         if let error { lines.append(error) }
-        lines += ["", notice]
+        lines += ["", notice, "", standardNotice]
         return lines.filter { !$0.isEmpty }.joined(separator: "\n")
     }
 }

@@ -13,7 +13,7 @@ struct Tagx: AsyncParsableCommand {
         abstract: "Show and edit media metadata (Tag Explosion CLI).",
         version: tagxVersion,
         subcommands: [Show.self, Set.self, Cover.self, Chapters.self, Lyrics.self, Layers.self,
-                      Info.self, Exif.self, Ebook.self, Doc.self, Invoice.self, ValidateXRechnung.self, Export.self,
+                      Info.self, Exif.self, Ebook.self, Doc.self, Invoice.self, ValidateXRechnung.self, ValidateInvoice.self, Export.self,
                       Import.self, Rename.self, Parse.self, Apply.self, Playlist.self, Cue.self,
                       Nfo.self, Subtitle.self, Check.self, History.self, Lookup.self],
         defaultSubcommand: Show.self

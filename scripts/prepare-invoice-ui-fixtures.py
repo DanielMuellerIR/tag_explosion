@@ -5,6 +5,8 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import urllib.request
 
 
@@ -32,6 +34,7 @@ def pdf(xml):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--facturx", action="store_true", help="Eigene aktuelle Factur-X-Profilfälle ergänzen")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     spec = importlib.util.spec_from_file_location("kosit_fixtures", Path(__file__).with_name("test-xrechnung-prototype.py"))
@@ -49,6 +52,28 @@ def main():
     (args.output / "failed.xml").write_text(changed, encoding="utf-8")
     (args.output / "unknown.xml").write_text(ubl.replace("xrechnung_3.0", "xrechnung_9.9"), encoding="utf-8")
     (args.output / "invoice.pdf").write_bytes(pdf(data["ubl"]))
+    if args.facturx:
+        root = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory(prefix="invoice-fixture-generator-") as temporary:
+            work = Path(temporary)
+            (work / "main.swift").write_text('''import Foundation
+for profile in InvoiceValidationFixtures.facturXProfiles {
+    try Data(InvoiceValidationFixtures.facturX(profile: profile.name).utf8).write(to: URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent(profile.name + ".xml"))
+}
+''')
+            subprocess.run(["xcrun", "swiftc", str(root / "Tests/Support/InvoiceValidationFixtures.swift"),
+                            str(root / "Tests/Support/FacturXValidationFixtures.swift"), str(work / "main.swift"),
+                            "-o", str(work / "generate")], check=True)
+            subprocess.run([str(work / "generate"), str(args.output.resolve())], check=True)
+        minimum = (args.output / "MINIMUM.xml").read_text()
+        (args.output / "FACTURX-schema.xml").write_text(minimum.replace("<ram:TypeCode>380", "<ram:Unexpected/><ram:TypeCode>380"))
+        (args.output / "FACTURX-rule.xml").write_text(minimum.replace(
+            "<ram:SpecifiedLegalOrganization><ram:ID>TEST-SELLER</ram:ID></ram:SpecifiedLegalOrganization>", "").replace(
+            '<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">DE123456789</ram:ID></ram:SpecifiedTaxRegistration>', ""))
+        basic = (args.output / "BASIC.xml").read_text()
+        warning = basic.replace('<ram:ActualDeliverySupplyChainEvent><ram:OccurrenceDateTime><udt:DateTimeString format="102">20261016</udt:DateTimeString></ram:OccurrenceDateTime></ram:ActualDeliverySupplyChainEvent>', "")
+        (args.output / "FACTURX-warning.xml").write_text(warning)
+        (args.output / "FACTURX-pdf.pdf").write_bytes(pdf((args.output / "EXTENDED.xml").read_bytes()))
     print(args.output)
 
 

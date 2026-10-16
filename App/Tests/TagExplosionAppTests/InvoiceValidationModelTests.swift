@@ -20,6 +20,27 @@ struct InvoiceValidationModelTests {
         }
     }
 
+    @Test("Factur-X zeigt nur die eigene Prüfkette und alle Nutzungshinweise")
+    func facturXPresentation() throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for profile in InvoiceValidationFixtures.facturXProfiles {
+            let file = dir.appendingPathComponent("invoice.xml")
+            try Data(InvoiceValidationFixtures.facturX(profile: profile.name).utf8).write(to: file)
+            let result = InvoiceValidationService.validate(url: file, bundle: dir)
+            #expect(result.status == .technicalError)
+            #expect(result.ruleSet == .facturX)
+            let steps = InvoiceValidationPresentation.steps(result)
+            #expect(steps.map(\.id) == ["val-xml", "val-xsd", "val-sch.1"])
+            #expect(steps.allSatisfy { $0.status == .notChecked })
+            #expect(InvoiceValidationPresentation.step("val-sch.1", ruleSet: result.ruleSet) == String(localized: "Factur-X-Profilregeln"))
+            let report = InvoiceValidationPresentation.report(result: result, status: result.status, error: nil, url: file)
+            #expect(report.contains(InvoiceValidationPresentation.notice))
+            #expect(report.contains(InvoiceValidationPresentation.standardNotice))
+            #expect(!report.contains("[val-sch.2]"))
+        }
+    }
+
     @Test("Der Dateiwächter folgt der neuen Auswahl und verwirft ihr Ergebnis nach Änderung")
     func selectionAndFileChange() async throws {
         let dir = try directory()

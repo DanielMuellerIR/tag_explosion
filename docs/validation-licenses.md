@@ -53,6 +53,7 @@ die ursprünglichen KoSIT-Quellen und Änderungsangaben bleiben im Quellenpaket.
 | XRechnung-Schematron 2.6.0 | Ursprüngliches Paket samt Apache-Lizenz und Regelquellen mitliefern. |
 | SchXslt 1.10.1 | MIT; Original-Lizenz mit David-Maus-Copyright und Quellen der erzeugten Templates mitliefern. |
 | UBL-2.1-Schemata | Originale OASIS-Copyright-/Permission-Hinweise in den unveränderten XSD-Dateien erhalten. Die Schemata liegen bereits als Quelltext vor. |
+| ZUGFeRD 2.5.2 / Factur-X 1.09.2 | Apache-2.0 für technische XSD-/Schematron-/Codelisten-Dateien; 40 unveränderte Originaldateien aus einem fest gepinnten öffentlichen technischen Spiegel. Eigene begrenzte KoSIT-Szenarien und Berichtsschicht unter MIT. FeRD-Nutzungs-/CEN-/DIN-Hinweis im Bundle und zugänglich in der App. Keine Norm-PDFs, Tabellen oder Logos. |
 | CII-D16B-Schemata | Originale UN/CEFACT-Copyright-/Permission-Hinweise in den unveränderten XSD-Dateien erhalten. Keine eigenmächtigen Änderungen dieser Schemata. |
 
 Die vollständigen gemeinsamen Lizenztexte liegen unter
@@ -71,7 +72,7 @@ python3 scripts/validation_compliance.py .build/xrechnung-validator-arm64 \
 Das Vorbereitungsskript erzeugt ein Binärpaket und ein separates, dazu passendes
 Quellenverzeichnis. Downloads werden vor Verwendung auf die gepinnten Hashes
 geprüft; ein vorhandenes Ziel wird nicht überschrieben. Das Quellenverzeichnis
-enthält 24 Original-Quell-/Datenartefakte einschließlich OpenJDK und Regelquellen,
+enthält 64 Original-Quell-/Datenartefakte einschließlich OpenJDK und Regelquellen,
 deren Lizenzen und Herkunft im Manifest stehen. Binär- und Quellenmanifest sind
 über die Hashes des Inventars und des Quellenmanifests miteinander verbunden.
 
@@ -88,7 +89,7 @@ Die Probe-Verpackung erzeugt neben dem App-ZIP ein
 zugehörige Quellenpaket neben genau diesem Binärstand bereitstehen und für die
 Empfänger zugänglich bleiben. Ein bloßer Link auf fremde Upstream-Server ist
 nicht der hier gewählte Weg zur Erfüllung der Quellcodepflichten. Die Integration
-dieser verbindlichen Prüfung ist seit 0.50.0 für XRechnung auch im App-Build
+dieser verbindlichen Prüfung ist seit 0.50.0 für XRechnung und seit 0.51.0 zusätzlich für Factur-X im App-Build
 umgesetzt. Die abschließende Distribution-/Updateabnahme sämtlicher Profile
 bleibt ein eigener Meilenstein. Es wurde noch kein öffentliches Release veröffentlicht.
 
@@ -102,13 +103,16 @@ python3 Tests/validation-compliance-tests.py \
 
 ## Grundlage weiterer Komponenten
 
-- **ZUGFeRD 2.5.2 / Factur-X 1.09.2:** FeRD benennt für technische Artefakte
-  (Schema/Schematron) ausdrücklich Apache-2.0. Die Norm-/Spezifikationsdokumente
-  und Logos haben andere Bedingungen und werden nicht automatisch mitgeliefert.
-  Der konkrete spätere Download, seine Original-Hinweise und enthaltenen
-  Fremdteile werden vor dem Pin geprüft. Die aktuelle Herstellerseite bietet
-  den Komplettdownload über ein Kontaktformular; es werden keine Kontaktdaten
-  ohne Auftrag übermittelt. [FeRD-Nutzungsrechte](https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte),
+- **ZUGFeRD 2.5.2 / Factur-X 1.09.2:** konkret aufgenommen und über jede
+  Datei gepinnt. FeRD erlaubt die technischen Artefakte unter Apache-2.0.
+  Der öffentliche Spiegel ist `LandrixSoftware/validator-configuration-zugferd`
+  bei Commit `8399f5459df34b2af9cae0d613870649b3f17a58`. Verwendet werden
+  ausschließlich die originalen Unterverzeichnisse der fünf Profile,
+  einschließlich `.sch`, `_codedb.xml` und originalem `_XSLT_*`; die separat
+  modifizierten XSLTs, der allgemeine Wrapper-Fallback und Spezifikationstabellen
+  des Spiegels werden nicht übernommen. Jede Quelldatei liegt mit im Sources-Paket.
+  Kontaktformulare wurden nicht verwendet und keine Kontaktdaten übermittelt.
+  [FeRD-Nutzungsrechte](https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte),
   [aktuelles Release](https://www.ferd-net.de/publikationen-produkte/publikationen/detailseite/zugferd-252-deutsch).
 - **Peppol BIS Billing 3.0:** Die KoSIT-Konfiguration hat Apache-2.0 und eigene
   CEN-/DIN-Hinweise. Das bedeutet nicht, dass die OpenPeppol-Spezifikation frei
