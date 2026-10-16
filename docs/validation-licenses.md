@@ -187,3 +187,16 @@ eindeutige LICENSE-/NOTICE-Freigabe für die kompilierten OpenPeppol-Regeln.
 Die Einschränkung zur Spezifikationsdokumentation wird nicht pauschal auf die
 Technikdateien übertragen; deren eigene Weitergaberechte sind separat zu
 belegen. Bis dahin werden diese Dateien nicht eingebaut.
+
+## Verbindlicher Release- und Updateabschluss
+
+Seit 0.53.0 entpackt `scripts/verify-validation-distribution.py` beide tatsächlich
+erzeugten Quellen-ZIPs und prüft sie gegen das App-Bundle und die Releaseversion.
+Der Build führt dies vor Signierung aus; `release.sh` wiederholt es gegen das
+schreibgeschützt eingehängte, notariserte DMG einschließlich App-Signatur,
+Gatekeeper und Stapler-Tickets. Nur eigene Mounts werden gelöst.
+
+Der Appcast-Workflow prüft am tatsächlichen Release-Tag dieselben DMG-/Quellen-
+Artefakte, bevor er einen Feed erzeugt. Diese lokale Implementierung bestätigt
+noch keinen tatsächlich veröffentlichten Feed oder durchgeführten Sparkle-
+Upgrade-Lauf. Eine öffentliche Veröffentlichung benötigt einen eigenen Auftrag.

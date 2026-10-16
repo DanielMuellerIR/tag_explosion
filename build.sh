@@ -279,6 +279,9 @@ printf '"Open in Tag Explosion" = "Open in Tag Explosion";\n' > "$app/Contents/R
 plutil -replace SUFeedURL -string "$sparkle_feed_url" "$app/Contents/Info.plist"
 plutil -lint "$app/Contents/Info.plist" >/dev/null
 
+# Auch die erzeugten ZIPs müssen portabel entpackt exakt zum Bundle passen.
+python3 "$here/scripts/verify-validation-distribution.py" "$app" --artifacts "$here" --version "$version"
+
 # Debug-Symbole aus der eigenen Binärdatei entfernen, BEVOR signiert wird (strip
 # macht eine vorhandene Signatur ungültig). `swift build -c release` legt eine
 # Debug-Map hinein: für jede übersetzte Quelldatei einen Eintrag mit dem vollen

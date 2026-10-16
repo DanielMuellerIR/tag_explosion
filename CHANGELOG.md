@@ -8,6 +8,17 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.53.0 — 2026-10-16
+
+- Tatsächlich erzeugte XML-/PDF-Quellen-ZIPs vor Bündelabschluss portabel
+  entpacken und gegen die mitgelieferten Komponenten prüfen. Fehlende Quellen,
+  Versionskonflikte und unsichere ZIP-Einträge verhindern die Auslieferung.
+- Der Release-Abschluss prüft zusätzlich das notariserte DMG und die darin
+  enthaltene App samt beider Quellenpakete. Eigene Mounts werden gezielt gelöst.
+- Sparkle-Publikationsworkflow am konkreten Release-Tag ausführen und beide
+  passenden Quellenpakete vor der Feed-Erzeugung prüfen. Die Änderung allein
+  veröffentlicht kein Release und keinen Feed.
+
 ## 0.52.0 — 2026-10-16
 
 - Hybride Rechnungen lokal mit veraPDF 1.30.3 auf PDF/A-3a, 3b, 3u oder 4f

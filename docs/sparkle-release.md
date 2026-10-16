@@ -93,9 +93,16 @@ projekteigene Schlüssel existiert bereits — es gibt also auch nichts zu spare
    entscheidet reines Timing, und ein Fehlschlag kostet die komplette
    Notarisierung erneut. Auf einer Maschine ohne Finder-Sitzung stattdessen
    `--no-finder-layout` verwenden.
-3. Ein GitHub Release als Entwurf anlegen, genau ein DMG anhängen, Release
-   Notes eintragen und erst danach veröffentlichen.
-4. `.github/workflows/publish-appcast.yml` lädt dieses DMG, erzeugt mit
+3. Ein GitHub Release als Entwurf anlegen, genau ein DMG **und beide** passenden
+   Quellenpakete `TagExplosion-<version>-validation-sources.zip` und
+   `TagExplosion-<version>-pdf-validation-sources.zip` anhängen. Die Quellen müssen
+   für Empfänger dieses Binärstands zugänglich bleiben. Release Notes eintragen
+   und erst danach veröffentlichen. `release.sh` prüft zuvor das tatsächliche
+   DMG-Bundle gegen die portabel entpackten ZIPs; Erfolg erfordert passende
+   Version, Inventare, originale Lizenzen und Quellen.
+4. `.github/workflows/publish-appcast.yml` checkt den konkreten Release-Tag aus,
+   lädt DMG und beide Quellenpakete und wiederholt diese Auslieferungsprüfung.
+   Fehlende/abweichende Quellen verhindern die Feed-Erstellung. Danach erzeugt es mit
    Sparkles `generate_appcast` einen signierten Feed, bettet die Release Notes
    ein und veröffentlicht `appcast.xml` über GitHub Pages.
 5. Den signierten Feed gegenprüfen, ohne auf einen Update-Lauf zu warten:

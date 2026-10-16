@@ -12,7 +12,7 @@ enthält Detailausarbeitung, Implementierung, passende Tests und Dokumentation.
 | EIV4 — ZUGFeRD/Factur-X | MINIMUM, BASIC WL, BASIC, EN 16931 und EXTENDED mit zusammengehörigen offiziellen XSD-/Schematron-Ständen | implementiert in 0.51.0; native Sichtabnahme ausstehend |
 | EIV5 — Peppol Billing | UBL Invoice/CreditNote mit offizieller Regelkombination; technische Artefakt-Rechte vorher belegen | blockiert durch fehlenden eindeutigen Rechtebeleg für die technischen Regeln |
 | EIV6 — Hybride PDF-Rechnung | PDF/A, XML-Einbettung und XMP-/AF-Metadaten mit eigenem Containerergebnis | implementiert in 0.52.0; Auslieferungs- und native Abnahme laufen |
-| EIV7 — Distribution und Updates | Laufzeit/Regeln im regulären App-Build, Quellenpaket, Lizenzprüfung, signiertes Bundle/DMG und Updateweg | offen |
+| EIV7 — Distribution und Updates | Laufzeit/Regeln im regulären App-Build, Quellenpaket, Lizenzprüfung, signiertes Bundle/DMG und Updateweg | Auslieferungssperren und notarisiertes DMG lokal geprüft in 0.53.0; echtes Update offen |
 | EIV8 — Gesamtabnahme | Reale GUI-/Offline-/Systemtests, korrigierte Restfehler, aktuelle Supportmatrix und Produktdokumentation | offen |
 
 Die Ausführung folgt dieser Reihenfolge. EIV3 benötigt EIV2; EIV4/EIV5 nutzen

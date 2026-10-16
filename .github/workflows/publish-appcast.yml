@@ -33,6 +33,8 @@ jobs:
     steps:
       - name: Quelltext auschecken
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: GitHub Pages vorbereiten
         uses: actions/configure-pages@v6
@@ -50,6 +52,17 @@ jobs:
             echo "FEHLER: Release $RELEASE_TAG muss genau ein DMG enthalten." >&2
             exit 1
           fi
+
+          stem="$(basename "${dmgs[0]}" .dmg)"
+          version="${RELEASE_TAG#v}"
+          if [[ "$stem" != "TagExplosion-$version" || "$(tr -d '[:space:]' < VERSION)" != "$version" ]]; then
+            echo "FEHLER: Release-Tag, Quellstand und DMG-Version passen nicht zusammen." >&2
+            exit 1
+          fi
+          gh release download "$RELEASE_TAG" --pattern "$stem-validation-sources.zip" --dir update
+          gh release download "$RELEASE_TAG" --pattern "$stem-pdf-validation-sources.zip" --dir update
+          python3 scripts/verify-validation-distribution.py "${dmgs[0]}" \
+            --artifacts update --version "$version"
 
           # Gleicher Basisname: generate_appcast ordnet die Markdown-Datei dem DMG zu.
           gh release view "$RELEASE_TAG" --json body --jq .body > "${dmgs[0]%.dmg}.md"

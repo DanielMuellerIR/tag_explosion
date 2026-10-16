@@ -42,6 +42,7 @@ dmg="$here/TagExplosion-$version.dmg"
 
 # Beweisen, dass das ausgelieferte DMG wirklich gestapelt ist.
 xcrun stapler validate "$dmg"
+python3 "$here/scripts/verify-validation-distribution.py" "$dmg" --artifacts "$here" --version "$version"
 
 echo
 echo "RELEASE OK: $dmg"
