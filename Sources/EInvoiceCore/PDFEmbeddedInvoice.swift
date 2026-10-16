@@ -107,9 +107,23 @@ enum PDFEmbeddedInvoice {
     /// `materializedBudgetFactor`-Fache davon erreichen. Nur Tests setzen die
     /// Werte klein, um die Grenzen ohne 64-MiB-Fixture zu prüfen.
     static func extract(url: URL, byteBudget: Int = maxTotalBytes) throws -> Extraction {
-        guard let document = CGPDFDocument(url as CFURL),
-              let catalog = document.catalog else {
+        guard let document = CGPDFDocument(url as CFURL) else {
             throw EInvoiceError.pdfUnreadable(url.path)
+        }
+        return try extract(document: document, byteBudget: byteBudget)
+    }
+
+    static func extract(data: Data, byteBudget: Int = maxTotalBytes) throws -> Extraction {
+        guard let provider = CGDataProvider(data: data as CFData),
+              let document = CGPDFDocument(provider) else {
+            throw EInvoiceError.pdfUnreadable("PDF-Schnappschuss")
+        }
+        return try extract(document: document, byteBudget: byteBudget)
+    }
+
+    private static func extract(document: CGPDFDocument, byteBudget: Int) throws -> Extraction {
+        guard let catalog = document.catalog else {
+            throw EInvoiceError.pdfUnreadable("PDF-Katalog fehlt")
         }
 
         // Die XMP-Deklaration zuerst: Sie benennt die maßgebliche

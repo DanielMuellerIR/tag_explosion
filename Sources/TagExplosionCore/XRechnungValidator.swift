@@ -1,4 +1,4 @@
-// KoSIT-Prototyp: Original-XML und mitgelieferte Laufzeit bleiben getrennt
+// KoSIT-Ausführung: Original-XML und mitgelieferte Laufzeit bleiben getrennt
 // vom Anzeigemodell. Ein fehlender Prüfschritt darf niemals Erfolg bedeuten.
 import Foundation
 #if canImport(FoundationXML)
@@ -42,53 +42,58 @@ public struct XRechnungValidationReport: Codable, Sendable {
 
 public enum XRechnungValidator {
     public enum Failure: Error, LocalizedError {
-        case unavailableBundle, inputTooLarge, doctypeNotAllowed, invalidReport
+        case unavailableBundle, inputTooLarge, doctypeNotAllowed, invalidReport, incompleteReport, invalidTimeLimit, pdfNotSupported
 
         public var errorDescription: String? {
             switch self {
             case .unavailableBundle: "Das KoSIT-Prüfpaket fehlt oder ist unvollständig."
-            case .inputTooLarge: "Der Prototyp prüft XML-Dateien bis 16 MiB."
-            case .doctypeNotAllowed: "Der Prototyp prüft keine XML-Dateien mit DOCTYPE."
+            case .inputTooLarge: "Die Prüfung unterstützt XML-Dateien bis 16 MiB."
+            case .doctypeNotAllowed: "XML-Dateien mit DOCTYPE werden nicht geprüft."
             case .invalidReport: "KoSIT lieferte keinen vollständigen, auswertbaren Prüfbericht."
+            case .incompleteReport: "KoSIT hat nicht alle erforderlichen Prüfschritte bestätigt."
+            case .invalidTimeLimit: "Das Zeitlimit muss eine positive, endliche Zahl sein."
+            case .pdfNotSupported: "Für PDF-Anhänge die gemeinsame Ausgabe mit --format common verwenden."
             }
         }
-    }
-
-    private struct Manifest: Decodable {
-        let validatorVersion: String
-        let configurationRelease: String
     }
 
     /// Kein Rückgriff auf System-Java, PATH oder JAVA_HOME. Das Paket ist
     /// explizit angegeben und kann später unverändert im App-Bundle liegen.
     public static func validate(url: URL, bundle: URL,
                                 cancellation: ExternalToolRunner.Cancellation? = nil) throws -> XRechnungValidationReport {
+        guard url.pathExtension.lowercased() != "pdf" else { throw Failure.pdfNotSupported }
+        let input = try InvoiceValidationInput.capture(at: url, cancellation: cancellation)
+        let report: XRechnungValidationReport
+        do {
+            report = try validate(xml: input.payload.xml, bundle: bundle, cancellation: cancellation)
+        } catch Failure.incompleteReport {
+            throw Failure.invalidReport
+        }
+        guard input.source.isCurrent(at: url) else { throw InvoiceValidationInput.Failure.changed }
+        return report
+    }
+
+    static func checkInput(_ data: Data) throws {
+        guard data.count <= InvoiceValidationInput.maximumXMLBytes else { throw Failure.inputTooLarge }
+        // Konservativer Vorfilter auch für UTF-16/32: Die ASCII-Bytes einer
+        // DOCTYPE-Deklaration bleiben nach Entfernen der Nullbytes erkennbar.
+        guard Data(data.filter { $0 != 0 }).range(of: Data("<!DOCTYPE".utf8)) == nil else {
+            throw Failure.doctypeNotAllowed
+        }
+    }
+
+    static func validate(xml data: Data, bundle: URL, processTimeout: TimeInterval = 60,
+                         cancellation: ExternalToolRunner.Cancellation? = nil) throws -> XRechnungValidationReport {
+        try cancellation?.check()
+        try checkInput(data)
+        guard processTimeout.isFinite, processTimeout > 0 else { throw Failure.invalidTimeLimit }
+        let ruleSet = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
         let fm = FileManager.default
         let bundle = bundle.standardizedFileURL
         let java = bundle.appendingPathComponent("runtime/Contents/Home/bin/java")
         let jar = bundle.appendingPathComponent("validator.jar")
         let configuration = bundle.appendingPathComponent("configuration")
         let scenarios = configuration.appendingPathComponent("scenarios.xml")
-        guard fm.isExecutableFile(atPath: java.path), fm.fileExists(atPath: jar.path),
-              fm.fileExists(atPath: scenarios.path),
-              let manifestData = try? Data(contentsOf: bundle.appendingPathComponent("manifest.json")),
-              let manifest = try? JSONDecoder().decode(Manifest.self, from: manifestData),
-              manifest.validatorVersion == "1.6.3", manifest.configurationRelease == "2026-08-31" else {
-            throw Failure.unavailableBundle
-        }
-
-        let input = try FileHandle(forReadingFrom: url)
-        defer { try? input.close() }
-        let limit = 16 * 1024 * 1024
-        let data = try input.read(upToCount: limit + 1) ?? Data()
-        guard data.count <= limit else { throw Failure.inputTooLarge }
-        // Konservativer Vorfilter auch für UTF-16/32: Die ASCII-Bytes einer
-        // DOCTYPE-Deklaration bleiben nach Entfernen der Nullbytes erkennbar.
-        guard Data(data.filter { $0 != 0 }).range(of: Data("<!DOCTYPE".utf8)) == nil else {
-            throw Failure.doctypeNotAllowed
-        }
-        try cancellation?.check()
-
         let temporary = fm.temporaryDirectory.appendingPathComponent("tagx-kosit-\(UUID().uuidString)")
         try fm.createDirectory(at: temporary, withIntermediateDirectories: true,
                                attributes: [.posixPermissions: 0o700])
@@ -105,8 +110,15 @@ public enum XRechnungValidator {
             "-o", temporary.path, snapshot.path,
         ]
         var processRejected = false
+        var environment = ExternalToolRunner.utf8Environment()
+        // JVM-Optionen aus der Login-Umgebung dürfen die festgelegten
+        // Speicher-/Sicherheitseinstellungen oder den Codepfad nicht ändern.
+        for name in ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH"] {
+            environment.removeValue(forKey: name)
+        }
         do {
-            _ = try ExternalToolRunner.run(java.path, arguments, processTimeout: 60, cancellation: cancellation)
+            _ = try ExternalToolRunner.run(java.path, arguments, processTimeout: processTimeout,
+                                           outputLimit: 4 * 1024 * 1024, environment: environment, cancellation: cancellation)
         } catch TagError.toolFailed(_, let exitCode, _) where [1, 2].contains(exitCode) {
             // KoSIT 1.6.3 liefert bei regulärer Zurückweisung Exit 1 oder 2.
             // Ausschlaggebend bleibt der Bericht, nicht der Prozess-Exit allein.
@@ -114,9 +126,15 @@ public enum XRechnungValidator {
         }
         try cancellation?.check()
         let reportURL = temporary.appendingPathComponent("invoice-report.xml")
-        guard let reportData = try? Data(contentsOf: reportURL) else { throw Failure.invalidReport }
-        let report = try parseReport(reportData, configurationRelease: manifest.configurationRelease)
+        guard let reportData = try? InvoiceValidationInput.readBytes(at: reportURL, limit: 16 * 1024 * 1024,
+            cancellation: cancellation) else {
+            try cancellation?.check()
+            throw Failure.invalidReport
+        }
+        try checkInput(reportData)
+        let report = try parseReport(reportData, configurationRelease: ruleSet.configurationRelease)
         guard !processRejected || report.status != .passed else { throw Failure.invalidReport }
+        _ = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
         return report
     }
 
@@ -154,6 +172,9 @@ public enum XRechnungValidator {
             }
         }
         guard Set(steps.map(\.id)).count == steps.count else { throw Failure.invalidReport }
+        guard issues.allSatisfy({ ["error", "fatal", "warning", "info", "information"].contains($0.severity) }) else {
+            throw Failure.invalidReport
+        }
         let accepted = XMLTools.firstElement(named: "accept", in: assessment) != nil
         let rejected = XMLTools.firstElement(named: "reject", in: assessment) != nil
         guard accepted != rejected else { throw Failure.invalidReport }
@@ -162,15 +183,17 @@ public enum XRechnungValidator {
         if steps.contains(where: { $0.id == "val-xml" && !$0.valid }) {
             guard rejected else { throw Failure.invalidReport }
             status = .failed
-        } else if scenario?.hasPrefix("EN16931 XRechnung ") != true {
+        } else if !supportedScenarios.contains(scenario ?? "") {
             status = .unsupported
         } else if accepted {
             let required = ["val-xml", "val-xsd", "val-sch.1", "val-sch.2"]
             guard XMLTools.attribute(root, "valid") == "true",
-                  required.allSatisfy({ id in steps.contains { $0.id == id && $0.valid } }),
                   steps.allSatisfy(\.valid),
                   !issues.contains(where: { ["error", "fatal"].contains($0.severity) }) else {
                 throw Failure.invalidReport
+            }
+            guard required.allSatisfy({ id in steps.contains { $0.id == id && $0.valid } }) else {
+                throw Failure.incompleteReport
             }
             status = .passed
         } else {
@@ -183,4 +206,6 @@ public enum XRechnungValidator {
                      configurationRelease: configurationRelease, scenario: scenario,
                      steps: steps, issues: issues, notice: XRechnungValidationReport.notice)
     }
+
+    private static let supportedScenarios = Set(InvoiceValidationRuleSet.xrechnung.profiles.map(\.scenario))
 }

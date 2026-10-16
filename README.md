@@ -128,9 +128,11 @@
   unmapped fields stay visible with their raw path, and common codes are
   decoded (document type, VAT category, payment means, units). Works on
   standalone XML files and on PDFs with an embedded invoice, which get an
-  extra "E-Invoice" tab. A separate [KoSIT CLI prototype](docs/e-invoice-validation.md)
-  checks XRechnung XML against XSD and Schematron using a private Java runtime;
-  it is not yet integrated into the app or regular distribution.
+  extra "E-Invoice" tab. A separate [KoSIT validation service](docs/e-invoice-validation-core.md)
+  checks XRechnung XML against XSD and Schematron using a private Java runtime.
+  The CLI's `--format common` also checks the original XML attachment of a PDF,
+  with explicit partial coverage, source hashes and distinct error states.
+  Full validation is not yet integrated into the app or regular distribution.
 - **File names from tags, tags from file names** — kid3-style patterns such
   as `%{track:2} - %{artist} - %{title}` (any tag key works, `%{track:2}` pads
   with zeros). Renaming shows a preview and refuses conflicts (same target

@@ -58,10 +58,13 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 Mit 0.48.0 gibt es einen separaten KoSIT-Prototyp für XRechnung-XML in der
 CLI und einen geprüften Verpackungsweg mit privater Java-Laufzeit.
 Die geprüfte Lizenz-/Quellenbasis einschließlich Auslieferungsprüfung ist
-ergänzt. App-Integration, weitere Profile, PDF-Prüfung und regulärer Release
+ergänzt. 0.49.0 liefert den gemeinsamen Validierungskern mit unveränderten
+PDF-Anhängen, Ergebnisbindung und geregeltem Abbruch. App-Integration, weitere
+Profile, PDF-Containerprüfung und regulärer Release
 folgen den [Validierungsmeilensteinen](e-invoice-validation-roadmap.md).
 Umfang und Nachweis: [E-Rechnungsvalidierung](e-invoice-validation.md),
 [Lizenzinventar](validation-licenses.md).
+Schnittstelle und Status-/Exit-Codes: [Validierungskern](e-invoice-validation-core.md).
 
 ## Vorgehen
 

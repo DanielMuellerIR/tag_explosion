@@ -1,9 +1,11 @@
 # XRechnung-Validierung: KoSIT-Prototyp
 
-Stand: 2026-10-16. Der Prototyp prüft eigenständige XRechnung-XML-Dateien
-über `tagx validate-xrechnung`. Die Rechnungsansicht der App behält ihre
-bisherige Grundvalidierung. PDF-Extraktion, PDF/A-Prüfung und die Integration
-in die Oberfläche sind nicht Teil dieses Schritts.
+Stand: 2026-10-16. Die kompatible Prototyp-Ausgabe prüft eigenständige
+XRechnung-XML-Dateien über `tagx validate-xrechnung`. Seit 0.49.0 ergänzt
+`--format common` den [gemeinsamen Validierungsdienst](e-invoice-validation-core.md)
+mit unveränderten PDF-Anhängen, Ergebnisbindung und weiteren Fehlerzuständen.
+Die Rechnungsansicht der App behält ihre bisherige Grundvalidierung.
+PDF/A-Prüfung und Integration in die Oberfläche folgen getrennt.
 
 ## Verwendung
 
@@ -46,6 +48,10 @@ DOCTYPE wird konservativ abgelehnt, auch in UTF-16/32 und in Kommentaren.
 | `failed` | 3 | Mindestens eine technische Prüfung ist fehlgeschlagen. |
 | `unsupported` | 4 | Kein unterstütztes XRechnung-Szenario; auch eine erfolgreiche reine EN-16931-Prüfung bestätigt keine XRechnung. |
 | Fehler | 1 | Prüfpaket, Prozess oder Bericht nicht verwendbar; keine Aussage über die Gültigkeit der Rechnung. |
+
+Diese Tabelle beschreibt das kompatible Standardformat. Die gemeinsame
+Ausgabe und ihre zusätzlichen Status-/Exit-Codes sind
+[gesondert dokumentiert](e-invoice-validation-core.md).
 
 Fehlende oder widersprüchliche Prüfschritte gelten niemals als Erfolg.
 Berichte enthalten Engine, Regelpaket-Release, erkanntes Szenario,

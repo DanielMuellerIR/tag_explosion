@@ -21,6 +21,10 @@ Rechnungsansicht der App.
   (`tagx validate-xrechnung`) mit privatem KoSIT-/Java-Paket; die App-Anzeige
   bleibt bei der Grundprüfung. Details:
   [xrechnung-kosit-prototyp.md](xrechnung-kosit-prototyp.md).
+- Ab 0.49.0 bewahrt `EInvoicePayload` die gemeinsamen Originalbytes für
+  Anzeige und Validierungsdienst. `--format common` prüft auch PDF-Anhänge;
+  die App-GUI folgt getrennt. Ergebnisbindung und Abbruch:
+  [validierungsquellen.md](validierungsquellen.md).
 - Zwei Syntaxen decken fast alles ab: **CII** (ZUGFeRD 2.x = Factur-X,
   XRechnung-CII) und **UBL** (XRechnung-UBL, Peppol BIS). Gutschriften in UBL
   (`ubl:CreditNote`) werden per Pfad-Normalisierung auf die Invoice-Tabelle

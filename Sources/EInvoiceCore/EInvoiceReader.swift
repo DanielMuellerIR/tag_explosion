@@ -89,13 +89,32 @@ public enum EInvoiceReader {
 
     /// Datei-Einstieg: XML direkt lesen, PDF über die eingebettete Datei.
     public static func read(url: URL) throws -> EInvoiceDocument {
+        try payload(url: url).document()
+    }
+
+    /// Die PDF-Auswahl ist dieselbe wie für die Anzeige; die XML-Bytes
+    /// bleiben einschließlich Kodierung, Leerraum und Präfixen erhalten.
+    public static func payload(url: URL) throws -> EInvoicePayload {
         switch url.pathExtension.lowercased() {
         case "pdf":
-            return try readPDF(url: url)
+            #if canImport(CoreGraphics)
+            return try payload(extraction: PDFEmbeddedInvoice.extract(url: url))
+            #else
+            throw EInvoiceError.pdfUnreadable(url.path)
+            #endif
         default:
-            let data = try Data(contentsOf: url)
-            return try document(fromXML: data, source: .xmlFile)
+            return EInvoicePayload(xml: try Data(contentsOf: url))
         }
+    }
+
+    /// PDF aus einem bereits eingefrorenen Dateistand statt erneut vom
+    /// veränderlichen Originalpfad lesen.
+    public static func payload(fromPDF data: Data) throws -> EInvoicePayload {
+        #if canImport(CoreGraphics)
+        return try payload(extraction: PDFEmbeddedInvoice.extract(data: data))
+        #else
+        throw EInvoiceError.pdfUnreadable("PDF-Extraktion benötigt CoreGraphics")
+        #endif
     }
 
     /// Gibt es in dieser Datei eine E-Rechnung? Bei XML ohne Baumaufbau, bei
@@ -121,8 +140,11 @@ public enum EInvoiceReader {
 
     /// PDF: eingebettetes Rechnungs-XML finden und lesen.
     static func readPDF(url: URL) throws -> EInvoiceDocument {
-        #if canImport(CoreGraphics)
-        let extraction = try PDFEmbeddedInvoice.extract(url: url)
+        try payload(url: url).document()
+    }
+
+    #if canImport(CoreGraphics)
+    private static func payload(extraction: PDFEmbeddedInvoice.Extraction) throws -> EInvoicePayload {
         // Die XMP-Deklaration benennt die maßgebliche Rechnungsdatei und hat
         // deshalb Vorrang. Danach folgen standardisierte Namen; sonst bleibt
         // die Reihenfolge des PDF-Namensbaums bzw. AF-Arrays erhalten.
@@ -149,20 +171,12 @@ public enum EInvoiceReader {
             return aRank == bRank ? a.offset < b.offset : aRank < bRank
         }.map(\.element)
         for candidate in candidates where sniffXML(candidate.data) {
-            var doc = try document(fromXML: candidate.data,
-                                   source: .pdfEmbedded(fileName: candidate.name))
-            if let declaration = extraction.declaration, !declaration.isEmpty {
-                doc.pdfDeclaration = declaration
-            }
-            return doc
+            return EInvoicePayload(xml: candidate.data, source: .pdfEmbedded(fileName: candidate.name),
+                                   pdfDeclaration: extraction.declaration)
         }
         throw EInvoiceError.notAnInvoice
-        #else
-        // Linux-Build: PDF-Extraktion braucht CoreGraphics. XML-Rechnungen
-        // funktionieren überall; für PDFs ist das hier ehrlich ein Fehler.
-        throw EInvoiceError.pdfUnreadable(url.path)
-        #endif
     }
+    #endif
 
     /// XML-Daten zu einem vollständigen Dokument verarbeiten.
     public static func document(fromXML data: Data,

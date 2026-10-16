@@ -8,6 +8,22 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.49.0 — 2026-10-16
+
+- Gemeinsamer Rechnungsvalidierungsdienst mit unveränderten XML-Quelldaten
+  für Anzeige und Prüfung. Auch PDF-Anhänge werden aus einem konsistenten
+  Träger-Schnappschuss gelesen; Quellen und Ergebnisse sind über SHA-256 und
+  Dateistand verbunden. Veraltete oder überholte Ergebnisse werden verworfen.
+- Versionsgebundene XRechnung-Profile und Prüfung des tatsächlichen JAR-,
+  Regel- und Runtime-Inhalts gegen das freigegebene Inventar. Abbruch,
+  Zeitüberschreitung, Teilprüfung und technische Fehler bleiben eigene Zustände.
+  Prozessausgabe und Bericht sind begrenzt; JVM-Umgebungsoptionen werden isoliert.
+- `tagx validate-xrechnung --format common` ergänzt strukturierte XML-/PDF-
+  Ergebnisse samt Gewährleistungshinweis. Die bisherige XML-Ausgabe bleibt
+  Standard. Terminal-Abbruch beendet auch das Java-Kind. PDF/A und hybride
+  Einbettung bleiben ausdrücklich ungeprüft; eine erfolgreiche XML-Prüfung
+  im PDF wird als Teilprüfung ausgewiesen. Die App-Oberfläche folgt getrennt.
+
 ## 0.48.1 — 2026-10-16
 
 - Lizenz- und Quellenbasis für das KoSIT-/Temurin-Prüfpaket umgesetzt:

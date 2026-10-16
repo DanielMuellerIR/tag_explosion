@@ -7,7 +7,7 @@ enthält Detailausarbeitung, Implementierung, passende Tests und Dokumentation.
 | Meilenstein | Ergebnis | Status |
 |---|---|---|
 | EIV1 — Lizenzen und Paketbasis | Inventar der tatsächlichen Bibliotheken, Lizenz-/Notice-Sammlung, passende Quellen und verpflichtende Prüfung der Probe-Verpackung | umgesetzt; Produkt-Releaseintegration folgt in EIV7 |
-| EIV2 — Gemeinsamer Validierungskern | Unveränderte XML-/PDF-Quelldaten, versionsgebundene Profile, einheitliche Ergebnisse, Abbruch/Timeout und CLI | offen |
+| EIV2 — Gemeinsamer Validierungskern | Unveränderte XML-/PDF-Quelldaten, versionsgebundene Profile, einheitliche Ergebnisse, Abbruch/Timeout und CLI | umgesetzt in 0.49.0 |
 | EIV3 — XRechnung in der App | Prüfaktion und verständliche Zustände, Meldungsstufen/Fundstellen, Bericht und Gewährleistungshinweis für XML und PDF-Tab | offen |
 | EIV4 — ZUGFeRD/Factur-X | MINIMUM, BASIC WL, BASIC, EN 16931 und EXTENDED mit zusammengehörigen offiziellen XSD-/Schematron-Ständen | offen |
 | EIV5 — Peppol Billing | UBL Invoice/CreditNote mit offizieller Regelkombination; technische Artefakt-Rechte vorher belegen | offen |

@@ -29,7 +29,7 @@ struct XRechnungValidatorTests {
         #expect(result.status == .passed)
         #expect(result.steps.count == 4)
         #expect(result.notice.contains("zwingende gesetzliche Haftung"))
-        #expect(throws: XRechnungValidator.Failure.invalidReport) {
+        #expect(throws: XRechnungValidator.Failure.incompleteReport) {
             try XRechnungValidator.parseReport(report(), configurationRelease: "2026-08-31")
         }
     }
@@ -39,6 +39,27 @@ struct XRechnungValidatorTests {
         let result = try XRechnungValidator.parseReport(
             report(scenario: "EN16931 (UBL Invoice)", steps: completeSteps), configurationRelease: "2026-08-31")
         #expect(result.status == .unsupported)
+    }
+
+    @Test("Warnungen und Informationen bleiben unterscheidbar; Extension ist ein eigenes Profil")
+    func warningLevelsAndExtension() throws {
+        for (level, expected) in [("warning", InvoiceValidationStatus.passedWithWarnings), ("info", .passed)] {
+            let steps = completeSteps + """
+            <r:validationStepResult id="extra" valid="true"><r:message level="\(level)" code="TEST">Hinweis</r:message></r:validationStepResult>
+            """
+            let parsed = try XRechnungValidator.parseReport(report(steps: steps), configurationRelease: "2026-08-31")
+            #expect(InvoiceValidationService.xmlStatus(for: parsed) == expected)
+            #expect(parsed.issues.first?.severity == level)
+        }
+        let extensionReport = try XRechnungValidator.parseReport(
+            report(scenario: "EN16931 XRechnung Extension (CII)", steps: completeSteps), configurationRelease: "2026-08-31")
+        #expect(extensionReport.status == .passed)
+        let unknownSeverity = completeSteps + """
+        <r:validationStepResult id="extra" valid="true"><r:message level="unrecognized">Hinweis</r:message></r:validationStepResult>
+        """
+        #expect(throws: XRechnungValidator.Failure.invalidReport) {
+            try XRechnungValidator.parseReport(report(steps: unknownSeverity), configurationRelease: "2026-08-31")
+        }
     }
 
     @Test("Regelcode, Schweregrad und Fundstelle stammen nur aus dem eigentlichen Prüfschritt")

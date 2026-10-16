@@ -21,19 +21,38 @@ public enum ExternalToolRunner {
         }
     }
 
+    enum ProcessOutputLimitError: Error, LocalizedError, Sendable, Equatable {
+        case exceeded
+        var errorDescription: String? { "External process exceeded its output limit" }
+    }
+
     /// Sammelt genau einen Pipe-Stream. Die zwei Instanzen pro Prozess werden
     /// auf getrennten festen Queue-Arbeiten gelesen, damit ein volles stderr
     /// niemals stdout (oder umgekehrt) blockieren kann.
     private final class PipeCollector: @unchecked Sendable {
         private let handle: FileHandle
         private var collected = Data()
+        private(set) var exceeded = false
 
         init(_ handle: FileHandle) {
             self.handle = handle
         }
 
-        func readToEnd() {
-            collected = handle.readDataToEndOfFile()
+        func readToEnd(limit: Int?, onLimit: () -> Void) {
+            while true {
+                let chunk = handle.readData(ofLength: 64 * 1024)
+                if chunk.isEmpty { return }
+                if let limit {
+                    let remaining = max(0, limit - collected.count)
+                    collected.append(chunk.prefix(remaining))
+                    if chunk.count > remaining, !exceeded {
+                        exceeded = true
+                        onLimit()
+                    }
+                } else {
+                    collected.append(chunk)
+                }
+            }
         }
 
         func data() -> Data { collected }
@@ -149,6 +168,8 @@ public enum ExternalToolRunner {
         _ executable: String,
         _ arguments: [String],
         processTimeout: TimeInterval? = nil,
+        outputLimit: Int? = nil,
+        environment: [String: String]? = nil,
         cancellation: Cancellation? = nil
     ) throws -> Data {
         let stdinIsOpen = fcntl(STDIN_FILENO, F_GETFD) != -1
@@ -156,7 +177,8 @@ public enum ExternalToolRunner {
         let stderr = Pipe()
         let control = cancellation ?? Cancellation()
         let child = try control.start {
-            try spawn(executable, arguments, stdout: stdout, stderr: stderr, stdinIsOpen: stdinIsOpen)
+            try spawn(executable, arguments, stdout: stdout, stderr: stderr, stdinIsOpen: stdinIsOpen,
+                      environment: environment ?? utf8Environment())
         }
         // Nur die Kinder behalten die Schreibenden; sonst käme niemals EOF.
         try? stdout.fileHandleForWriting.close()
@@ -183,12 +205,12 @@ public enum ExternalToolRunner {
                                        qos: .userInitiated, attributes: .concurrent)
         drainGroup.enter()
         drainQueue.async {
-            outCollector.readToEnd()
+            outCollector.readToEnd(limit: outputLimit) { control.cancel() }
             drainGroup.leave()
         }
         drainGroup.enter()
         drainQueue.async {
-            errCollector.readToEnd()
+            errCollector.readToEnd(limit: outputLimit) { control.cancel() }
             drainGroup.leave()
         }
         // Vor dem Reaping leeren: Solange die PID nicht freigegeben ist,
@@ -196,6 +218,7 @@ public enum ExternalToolRunner {
         drainGroup.wait()
         let status = try control.reap(child)
         timer?.cancel()
+        if outCollector.exceeded || errCollector.exceeded { throw ProcessOutputLimitError.exceeded }
         try control.check()
         let exitCode = (status & 0x7f) == 0 ? (status >> 8) & 0xff : status & 0x7f
         let outData = outCollector.data()
@@ -212,7 +235,8 @@ public enum ExternalToolRunner {
 
     /// posix_spawn legt vor exec eine eigene Prozessgruppe an. Ein nachträgliches
     /// setpgid beim Foundation-Process wäre ein Rennen gegen dessen exec.
-    private static func spawn(_ executable: String, _ arguments: [String], stdout: Pipe, stderr: Pipe, stdinIsOpen: Bool) throws -> pid_t {
+    private static func spawn(_ executable: String, _ arguments: [String], stdout: Pipe, stderr: Pipe,
+                              stdinIsOpen: Bool, environment: [String: String]) throws -> pid_t {
         #if canImport(Darwin)
         var actions: posix_spawn_file_actions_t?
         var attributes: posix_spawnattr_t?
@@ -260,7 +284,7 @@ public enum ExternalToolRunner {
         #endif
         try require(posix_spawnattr_setflags(&attributes, flags))
         let argv = ([executable] + arguments).map { strdup($0) } + [nil]
-        let environment = utf8Environment().map { strdup($0.key + "=" + $0.value) } + [nil]
+        let environment = environment.map { strdup($0.key + "=" + $0.value) } + [nil]
         defer {
             for pointer in argv { free(pointer) }
             for pointer in environment { free(pointer) }
