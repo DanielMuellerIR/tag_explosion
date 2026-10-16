@@ -7,7 +7,7 @@ extension InvoiceValidationFixtures {
         let isFour = variant == "pdfa4f"
         let isAccessible = variant == "pdfa3a"
         let conformance = isFour ? "F" : isAccessible ? "A" : variant == "pdfa3u" ? "U" : "B"
-        let name = variant == "wrong-name" ? "other.xml" : variant == "legacy" ? "zugferd-invoice.xml" : "factur-x.xml"
+        let name = variant == "wrong-name" ? "other.xml" : variant == "legacy" ? "zugferd-invoice.xml" : profile == "XRECHNUNG" ? "xrechnung.xml" : "factur-x.xml"
         let declaredProfile = variant == "wrong-profile" ? "MINIMUM" : profile
         let relationship = variant == "wrong-relation" ? "Unspecified" : ["MINIMUM", "BASIC WL"].contains(profile) ? "Data" : "Alternative"
         let mime = variant == "wrong-mime" ? "application#2Fxml" : "text#2Fxml"
@@ -32,9 +32,10 @@ extension InvoiceValidationFixtures {
                 .replacingOccurrences(of: ">fx</pdfaSchema:prefix>", with: ">zf</pdfaSchema:prefix>")
             xmp = Data(text.utf8)
         }
-        let extra = ["duplicate-invoice", "wrong-attachment"].contains(variant)
+        let duplicate = ["duplicate-invoice", "xml-mime-invoice"].contains(variant)
+        let extra = duplicate || variant == "wrong-attachment"
         let metadataID = extra ? 9 : 7
-        let extraName = variant == "duplicate-invoice" ? "second.xml" : "file.bin"
+        let extraName = variant == "duplicate-invoice" ? "second.xml" : variant == "xml-mime-invoice" ? "second.txt" : "file.bin"
         let names = variant == "missing-names" ? "" : " /Names << /EmbeddedFiles << /Names [(\(name)) 5 0 R\(extra ? " (\(extraName)) 7 0 R" : "")] >> >>"
         let af = variant == "missing-af" ? "" : " /AF [5 0 R\(extra ? " 7 0 R" : "")]"
         let structure = isAccessible ? " /Lang (de-DE) /MarkInfo << /Marked true >> /StructTreeRoot << /Type /StructTreeRoot /K [] >>" : ""
@@ -47,9 +48,9 @@ extension InvoiceValidationFixtures {
             Data("<< /Type /EmbeddedFile /Subtype /\(mime) /Params << /Size \(xml.count) /ModDate (D:20261016060000Z) >> /Length \(xml.count) >>\nstream\n".utf8) + xml + Data("\nendstream".utf8),
         ]
         if extra {
-            let bytes = variant == "duplicate-invoice" ? xml : Data("test".utf8)
+            let bytes = duplicate ? xml : Data("test".utf8)
             objects += [Data("<< /Type /Filespec /F (\(extraName)) /UF (\(extraName)) /Desc (Extra test file) /AFRelationship /Supplement /EF << /F 8 0 R /UF 8 0 R >> >>".utf8),
-                        Data("<< /Type /EmbeddedFile /Subtype /\(variant == "duplicate-invoice" ? "text#2Fxml" : "application#2Foctet-stream") /Params << /Size \(bytes.count) /ModDate (D:20261016060000Z) >> /Length \(bytes.count) >>\nstream\n".utf8) + bytes + Data("\nendstream".utf8)]
+                        Data("<< /Type /EmbeddedFile /Subtype /\(duplicate ? "text#2Fxml" : "application#2Foctet-stream") /Params << /Size \(bytes.count) /ModDate (D:20261016060000Z) >> /Length \(bytes.count) >>\nstream\n".utf8) + bytes + Data("\nendstream".utf8)]
         }
         objects.append(Data("<< /Type /Metadata /Subtype /XML /Length \(xmp.count) >>\nstream\n".utf8) + xmp + Data("\nendstream".utf8))
         var pdf = Data("%PDF-\(isFour ? "2.0" : "1.7")\n%".utf8) + Data([0xe2, 0xe3, 0xcf, 0xd3, 0x0a])

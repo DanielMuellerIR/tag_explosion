@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.53.1 — 2026-10-16
+
+- Zusätzliche, über ihren MIME-Typ als XML deklarierte Rechnungsanhänge auch
+  bei abweichender Dateiendung erkennen. Ein zweites Rechnungsdokument kann
+  dadurch nicht mehr allein mit einem `.txt`-Namen die Hybridprüfung umgehen.
+- Hybrid-Abnahme um alle fünf aktuellen Profile und XRechnung ergänzt.
+
 ## 0.53.0 — 2026-10-16
 
 - Tatsächlich erzeugte XML-/PDF-Quellen-ZIPs vor Bündelabschluss portabel

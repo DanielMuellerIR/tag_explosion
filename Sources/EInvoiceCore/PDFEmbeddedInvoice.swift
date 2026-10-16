@@ -555,7 +555,7 @@ enum PDFEmbeddedInvoice {
             var invoice = false
             var matches = false
             let candidate = unicodeName ?? fileName ?? ""
-            if candidate.lowercased().hasSuffix(".xml") {
+            if candidate.lowercased().hasSuffix(".xml") || ["text/xml", "application/xml"].contains(mime?.lowercased() ?? "") {
                 guard let stream, materialized < 32 * 1024 * 1024,
                       acceptableStreamLength(stream, byteBudget: 16 * 1024 * 1024) != nil else {
                     complete = false

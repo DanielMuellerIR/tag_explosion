@@ -8,11 +8,11 @@ enthält Detailausarbeitung, Implementierung, passende Tests und Dokumentation.
 |---|---|---|
 | EIV1 — Lizenzen und Paketbasis | Inventar der tatsächlichen Bibliotheken, Lizenz-/Notice-Sammlung, passende Quellen und verpflichtende Prüfung der Probe-Verpackung | umgesetzt; Produkt-Releaseintegration folgt in EIV7 |
 | EIV2 — Gemeinsamer Validierungskern | Unveränderte XML-/PDF-Quelldaten, versionsgebundene Profile, einheitliche Ergebnisse, Abbruch/Timeout und CLI | umgesetzt in 0.49.0 |
-| EIV3 — XRechnung in der App | Prüfaktion und verständliche Zustände, Meldungsstufen/Fundstellen, Bericht und Gewährleistungshinweis für XML und PDF-Tab | implementiert in 0.50.0; native Sichtabnahme ausstehend |
-| EIV4 — ZUGFeRD/Factur-X | MINIMUM, BASIC WL, BASIC, EN 16931 und EXTENDED mit zusammengehörigen offiziellen XSD-/Schematron-Ständen | implementiert in 0.51.0; native Sichtabnahme ausstehend |
+| EIV3 — XRechnung in der App | Prüfaktion und verständliche Zustände, Meldungsstufen/Fundstellen, Bericht und Gewährleistungshinweis für XML und PDF-Tab | umgesetzt; native DE/EN-Abnahme mit 0.51.0 bestanden |
+| EIV4 — ZUGFeRD/Factur-X | MINIMUM, BASIC WL, BASIC, EN 16931 und EXTENDED mit zusammengehörigen offiziellen XSD-/Schematron-Ständen | umgesetzt; native DE/EN-Abnahme mit 0.51.0 bestanden |
 | EIV5 — Peppol Billing | UBL Invoice/CreditNote mit offizieller Regelkombination; technische Artefakt-Rechte vorher belegen | blockiert durch fehlenden eindeutigen Rechtebeleg für die technischen Regeln |
-| EIV6 — Hybride PDF-Rechnung | PDF/A, XML-Einbettung und XMP-/AF-Metadaten mit eigenem Containerergebnis | implementiert in 0.52.0; Auslieferungs- und native Abnahme laufen |
-| EIV7 — Distribution und Updates | Laufzeit/Regeln im regulären App-Build, Quellenpaket, Lizenzprüfung, signiertes Bundle/DMG und Updateweg | Auslieferungssperren und notarisiertes DMG lokal geprüft in 0.53.0; echtes Update offen |
+| EIV6 — Hybride PDF-Rechnung | PDF/A, XML-Einbettung und XMP-/AF-Metadaten mit eigenem Containerergebnis | umgesetzt; notarisiert und native DE/EN-Abnahme mit 0.53.1 bestanden |
+| EIV7 — Distribution und Updates | Laufzeit/Regeln im regulären App-Build, Quellenpaket, Lizenzprüfung, signiertes Bundle/DMG und Updateweg | Auslieferungssperren und notarisiertes DMG lokal geprüft in 0.53.1; echtes Update offen |
 | EIV8 — Gesamtabnahme | Reale GUI-/Offline-/Systemtests, korrigierte Restfehler, aktuelle Supportmatrix und Produktdokumentation | offen |
 
 Die Ausführung folgt dieser Reihenfolge. EIV3 benötigt EIV2; EIV4/EIV5 nutzen

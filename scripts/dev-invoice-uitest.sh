@@ -7,6 +7,7 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 {
     cat "$here/scripts/lib/gui-testkit.swift"
     cat <<'SW'
+import Darwin
 guard AXIsProcessTrusted() else { kitFail("Bedienungshilfen für den Test-Client nicht freigegeben") }
 let language = testArguments.first ?? "de"
 let allowFocus = testArguments.dropFirst().contains("--allow-focus")
@@ -71,6 +72,15 @@ func captureOwnedWindows(_ prefix: String) {
         capture.arguments = ["-x", "-o", "-l\(id)", destination.path]
         do {
             try capture.run()
+            let captureDeadline = Date().addingTimeInterval(8)
+            while capture.isRunning && Date() < captureDeadline { Thread.sleep(forTimeInterval: 0.05) }
+            if capture.isRunning {
+                capture.terminate()
+                let stopDeadline = Date().addingTimeInterval(1)
+                while capture.isRunning && Date() < stopDeadline { Thread.sleep(forTimeInterval: 0.05) }
+                if capture.isRunning { kill(capture.processIdentifier, SIGKILL) }
+                captureFailure = "Fensteraufnahme hat ihr Zeitlimit überschritten: \(id)"
+            }
             capture.waitUntilExit()
             if capture.terminationStatus != 0 || !FileManager.default.fileExists(atPath: destination.path) {
                 captureFailure = "Fensterbeleg fehlgeschlagen: \(id)"
@@ -109,14 +119,14 @@ while !app.isTerminated, Date() < deadline {
 }
 try? tree.joined(separator: "\n").write(to: outDir.appendingPathComponent("client-ax.txt"), atomically: true, encoding: .utf8)
 let stopped = shutDownOwnedInstances()
-guard stopped, app.isTerminated else { kitFail("Eigene Test-App nicht beendet") }
-guard allowFocus || !acquiredFocus else { kitFail("Test-App hat Tastaturfokus übernommen und wurde ausgeblendet") }
-guard captureFailure == nil else { kitFail(captureFailure!) }
-guard sawButton else { kitFail("Prüfbutton wurde extern nicht im AX-Baum beobachtet") }
 if allowFocus, let foreground, NSWorkspace.shared.frontmostApplication?.processIdentifier != foreground {
     NSRunningApplication(processIdentifier: foreground)?.activate()
     RunLoop.current.run(until: Date().addingTimeInterval(0.2))
 }
+guard stopped, app.isTerminated else { kitFail("Eigene Test-App nicht beendet") }
+guard allowFocus || !acquiredFocus else { kitFail("Test-App hat Tastaturfokus übernommen und wurde ausgeblendet") }
+guard captureFailure == nil else { kitFail(captureFailure!) }
+guard sawButton else { kitFail("Prüfbutton wurde extern nicht im AX-Baum beobachtet") }
 guard NSWorkspace.shared.frontmostApplication?.processIdentifier == foreground else { kitFail("Fensterfokus wurde verändert") }
 let data = try Data(contentsOf: resultURL)
 let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]

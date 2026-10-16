@@ -35,8 +35,10 @@ struct InvoicePDFReportTests {
         #expect(valid.attachments.count == 1)
         #expect(valid.attachments[0].inAssociatedFiles && valid.attachments[0].inNameTree)
         #expect(valid.attachments[0].matchesSelectedXML)
-        let duplicate = try EInvoiceReader.inspectPDF(InvoiceValidationFixtures.hybridPDF(xml: xml, variant: "duplicate-invoice"), selectedXML: xml)
-        #expect(duplicate.attachments.filter(\.isInvoice).count == 2)
+        for variant in ["duplicate-invoice", "xml-mime-invoice"] {
+            let duplicate = try EInvoiceReader.inspectPDF(InvoiceValidationFixtures.hybridPDF(xml: xml, variant: variant), selectedXML: xml)
+            #expect(duplicate.attachments.filter(\.isInvoice).count == 2, "\(variant)")
+        }
     }
 }
 
@@ -79,6 +81,7 @@ struct InvoicePDFRuntimeTests {
             ("wrong-name", "BR-HYBRID-13", .failed), ("missing-schema", "BR-HYBRID-03", .failed),
             ("missing-af", "BR-HYBRID-12", .failed), ("missing-names", "BR-HYBRID-12", .failed),
             ("wrong-mime", "BR-HYBRID-12", .failed), ("duplicate-invoice", "BR-HYBRID-12", .failed),
+            ("xml-mime-invoice", "BR-HYBRID-12", .failed),
             ("wrong-attachment", "HYBRID_ATTACHMENT_TYPE", .failed),
             ("wrong-profile", "BR-HYBRID-15", .passedWithWarnings),
             ("wrong-relation", "BR-HYBRID-11", .passedWithWarnings),
@@ -90,6 +93,35 @@ struct InvoicePDFRuntimeTests {
             #expect(result.status == status, "\(variant): \(result.status), \(result.issues)")
             #expect(result.issues.contains { $0.code?.hasPrefix(code) == true }, "\(variant): \(result.issues)")
         }
+    }
+
+    @Test("Alle aktuellen Profile mit passender Hybriddeklaration", arguments: ["MINIMUM", "BASICWL", "BASIC", "EN16931", "EXTENDED"])
+    func currentHybridProfiles(_ profile: String) throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("invoice.pdf")
+        let xml = InvoiceValidationFixtures.facturX(profile: profile)
+            .replacingOccurrences(of: "<ram:CountryID>DE</ram:CountryID>", with: "<ram:CountryID>FR</ram:CountryID>")
+        let declared = ["BASICWL": "BASIC WL", "EN16931": "EN 16931"][profile] ?? profile
+        try InvoiceValidationFixtures.hybridPDF(xml: Data(xml.utf8), profile: declared).write(to: file)
+        let result = InvoiceValidationService.validate(url: file, bundle: core, pdfBundle: pdf)
+        #expect(result.status == .passed, "\(profile): \(result.issues)")
+        #expect(result.xmlStatus == .passed)
+        #expect(result.pdf?.embeddingStatus == .passed)
+    }
+
+    @Test("XRechnung-Referenzprofil im gültigen hybriden Träger", .enabled(if: ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"] != nil))
+    func xrechnungHybrid() throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fixtures = URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"]!)
+        let xml = try Data(contentsOf: fixtures.appendingPathComponent("cii.xml"))
+        let file = dir.appendingPathComponent("invoice.pdf")
+        try InvoiceValidationFixtures.hybridPDF(xml: xml, profile: "XRECHNUNG").write(to: file)
+        let result = InvoiceValidationService.validate(url: file, bundle: core, pdfBundle: pdf)
+        #expect(result.status == .passed || result.status == .passedWithWarnings, "\(result.issues)")
+        #expect(result.xmlStatus == .passed)
+        #expect(result.pdf?.embeddingStatus == .passed)
     }
 
     @Test("Fehlendes oder manipuliertes PDF-Werkzeug bestätigt keinen Container und erhält das XML-Ergebnis")
