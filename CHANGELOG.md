@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.1 — 2026-11-08
+
+- Lange Prüfmeldungen unter Linux in lesbaren Blöcken mit Schweregrad,
+  Fehlercode und aufklappbarer Fundstelle anzeigen. Ergebnisdialoge öffnen
+  am Anfang des Berichts.
+
 ## 0.54.0 — 2026-11-08
 
 - Linux-Desktopclient mit Rust/Tauri und lokaler WebKit-Oberfläche: Datei- und

@@ -771,3 +771,29 @@ label input[type="checkbox"] {
   height: 220px;
   cursor: default;
 }
+
+.validation-issues {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.validation-issue {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow-wrap: anywhere;
+}
+.issue-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.validation-issue code {
+  font-size: 12px;
+}
+.validation-issue p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}

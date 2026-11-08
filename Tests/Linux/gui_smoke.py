@@ -50,8 +50,14 @@ try:
     options = webdriver.common.options.ArgOptions()
     options.set_capability('tauri:options', {'application': str(args.app)})
     options.set_capability('timeouts', {'implicit': 0, 'pageLoad': 30000, 'script': 30000})
-    RemoteConnection.set_timeout(40)
-    driver = webdriver.Remote(command_executor='http://127.0.0.1:4444', options=options)
+    try:
+        from selenium.webdriver.remote.client_config import ClientConfig
+    except ImportError:
+        RemoteConnection.set_timeout(40)
+        connection = 'http://127.0.0.1:4444'
+    else:
+        connection = RemoteConnection(client_config=ClientConfig(remote_server_addr='http://127.0.0.1:4444', timeout=40))
+    driver = webdriver.Remote(command_executor=connection, options=options)
     wait = WebDriverWait(driver, 20)
     wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '.empty h1'))
     # Native Dateipanel/Drop bekommen getrennte Interaktionsprüfungen. Hier

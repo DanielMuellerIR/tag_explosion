@@ -194,6 +194,9 @@ function modal(title, content, actions = [{ title: "Schließen" }]) {
     );
     dialog.addEventListener("cancel", cancelled);
     dialog.showModal();
+    if (!$('dialog-content').querySelector('input, textarea, select'))
+      $('dialog-actions').querySelector('.primary, button')?.focus({ preventScroll: true });
+    $('dialog-content').scrollTop = 0;
   });
 }
 function showError(error) {
@@ -1364,6 +1367,16 @@ function renderEmpty() {
     ),
   );
 }
+function validationIssues(issues) {
+  const severity = { error: "Fehler", warning: "Warnung", information: "Information" };
+  return node("div", { class: "validation-issues" }, ...issues.map(issue =>
+    node("article", { class: "validation-issue" },
+      node("div", { class: "issue-heading" },
+        node("strong", {}, t(severity[issue.severity] || issue.severity)),
+        issue.code ? node("code", {}, issue.code) : null),
+      node("p", {}, issue.message),
+      issue.location ? node("details", {}, node("summary", {}, label("location")), node("pre", {}, issue.location)) : null)));
+}
 function readonly(value) {
   if (Array.isArray(value)) {
     if (!value.length)
@@ -1523,7 +1536,7 @@ async function invoice(content) {
         stale,
         node("h3", {}, checked.title),
         readonly(checked.steps),
-        readonly(checked.result.issues),
+        validationIssues(checked.result.issues),
         checked.result.pdf ? readonly(checked.result.pdf) : null,
         node("p", { class: "notice" }, checked.result.notice),
         button("Bericht sichern …", async () => {
