@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   appcast:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(join(github.event.release.assets.*.name, ','), '.dmg') }}
     runs-on: macos-15
     environment:
       name: github-pages
