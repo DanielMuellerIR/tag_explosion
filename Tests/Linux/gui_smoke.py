@@ -20,10 +20,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--app', type=Path, default=root / 'Linux/target/debug/tag-explosion-linux')
 parser.add_argument('--engine', type=Path)
 parser.add_argument('--validate', action='store_true')
+parser.add_argument('--exiftool', type=Path, help='Unabhängiges Prüfwerkzeug, falls es außerhalb des Desktop-PATH liegt')
 parser.add_argument('--basic-fixture', type=Path, help='Native Grundprüfung ohne optionale Systemwerkzeuge')
 parser.add_argument('--work-dir', type=Path, default=root / '.build/linux-gui-smoke')
 parser.add_argument('--driver', type=Path, default=root / '.build/driver/bin/tauri-driver')
 args = parser.parse_args()
+exiftool = str(args.exiftool) if args.exiftool else "exiftool"
 work = args.work_dir.resolve()
 work.mkdir(parents=True, exist_ok=True)
 media = work / 'Signal.mp3'
@@ -114,7 +116,7 @@ try:
     subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=skyblue:s=640x480', '-frames:v', '1', '-threads', '1', str(picture)], check=True)
     select_file(picture); set_title('Bildtitel geprüft')
     wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '.image-preview img') and d.find_element(By.CSS_SELECTOR, '.image-preview img').get_property('naturalWidth') > 0)
-    assert 'Bildtitel geprüft' in subprocess.check_output(['exiftool', '-s3', '-XMP-dc:Title', str(picture)], text=True)
+    assert 'Bildtitel geprüft' in subprocess.check_output([exiftool, '-s3', '-XMP-dc:Title', str(picture)], text=True)
     driver.save_screenshot(str(work / 'image.png'))
     # EPUB nativ: Text und ZIP-Struktur bleiben gemeinsam nutzbar.
     ebook = work / 'Buch.epub'

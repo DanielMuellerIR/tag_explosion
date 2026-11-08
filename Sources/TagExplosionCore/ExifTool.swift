@@ -152,6 +152,8 @@ public enum ExifTool {
         "/opt/homebrew/bin/exiftool",
         "/usr/local/bin/exiftool",
         "/usr/bin/exiftool",
+        // Arch legt Perl-Werkzeuge außerhalb des normalen Desktop-Suchpfads ab.
+        "/usr/bin/vendor_perl/exiftool",
     ]
 
     public static func locateExecutable() throws -> String {

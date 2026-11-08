@@ -8,6 +8,11 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.2 — 2026-11-08
+
+- ExifTool unter Arch-basierten Distributionen auch dann finden, wenn das
+  Startmenü den Perl-Werkzeugordner nicht im Suchpfad hat.
+
 ## 0.54.1 — 2026-11-08
 
 - Lange Prüfmeldungen unter Linux in lesbaren Blöcken mit Schweregrad,

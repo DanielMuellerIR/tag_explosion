@@ -40,3 +40,8 @@ macOS. [Architektur](../docs/PLAN.md), [Bau und Distribution](../docs/linux.md).
   nicht die Umgebung des normalen Benutzer-Systemd überschreiben. Einen vom
   Document-Portal erzeugten eigenen FUSE-Mount vor dem Entfernen des temporären
   Runtime-Verzeichnisses aushängen.
+
+- Arch installiert ExifTool unter `/usr/bin/vendor_perl/exiftool`. Eine Login-Shell
+  kann diesen Ordner im `PATH` haben, die Desktop-Sitzung dagegen nicht. Der
+  gemeinsame Werkzeugfinder braucht den absoluten Fallback; Installationstests
+  müssen die tatsächliche Desktop-Umgebung verwenden.
