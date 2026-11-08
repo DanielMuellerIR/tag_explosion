@@ -28,12 +28,14 @@ jobs:
           brew install taglib mediainfo exiftool ffmpeg
 
       # swift test baut seine Abhängigkeiten einschließlich tagx selbst.
+      # Prozess- und Abbruchtests enthalten eigene parallele Aufträge.
+      # Gleichzeitige Testsuiten überlasten kleine CI-Runner und ihre Fristen.
       - name: Core und CLI bauen und testen
-        run: swift test
+        run: swift test --no-parallel
 
       - name: App bauen und testen
         working-directory: App
-        run: swift test
+        run: swift test --no-parallel
 
       # Shell-Tests der Auslieferungsskripte. SwiftPM findet sie nicht; ohne
       # diesen Schritt könnten sie unbemerkt brechen, während die CI grün bleibt.
@@ -72,7 +74,7 @@ jobs:
 
       # swift test baut seine Abhängigkeiten einschließlich tagx selbst.
       - name: Core und CLI bauen und testen
-        run: swift test
+        run: swift test --no-parallel
 
       - name: Desktop-Engine und IPC prüfen
         run: |
