@@ -4,10 +4,10 @@ import Foundation
 import EInvoiceCore
 import TagExplosionCore
 
-enum AppFileIO {
+public enum AppFileIO {
     /// Liest den Datei-Zustand passend zur Medienart (Hintergrund-tauglich);
     /// gemeinsamer Lesepfad für Öffnen, Neuladen und Speichern-Read-back.
-    nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
+    public nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
         switch kind {
         case .audio:
             do {
@@ -76,7 +76,7 @@ enum AppFileIO {
     /// Kodi-NFO neben einem Video: Inhalt und Stempel in einem Schnappschuss.
     /// Eine unlesbare NFO blockiert das Öffnen nicht — der Abschnitt zeigt
     /// dann den Grund statt Felder. nil, wenn keine NFO daneben liegt.
-    nonisolated static func readVideoNFO(for url: URL) -> NFOSidecarReading? {
+    public nonisolated static func readVideoNFO(for url: URL) -> NFOSidecarReading? {
         guard let nfoURL = MediaFormats.nfoURL(forVideo: url) else { return nil }
         do {
             let snapshot = try KodiNFOFile.readSnapshot(url: nfoURL)
@@ -89,7 +89,7 @@ enum AppFileIO {
 
     /// Alle Sidecars prüfen und sichern, bevor die erste Zieldatei geschrieben
     /// wird. Das gilt ebenso für reine Sidecar-Änderungen ohne Container-Save.
-    nonisolated static func prepareAudioSidecars(_ audio: FileEntry.AudioSnapshot,
+    public nonisolated static func prepareAudioSidecars(_ audio: FileEntry.AudioSnapshot,
                                                 for url: URL) throws {
         let lrcURL = audio.sidecarLyrics.map { _ in LRC.sidecarURL(for: url) }
         if let lrcURL { try audio.lrcState.requireUnchanged(at: lrcURL) }
@@ -103,7 +103,7 @@ enum AppFileIO {
 
     /// Nach gemeinsamer Vorbereitung schreiben; spätere IO-Fehler können
     /// trotzdem auftreten. Die Meldung nennt dann jedes bereits geänderte Ziel.
-    nonisolated static func writeAudioSidecars(_ audio: FileEntry.AudioSnapshot,
+    public nonisolated static func writeAudioSidecars(_ audio: FileEntry.AudioSnapshot,
                                               for url: URL,
                                               completed: [String] = []) throws {
         var completed = completed
@@ -130,7 +130,7 @@ enum AppFileIO {
     /// das Modell alte Daten mit dem Stempel einer neueren, fremden Version
     /// kombinieren — das nächste Speichern hielte die fremde Version dann für
     /// den eigenen Stand und überschriebe sie ungefragt.
-    nonisolated static func readStamped(
+    public nonisolated static func readStamped(
         url: URL, kind: MediaKind,
         read: (URL, MediaKind) throws -> LoadedData = AppFileIO.readLoaded
     ) throws -> (LoadedData, FileStamp?) {
@@ -157,7 +157,7 @@ enum AppFileIO {
 
     /// Der eigentliche Hintergrundzugriff bekommt ausschließlich den Snapshot.
     /// Damit kann ein UI-Edit während await nicht in diesen Schreibvorgang rutschen.
-    nonisolated static func write(snapshot: FileEntry.SaveSnapshot,
+    public nonisolated static func write(snapshot: FileEntry.SaveSnapshot,
                                           to url: URL, kind: MediaKind,
                                           expecting stamp: FileStamp?, preferImageSidecar: Bool, id3Version: ID3Version) throws -> (LoadedData, FileStamp?) {
         // Hat ein anderes Programm die Datei seit dem Öffnen geändert, wäre das

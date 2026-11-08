@@ -19,6 +19,10 @@
 
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
+if [ "$(uname -s)" = Linux ] || [ "${1:-}" = --linux ]; then
+    if [ "${1:-}" = --linux ]; then shift; fi
+    exec bash "$here/Linux/build.sh" --release "$@"
+fi
 cd "$here"
 
 extra_args=()

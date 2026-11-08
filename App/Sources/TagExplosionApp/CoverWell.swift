@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Cover-Anzeige mit Drag&Drop, Austausch, Export und Entfernen.
 import SwiftUI
 import TagExplosionCore

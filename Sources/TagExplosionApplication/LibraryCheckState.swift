@@ -1,26 +1,34 @@
 import Foundation
+#if !os(Linux)
 import Observation
+#endif
 import TagExplosionCore
 
-struct LibraryCheckRequest: Equatable, Sendable {
-    var items: [LibraryCheck.Item]
-    var checkNames: Bool
-    var pattern: String
+public struct LibraryCheckRequest: Equatable, Sendable {
+    public init(items: [LibraryCheck.Item], checkNames: Bool, pattern: String) {
+        self.items = items; self.checkNames = checkNames; self.pattern = pattern
+    }
+    public var items: [LibraryCheck.Item]
+    public var checkNames: Bool
+    public var pattern: String
 }
 
 /// Nur aktuelle Ergebnisse gelangen in die Anzeige. Die Engine erhält
 /// unveränderliche Werte; sie greift niemals auf FileEntry oder die UI zu.
+#if !os(Linux)
 @Observable
+#endif
 @MainActor
-final class LibraryCheckState {
-    private(set) var report: LibraryCheck.Report?
-    private(set) var error: String?
-    private(set) var isChecking = false
+public final class LibraryCheckState {
+    public init() {}
+    public private(set) var report: LibraryCheck.Report?
+    public private(set) var error: String?
+    public private(set) var isChecking = false
     private var revision = 0
     private var task: Task<Void, Never>?
 
     @discardableResult
-    func submit(_ request: LibraryCheckRequest, delay: Duration = .milliseconds(250),
+    public func submit(_ request: LibraryCheckRequest, delay: Duration = .milliseconds(250),
                 evaluate: @escaping @Sendable ([LibraryCheck.Item], FilenamePattern?) async -> LibraryCheck.Report = { items, pattern in
                     await Task.detached(priority: .userInitiated) { LibraryCheck.run(items, pattern: pattern) }.value
                 }) -> Task<Void, Never> {
@@ -48,7 +56,7 @@ final class LibraryCheckState {
         return work
     }
 
-    func cancel() {
+    public func cancel() {
         task?.cancel()
         revision += 1
         isChecking = false

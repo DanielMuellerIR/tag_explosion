@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Brücke zwischen SwiftUI und dem echten NSWindow. Sie erledigt drei Dinge,
 // für die SwiftUI allein keinen Weg bietet:
 //

@@ -1,0 +1,14 @@
+FROM rust:1.93-bookworm AS rust
+FROM tag-explosion-linux-builder:local
+COPY --from=rust /usr/local/cargo /usr/local/cargo
+COPY --from=rust /usr/local/rustup /usr/local/rustup
+ENV RUSTUP_HOME=/usr/local/rustup PATH=/usr/local/cargo/bin:${PATH}
+RUN apt-get update -qq && apt-get upgrade -y -qq && apt-get install -y -qq --no-install-recommends \
+    libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+    patchelf desktop-file-utils xvfb dbus-x11 python3 python3-selenium xauth webkit2gtk-driver nodejs npm at-spi2-core locales \
+    && localedef -i de_DE -f UTF-8 de_DE.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+RUN sed 's/^Types: deb$/Types: deb-src/' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/tagx-sources.sources \
+    && apt-get update -qq
+RUN apt-get install -y -qq --no-install-recommends file xdotool python3-gi gir1.2-gtk-3.0
+WORKDIR /src

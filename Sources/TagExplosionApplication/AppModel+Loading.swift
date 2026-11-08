@@ -1,22 +1,27 @@
 // Laden, Reihenfolge, Reservierungen und Fortschritt eines Fensters.
 import Foundation
+#if !os(Linux)
 import Observation
+#endif
 import TagExplosionCore
 
+#if !os(Linux)
 @Observable
+#endif
 @MainActor
-final class FileLoadingState {
-    var operationCount = 0
-    var generation = 0
-    var completed = 0
-    var total = 0
+public final class FileLoadingState {
+    public init() {}
+    public var operationCount = 0
+    public var generation = 0
+    public var completed = 0
+    public var total = 0
     // Jede Reservierung gehört zu der Generation, die sie angelegt hat.
-    var urls: [URL: Int] = [:]
+    public var urls: [URL: Int] = [:]
 }
 
 extension AppModel {
     /// Laufende Leser dürfen fertig werden; weitere Starts und Übernahmen enden.
-    func cancelLoading() {
+    public func cancelLoading() {
         loading.generation += 1
         loading.completed = 0
         loading.total = 0
@@ -24,14 +29,8 @@ extension AppModel {
 
     // MARK: - Öffnen
 
-    /// Öffnen-Dialog (Dateien und Ordner) für dieses Fenster.
-    func presentOpenPanel() {
-        guard let urls = MediaOpenPanel.run() else { return }
-        Task { await self.open(urls: urls) }
-    }
-
     /// Lädt Dateien/Ordner (rekursiv), liest Tags im Hintergrund.
-    func open(urls: [URL]) async {
+    public func open(urls: [URL]) async {
         // Nicht über Task.detached: Das Lesen wartet auf TagLib, exiftool und
         // mediainfo und belegt so lange einen Executor-Thread. Der Fächer unten
         // startet acht Leser gleichzeitig und liefe sonst nur so breit wie die
@@ -46,7 +45,7 @@ extension AppModel {
     /// derselbe Produktionscode. Der Leser liefert Inhalt UND den dazu
     /// konsistenten Stempel (Tests dürfen nil geben — dann entfällt die
     /// Konfliktprüfung für diesen Eintrag).
-    func open(urls: [URL],
+    public func open(urls: [URL],
               read: @escaping @Sendable (URL, MediaKind) async throws -> (LoadedData, FileStamp?)) async {
         if loading.operationCount == 0 { loading.completed = 0; loading.total = 0 }
         let generation = loading.generation

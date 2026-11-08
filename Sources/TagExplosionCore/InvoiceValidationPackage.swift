@@ -26,7 +26,7 @@ public struct InvoiceValidationRuleSet: Codable, Sendable, Equatable {
     }
 
     public static let supported: [Self] = [.xrechnung, .facturX]
-    public static let trustedInventorySHA256 = "58854808b0a90a7ab09f9d38128f515bcfcbf02c7622f0435b675f9d2a382306"
+    public static let trustedInventorySHA256 = "fc7caf3d924f3754da94a0a658a306e60c172c1034fbd94be8fdf89748a048ee"
 
     public static let xrechnung = Self(id: "xrechnung-3.0.2-2026-08-31", standard: "XRechnung", version: "3.0.2",
         configurationRelease: "2026-08-31", engine: "KoSIT Validator 1.6.3",
@@ -71,6 +71,7 @@ enum InvoiceValidationPackage {
         let facturXVersion: String
         let zugferdVersion: String
         let architecture: String
+        let operatingSystem: String?
         let packaging: String
     }
 
@@ -89,24 +90,19 @@ enum InvoiceValidationPackage {
         let policy = try JSONDecoder().decode(Policy.self, from: policyData)
         let manifest = try JSONDecoder().decode(Manifest.self,
             from: Data(contentsOf: bundle.appendingPathComponent("manifest.json")))
-        #if arch(arm64)
-        let architecture = "arm64"
-        #elseif arch(x86_64)
-        let architecture = "x86_64"
-        #else
-        let architecture = "unsupported"
-        #endif
+        let architecture = ValidationRuntime.architecture
         guard manifest.validatorVersion == "1.6.3", manifest.configurationRelease == ruleSet.configurationRelease,
               manifest.xrechnungVersion == ruleSet.version, manifest.packaging == policy.packaging,
               manifest.facturXVersion == "1.09.2", manifest.zugferdVersion == "2.5.2",
               manifest.architecture == architecture,
-              FileManager.default.isExecutableFile(atPath: bundle.appendingPathComponent("runtime/Contents/Home/bin/java").path)
+              (manifest.operatingSystem ?? "macos") == ValidationRuntime.operatingSystem,
+              FileManager.default.isExecutableFile(atPath: ValidationRuntime.java(in: bundle).path)
         else { throw Failure.changed("Version oder Laufzeitarchitektur") }
         guard try BackupJournal.sha256(of: bundle.appendingPathComponent("validator.jar")) == policy.packagedJarSHA256
         else { throw Failure.changed("KoSIT-JAR") }
         guard try treeDigest(bundle.appendingPathComponent("configuration"), cancellation: cancellation) == policy.configurationTreeSHA256
         else { throw Failure.changed("Regeldateien") }
-        guard try treeDigest(bundle.appendingPathComponent("runtime"), cancellation: cancellation) == policy.runtimeTreeSHA256[architecture]
+        guard try treeDigest(bundle.appendingPathComponent("runtime"), cancellation: cancellation) == policy.runtimeTreeSHA256[ValidationRuntime.target]
         else { throw Failure.changed("Java-Laufzeit") }
         try cancellation?.check()
         return ruleSet

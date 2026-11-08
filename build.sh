@@ -13,6 +13,10 @@
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
+if [ "$(uname -s)" = Linux ] || [ "${1:-}" = --linux ]; then
+    if [ "${1:-}" = --linux ]; then shift; fi
+    exec bash "$here/Linux/build.sh" "$@"
+fi
 version="$(tr -d '[:space:]' < "$here/VERSION")"
 config="release"
 cli_only=0

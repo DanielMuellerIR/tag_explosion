@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Editor für Video-Sidecars: Kodi-/Jellyfin-NFO (Felder editierbar, Anzeige
 // von Darstellern, IDs, Artwork und zugehörigem Video) und Untertitel
 // srt/vtt (Kennzahlen, bei VTT Titel und Language-Zeile editierbar, dazu die

@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Einstiegspunkt der macOS-App.
 import Combine
 import Sparkle

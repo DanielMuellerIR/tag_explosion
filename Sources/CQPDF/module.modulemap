@@ -1,0 +1,5 @@
+module CQPDF [system] {
+    header "shim.h"
+    link "qpdf"
+    export *
+}

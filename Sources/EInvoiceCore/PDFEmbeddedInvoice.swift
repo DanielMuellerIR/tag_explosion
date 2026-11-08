@@ -1,16 +1,18 @@
 // Eingebettete Dateien und die Factur-X-/ZUGFeRD-Deklaration aus einem PDF
-// lesen. Läuft über CoreGraphics (CGPDFDocument), also nur auf
-// Apple-Plattformen — der einzige nicht Linux-portable Teil von EInvoiceCore,
-// deshalb komplett in dieser Datei gekapselt.
+// lesen. CoreGraphics und QPDF liefern dieselben begrenzten Objektzugriffe;
+// Auswahl, Arbeitsbudgets und Rechnungsregeln bleiben plattformübergreifend.
 //
 // PDF-Struktur: Katalog → Names → EmbeddedFiles ist ein Namensbaum (direkt
 // mit "Names" oder verschachtelt über "Kids"); jeder Eintrag ist ein
 // Filespec-Dictionary mit "EF" → Stream. ZUGFeRD/Factur-X verlangen die
 // Rechnung zusätzlich als "AF"-Array (Associated Files) im Katalog — beide
 // Wege werden gelesen, doppelte Namen nur einmal übernommen.
-#if canImport(CoreGraphics)
+#if canImport(CoreGraphics) || os(Linux)
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+typealias InvoicePDFDocument = CGPDFDocument
+#endif
 
 enum PDFEmbeddedInvoice {
 
@@ -107,21 +109,20 @@ enum PDFEmbeddedInvoice {
     /// `materializedBudgetFactor`-Fache davon erreichen. Nur Tests setzen die
     /// Werte klein, um die Grenzen ohne 64-MiB-Fixture zu prüfen.
     static func extract(url: URL, byteBudget: Int = maxTotalBytes) throws -> Extraction {
-        guard let document = CGPDFDocument(url as CFURL) else {
+        guard let document = openInvoicePDF(url: url) else {
             throw EInvoiceError.pdfUnreadable(url.path)
         }
         return try extract(document: document, byteBudget: byteBudget)
     }
 
     static func extract(data: Data, byteBudget: Int = maxTotalBytes) throws -> Extraction {
-        guard let provider = CGDataProvider(data: data as CFData),
-              let document = CGPDFDocument(provider) else {
+        guard let document = openInvoicePDF(data: data) else {
             throw EInvoiceError.pdfUnreadable("PDF-Schnappschuss")
         }
         return try extract(document: document, byteBudget: byteBudget)
     }
 
-    private static func extract(document: CGPDFDocument, byteBudget: Int) throws -> Extraction {
+    private static func extract(document: InvoicePDFDocument, byteBudget: Int) throws -> Extraction {
         guard let catalog = document.catalog else {
             throw EInvoiceError.pdfUnreadable("PDF-Katalog fehlt")
         }
@@ -459,8 +460,7 @@ enum PDFEmbeddedInvoice {
         }
     }
     static func inspect(data: Data, selectedXML: Data) throws -> EInvoicePDFInspection {
-        guard let provider = CGDataProvider(data: data as CFData),
-              let document = CGPDFDocument(provider), let catalog = document.catalog else {
+        guard let document = openInvoicePDF(data: data), let catalog = document.catalog else {
             throw EInvoiceError.pdfUnreadable("PDF-Schnappschuss")
         }
         struct Item {
@@ -601,5 +601,23 @@ enum PDFEmbeddedInvoice {
         return data.count <= maxMetadataBytes ? data : nil
     }
 
+}
+private func openInvoicePDF(data: Data) -> InvoicePDFDocument? {
+    #if canImport(CoreGraphics)
+    guard let provider = CGDataProvider(data: data as CFData) else { return nil }
+    return CGPDFDocument(provider)
+    #else
+    return InvoicePDFDocument(data: data)
+    #endif
+}
+private func openInvoicePDF(url: URL) -> InvoicePDFDocument? {
+    #if canImport(CoreGraphics)
+    return CGPDFDocument(url as CFURL)
+    #else
+    guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+    defer { try? handle.close() }
+    guard let bytes = try? handle.read(upToCount: 64 * 1024 * 1024 + 1), bytes.count <= 64 * 1024 * 1024 else { return nil }
+    return InvoicePDFDocument(data: bytes)
+    #endif
 }
 #endif

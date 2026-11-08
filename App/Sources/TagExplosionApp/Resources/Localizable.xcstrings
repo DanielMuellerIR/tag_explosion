@@ -6770,6 +6770,1096 @@
           }
         }
       }
+    },
+    "Alle Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All fields"
+          }
+        }
+      }
+    },
+    "Aus anderem Feld kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy from another field"
+          }
+        }
+      }
+    },
+    "Auswählen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose…"
+          }
+        }
+      }
+    },
+    "Automatisch nach Updates suchen (einmal täglich)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates automatically (once a day)"
+          }
+        }
+      }
+    },
+    "Automatische Updateprüfung derzeit nicht erreichbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic update check is currently unavailable"
+          }
+        }
+      }
+    },
+    "Bedingung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Condition"
+          }
+        }
+      }
+    },
+    "Bitte Online-Dienste und den Datenschutzhinweis in den Einstellungen freigeben.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please enable online services and accept the privacy notice in Settings."
+          }
+        }
+      }
+    },
+    "Cover auswählen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose artwork"
+          }
+        }
+      }
+    },
+    "Cover exportieren …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export artwork…"
+          }
+        }
+      }
+    },
+    "Cover hierher ziehen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop artwork here"
+          }
+        }
+      }
+    },
+    "Darstellung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
+    "Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files"
+          }
+        }
+      }
+    },
+    "Dateien oder Ordner hierher ziehen, um Metadaten anzuzeigen und zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop files or folders here to view and edit metadata."
+          }
+        }
+      }
+    },
+    "Dateien öffnen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open files…"
+          }
+        }
+      }
+    },
+    "Dateiname …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filename…"
+          }
+        }
+      }
+    },
+    "Dateiname ↔ Tags": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filename ↔ Tags"
+          }
+        }
+      }
+    },
+    "Dateinamenmuster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filename pattern"
+          }
+        }
+      }
+    },
+    "Details …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details…"
+          }
+        }
+      }
+    },
+    "Der jetzige Stand wird vorher gesichert. Ungespeicherte Änderungen werden verworfen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current file is backed up first. Unsaved changes will be discarded."
+          }
+        }
+      }
+    },
+    "Die Datei wurde seit dem Öffnen geändert. Speichern überschreibt diese Änderung; der jetzige Stand wird vorher im Papierkorb gesichert, sofern der abgesicherte Modus aktiv ist.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file has changed since it was opened. Saving will overwrite that change; the current version is backed up in the Trash first when safe mode is enabled."
+          }
+        }
+      }
+    },
+    "Die Quelldatei hat sich seit der Prüfung geändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source file has changed since validation."
+          }
+        }
+      }
+    },
+    "Die neue Version wird beim nächsten regulären Start verwendet. Ungespeicherte Änderungen bleiben in dieser Sitzung erhalten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The new version will be used on the next regular launch. Unsaved edits remain available in this session."
+          }
+        }
+      }
+    },
+    "Dienst": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service"
+          }
+        }
+      }
+    },
+    "Diese Datei ist nur lesbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file is read-only."
+          }
+        }
+      }
+    },
+    "Diese Version ist aktuell.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This version is up to date."
+          }
+        }
+      }
+    },
+    "Eine Regel hinzufügen oder eine Vorlage auswählen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a rule or choose a template."
+          }
+        }
+      }
+    },
+    "Einstellungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Export / Import …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export / Import…"
+          }
+        }
+      }
+    },
+    "Feld, Bezeichnung oder Wert suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search field, label or value"
+          }
+        }
+      }
+    },
+    "Gefundene Metadaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found metadata"
+          }
+        }
+      }
+    },
+    "Gemeinsame Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Common fields"
+          }
+        }
+      }
+    },
+    "Im Schlüsselbund speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save in keyring"
+          }
+        }
+      }
+    },
+    "JSON bearbeiten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit JSON"
+          }
+        }
+      }
+    },
+    "JSON übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply JSON"
+          }
+        }
+      }
+    },
+    "Kanäle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "channels"
+          }
+        }
+      }
+    },
+    "Keine Einträge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No entries"
+          }
+        }
+      }
+    },
+    "Keine Sicherung im Papierkorb vorhanden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No backup available in the Trash."
+          }
+        }
+      }
+    },
+    "Keine Zuordnung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No assignment"
+          }
+        }
+      }
+    },
+    "Keine eingebettete E-Rechnung gefunden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No embedded e-invoice found."
+          }
+        }
+      }
+    },
+    "Kennungen übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Include identifiers"
+          }
+        }
+      }
+    },
+    "Kodi-NFO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kodi NFO"
+          }
+        }
+      }
+    },
+    "Lade Dateien …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading files…"
+          }
+        }
+      }
+    },
+    "Lokal prüfen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validate locally…"
+          }
+        }
+      }
+    },
+    "Nach oben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move up"
+          }
+        }
+      }
+    },
+    "Nach unten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move down"
+          }
+        }
+      }
+    },
+    "Neuer Feldname": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New field name"
+          }
+        }
+      }
+    },
+    "Nur ausdrücklich geänderte Felder werden auf die Auswahl übertragen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only fields you explicitly change will be applied to the selection."
+          }
+        }
+      }
+    },
+    "Ohne Zuordnung bleibt diese Datei unverändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file remains unchanged without an assignment."
+          }
+        }
+      }
+    },
+    "Online-Dienste": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online services"
+          }
+        }
+      }
+    },
+    "Online-Suchen senden die gewählten Suchbegriffe an MusicBrainz oder Discogs. AcoustID sendet einen lokal berechneten Fingerabdruck und die Spieldauer. Anfragen erfolgen nur nach Ihrer Aktion.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online searches send your search terms to MusicBrainz or Discogs. AcoustID receives a locally calculated fingerprint and duration. Requests are made only after your action."
+          }
+        }
+      }
+    },
+    "Ordner öffnen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open folder…"
+          }
+        }
+      }
+    },
+    "Prüfergebnis": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation result"
+          }
+        }
+      }
+    },
+    "Regeldatei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rule file"
+          }
+        }
+      }
+    },
+    "Regeln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules"
+          }
+        }
+      }
+    },
+    "Regeln …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules…"
+          }
+        }
+      }
+    },
+    "Stapelbearbeitung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batch editing"
+          }
+        }
+      }
+    },
+    "Synchronisierte Liedtexte": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronized lyrics"
+          }
+        }
+      }
+    },
+    "Tag-Schicht entfernen?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove tag layer?"
+          }
+        }
+      }
+    },
+    "Technische Felder suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search technical fields"
+          }
+        }
+      }
+    },
+    "Technische Informationen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technical information"
+          }
+        }
+      }
+    },
+    "Textausgabe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text output"
+          }
+        }
+      }
+    },
+    "Umbenennen: Vorschau": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename: preview"
+          }
+        }
+      }
+    },
+    "Ungespeicherte Änderungen der Auswahl werden verworfen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved edits in the selection will be discarded."
+          }
+        }
+      }
+    },
+    "Untertitel verschieben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift subtitles"
+          }
+        }
+      }
+    },
+    "Untertitel verschieben …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift subtitles…"
+          }
+        }
+      }
+    },
+    "Update installiert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update installed"
+          }
+        }
+      }
+    },
+    "Update verfügbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update available"
+          }
+        }
+      }
+    },
+    "Updates": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        }
+      }
+    },
+    "Vergleichen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare…"
+          }
+        }
+      }
+    },
+    "Vergleichswert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparison value"
+          }
+        }
+      }
+    },
+    "Versionen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versions"
+          }
+        }
+      }
+    },
+    "Vorschau": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "Werkzeuge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tools"
+          }
+        }
+      }
+    },
+    "Werkzeuge …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tools…"
+          }
+        }
+      }
+    },
+    "Wiederherstellen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore…"
+          }
+        }
+      }
+    },
+    "XMP-Sidecar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XMP sidecar"
+          }
+        }
+      }
+    },
+    "Zeitverschiebung in Sekunden (negativ oder positiv)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time shift in seconds (negative or positive)"
+          }
+        }
+      }
+    },
+    "Zugangsdaten gespeichert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credentials saved"
+          }
+        }
+      }
+    },
+    "Zusammenfassung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
+          }
+        }
+      }
+    },
+    "ausgeblendet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hidden"
+          }
+        }
+      }
+    },
+    "ausgewählt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "selected"
+          }
+        }
+      }
+    },
+    "entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "remove"
+          }
+        }
+      }
+    },
+    "Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes"
+          }
+        }
+      }
+    },
+    "Änderungen verwerfen?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard edits?"
+          }
+        }
+      }
+    },
+    "Änderungen übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply changes"
+          }
+        }
+      }
+    },
+    "Audio, Bilder, E-Books und Dokumente bitte getrennt auswählen, um sie gemeinsam zu bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select audio, images, e-books or documents separately for batch editing."
+          }
+        }
+      }
+    },
+    "Felder: %{ARTIST}, %{ALBUM}, %{TITLE}, %{TRACKNUMBER}. Umbenennen verändert Dateinamen; Tags aus Dateinamen bleiben bis zum Speichern im Puffer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fields: %{ARTIST}, %{ALBUM}, %{TITLE}, %{TRACKNUMBER}. Renaming changes filenames; tags parsed from filenames remain in the editor until saved."
+          }
+        }
+      }
+    },
+    "Tag-Backup vor Stapelspeichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back up tags before batch saving"
+          }
+        }
+      }
+    },
+    "Online-Dienste erlauben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow online services"
+          }
+        }
+      }
+    },
+    "Datenschutzhinweis gelesen und zugestimmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have read and accepted the privacy notice"
+          }
+        }
+      }
+    },
+    "Herunterladen und installieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download and install"
+          }
+        }
+      }
+    },
+    "In Bearbeitungspuffer übernehmen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply to editor"
+          }
+        }
+      }
+    },
+    "Tracks nummerieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number tracks"
+          }
+        }
+      }
+    },
+    "Externe Werkzeuge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External tools"
+          }
+        }
+      }
+    },
+    "Installiert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installed"
+          }
+        }
+      }
+    },
+    "Nicht installiert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not installed"
+          }
+        }
+      }
+    },
+    "Fehlende Werkzeuge installieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install missing tools"
+          }
+        }
+      }
+    },
+    "MediaInfo zeigt Technikdaten, ExifTool bearbeitet Bild/PDF-Metadaten, ImageMagick wandelt Cover, Chromaprint erstellt Fingerabdrücke und Calibre ergänzt E-Book-Formate.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MediaInfo shows technical information, ExifTool edits image/PDF metadata, ImageMagick converts artwork, Chromaprint creates fingerprints and Calibre adds e-book formats."
+          }
+        }
+      }
+    },
+    "Rechnungsnummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invoice number"
+          }
+        }
+      }
+    },
+    "Rechnungsdatum": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Issue date"
+          }
+        }
+      }
+    },
+    "Verkäufer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seller"
+          }
+        }
+      }
+    },
+    "Käufer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buyer"
+          }
+        }
+      }
+    },
+    "Währung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Currency"
+          }
+        }
+      }
+    },
+    "Zahlbetrag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount due"
+          }
+        }
+      }
+    },
+    "Meldung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Message"
+          }
+        }
+      }
+    },
+    "Fundstelle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
+          }
+        }
+      }
+    },
+    "Schweregrad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Severity"
+          }
+        }
+      }
+    },
+    "Bildvorschau": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image preview"
+          }
+        }
+      }
+    },
+    "Update wird geladen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading update"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

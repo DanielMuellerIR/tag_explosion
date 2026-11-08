@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Dialoge „Umbenennen aus Tags …" und „Tags aus Dateiname …": Musterfeld
 // mit Vorgaben und Verlauf, Vorschautabelle, Ausführen-Knopf. Die Logik
 // (Muster, Plan, Konflikte) liegt im Core; hier steht nur die Anzeige.

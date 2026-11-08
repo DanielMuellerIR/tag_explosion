@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Batch-Editor für Dokumente: setzt Autor(en)/Thema/Schlagwörter/Verlag/
 // Sprache/Kategorie für alle ausgewählten Dateien (Titel, Beschreibung und
 // Daten bleiben bewusst Einzel-Editor-Sache). Ein Feld erscheint nur, wenn

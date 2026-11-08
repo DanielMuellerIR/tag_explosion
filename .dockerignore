@@ -1,0 +1,7 @@
+.git
+.build
+App/.build
+.validation-build
+build
+Tests/TagExplosionCoreTests/Fixtures/generated
+Linux/target

@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // „Versionen …": Die Papierkorb-Sicherungen einer Datei als Liste, mit
 // Feld-Vergleich zur gewählten Version und „Diese Version wiederherstellen".
 // Eine gemeinsame kleine View für alle Einzel-Editoren (Audio, Bild, E-Book,

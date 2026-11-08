@@ -126,7 +126,7 @@ def prepare(bundle, sources, cache):
     (bundle / "legal/README.txt").write_text(
         "Tag Explosion: eigener Code unter MIT. Die eigenständige Java-Laufzeit, "
         "Bibliotheken und Regelpakete behalten ihre jeweiligen Lizenzen.\n"
-        "Lizenztexte: licenses/; Original-Notices: java/; Runtime: ../runtime/Contents/Home/legal/.\n"
+        "Lizenztexte: licenses/; Original-Notices: java/; Runtime: ../runtime/Contents/Home/legal/ (macOS) oder ../runtime/legal/ (Linux).\n"
         "Das passende Sources-Paket muss gemeinsam mit diesem Binärstand angeboten werden. "
         "Es enthält insbesondere die MPL-/EUPL-/GPL-Quellen und bevorzugten Regelquellen.\n"
         "Verpackungsänderungen: native Jansi-Konsolenbibliotheken und die ungenutzte "
@@ -190,7 +190,7 @@ def verify(bundle, sources):
         raise ComplianceError("KoSIT-JAR weicht vom freigegebenen Inventar ab")
     if tree_digest(bundle / "configuration") != policy["configurationTreeSHA256"]:
         raise ComplianceError("Regelpaket weicht vom freigegebenen Inventar ab")
-    if tree_digest(bundle / "runtime") != policy["runtimeTreeSHA256"][manifest["architecture"]]:
+    if tree_digest(bundle / "runtime") != policy["runtimeTreeSHA256"][(manifest.get("operatingSystem", "macos") + "-" + manifest["architecture"])]:
         raise ComplianceError("Runtime weicht vom geprüften Herstellerpaket ab")
     expected_files = files_in(bundle)
     expected_files.pop("compliance.json", None)

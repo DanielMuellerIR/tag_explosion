@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Was im Fensterkopf steht und welche Datei das Fenster vertritt — als reine
 // Umwandlung, damit die Regeln ohne Fenster prüfbar bleiben.
 import SwiftUI

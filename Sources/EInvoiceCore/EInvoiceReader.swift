@@ -13,7 +13,7 @@ public enum EInvoiceReader {
     /// Rechnungen aus PDFs lesen braucht CoreGraphics (Apple-Plattformen);
     /// XML-Rechnungen gehen überall.
     public static var isPDFExtractionAvailable: Bool {
-        #if canImport(CoreGraphics)
+        #if canImport(CoreGraphics) || os(Linux)
         return true
         #else
         return false
@@ -97,7 +97,7 @@ public enum EInvoiceReader {
     public static func payload(url: URL) throws -> EInvoicePayload {
         switch url.pathExtension.lowercased() {
         case "pdf":
-            #if canImport(CoreGraphics)
+            #if canImport(CoreGraphics) || os(Linux)
             return try payload(extraction: PDFEmbeddedInvoice.extract(url: url))
             #else
             throw EInvoiceError.pdfUnreadable(url.path)
@@ -110,7 +110,7 @@ public enum EInvoiceReader {
     /// PDF aus einem bereits eingefrorenen Dateistand statt erneut vom
     /// veränderlichen Originalpfad lesen.
     public static func payload(fromPDF data: Data) throws -> EInvoicePayload {
-        #if canImport(CoreGraphics)
+        #if canImport(CoreGraphics) || os(Linux)
         return try payload(extraction: PDFEmbeddedInvoice.extract(data: data))
         #else
         throw EInvoiceError.pdfUnreadable("PDF-Extraktion benötigt CoreGraphics")
@@ -143,7 +143,7 @@ public enum EInvoiceReader {
         try payload(url: url).document()
     }
 
-    #if canImport(CoreGraphics)
+    #if canImport(CoreGraphics) || os(Linux)
     private static func payload(extraction: PDFEmbeddedInvoice.Extraction) throws -> EInvoicePayload {
         // Die XMP-Deklaration benennt die maßgebliche Rechnungsdatei und hat
         // deshalb Vorrang. Danach folgen standardisierte Namen; sonst bleibt

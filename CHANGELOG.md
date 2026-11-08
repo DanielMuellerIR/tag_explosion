@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.0 — 2026-11-08
+
+- Linux-Desktopclient mit Rust/Tauri und lokaler WebKit-Oberfläche: Datei- und
+  Stapelbearbeitung, Cover, Kapitel/LRC, Technikdaten, Bilder, E-Books,
+  Dokumente, Sidecars, Playlists und E-Rechnungsanzeige/-prüfung.
+- Gemeinsame Swift-Anwendungsschicht für Mac und Linux. Lade-, Speicher-,
+  Backup-, Konflikt- und Regelabläufe werden von beiden Oberflächen verwendet.
+- Linux-PDF-Adapter über QPDF und Cover-Konvertierung über ImageMagick.
+  Linux-Prüfpaket mit eigener, inventarisierter Java-Laufzeit.
+- AppImage, Benutzerinstallation und signierte Updates aus GitHub Releases.
+  Atomarer Paketwechsel mit erhaltener voriger Version; Lizenzhinweise und
+  passende Bibliotheks-/Prüferquellen gehören zur Distribution.
+- Linux-GUI- und IPC-Prüfungen sowie bestehende Mac-Regressionen.
+
 ## 0.53.2 — 2026-10-16
 
 - Eigene vollständige MIT-Lizenz im Bundle mitliefern; Auslieferungsprüfung

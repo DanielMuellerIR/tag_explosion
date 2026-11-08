@@ -7,7 +7,7 @@
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
-  <strong>Native macOS app for viewing and editing media metadata — audio tags,
+  <strong>Desktop app for macOS and Linux for viewing and editing media metadata — audio tags,
   image metadata (EXIF/IPTC/XMP), video tags, and e-book metadata in one fast,
   Apple-style editor, with a scriptable CLI companion. Also inspects
   e-invoices (ZUGFeRD/Factur-X, XRechnung, Peppol), read-only.</strong>
@@ -15,12 +15,16 @@
 
 <p align="center">
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
-  <img alt="Platform: macOS 14+" src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg">
+  <img alt="Platform: macOS 14+ and Linux x86_64" src="https://img.shields.io/badge/platform-macOS%2014%2B%20%7C%20Linux-lightgrey.svg">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-orange.svg">
 </p>
 
 ![Editing an audiobook: cover art, tags, and per-field copy menus](docs/screenshots/en/audio.png)
 *The audio editor: cover art, all tag fields, and copy menus on the general text fields.*
+
+The Linux desktop client uses Rust/Tauri and shares its Swift file processing
+with macOS. AppImage installation, requirements and updates are described in
+[the Linux guide](docs/linux.md). Screenshots below show the macOS client.
 
 ## Features
 

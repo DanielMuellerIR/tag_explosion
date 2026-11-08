@@ -30,3 +30,8 @@ Tests/TagExplosionCoreTests/Fixtures/generated/
 *.flac
 *.ogg
 *.opus
+
+# Linux-Desktop
+Linux/target/
+Linux/gen/
+Linux/binaries/

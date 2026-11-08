@@ -5,31 +5,37 @@ import TagExplosionCore
 
 /// Sidecars, die zu einem Audio-/Video-Eintrag gehören und beim Lesen mit
 /// erhoben werden. Sie hängen am selben Namensstamm wie das Medium.
-struct AudioSidecars: Sendable, Equatable {
+public struct AudioSidecars: Sendable, Equatable {
+    public init(lrcState: SidecarState = .unknown, nfo: NFOSidecarReading? = nil) {
+        self.lrcState = lrcState; self.nfo = nfo
+    }
     /// Zustand der `<name>.lrc` beim Lesen, unbekannt wenn nicht gelesen. Beim
     /// Speichern wird dagegen geprüft (fremde Änderung → Konflikt).
-    var lrcState: SidecarState = .unknown
+    public var lrcState: SidecarState = .unknown
     /// Kodi-NFO neben einem Video; nil = keine NFO daneben.
-    var nfo: NFOSidecarReading? = nil
+    public var nfo: NFOSidecarReading? = nil
 
     /// Felder der NFO als Bearbeitungsgrundlage (leer ohne lesbare NFO).
-    var nfoFields: NFOFields { nfo?.contents?.fields ?? NFOFields() }
+    public var nfoFields: NFOFields { nfo?.contents?.fields ?? NFOFields() }
 }
 
 /// Gelesene NFO-Sidecar eines Videos: Inhalt (nil, wenn unlesbar — dann
 /// steht der Grund in `error`) und Stempel für die Konfliktprüfung.
-struct NFOSidecarReading: Sendable, Equatable {
-    var url: URL
-    var contents: NFOContents?
-    var stamp: FileStamp?
-    var error: String? = nil
+public struct NFOSidecarReading: Sendable, Equatable {
+    public init(url: URL, contents: NFOContents?, stamp: FileStamp?, error: String? = nil) {
+        self.url = url; self.contents = contents; self.stamp = stamp; self.error = error
+    }
+    public var url: URL
+    public var contents: NFOContents?
+    public var stamp: FileStamp?
+    public var error: String? = nil
 
     /// Nur eine lesbare NFO mit Feldern (keine Nur-URL-NFO) ist editierbar.
-    var isEditable: Bool { contents.map { !$0.isURLOnly } ?? false }
+    public var isEditable: Bool { contents.map { !$0.isURLOnly } ?? false }
 }
 
 /// Frisch gelesener Datei-Zustand (Audio, Bild, E-Book oder E-Rechnung).
-enum LoadedData: Sendable {
+public enum LoadedData: Sendable {
     /// Audio/Video samt Sidecar-Zustand (`.lrc`-Stempel, NFO) — beides wird
     /// mit dem Medium gelesen und beim Speichern gegen die Platte geprüft.
     case audio(TagData, sidecars: AudioSidecars = AudioSidecars())

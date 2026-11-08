@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Editor-Abschnitte für die festen Felder mit Prüfung (AP7):
 //  - „Lyrics": mehrzeiliger Text, Sprache (nur ID3v2), synchronisierte
 //    Zeilen mit LRC-Import/-Export (SYLT in der Datei oder Sidecar `<name>.lrc`);

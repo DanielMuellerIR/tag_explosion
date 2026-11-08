@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Kapitel-Abschnitt des Audio-Editors: editierbare Liste (Titel, Beginn,
 // Ende), Hinzufügen/Entfernen, Import/Export als JSON oder Text. Nur sichtbar,
 // wenn das Format Kapitel kann (MP3, MP4/M4A/M4B, Matroska). Gespeichert wird

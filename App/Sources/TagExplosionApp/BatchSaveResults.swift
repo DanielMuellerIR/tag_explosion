@@ -1,35 +1,6 @@
 import Foundation
 import SwiftUI
-
-struct BatchSaveResult: Identifiable {
-    enum Status {
-        case pending, saving, success, failed, skipped
-        var title: String {
-            switch self {
-            case .pending: String(localized: "Wartend")
-            case .saving: String(localized: "Speichern …")
-            case .success: String(localized: "Erfolgreich")
-            case .failed: String(localized: "Fehlgeschlagen")
-            case .skipped: String(localized: "Übersprungen")
-            }
-        }
-    }
-    var url: URL
-    var id: URL { url }
-    var status: Status = .pending
-    var reason = ""
-}
-
-/// Erfolgreicher Container-Austausch lässt sich bei einem Sidecar-Fehler
-/// nicht zurückrollen. Die Meldung nennt deshalb die bereits geschriebenen Ziele.
-struct PartialSaveError: LocalizedError {
-    let completed: [String]
-    let underlying: Error
-    var errorDescription: String? {
-        String(localized: "Bereits geschrieben:") + " " + completed.joined(separator: ", ")
-            + "\n" + underlying.localizedDescription
-    }
-}
+import TagExplosionApplication
 
 struct BatchSaveResultsView: View {
     @Environment(AppModel.self) private var model

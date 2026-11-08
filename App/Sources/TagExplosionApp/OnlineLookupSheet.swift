@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // „Online nachschlagen …": Sheet mit Suchfeldern (aus den Tags vorbelegt),
 // Quelle, Kandidatenliste, Zuordnung Datei → Titel mit alt → neu je Feld
 // und Cover-Vorschau. „Übernehmen" schreibt nichts auf die Platte, sondern
@@ -80,10 +81,7 @@ struct OnlineLookupSheet: View {
 
     /// Dateiinfos für Matcher und Suchbegriffe, einmal aus den Puffern gelesen.
     private var fileInfos: [LookupFileInfo] {
-        entries.map { entry in
-            LookupFileInfo(url: entry.url, data: TagData(
-                properties: entry.properties, artworks: [], audio: entry.audio))
-        }
+        entries.map(\.lookupFileInfo)
     }
 
     var body: some View {
@@ -468,13 +466,5 @@ struct OnlineLookupSheet: View {
             entry.applyLookup(row.plan, artwork: includeCover ? artwork : nil)
         }
         dismiss()
-    }
-}
-
-extension FileEntry {
-    func applyLookup(_ plan: LookupPlan, artwork: Artwork?) {
-        properties = plan.apply(to: properties)
-        guard MediaFormats.supportsEmbeddedArtwork(url), let artwork else { return }
-        setFrontCover(artwork)
     }
 }

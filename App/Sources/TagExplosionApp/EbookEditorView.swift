@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // E-Book-Editor: Cover + Kernfelder (Umfang wie Calibres Metadaten-Dialog).
 // EPUB nativ, PDF via exiftool (ohne Serie/Cover), mobi/azw3/fb2 via Calibre.
 // PDFs mit eingebetteter E-Rechnung (ZUGFeRD/Factur-X) bekommen zusätzlich

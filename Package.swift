@@ -5,14 +5,27 @@
 // Die macOS-GUI liegt als eigenes Executable-Target in App/.
 import PackageDescription
 
+#if os(Linux)
+let pdfDependencies: [Target.Dependency] = ["CPDFShim"]
+let pdfTargets: [Target] = [
+    .systemLibrary(name: "CQPDF", pkgConfig: "libqpdf", providers: [.apt(["libqpdf-dev"])]),
+    .target(name: "CPDFShim", dependencies: ["CQPDF"]),
+]
+#else
+let pdfDependencies: [Target.Dependency] = []
+let pdfTargets: [Target] = []
+#endif
+
 let package = Package(
     name: "TagExplosion",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "TagExplosionCore", targets: ["TagExplosionCore"]),
+        .library(name: "TagExplosionApplication", targets: ["TagExplosionApplication"]),
         // Eigenständig nutzbar (kein TagLib nötig); die App bindet es direkt.
         .library(name: "EInvoiceCore", targets: ["EInvoiceCore"]),
         .executable(name: "tagx", targets: ["tagx"]),
+        .executable(name: "tagx-engine", targets: ["TagExplosionDesktopEngine"]),
         // Gemeinsame Hilfen auch für das separate App-Testpaket; die App selbst
         // bindet dieses Produkt nicht ein.
         .library(name: "TagExplosionTestSupport", targets: ["TagExplosionTestSupport"]),
@@ -38,9 +51,10 @@ let package = Package(
         ),
         // E-Rechnungs-Leser (nur Anzeige): ZUGFeRD/Factur-X/XRechnung/Peppol.
         // Bewusst ohne TagLib-/ZIP-Abhängigkeit; die PDF-Extraktion nutzt
-        // CoreGraphics und ist per #if auf Apple-Plattformen begrenzt.
+        // CoreGraphics auf macOS und QPDF auf Linux.
         .target(
-            name: "EInvoiceCore"
+            name: "EInvoiceCore",
+            dependencies: pdfDependencies
         ),
         // Portabler Kern: Datenmodell, Tag-IO, MediaInfo-Wrapper. Kein AppKit/SwiftUI.
         .target(
@@ -51,6 +65,8 @@ let package = Package(
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
             ]
         ),
+        .target(name: "TagExplosionApplication", dependencies: ["TagExplosionCore", "EInvoiceCore"]),
+        .executableTarget(name: "TagExplosionDesktopEngine", dependencies: ["TagExplosionApplication"]),
         // CLI für Headless-Betrieb, Tests und Batch-Skripting.
         .executableTarget(
             name: "tagx",
@@ -72,6 +88,6 @@ let package = Package(
             name: "TagxTests",
             dependencies: ["TagExplosionCore", "TagExplosionTestSupport", "tagx"]
         ),
-    ],
+    ] + pdfTargets,
     cxxLanguageStandard: .cxx17
 )

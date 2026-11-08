@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tag Explosion",
+  "identifier": "io.github.danielmuellerir.tagexplosion",
+  "version": "0.54.0",
+  "build": {
+    "frontendDist": "frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tag Explosion",
+        "width": 1100,
+        "height": 800,
+        "minWidth": 760,
+        "minHeight": 500
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "appimage"
+    ],
+    "icon": [
+      "icons/icon.png"
+    ],
+    "category": "Utility",
+    "shortDescription": "Medien-Metadaten anzeigen und sicher bearbeiten"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY2QTBDNEI5RUYyOTM2OTQKUldTVU5pbnZ1Y1NnOXI4U05nQTliSVh1cHptNzFYdWozZ2YzbElZeldGQnQzRW1vaThjYlpUSW8K",
+      "endpoints": [
+        "https://github.com/DanielMuellerIR/tag_explosion/releases/latest/download/linux-updates.json"
+      ]
+    }
+  }
+}

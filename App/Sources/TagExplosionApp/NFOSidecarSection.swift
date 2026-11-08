@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Abschnitt „NFO-Sidecar" im Video-Editor: Liegt `<name>.nfo` neben der
 // Videodatei, erscheinen hier die wichtigsten Felder (Titel, Jahr, Handlung,
 // Genres) mit Herkunft. Der Puffer liegt im `FileEntry` (`videoNFOFields`),

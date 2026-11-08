@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Bild-Editor: Vorschau + Kernfelder (EXIF/IPTC/XMP via exiftool, MWG-harmonisiert)
 // + vollständige Metadaten-Ansicht.
 import SwiftUI
@@ -303,19 +304,7 @@ struct ImageSidecarNotice: View {
     /// Text zum Schreibziel samt Grund — der Nutzer soll wissen, WARUM sein
     /// Bild unverändert bleibt.
     static func destinationText(_ destination: ImageWriteDestination) -> String {
-        let name = destination.url.lastPathComponent
-        switch destination.reason {
-        case .original:
-            return String(localized: "Änderungen werden in die Bilddatei geschrieben.")
-        case .rawFormat:
-            return String(localized: "Kamera-RAW: Änderungen gehen in die Sidecar \(name), das RAW bleibt unverändert.")
-        case .formatNotWritable:
-            return String(localized: "exiftool kann dieses Format nicht beschreiben: Änderungen gehen in die Sidecar \(name).")
-        case .existingSidecar:
-            return String(localized: "Änderungen gehen in die vorhandene Sidecar \(name), weil ihre Werte beim Lesen Vorrang haben.")
-        case .setting:
-            return String(localized: "Einstellung: Änderungen gehen in die Sidecar \(name) statt in die Bilddatei.")
-        }
+        ImagePresentation.destinationText(destination)
     }
 }
 
@@ -351,13 +340,7 @@ struct ImageMetadataTab: View {
             let sidecar = sidecarURL
             do {
                 let loaded = try await Task.detached(priority: .userInitiated) {
-                    var all = try ExifTool.readAllGroups(url: target)
-                    if let sidecar {
-                        for group in try ExifTool.readAllGroups(url: sidecar) {
-                            all.append(MetadataGroup(name: "Sidecar · \(group.name)", fields: group.fields))
-                        }
-                    }
-                    return all
+                    try ExifTool.readAllGroups(url: target, sidecarURL: sidecar)
                 }.value
                 guard !Task.isCancelled else { return }
                 groups = loaded

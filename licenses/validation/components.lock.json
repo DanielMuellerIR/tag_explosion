@@ -651,8 +651,9 @@
   ],
   "packagedJarSHA256": "2d96394a78c5037101f2681d62bca2aae1e17b9042ed0ebb2798a921f6e6b147",
   "runtimeTreeSHA256": {
-    "arm64": "447849d4a44a948519cc891ab1c5cfcc7d8c2535fb94200e9d11da5af9ed16d0",
-    "x86_64": "9440ec443b89aef962202dd3db4a0d6d563123cc6d8a83deaed79e0275c0a63e"
+    "macos-arm64": "447849d4a44a948519cc891ab1c5cfcc7d8c2535fb94200e9d11da5af9ed16d0",
+    "macos-x86_64": "9440ec443b89aef962202dd3db4a0d6d563123cc6d8a83deaed79e0275c0a63e",
+    "linux-x86_64": "1428a7f1c4039c3d038185e1e8c391d9c5d91f97acd8ea0e42116732e12fc21b"
   },
   "configurationTreeSHA256": "8351a6d622da9860a8f202cd12915c4e02ee13a8227ce1d2305f57dfbc7abb5d",
   "facturXVersion": "1.09.2",

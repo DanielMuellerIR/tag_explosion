@@ -51,7 +51,7 @@ jobs:
 
   # Core und CLI sind Linux-portabel — das prüft nur ein Lauf, der wirklich
   # unter Linux baut und testet (Papierkorb nach XDG, Freiplatz per statvfs).
-  # Die App bleibt macOS-only und kommt hier nicht vor.
+  # Die native SwiftUI-App bleibt im Mac-Job; die Linux-GUI folgt separat.
   test-linux:
     runs-on: ubuntu-24.04
 
@@ -62,7 +62,7 @@ jobs:
       - name: Swift-Toolchain
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: "6.0"
+          swift-version: "6.2.1"
 
       # TagLib 2.3.1 aus dem Quelltext (Ubuntu liefert nur 1.13), dazu
       # mediainfo/exiftool/ffmpeg wie im macOS-Job. Gleiches Skript wie der
@@ -73,3 +73,33 @@ jobs:
       # swift test baut seine Abhängigkeiten einschließlich tagx selbst.
       - name: Core und CLI bauen und testen
         run: swift test
+
+      - name: Desktop-Engine und IPC prüfen
+        run: |
+          swift build --product tagx-engine
+          python3 Tests/Linux/engine_integration.py
+
+  linux-gui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Isolierte GUI-Bauumgebung
+        run: |
+          docker build -t tag-explosion-linux-builder:local -f Linux/Dockerfile .
+          docker build -t tag-explosion-linux-ui:local -f Linux/Dockerfile.ui .
+      - name: Rust und echte Linux-GUI prüfen
+        run: |
+          docker run --rm --init --user "$(id -u):$(id -g)" -v "$PWD:/src" -w /src -e HOME=/tmp/tagx-home -e CARGO_HOME=/src/.build/cargo-cache tag-explosion-linux-ui:local bash -eu -c '
+            mkdir -p "$HOME"
+            swift build -j 3 --product tagx-engine
+            cargo test --manifest-path Linux/Cargo.toml --locked -j 3
+            cargo build --manifest-path Linux/Cargo.toml --locked -j 3
+            cargo install tauri-driver --version 2.1.0 --locked --root /src/.build/driver -j 3
+            dbus-run-session -- xvfb-run -a python3 Tests/Linux/gui_smoke.py
+          '
+      - name: GUI-Bilder und Fehlerbelege
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-gui
+          path: .build/linux-gui-smoke/

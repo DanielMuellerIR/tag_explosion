@@ -12,24 +12,24 @@
 import Foundation
 
 /// Ein Eintrag im Bewertungs-Picker des Einzel-Editors.
-struct RatingPickerOption: Hashable, Identifiable {
+public struct RatingPickerOption: Hashable, Identifiable {
     /// Der Wert, den der Picker bei Auswahl setzt (nil = kein Rating-Tag).
-    let value: Int?
+    public let value: Int?
     /// Beschriftung im Picker.
-    let label: String
+    public let label: String
     /// Kennung für `ForEach`; ein Optional ist hier eindeutig genug.
-    var id: Int? { value }
+    public var id: Int? { value }
 }
 
-enum RatingPicker {
+public enum RatingPicker {
     /// Adobes dokumentierter Wert für „abgelehnt".
-    static let rejected = -1
+    public static let rejected = -1
     /// Werte mit festem Eintrag, in Anzeigereihenfolge.
-    static let standardValues: [Int] = [rejected, 0, 1, 2, 3, 4, 5]
+    public static let standardValues: [Int] = [rejected, 0, 1, 2, 3, 4, 5]
 
     /// Beschriftung eines Werts: „keine" für fehlendes Tag, „abgelehnt" für
     /// −1, Sterne für 1…5, sonst der nackte Wert als Bestandswert.
-    static func label(for value: Int?) -> String {
+    public static func label(for value: Int?) -> String {
         // `Text(option.label)` erhält hier einen Laufzeit-String und behandelt
         // ihn deshalb wörtlich. Die Lokalisierung muss bereits an dieser
         // Abbildungsgrenze passieren; nur String-Literale direkt in `Text`
@@ -46,7 +46,7 @@ enum RatingPicker {
     /// Einträge des Einzel-Pickers: „keine", die Standardwerte und — nur wenn
     /// der aktuelle Wert außerhalb davon liegt — ein Zusatzeintrag für genau
     /// diesen Bestandswert, damit die Auswahl immer sichtbar ist.
-    static func options(current: Int?) -> [RatingPickerOption] {
+    public static func options(current: Int?) -> [RatingPickerOption] {
         var options = [RatingPickerOption(value: nil, label: label(for: nil))]
         options += standardValues.map { RatingPickerOption(value: $0, label: label(for: $0)) }
         if let current, !standardValues.contains(current) {
@@ -59,7 +59,7 @@ enum RatingPicker {
 /// Die Zustände der Bewertung in einer Mehrfachauswahl. Ein doppeltes
 /// Optional („kein Wert" gegen „uneinheitlich") wäre an dieser Stelle nicht
 /// mehr lesbar, seit `rating` selbst optional ist.
-enum RatingChoice: Hashable {
+public enum RatingChoice: Hashable {
     /// Die ausgewählten Bilder tragen verschiedene Bewertungen.
     case mixed
     /// Alle tragen gar kein Rating-Tag.
@@ -68,7 +68,7 @@ enum RatingChoice: Hashable {
     case value(Int)
 
     /// Gemeinsamer Zustand einer Liste von Bewertungen.
-    static func choice(for ratings: [Int?]) -> RatingChoice {
+    public static func choice(for ratings: [Int?]) -> RatingChoice {
         guard let first = ratings.first else { return .none }
         guard ratings.allSatisfy({ $0 == first }) else { return .mixed }
         guard let value = first else { return .none }
@@ -78,7 +78,7 @@ enum RatingChoice: Hashable {
     /// Einträge des Batch-Pickers: „— verschieden —", „keine", die
     /// Standardwerte und — nur wenn alle Bilder denselben Fremdwert tragen —
     /// ein Zusatzeintrag für diesen Bestandswert.
-    static func options(current: RatingChoice) -> [RatingChoice] {
+    public static func options(current: RatingChoice) -> [RatingChoice] {
         var options: [RatingChoice] = [.mixed, .none]
         options += RatingPicker.standardValues.map(RatingChoice.value)
         if case .value(let value) = current, !RatingPicker.standardValues.contains(value) {
@@ -88,7 +88,7 @@ enum RatingChoice: Hashable {
     }
 
     /// Beschriftung im Picker.
-    var label: String {
+    public var label: String {
         switch self {
         case .mixed: return String(localized: "— verschieden —")
         case .none: return RatingPicker.label(for: nil)
@@ -99,7 +99,7 @@ enum RatingChoice: Hashable {
     /// Was die Auswahl dieses Eintrags in jedes Bild schreibt: `.some(nil)`
     /// löscht das Tag, `.some(v)` setzt v, `nil` (bei „verschieden") ändert
     /// nichts.
-    var ratingToApply: Int?? {
+    public var ratingToApply: Int?? {
         switch self {
         case .mixed: return nil
         case .none: return .some(nil)

@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Verzeichnis aller offenen Fenster. Jedes Fenster hat sein eigenes AppModel
 // mit eigener Dateiliste; Ereignisse aus macOS (Datei öffnen, Beenden) treffen
 // aber die App als Ganzes. Diese Registry ist die einzige Stelle, die alle

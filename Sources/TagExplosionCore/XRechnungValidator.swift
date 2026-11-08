@@ -91,7 +91,7 @@ public enum XRechnungValidator {
         _ = try InvoiceValidationPackage.inspect(bundle, cancellation: cancellation)
         let fm = FileManager.default
         let bundle = bundle.standardizedFileURL
-        let java = bundle.appendingPathComponent("runtime/Contents/Home/bin/java")
+        let java = ValidationRuntime.java(in: bundle)
         let jar = bundle.appendingPathComponent("validator.jar")
         let configuration = bundle.appendingPathComponent("configuration")
         let scenarios = configuration.appendingPathComponent("scenarios.xml")

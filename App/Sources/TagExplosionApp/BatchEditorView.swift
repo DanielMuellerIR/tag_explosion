@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Batch-Editor: bearbeitet mehrere ausgewählte Dateien gleichzeitig.
 // Felder zeigen den gemeinsamen Wert oder "— verschieden —"; eine Eingabe
 // setzt den Wert für ALLE ausgewählten Dateien.
@@ -188,19 +189,12 @@ struct BatchEditorView: View {
     /// TRACKNUMBER in Listenreihenfolge als n/total setzen.
     private func renumberTracks() {
         guard canEdit("TRACKNUMBER") else { return }
-        let total = entries.count
-        for (i, entry) in entries.enumerated() {
-            entry.setSingleValue("TRACKNUMBER", "\(i + 1)/\(total)")
-        }
+        BatchAudioActions.renumber(entries)
     }
 
     /// Dateiname ohne Endung und ohne führende Tracknummer ("07 - " / "07_" / "07. ").
     private func titleFromFilename(_ entry: FileEntry) -> String {
-        var name = entry.url.deletingPathExtension().lastPathComponent
-        if let range = name.range(of: #"^\d+\s*[-_.–]\s*"#, options: .regularExpression) {
-            name = String(name[range.upperBound...])
-        }
-        return name.trimmingCharacters(in: .whitespaces)
+        BatchAudioActions.titleFromFilename(entry)
     }
 
     // MARK: Dateiliste
@@ -289,12 +283,7 @@ struct CopyFromFieldMenu: View {
     /// Übernimmt pro Datei ALLE Werte des Quell-Feldes (mehrwertige Felder
     /// wie zwei Genres bleiben vollständig erhalten).
     private func copyValues(from sourceKey: String) {
-        for entry in entries {
-            let values = entry.properties.filter { $0.key == sourceKey }.map(\.value)
-            guard !values.isEmpty else { continue }
-            entry.properties.removeAll { $0.key == targetKey }
-            entry.properties.append(contentsOf: values.map { TagProperty(key: targetKey, value: $0) })
-        }
+        BatchAudioActions.copyValues(from: sourceKey, to: targetKey, entries: entries)
     }
 }
 

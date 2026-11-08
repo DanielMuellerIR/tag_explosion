@@ -1,43 +1,45 @@
 // Originalzustand, Bearbeitungspuffer und sichere Speicher-Snapshots je Datei.
-import AppKit
+import Foundation
 import EInvoiceCore
+#if !os(Linux)
 import Observation
-import SwiftUI
+#endif
 import TagExplosionCore
-import UniformTypeIdentifiers
 
 // Endungs-Sets kommen zentral aus dem Core (MediaFormats), damit App, CLI
 // und Export/Import dieselbe Dateierkennung nutzen.
-let audioExtensions = MediaFormats.audio
-let imageExtensions = MediaFormats.image
-let videoExtensions = MediaFormats.video
-let ebookExtensions = MediaFormats.ebook
-let documentExtensions = MediaFormats.document
-let playlistExtensions = MediaFormats.playlist
+public let audioExtensions = MediaFormats.audio
+public let imageExtensions = MediaFormats.image
+public let videoExtensions = MediaFormats.video
+public let ebookExtensions = MediaFormats.ebook
+public let documentExtensions = MediaFormats.document
+public let playlistExtensions = MediaFormats.playlist
 
 /// Art der geladenen Datei — bestimmt Editor und Speicherweg. Direkt der
 /// Core-Typ (auch das Archiv nutzt ihn); die Zuordnung inklusive des
 /// Video→audio-Wegs liegt zentral in MediaFormats.
-typealias MediaKind = MediaFormats.Kind
+public typealias MediaKind = MediaFormats.Kind
 
 extension MediaFormats.Kind {
-    static func forURL(_ url: URL) -> MediaKind? { MediaFormats.kind(of: url) }
+    public static func forURL(_ url: URL) -> MediaKind? { MediaFormats.kind(of: url) }
 }
 
 /// Eine geladene Datei mit Original-Zustand und Bearbeitungspuffer.
+#if !os(Linux)
 @Observable
+#endif
 @MainActor
-final class FileEntry: Identifiable {
-    nonisolated let url: URL
-    nonisolated let kind: MediaKind
-    nonisolated var id: URL { url }
+public final class FileEntry: Identifiable {
+    public nonisolated let url: URL
+    public nonisolated let kind: MediaKind
+    public nonisolated var id: URL { url }
 
     /// Zustand wie zuletzt von der Platte gelesen (Audio); andere Medienarten
     /// behalten die Neutralwerte der Property-Defaults.
-    private(set) var original = TagData(properties: [], artworks: [], audio: nil)
+    public private(set) var original = TagData(properties: [], artworks: [], audio: nil)
     /// Bearbeitungspuffer — das, was die UI anzeigt und ändert (Audio).
-    var properties: [TagProperty] = []
-    var artworks: [Artwork] = []
+    public var properties: [TagProperty] = []
+    public var artworks: [Artwork] = []
 
     private var frontCoverIndex: Int? {
         artworks.firstIndex { $0.pictureType == "Front Cover" }
@@ -46,9 +48,9 @@ final class FileEntry: Identifiable {
 
     // Ein ausdrücklich typisiertes Frontcover hat Vorrang. Untypisierte
     // Bestandsbilder behalten die bisherige Cover-Bedienung; Booklets nicht.
-    var frontCover: Artwork? { frontCoverIndex.map { artworks[$0] } }
+    public var frontCover: Artwork? { frontCoverIndex.map { artworks[$0] } }
 
-    func setFrontCover(_ artwork: Artwork) {
+    public func setFrontCover(_ artwork: Artwork) {
         if let index = frontCoverIndex {
             artworks[index] = artwork
         } else {
@@ -56,85 +58,85 @@ final class FileEntry: Identifiable {
         }
     }
 
-    func removeFrontCover() {
+    public func removeFrontCover() {
         if let index = frontCoverIndex { artworks.remove(at: index) }
     }
     /// Kapitel (nur bei Formaten mit Kapiteln, siehe `supportsChapters`).
-    var chapters: [Chapter] = []
+    public var chapters: [Chapter] = []
     /// Sprache der Lyrics (ISO 639-2; nur ID3v2 speichert sie) und
     /// synchronisierte Zeilen — aus SYLT (ID3v2) oder, bei anderen Formaten,
     /// aus der Sidecar `<name>.lrc` neben der Datei (siehe `readLoaded`).
-    var lyricsLanguage: String = ""
-    var syncedLyrics: [SyncedLyricLine] = []
+    public var lyricsLanguage: String = ""
+    public var syncedLyrics: [SyncedLyricLine] = []
     /// Sidecars eines Audio-/Video-Eintrags laut letztem Lesestand: Stempel
     /// der `<name>.lrc` und die Kodi-NFO neben einem Video. Beide gehören
     /// zur Konfliktprüfung beim Speichern — sonst überschriebe die App eine
     /// zwischenzeitlich fremd geänderte Sidecar ohne Rückfrage.
-    private(set) var audioSidecars = AudioSidecars()
+    public private(set) var audioSidecars = AudioSidecars()
     /// Original und Bearbeitungspuffer der NFO neben einem Video. Sie zählen
     /// zu `isDirty`, damit Schließen/Beenden auch NFO-Eingaben nicht still
     /// verwerfen; gespeichert werden sie mit dem Eintrag (nur in die NFO).
-    private(set) var videoNFOOriginal = NFOFields()
-    var videoNFOFields = NFOFields()
+    public private(set) var videoNFOOriginal = NFOFields()
+    public var videoNFOFields = NFOFields()
 
     /// Original und Bearbeitungspuffer für Bilder (nur bei kind == .image).
     /// `imageOriginal` ist der zusammengeführte Stand (Sidecar-Werte
     /// überlagern eingebettete); `imageReading` trägt dazu, welche Felder
     /// aus der Sidecar stammen und wie deren Stempel beim Lesen war.
-    private(set) var imageOriginal = ImageCoreFields()
-    private(set) var imageReading = ImageCoreReading(fields: ImageCoreFields())
-    var imageFields = ImageCoreFields()
+    public private(set) var imageOriginal = ImageCoreFields()
+    public private(set) var imageReading = ImageCoreReading(fields: ImageCoreFields())
+    public var imageFields = ImageCoreFields()
 
     /// Original und Bearbeitungspuffer für E-Books (nur bei kind == .ebook).
-    private(set) var ebookOriginal = EbookCoreFields()
-    var ebookFields = EbookCoreFields()
+    public private(set) var ebookOriginal = EbookCoreFields()
+    public var ebookFields = EbookCoreFields()
     /// Cover, wie es beim Lesen in der Datei stand (nil = keins). Nur damit
     /// lässt sich erkennen, ob ein ausgewähltes Cover überhaupt eine Änderung
     /// ist — ein Schreibvorgang mit identischen Bytes tauscht die Datei sonst
     /// ohne jeden inhaltlichen Grund aus.
-    private(set) var ebookOriginalCover: Data?
+    public private(set) var ebookOriginalCover: Data?
     /// Neues Cover, das beim Speichern geschrieben wird (nil = unverändert).
     /// Über `setEbookCover(_:)` setzen, nicht direkt: Nur so werden gleiche
     /// Bytes als "keine Änderung" erkannt.
-    private(set) var ebookCoverReplacement: Data?
+    public private(set) var ebookCoverReplacement: Data?
 
     /// Geparste E-Rechnung (nur bei kind == .invoice). Kein Bearbeitungs-
     /// puffer: Rechnungen sind reine Anzeige.
-    private(set) var invoiceDocument: EInvoiceDocument?
+    public private(set) var invoiceDocument: EInvoiceDocument?
 
     /// Original und Bearbeitungspuffer für Dokumente (nur bei kind == .document).
-    private(set) var documentOriginal = DocumentCoreFields()
-    var documentFields = DocumentCoreFields()
+    public private(set) var documentOriginal = DocumentCoreFields()
+    public var documentFields = DocumentCoreFields()
     /// CBZ: erste Seite als Cover — reine Anzeige, kein Schreibweg.
-    private(set) var documentCover: Data?
+    public private(set) var documentCover: Data?
     /// Anzeigeinformationen (Anwendung, Seiten, Wörter …), nur lesend.
-    private(set) var documentInfo: [DocumentInfoItem] = []
+    public private(set) var documentInfo: [DocumentInfoItem] = []
 
     /// Sidecars (nur bei kind == .sidecar): gelesener Inhalt (Anzeige) plus
     /// Original und Bearbeitungspuffer der NFO- bzw. VTT-Felder.
-    private(set) var sidecarContents: SidecarContents?
-    private(set) var nfoOriginal = NFOFields()
-    var nfoFields = NFOFields()
-    private(set) var subtitleOriginal = SubtitleEditableFields()
-    var subtitleFields = SubtitleEditableFields()
+    public private(set) var sidecarContents: SidecarContents?
+    public private(set) var nfoOriginal = NFOFields()
+    public var nfoFields = NFOFields()
+    public private(set) var subtitleOriginal = SubtitleEditableFields()
+    public var subtitleFields = SubtitleEditableFields()
     /// Playlist/Cue-Sheet (nur bei kind == .playlist): Anzeigeinhalt mit
     /// aufgelösten Einträgen, dazu Original und Bearbeitungspuffer der
     /// Beschriftung (Kopffelder, Titel/Interpret je Eintrag).
-    private(set) var playlistContents = PlaylistContents(
+    public private(set) var playlistContents = PlaylistContents(
         format: .m3u, fields: PlaylistCoreFields(), entries: [])
-    private(set) var playlistOriginal = PlaylistCoreFields()
-    var playlistFields = PlaylistCoreFields()
+    public private(set) var playlistOriginal = PlaylistCoreFields()
+    public var playlistFields = PlaylistCoreFields()
 
     /// Stand der Datei auf der Platte, als sie zuletzt gelesen wurde. Vor dem
     /// Schreiben wird dagegen geprüft: Hat ein anderes Programm die Datei
     /// inzwischen geändert, darf das Speichern sie nicht überschreiben.
-    private(set) var diskStamp: FileStamp?
+    public private(set) var diskStamp: FileStamp?
 
     /// Fehlertext des letzten Speicherversuchs (nil = ok).
-    var lastError: String?
+    public var lastError: String?
     /// Ein Speichervorgang pro Datei reicht aus. Der Zustand verhindert, dass
     /// zwei Buttons gleichzeitig denselben TagLib-/Dateischreibvorgang starten.
-    var isSaving = false
+    public var isSaving = false
     /// Wartende Aktionen (Entfernen, Import, Schließen) werden erst nach dem
     /// laufenden Schreibvorgang fortgesetzt. Continuations vermeiden Polling
     /// und machen den Ablauf auch in headless Tests deterministisch.
@@ -143,7 +145,7 @@ final class FileEntry: Identifiable {
     /// Unveränderlicher Stand zu Beginn eines Speichervorgangs. Der Puffer darf
     /// sich währenddessen weiter ändern; deshalb schreiben wir nie direkt aus
     /// den später möglicherweise veränderten UI-Feldern.
-    enum SaveSnapshot: Sendable {
+    public enum SaveSnapshot: Sendable {
         case audio(AudioSnapshot)
         /// `sidecar`: Sidecar-Zustand aus dem Lesevorgang — damit erkennt der
         /// Schreibweg eine inzwischen fremd angelegte oder geänderte Sidecar.
@@ -159,33 +161,40 @@ final class FileEntry: Identifiable {
     /// der Sicherung geprüft, und er entscheidet, ob die Mediendatei
     /// überhaupt angefasst werden muss (eine Änderung nur an der LRC-Sidecar
     /// schreibt das Medium nicht neu).
-    struct AudioSnapshot: Sendable {
-        var properties: [TagProperty]
-        var artworks: [Artwork]
+    public struct AudioSnapshot: Sendable {
+        public init(properties: [TagProperty], artworks: [Artwork], chapters: [Chapter]?,
+                    syncedLyrics: [SyncedLyricLine]?, lyricsLanguage: String?, original: TagData,
+                    lrcState: SidecarState = .unknown, nfo: NFOSnapshot? = nil) {
+            self.properties = properties; self.artworks = artworks; self.chapters = chapters
+            self.syncedLyrics = syncedLyrics; self.lyricsLanguage = lyricsLanguage
+            self.original = original; self.lrcState = lrcState; self.nfo = nfo
+        }
+        public var properties: [TagProperty]
+        public var artworks: [Artwork]
         /// nil, wenn das Format keine Kapitel kennt — dann fasst der
         /// Schreibweg die Kapitel gar nicht an.
-        var chapters: [Chapter]?
+        public var chapters: [Chapter]?
         /// nil = unverändert. Bei ID3v2-Trägern landen die Zeilen als SYLT
         /// in der Datei, sonst in der Sidecar `<name>.lrc`.
-        var syncedLyrics: [SyncedLyricLine]?
+        public var syncedLyrics: [SyncedLyricLine]?
         /// nil = unverändert (nur ID3v2 speichert eine Sprache).
-        var lyricsLanguage: String?
-        var original: TagData
+        public var lyricsLanguage: String?
+        public var original: TagData
         /// Zustand der `<name>.lrc` beim Lesen (auch ihre Abwesenheit). Der
         /// Schreibweg prüft ihn unmittelbar vor dem Austausch der Sidecar.
-        var lrcState: SidecarState = .unknown
+        public var lrcState: SidecarState = .unknown
         /// Geänderte Felder der NFO neben einem Video samt Lesestand;
         /// nil = NFO unverändert oder keine vorhanden.
-        var nfo: NFOSnapshot? = nil
+        public var nfo: NFOSnapshot? = nil
 
         /// Geänderte Lyrics außerhalb des Containers; ID3v2 speichert sie eingebettet.
-        var sidecarLyrics: [SyncedLyricLine]? {
+        public var sidecarLyrics: [SyncedLyricLine]? {
             original.supportsSyncedLyrics ? nil : syncedLyrics
         }
 
         /// Ob in der Mediendatei selbst etwas zu schreiben ist. Sidecars
         /// (LRC bei Formaten ohne SYLT, NFO) zählen nicht dazu.
-        var mediaChanged: Bool {
+        public var mediaChanged: Bool {
             properties != original.properties || artworks != original.artworks
                 || (chapters != nil && chapters != original.chapters)
                 || (original.supportsSyncedLyrics && syncedLyrics != nil)
@@ -195,7 +204,7 @@ final class FileEntry: Identifiable {
         /// Dieselbe Momentaufnahme ohne Sidecar-Stempel — für das bewusste
         /// Überschreiben nach dem Konfliktdialog (wie `expecting: nil` beim
         /// Medium). Ohne das liefe die Person in denselben Konflikt erneut.
-        func ignoringSidecarStamps() -> AudioSnapshot {
+        public func ignoringSidecarStamps() -> AudioSnapshot {
             var copy = self
             copy.lrcState = .unknown
             copy.nfo?.stamp = nil
@@ -204,17 +213,20 @@ final class FileEntry: Identifiable {
     }
 
     /// NFO-Stand zu Beginn eines Speichervorgangs (siehe `AudioSnapshot.nfo`).
-    struct NFOSnapshot: Sendable {
-        var url: URL
-        var fields: NFOFields
-        var original: NFOFields
-        var stamp: FileStamp?
+    public struct NFOSnapshot: Sendable {
+        public init(url: URL, fields: NFOFields, original: NFOFields, stamp: FileStamp?) {
+            self.url = url; self.fields = fields; self.original = original; self.stamp = stamp
+        }
+        public var url: URL
+        public var fields: NFOFields
+        public var original: NFOFields
+        public var stamp: FileStamp?
     }
 
     /// `stamp` gehört zum gelesenen `loaded`-Zustand (konsistenter
     /// Schnappschuss aus `AppModel.readStamped`). Beides zusammen ist die
     /// Vergleichsbasis für die Konfliktprüfung beim Speichern.
-    init(url: URL, loaded: LoadedData, stamp: FileStamp?) {
+    public init(url: URL, loaded: LoadedData, stamp: FileStamp?) {
         self.url = url
         self.kind = switch loaded {
         case .audio: .audio
@@ -233,7 +245,7 @@ final class FileEntry: Identifiable {
     /// Produktionspfad benutzt ausschließlich den konsistenten Schnappschuss
     /// (`AppModel.readStamped`), weil zwischen Lesen und Stempeln sonst eine
     /// fremde Änderung unbemerkt dazwischenrutschen kann.
-    convenience init(url: URL, loaded: LoadedData) {
+    public convenience init(url: URL, loaded: LoadedData) {
         self.init(url: url, loaded: loaded, stamp: FileStamp.current(of: url))
     }
 
@@ -245,7 +257,7 @@ final class FileEntry: Identifiable {
     /// Datei, der alte Stempel bleibt also gültig.
     /// `sidecar`: neuer Pfad der mit umbenannten XMP-Sidecar (Bilder); nil
     /// lässt den gelesenen Sidecar-Pfad, wie er ist.
-    convenience init?(relocating other: FileEntry, to url: URL, sidecar: URL? = nil) {
+    public convenience init?(relocating other: FileEntry, to url: URL, sidecar: URL? = nil) {
         guard var loaded = other.loadedState else { return nil }
         if let sidecar, case .image(var reading) = loaded {
             reading.sidecarURL = sidecar
@@ -279,7 +291,7 @@ final class FileEntry: Identifiable {
     /// Der zuletzt gelesene Plattenstand als `LoadedData` — die Umkehrung
     /// von `init(url:loaded:stamp:)`. nil nur für einen Rechnungseintrag
     /// ohne Dokument, den der Initialisierer gar nicht erzeugt.
-    var loadedState: LoadedData? {
+    public var loadedState: LoadedData? {
         switch kind {
         case .audio: return .audio(original, sidecars: audioSidecars)
         case .image: return .image(imageReading)
@@ -294,25 +306,25 @@ final class FileEntry: Identifiable {
         }
     }
 
-    var audio: AudioInfo? { original.audio }
-    var isReadOnly: Bool { kind == .audio && original.isReadOnly }
+    public var audio: AudioInfo? { original.audio }
+    public var isReadOnly: Bool { kind == .audio && original.isReadOnly }
     /// Nur MP3, MP4 und Matroska tragen Kapitel; nur dann zeigt der Editor
     /// den Kapitel-Abschnitt.
-    var supportsChapters: Bool { kind == .audio && original.supportsChapters }
+    public var supportsChapters: Bool { kind == .audio && original.supportsChapters }
     /// ID3v2-Träger (MP3/MP2, WAV, AIFF, DSF) speichern SYLT und die Sprache
     /// der Lyrics in der Datei; alle anderen Audio-Formate nutzen für
     /// synchronisierte Lyrics die Sidecar `<name>.lrc`.
-    var supportsSyncedLyrics: Bool { kind == .audio && original.supportsSyncedLyrics }
+    public var supportsSyncedLyrics: Bool { kind == .audio && original.supportsSyncedLyrics }
     /// Tag-Schichten (ID3v1/ID3v2/APE …) laut letztem Lesestand; leer bei
     /// Formaten ohne Schichtenmodell — nur dann fehlt der Abschnitt im Editor.
     /// Kein Bearbeitungspuffer: Entfernen läuft direkt über
     /// `AppModel.stripLayer` und liest die Datei danach neu.
-    var layers: [TagLayer] { kind == .audio ? original.layers : [] }
+    public var layers: [TagLayer] { kind == .audio ? original.layers : [] }
 
-    var fixedFieldDrafts: [String: String] = [:]
-    var lyricsLanguageDraft: String?
+    public var fixedFieldDrafts: [String: String] = [:]
+    public var lyricsLanguageDraft: String?
 
-    func commitFixedFieldDraft(_ key: String) throws {
+    public func commitFixedFieldDraft(_ key: String) throws {
         guard let raw = fixedFieldDrafts[key] else { return }
         let value = try normalizedDraft(raw, key: key)
         setSingleValue(key, value)
@@ -324,7 +336,7 @@ final class FileEntry: Identifiable {
         return value.isEmpty ? "" : try FixedFields.normalized(key: key, value: value)
     }
 
-    func commitLyricsLanguageDraft() throws {
+    public func commitLyricsLanguageDraft() throws {
         guard let raw = lyricsLanguageDraft else { return }
         let value = FixedFields.normalizedLanguage(raw)
         guard FixedFields.isValidLanguage(value) else {
@@ -346,7 +358,7 @@ final class FileEntry: Identifiable {
         try commitLyricsLanguageDraft()
     }
 
-    var isDirty: Bool {
+    public var isDirty: Bool {
         switch kind {
         case .audio:
             return !fixedFieldDrafts.isEmpty || lyricsLanguageDraft != nil
@@ -371,7 +383,7 @@ final class FileEntry: Identifiable {
     }
 
     /// Verwirft alle ungespeicherten Änderungen.
-    func revert() {
+    public func revert() {
         fixedFieldDrafts.removeAll()
         lyricsLanguageDraft = nil
         properties = original.properties
@@ -391,7 +403,7 @@ final class FileEntry: Identifiable {
     }
 
     /// Nach erfolgreichem Speichern/Neuladen den Originalzustand ersetzen.
-    func acceptNewOriginal(_ data: TagData, sidecars: AudioSidecars = AudioSidecars()) {
+    public func acceptNewOriginal(_ data: TagData, sidecars: AudioSidecars = AudioSidecars()) {
         fixedFieldDrafts.removeAll()
         lyricsLanguageDraft = nil
         original = data
@@ -407,10 +419,10 @@ final class FileEntry: Identifiable {
     }
 
     /// NFO neben dem Video laut letztem Lesestand (nil = keine).
-    var videoNFO: NFOSidecarReading? { audioSidecars.nfo }
+    public var videoNFO: NFOSidecarReading? { audioSidecars.nfo }
 
     /// Bild-Pendant zu `acceptNewOriginal`.
-    func acceptNewImageOriginal(_ reading: ImageCoreReading) {
+    public func acceptNewImageOriginal(_ reading: ImageCoreReading) {
         imageReading = reading
         imageOriginal = reading.fields
         imageFields = reading.fields
@@ -418,7 +430,7 @@ final class FileEntry: Identifiable {
     }
 
     /// E-Book-Pendant zu `acceptNewOriginal`.
-    func acceptNewEbookOriginal(_ fields: EbookCoreFields, cover: Data?) {
+    public func acceptNewEbookOriginal(_ fields: EbookCoreFields, cover: Data?) {
         ebookOriginal = fields
         ebookFields = fields
         ebookOriginalCover = cover
@@ -427,7 +439,7 @@ final class FileEntry: Identifiable {
     }
 
     /// Dokument-Pendant zu `acceptNewOriginal`.
-    func acceptNewDocumentOriginal(_ fields: DocumentCoreFields, cover: Data?,
+    public func acceptNewDocumentOriginal(_ fields: DocumentCoreFields, cover: Data?,
                                    info: [DocumentInfoItem]) {
         documentOriginal = fields
         documentFields = fields
@@ -438,7 +450,7 @@ final class FileEntry: Identifiable {
 
     /// Sidecar-Pendant zu `acceptNewOriginal`: Original und Puffer der
     /// jeweiligen Art; die andere Art bleibt auf ihren Neutralwerten.
-    func acceptNewSidecarOriginal(_ contents: SidecarContents) {
+    public func acceptNewSidecarOriginal(_ contents: SidecarContents) {
         sidecarContents = contents
         switch contents {
         case .nfo(let nfo):
@@ -452,7 +464,7 @@ final class FileEntry: Identifiable {
     }
 
     /// Playlist-Pendant zu `acceptNewOriginal`.
-    func acceptNewPlaylistOriginal(_ contents: PlaylistContents) {
+    public func acceptNewPlaylistOriginal(_ contents: PlaylistContents) {
         playlistContents = contents
         playlistOriginal = contents.fields
         playlistFields = contents.fields
@@ -471,7 +483,7 @@ final class FileEntry: Identifiable {
     /// würde sonst zu nil normalisiert und ginge nach dem Save verloren —
     /// `acceptSaved` gleicht die Auswahl stattdessen mit dem wirklich
     /// geschriebenen Cover ab.
-    func setEbookCover(_ data: Data) {
+    public func setEbookCover(_ data: Data) {
         ebookCoverReplacement = (!isSaving && data == ebookOriginalCover) ? nil : data
     }
 
@@ -480,7 +492,7 @@ final class FileEntry: Identifiable {
     /// ein getrennt erhobener Stempel könnte schon zu einer fremden, nie
     /// gelesenen Dateiversion gehören, die das nächste Speichern dann als
     /// "unverändert" überschriebe.
-    func acceptNew(_ loaded: LoadedData, stamp: FileStamp?) {
+    public func acceptNew(_ loaded: LoadedData, stamp: FileStamp?) {
         diskStamp = stamp
         switch loaded {
         case .audio(let data, let sidecars): acceptNewOriginal(data, sidecars: sidecars)
@@ -501,7 +513,7 @@ final class FileEntry: Identifiable {
     /// Markiert genau einen Speicherauftrag als aktiv und liefert dessen Stand.
     /// `allowingUnchanged` erfasst auch saubere Puffer vor direkten Dateiaktionen.
     /// nil bedeutet: kein Auftrag oder bereits laufendes Speichern.
-    func beginSaving(allowingUnchanged: Bool = false) -> SaveSnapshot? {
+    public func beginSaving(allowingUnchanged: Bool = false) -> SaveSnapshot? {
         guard !isSaving else { return nil }
         do { try commitFieldDrafts() } catch {
             lastError = error.localizedDescription
@@ -553,7 +565,7 @@ final class FileEntry: Identifiable {
     /// Macht die Bedienung wieder frei, auch wenn das Schreiben fehlgeschlagen
     /// ist. Original und Bearbeitungspuffer werden hier absichtlich nicht
     /// verändert.
-    func finishSaving() {
+    public func finishSaving() {
         isSaving = false
         let waiters = saveWaiters
         saveWaiters = []
@@ -563,7 +575,7 @@ final class FileEntry: Identifiable {
     /// Wartet nur dann, wenn aktuell wirklich geschrieben wird. Da diese
     /// Methode und `finishSaving()` auf dem MainActor laufen, kann zwischen
     /// Prüfung und Eintragen kein Abschluss verloren gehen.
-    func waitUntilSaveFinished() async {
+    public func waitUntilSaveFinished() async {
         guard isSaving else { return }
         await withCheckedContinuation { saveWaiters.append($0) }
     }
@@ -574,7 +586,7 @@ final class FileEntry: Identifiable {
     /// `stamp` gehört zum Read-back `reloaded` (konsistenter Schnappschuss) —
     /// so kann nie ein Stempel einer neueren, fremden Dateiversion mit den
     /// hier gelesenen älteren Daten kombiniert werden.
-    func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData, stamp: FileStamp?) {
+    public func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData, stamp: FileStamp?) {
         // Der eigene Schreibvorgang ist die neue Vergleichsbasis.
         diskStamp = stamp
         switch (snapshot, reloaded) {
@@ -647,12 +659,12 @@ final class FileEntry: Identifiable {
     // Bequeme Zugriffe für die UI ------------------------------------------
 
     /// Erster Wert eines Schlüssels (für Einfach-Felder).
-    func firstValue(_ key: String) -> String {
+    public func firstValue(_ key: String) -> String {
         properties.first { $0.key == key }?.value ?? ""
     }
 
     /// Setzt einen Schlüssel auf genau einen Wert (leer = Feld entfernen).
-    func setSingleValue(_ key: String, _ value: String) {
+    public func setSingleValue(_ key: String, _ value: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if let index = properties.firstIndex(where: { $0.key == key }) {
             if trimmed.isEmpty {
@@ -676,7 +688,7 @@ final class FileEntry: Identifiable {
 
     /// Titel aus dem Bearbeitungspuffer, ohne Ersatz durch den Dateinamen.
     /// Suche und Sortierung sollen denselben Feldwert wie die Zeile verwenden.
-    var metadataTitle: String {
+    public var metadataTitle: String {
         let title: String
         switch kind {
         case .audio: title = firstValue("TITLE")
@@ -695,18 +707,12 @@ final class FileEntry: Identifiable {
         return title
     }
 
-    var displayTitle: String {
+    public var displayTitle: String {
         let title = metadataTitle
         return title.isEmpty ? url.lastPathComponent : title
     }
 
-    /// Alles, was der Fensterkopf über diese Datei wissen muss.
-    var chromeEntry: WindowChromeEntry {
-        WindowChromeEntry(title: displayTitle, url: url,
-                          isDirty: isDirty, isSaving: isSaving)
-    }
-
-    var displaySubtitle: String {
+    public var displaySubtitle: String {
         switch kind {
         case .audio:
             return [firstValue("ARTIST"), firstValue("ALBUM")]

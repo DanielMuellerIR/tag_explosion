@@ -20,7 +20,7 @@ public struct EInvoicePDFInspection: Sendable {
 extension EInvoiceReader {
     /// Begrenzte Strukturprüfung desselben PDF-Schnappschusses wie die Anzeige.
     public static func inspectPDF(_ data: Data, selectedXML: Data) throws -> EInvoicePDFInspection {
-        #if canImport(CoreGraphics)
+        #if canImport(CoreGraphics) || os(Linux)
         return try PDFEmbeddedInvoice.inspect(data: data, selectedXML: selectedXML)
         #else
         throw EInvoiceError.pdfUnreadable("PDF-Inspektion steht auf dieser Plattform nicht zur Verfügung")

@@ -53,6 +53,12 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 | AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (`XDGTrash`, `scripts/linux-deps.sh`, [knowledge/linux-xdg-papierkorb.md](../knowledge/linux-xdg-papierkorb.md)). | mittel | ✅ 0.39.0 |
 | AP17 | **Finder-Integration:** Quick-Look-Metadatenprovider für Audio/MP4/Matroska und EPUB (installierte EPUB-Vorschau geprüft; MP3 behält hier die Systemvorschau); „In Tag Explosion öffnen" unter Dienste im Finder-Kontextmenü. Eigenes SwiftPM-Executable mit `NSExtensionMain`, bestehender headless Build bleibt erhalten. Grenzen und Prüfstand: [finder-integration.md](../knowledge/finder-integration.md). | groß | ✅ 0.47.0 |
 
+## Linux-Desktop
+
+Seit 0.54.0 gibt es einen Rust-/Tauri-Client mit gemeinsamer Swift-Anwendungslogik,
+AppImage und signiertem GitHub-Updatekanal. Architektur und technisch bedingte
+Unterschiede: [Linux-Betrieb und Bau](linux.md).
+
 ## E-Rechnungsvalidierung
 
 Mit 0.48.0 gibt es einen separaten KoSIT-Prototyp für XRechnung-XML in der

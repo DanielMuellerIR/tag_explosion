@@ -1,15 +1,15 @@
 // Zentrales App-Modell: geladene Dateien, Auswahl, Laden/Speichern.
 // UI-State läuft auf dem MainActor; Datei-IO in Hintergrund-Tasks.
-import AppKit
+import Foundation
 import EInvoiceCore
+#if !os(Linux)
 import Observation
-import SwiftUI
+#endif
 import TagExplosionCore
-import UniformTypeIdentifiers
 
 /// Entscheidung für eine Aktion, die ungespeicherte Editor-Puffer zerstören
 /// oder durch Plattenwerte ersetzen würde.
-enum DirtyConflictDecision {
+public enum DirtyConflictDecision: Sendable {
     case save
     case discard
     case cancel
@@ -18,25 +18,25 @@ enum DirtyConflictDecision {
 /// Der für SwiftUI sichtbare Teil einer wartenden Aktion. Die eigentliche
 /// Abschluss-Closure bleibt privat im Modell, damit die View keine Dateilogik
 /// oder Terminierungsdetails kennen muss.
-struct PendingDirtyConflict: Identifiable {
-    let id = UUID()
-    let title: String
-    let message: String
-    let affectedEntryCount: Int
-    var failureMessage: String?
+public struct PendingDirtyConflict: Identifiable {
+    public let id = UUID()
+    public let title: String
+    public let message: String
+    public let affectedEntryCount: Int
+    public var failureMessage: String?
 
-    var displayedMessage: String { failureMessage ?? message }
+    public var displayedMessage: String { failureMessage ?? message }
 }
 
 /// Explizite Freigabe für Archive, die mindestens ein Ziel außerhalb ihres
 /// eigenen Verzeichnisses enthalten. Angezeigt wird bewusst die vollständige
 /// aufgelöste Zielliste, nicht nur der erste auffällige Pfad.
-struct PendingExternalImportApproval: Identifiable {
-    let id = UUID()
-    let targetPaths: [String]
-    let externalTargetCount: Int
+public struct PendingExternalImportApproval: Identifiable {
+    public let id = UUID()
+    public let targetPaths: [String]
+    public let externalTargetCount: Int
 
-    var displayedMessage: String {
+    public var displayedMessage: String {
         String(localized:
             "Dieses Archiv enthält \(externalTargetCount) Ziel(e) außerhalb seines Ordners. Alle aufgelösten Ziele:")
             + "\n\n" + targetPaths.joined(separator: "\n")
@@ -45,15 +45,20 @@ struct PendingExternalImportApproval: Identifiable {
 
 /// Rückmeldung an den AppDelegate nach einer asynchronen Terminierungsfrage.
 /// AppKit-Typen bleiben dabei aus der headless testbaren Konfliktlogik heraus.
-enum TerminationDecision {
+public enum TerminationDecision: Sendable {
     case terminateNow
     case terminateCancel
 }
 
 /// Globaler App-Zustand.
+// Die Linux-GUI fragt Zustände über IPC ab und benötigt keine SwiftUI-Beobachtung.
+#if !os(Linux)
 @Observable
+#endif
 @MainActor
-final class AppModel {
+public final class AppModel {
+    public init() {}
+
     private struct PendingAction {
         var conflict: PendingDirtyConflict
         let entries: [FileEntry]
@@ -65,39 +70,41 @@ final class AppModel {
         let perform: @MainActor () async -> Void
     }
 
-    var entries: [FileEntry] = []
-    var selection: Set<URL> = []
-    var listSearch = ""
-    var listKind: MediaKind?
-    var listDirtyOnly = false
-    var listErrorsOnly = false
-    var listSort: FileListSort = .input
+    public var entries: [FileEntry] = []
+    public var selection: Set<URL> = []
+    public var listSearch = ""
+    public var listKind: MediaKind?
+    public var listDirtyOnly = false
+    public var listErrorsOnly = false
+    public var listSort: FileListSort = .input
 
     /// Das Fenster, in dem dieses Modell steckt — gesetzt von `WindowBridge`.
     /// `WindowSessions` erkennt daran, welche Modelle wirklich sichtbar sind;
     /// ein Modell ohne Fenster darf keine Dateien mehr zugeteilt bekommen.
     /// Bewusst nicht beobachtet: Es ist keine Anzeige-, sondern Zuordnungsinfo.
-    @ObservationIgnored weak var hostWindow: NSWindow?
+    #if !os(Linux)
+    @ObservationIgnored public weak var hostContext: AnyObject?
+    #endif
     /// Zustand des Ladeablaufs; Reservierungen gehören demselben Fenster.
-    let loading = FileLoadingState()
-    var loadingCompleted: Int { loading.completed }
-    var loadingTotal: Int { loading.total }
-    var isLoading: Bool { loading.operationCount > 0 }
-    var batchResults: [BatchSaveResult] = []
-    var batchCompletedCount: Int {
+    public let loading = FileLoadingState()
+    public var loadingCompleted: Int { loading.completed }
+    public var loadingTotal: Int { loading.total }
+    public var isLoading: Bool { loading.operationCount > 0 }
+    public var batchResults: [BatchSaveResult] = []
+    public var batchCompletedCount: Int {
         batchResults.filter { $0.status != .pending && $0.status != .saving }.count
     }
-    private(set) var isBatchSaving = false
+    public private(set) var isBatchSaving = false
     private var cancelBatchRequested = false
     private var batchSaveWaiters: [CheckedContinuation<Void, Never>] = []
-    var showBatchResults = false
-    func cancelBatchSave() { cancelBatchRequested = true }
+    public var showBatchResults = false
+    public func cancelBatchSave() { cancelBatchRequested = true }
 
-    func retryFailedSaves() async {
+    public func retryFailedSaves() async {
         await retryFailedSaves { await self.save(entry: $0) }
     }
 
-    func retryFailedSaves(saveEntry: @escaping @MainActor (FileEntry) async -> Bool) async {
+    public func retryFailedSaves(saveEntry: @escaping @MainActor (FileEntry) async -> Bool) async {
         guard !isBatchSaving, !isDestructiveActionLocked else { return }
         let previous = batchResults
         let failed = Set(previous.filter { $0.status == .failed }.map(\.url))
@@ -107,31 +114,31 @@ final class AppModel {
     }
 
     /// Fehlermeldung für Alert-Anzeige.
-    var alertMessage: String?
+    public var alertMessage: String?
     /// Einträge, für die das Sheet der Konsistenzprüfung offen ist (nil =
     /// geschlossen). Liegt im Modell statt in der View, damit ein Klick auf
     /// eine Datei im Sheet die Auswahl ändern kann, ohne das Sheet zu schließen
     /// (der Batch-Editor wird bei Auswahlwechsel neu aufgebaut).
-    var libraryCheckTargets: [FileEntry]?
+    public var libraryCheckTargets: [FileEntry]?
     /// Sichtbarer Save/Discard/Cancel-Zustand für Import, Entfernen, Fenster
     /// und App-Terminierung.
-    private(set) var pendingConflict: PendingDirtyConflict?
+    public private(set) var pendingConflict: PendingDirtyConflict?
     /// Eine Aktion wartet zunächst auf bereits laufende Speichervorgänge.
     /// Währenddessen darf kein zweiter konkurrierender Auftrag entstehen.
     private var isPreparingDestructiveAction = false
     /// Nach einem Klick auf Speichern/Verwerfen bleibt die UI gesperrt, bis
     /// alle betroffenen Dateien fertig behandelt sind.
-    private(set) var isResolvingConflict = false
+    public private(set) var isResolvingConflict = false
     private var pendingAction: PendingAction?
     /// Der Button beansprucht die Entscheidung synchron vor dem asynchronen
     /// Task. So kann SwiftUIs anschließendes Dialog-Dismiss nicht noch ein
     /// konkurrierendes „Abbrechen“ dazwischenschieben.
     private var claimedConflictDecision: DirtyConflictDecision?
-    private(set) var pendingExternalImport: PendingExternalImportApproval?
+    public private(set) var pendingExternalImport: PendingExternalImportApproval?
     private var pendingExternalImportAction: PendingExternalImportAction?
     private var claimedExternalImportApproval: Bool?
 
-    var isDestructiveActionLocked: Bool {
+    public var isDestructiveActionLocked: Bool {
         isBatchSaving || pendingConflict != nil || pendingExternalImport != nil
             || pendingStaleWrite != nil || claimedStaleWrite != nil
             || isPreparingDestructiveAction || isResolvingConflict
@@ -140,33 +147,33 @@ final class AppModel {
     /// Der Dialog selbst sperrt bereits die View. Diese Ergänzung deckt die
     /// kurze Warte- und Auflösungsphase ab, in der sonst ein Textfeld noch eine
     /// neue, unbestätigte Änderung annehmen könnte.
-    var isEditorInteractionLocked: Bool {
+    public var isEditorInteractionLocked: Bool {
         isPreparingDestructiveAction || isResolvingConflict
     }
 
     /// Die ausgewählten Einträge in Listenreihenfolge.
-    var selectedEntries: [FileEntry] {
+    public var selectedEntries: [FileEntry] {
         entries.filter { selection.contains($0.url) }
     }
 
     /// Genau ein ausgewählter Eintrag (Einzel-Editor), sonst nil.
-    var selectedEntry: FileEntry? {
+    public var selectedEntry: FileEntry? {
         let selected = selectedEntries
         return selected.count == 1 ? selected.first : nil
     }
 
-    var hasDirtyEntries: Bool {
+    public var hasDirtyEntries: Bool {
         entries.contains { $0.isDirty }
     }
 
     // Bestehende Einstiege bleiben erhalten; IO besitzt keinen Fensterzustand.
-    nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
+    public nonisolated static func readLoaded(url: URL, kind: MediaKind) throws -> LoadedData {
         try AppFileIO.readLoaded(url: url, kind: kind)
     }
-    nonisolated static func readVideoNFO(for url: URL) -> NFOSidecarReading? {
+    public nonisolated static func readVideoNFO(for url: URL) -> NFOSidecarReading? {
         AppFileIO.readVideoNFO(for: url)
     }
-    nonisolated static func readStamped(url: URL, kind: MediaKind,
+    public nonisolated static func readStamped(url: URL, kind: MediaKind,
                                        read: (URL, MediaKind) throws -> LoadedData = AppModel.readLoaded) throws -> (LoadedData, FileStamp?) {
         try AppFileIO.readStamped(url: url, kind: kind, read: read)
     }
@@ -174,22 +181,22 @@ final class AppModel {
     // MARK: - Speichern
 
     /// Schlüssel der Auto-Backup-Einstellung (Toggle in den Einstellungen).
-    static let autoBackupDefaultsKey = "autoBackupBeforeBatchSave"
+    public static let autoBackupDefaultsKey = "autoBackupBeforeBatchSave"
 
     /// Schlüssel des abgesicherten Modus (Kopie in den Papierkorb vor jeder
     /// Änderung).
-    static let safeModeDefaultsKey = "trashBackupBeforeSave"
+    public static let safeModeDefaultsKey = "trashBackupBeforeSave"
 
     /// Abgesicherter Modus aktiv? Default an — solange die App jung ist, soll
     /// keine Änderung eine Datei endgültig kosten.
-    static var safeModeEnabled: Bool {
+    public static var safeModeEnabled: Bool {
         UserDefaults.standard.object(forKey: safeModeDefaultsKey) == nil
             || UserDefaults.standard.bool(forKey: safeModeDefaultsKey)
     }
 
     /// Überträgt die Einstellung in den Core. Muss beim Start und nach jeder
     /// Änderung der Einstellung laufen.
-    static func applySafeMode() {
+    public static func applySafeMode() {
         TrashBackup.shared.isEnabled = safeModeEnabled
         TrashBackup.shared.folderLabel = String(localized: "Tag Explosion Sicherung")
     }
@@ -197,54 +204,54 @@ final class AppModel {
     /// Schlüssel der Einstellung „Bild-Metadaten in die XMP-Sidecar schreiben
     /// statt in die Bilddatei". Voreinstellung aus; für Kamera-RAW und
     /// Formate ohne exiftool-Schreibweg erzwingt der Core die Sidecar ohnehin.
-    nonisolated static let imageSidecarDefaultsKey = "writeImageSidecar"
+    public nonisolated static let imageSidecarDefaultsKey = "writeImageSidecar"
 
     /// Sidecar statt Original für alle Bildformate? (Default: aus).
     /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest; UserDefaults
     /// ist threadsicher.
-    nonisolated static var imageSidecarPreferred: Bool {
+    public nonisolated static var imageSidecarPreferred: Bool {
         UserDefaults.standard.bool(forKey: imageSidecarDefaultsKey)
     }
 
     /// Schlüssel der Einstellung „ID3v2.3 statt ID3v2.4 schreiben" (für alte
     /// Player, die v2.4 nicht lesen). Voreinstellung aus.
-    nonisolated static let id3v23DefaultsKey = "writeID3v23"
+    public nonisolated static let id3v23DefaultsKey = "writeID3v23"
 
     /// ID3v2-Version für den Audio-Schreibweg laut Einstellung (Default v2.4).
     /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest.
-    nonisolated static var preferredID3Version: ID3Version {
+    public nonisolated static var preferredID3Version: ID3Version {
         UserDefaults.standard.bool(forKey: id3v23DefaultsKey) ? .v23 : .v24
     }
 
     /// Auto-Backup vor Batch-Speichern? (Default: an)
-    static var autoBackupEnabled: Bool {
+    public static var autoBackupEnabled: Bool {
         UserDefaults.standard.object(forKey: autoBackupDefaultsKey) == nil
             || UserDefaults.standard.bool(forKey: autoBackupDefaultsKey)
     }
 
     /// Speichert alle ausgewählten Dateien mit Änderungen.
-    func saveSelected() async {
+    public func saveSelected() async {
         guard !isDestructiveActionLocked else { return }
         await saveEntries(selectedEntries.filter(\.isDirty))
     }
 
     /// Verwirft Änderungen aller ausgewählten Dateien.
-    func revertSelected() {
+    public func revertSelected() {
         guard !isDestructiveActionLocked else { return }
         for entry in selectedEntries { entry.revert() }
     }
 
-    var selectionIsDirty: Bool {
+    public var selectionIsDirty: Bool {
         selectedEntries.contains { $0.isDirty }
     }
 
     /// Die Auswahl kann nur einmal gleichzeitig gespeichert werden. Sichtbar
     /// deaktivierte Speichern-Aktionen verhindern unzulässige Doppel-Clicks.
-    var selectionIsSaving: Bool {
+    public var selectionIsSaving: Bool {
         selectedEntries.contains { $0.isSaving }
     }
 
-    var hasSavingEntries: Bool {
+    public var hasSavingEntries: Bool {
         entries.contains { $0.isSaving }
     }
 
@@ -252,23 +259,23 @@ final class AppModel {
     /// gehört zu keinem Editor-Puffer, ist aber trotzdem ein laufender
     /// Schreibauftrag: Zwischen Sicherung, Prüfkopie und atomarem Austausch
     /// darf die App nicht beendet werden (Review-Fund 2026-09-09).
-    private(set) var runningExportCount = 0
+    public private(set) var runningExportCount = 0
     private var exportWaiters: [CheckedContinuation<Void, Never>] = []
 
-    var hasRunningExports: Bool { runningExportCount > 0 }
+    public var hasRunningExports: Bool { runningExportCount > 0 }
 
     /// Meldet einen Export an, bevor sein Hintergrundauftrag startet.
     /// Während Schließen/Beenden schon vorbereitet wird, darf kein später
     /// geplanter Export mehr durch die gerade geschlossene Warteschranke.
     @discardableResult
-    func beginExport() -> Bool {
+    public func beginExport() -> Bool {
         guard !isDestructiveActionLocked else { return false }
         runningExportCount += 1
         return true
     }
 
     /// Meldet ihn wieder ab und weckt alle, die auf sein Ende gewartet haben.
-    func endExport() {
+    public func endExport() {
         guard runningExportCount > 0 else { return }
         runningExportCount -= 1
         guard runningExportCount == 0 else { return }
@@ -279,7 +286,7 @@ final class AppModel {
 
     /// Wartet, bis kein Export mehr schreibt. Ohne laufenden Export kehrt der
     /// Aufruf sofort zurück.
-    func waitUntilExportsFinished() async {
+    public func waitUntilExportsFinished() async {
         guard hasRunningExports else { return }
         await withCheckedContinuation { exportWaiters.append($0) }
     }
@@ -290,11 +297,11 @@ final class AppModel {
     /// `WindowSessions` das Prädikat an zwei Stellen braucht (Rundenguard und
     /// Schlussabgleich) und ein Auseinanderlaufen die App unbeendbar machte
     /// (Review-Fund 2026-08-20).
-    var hasUnfinishedWork: Bool {
+    public var hasUnfinishedWork: Bool {
         hasDirtyEntries || hasSavingEntries || hasRunningExports || isDestructiveActionLocked
     }
 
-    func saveAll() async {
+    public func saveAll() async {
         guard !isDestructiveActionLocked else { return }
         await saveEntries(entries.filter(\.isDirty))
     }
@@ -305,7 +312,7 @@ final class AppModel {
     /// oder die App beenden. Modulintern, weil auch die Batch-Regeln
     /// (`applyRules`) diesen Weg nehmen.
     @discardableResult
-    func saveEntries(_ dirty: [FileEntry]) async -> Bool {
+    public func saveEntries(_ dirty: [FileEntry]) async -> Bool {
         await saveEntries(dirty) { entry in
             await self.save(entry: entry)
         }
@@ -314,7 +321,7 @@ final class AppModel {
     /// Variante mit austauschbarem Einzel-Speicherweg für headless Tests. Die
     /// Sicherung, Wartezeit und Erfolgsprüfung bleiben identisch zur App.
     @discardableResult
-    func saveEntries(
+    public func saveEntries(
         _ dirty: [FileEntry],
         saveEntry: @escaping @MainActor (FileEntry) async -> Bool
     ) async -> Bool {
@@ -385,7 +392,7 @@ final class AppModel {
     /// laufenden Saves derselben Dateien und auf laufende Exporte; erst dann
     /// entscheiden wir anhand der aktuellen Puffer, ob ein
     /// Save/Discard/Cancel-Dialog nötig ist.
-    func requestDestructiveAction(
+    public func requestDestructiveAction(
         title: String,
         message: String,
         entries affectedEntries: [FileEntry],
@@ -431,7 +438,7 @@ final class AppModel {
     /// `Task` geplant wird; der Dismiss-Callback kann sie danach nicht mehr
     /// durch `.cancel` ersetzen.
     @discardableResult
-    func claimPendingConflict(_ decision: DirtyConflictDecision) -> Bool {
+    public func claimPendingConflict(_ decision: DirtyConflictDecision) -> Bool {
         guard pendingAction != nil, !isResolvingConflict else { return false }
         isResolvingConflict = true
         claimedConflictDecision = decision
@@ -441,7 +448,7 @@ final class AppModel {
     /// Bequemer asynchroner Einstieg für nicht-visuelle Aufrufer und Tests.
     /// Die View benutzt stattdessen Claim + `resolveClaimedPendingConflict()`,
     /// damit sie die Entscheidung synchron sichern kann.
-    func resolvePendingConflict(_ decision: DirtyConflictDecision) async {
+    public func resolvePendingConflict(_ decision: DirtyConflictDecision) async {
         guard claimPendingConflict(decision) else { return }
         await resolveClaimedPendingConflict { entry in
             await self.save(entry: entry)
@@ -450,7 +457,7 @@ final class AppModel {
 
     /// Austauschbarer Schreibweg für Tests; der Produktionsweg oben verwendet
     /// exakt dieselbe Konfliktsteuerung und nur den echten Dateischreiber.
-    func resolvePendingConflict(
+    public func resolvePendingConflict(
         _ decision: DirtyConflictDecision,
         saveEntry: @escaping @MainActor (FileEntry) async -> Bool
     ) async {
@@ -461,14 +468,14 @@ final class AppModel {
     /// Führt ausschließlich die zuvor synchron beanspruchte Entscheidung aus.
     /// Ohne Claim bleibt der Konflikt unangetastet, damit ein versehentlicher
     /// zweiter Task keine fremde Auswahl übernehmen kann.
-    func resolveClaimedPendingConflict() async {
+    public func resolveClaimedPendingConflict() async {
         await resolveClaimedPendingConflict { entry in
             await self.save(entry: entry)
         }
     }
 
     /// Testbare Variante des geclaimten Ablaufs mit austauschbarem Schreiber.
-    func resolveClaimedPendingConflict(
+    public func resolveClaimedPendingConflict(
         saveEntry: @escaping @MainActor (FileEntry) async -> Bool
     ) async {
         guard let decision = claimedConflictDecision, var action = pendingAction else { return }
@@ -512,7 +519,7 @@ final class AppModel {
     /// AppKit erhält seine konkrete Terminierungsantwort erst hier. Dadurch
     /// bleibt die Save/Discard/Cancel-Logik ohne Fenster und NSApplication
     /// ausführbar testbar.
-    func requestTermination(
+    public func requestTermination(
         reply: @escaping @MainActor (TerminationDecision) -> Void
     ) async {
         await requestDestructiveAction(
@@ -527,7 +534,7 @@ final class AppModel {
 
     /// Fenster-Schließen verwendet denselben Pfad wie Cmd-Q, antwortet aber
     /// über den vom NSWindowDelegate bereitgestellten Close-Bypass.
-    func requestWindowClose(
+    public func requestWindowClose(
         performClose: @escaping @MainActor () -> Void
     ) async {
         await requestDestructiveAction(
@@ -565,7 +572,7 @@ final class AppModel {
     /// Feld des Puffers ändert: Stempelprüfung, Papierkorb-Sicherung und der
     /// atomare Austausch liegen im Core (`SubtitleFile.shift`).
     @discardableResult
-    func shiftSubtitle(entry: FileEntry, seconds: Double) async -> Bool {
+    public func shiftSubtitle(entry: FileEntry, seconds: Double) async -> Bool {
         // `isDestructiveActionLocked` gehört wie bei jedem anderen Schreibweg
         // dazu: `requestDestructiveAction` wartet auf laufende Saves und
         // entscheidet danach anhand der Puffer. Ein erst in diesem Fenster
@@ -605,7 +612,7 @@ final class AppModel {
     /// Exportiert die Tags der Einträge als selbständige JSON-Datei.
     /// E-Rechnungen sind reine Anzeige und werden nicht mitgezählt — sonst
     /// entstünde ein Archiv, das weniger Dateien enthält als versprochen.
-    func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
+    public func exportEntries(_ exportEntries: [FileEntry], to url: URL) async {
         await self.exportEntries(exportEntries, to: url) { files, target in
             try TagArchiveIO.export(files: files, to: target, includeCovers: true)
         }
@@ -614,7 +621,7 @@ final class AppModel {
     /// Variante mit austauschbarem Schreiber für headless Tests — dieselbe
     /// Form, die `exportData` schon verwendet. Anmeldung, Hintergrundstart und
     /// Fehleranzeige bleiben identisch zur App.
-    func exportEntries(
+    public func exportEntries(
         _ exportEntries: [FileEntry],
         to url: URL,
         export: @escaping @Sendable ([URL], URL) throws -> Void
@@ -643,7 +650,7 @@ final class AppModel {
 
     /// Wendet eine Export-/Backup-JSON auf die Platte an und lädt betroffene,
     /// bereits geöffnete Dateien neu.
-    func importArchive(from url: URL) async {
+    public func importArchive(from url: URL) async {
         do {
             let prepared = try await Task.detached(priority: .userInitiated) {
                 let archive = try TagArchiveIO.load(url)
@@ -682,7 +689,7 @@ final class AppModel {
     /// Testbarer Import-Einstieg mit austauschbarem Schreiber. Die Archiv-
     /// Validierung und die Schnittmenge mit geöffneten Dateien bleiben dabei
     /// identisch zum echten JSON-Import.
-    func importArchive(
+    public func importArchive(
         archive: TagArchive,
         relativeTo base: URL,
         apply: @escaping @Sendable (TagArchive, URL) async throws -> TagArchiveReport
@@ -729,14 +736,14 @@ final class AppModel {
     /// Beansprucht Freigeben/Abbrechen synchron, damit Dialog-Button und
     /// Dismiss-Callback nicht zwei verschiedene Entscheidungen ausführen.
     @discardableResult
-    func claimPendingExternalImport(approve: Bool) -> Bool {
+    public func claimPendingExternalImport(approve: Bool) -> Bool {
         guard pendingExternalImportAction != nil,
               claimedExternalImportApproval == nil else { return false }
         claimedExternalImportApproval = approve
         return true
     }
 
-    func resolveClaimedPendingExternalImport() async {
+    public func resolveClaimedPendingExternalImport() async {
         guard let approve = claimedExternalImportApproval,
               let action = pendingExternalImportAction else { return }
         pendingExternalImport = nil
@@ -815,7 +822,7 @@ final class AppModel {
     /// trotzdem geprüft. Während des Entfernens gilt die Datei als „speichert"
     /// — derselbe Schutz wie beim Speichern gegen parallele Schreibzugriffe.
     @discardableResult
-    func stripLayer(entry: FileEntry, kind: TagLayerKind) async -> Bool {
+    public func stripLayer(entry: FileEntry, kind: TagLayerKind) async -> Bool {
         guard !entry.isDirty, !entry.isSaving, !isDestructiveActionLocked else { return false }
         let url = entry.url
         let stamp = entry.diskStamp
@@ -839,7 +846,7 @@ final class AppModel {
 
     /// Direkte Dateiaktionen dürfen nur die beim Start vorhandenen Puffer ersetzen.
     /// Spätere Eingaben bleiben gegenüber dem neu gelesenen Stand ungespeichert.
-    func reloadAfterMutation(
+    public func reloadAfterMutation(
         entry: FileEntry,
         operation: @Sendable () async throws -> (LoadedData, FileStamp?)
     ) async throws -> Bool {
@@ -876,7 +883,7 @@ final class AppModel {
     /// nur nach ausdrücklicher Bestätigung. Die Sicherungskopie im Papierkorb
     /// enthält dann den fremden Stand, das Überschreiben bleibt also umkehrbar.
     @discardableResult
-    func save(entry: FileEntry, ignoringDiskChange: Bool = false) async -> Bool {
+    public func save(entry: FileEntry, ignoringDiskChange: Bool = false) async -> Bool {
         let url = entry.url
         let kind = entry.kind
         let stamp = ignoringDiskChange ? nil : entry.diskStamp
@@ -900,11 +907,11 @@ final class AppModel {
 
     /// Eine Datei wurde außerhalb der App verändert; das Speichern wartet auf
     /// die Entscheidung der Person.
-    struct PendingStaleWrite: Equatable {
-        var fileName: String
+    public struct PendingStaleWrite: Equatable {
+        public var fileName: String
     }
 
-    private(set) var pendingStaleWrite: PendingStaleWrite?
+    public private(set) var pendingStaleWrite: PendingStaleWrite?
     /// Wartende Konflikte in Reihenfolge ihres Auftretens. Ein Batch kann
     /// mehrere Dateien mit fremden Änderungen enthalten — jede bekommt ihre
     /// eigene Frage. Ein einzelner Merker würde beim zweiten Konflikt den
@@ -921,7 +928,7 @@ final class AppModel {
     /// unmittelbar danach folgende Dismiss-Callback trifft auf einen bereits
     /// vergebenen Claim und lässt die Warteschlange in Ruhe.
     @discardableResult
-    func claimStaleWrite(write: Bool) -> Bool {
+    public func claimStaleWrite(write: Bool) -> Bool {
         guard claimedStaleWrite == nil, !staleEntries.isEmpty else { return false }
         claimedStaleWrite = (staleEntries.removeFirst(), write)
         // Erst nach der Entscheidung den nächsten Konflikt anzeigen, sonst
@@ -931,7 +938,7 @@ final class AppModel {
     }
 
     /// Führt ausschließlich den zuvor beanspruchten Konflikt aus.
-    func resolveClaimedStaleWrite() async {
+    public func resolveClaimedStaleWrite() async {
         await resolveClaimedStaleWrite { entry in
             await self.save(entry: entry, ignoringDiskChange: true)
         }
@@ -939,7 +946,7 @@ final class AppModel {
 
     /// Testbare Variante mit austauschbarem Schreiber; die Warteschlangen-
     /// Logik ist identisch zum Produktionsweg oben.
-    func resolveClaimedStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
+    public func resolveClaimedStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
         guard let claim = claimedStaleWrite else { return }
         // Eine bestätigte Konfliktwiederholung darf den noch laufenden
         // seriellen Auftrag nicht mit einem zweiten Schreiber überholen.
@@ -961,20 +968,20 @@ final class AppModel {
     /// Bequemer Einstieg für nicht-visuelle Aufrufer und Tests; die View
     /// benutzt Claim + `resolveClaimedStaleWrite()`, damit sie die Entscheidung
     /// synchron sichern kann.
-    func confirmStaleWrite() async {
+    public func confirmStaleWrite() async {
         guard claimStaleWrite(write: true) else { return }
         await resolveClaimedStaleWrite()
     }
 
     /// Testbare Variante mit austauschbarem Schreiber.
-    func confirmStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
+    public func confirmStaleWrite(saveEntry: @MainActor (FileEntry) async -> Bool) async {
         guard claimStaleWrite(write: true) else { return }
         await resolveClaimedStaleWrite(saveEntry: saveEntry)
     }
 
     /// Verwirft nur die aktuell angezeigte Frage; weitere wartende Konflikte
     /// bekommen danach ihre eigene Entscheidung.
-    func cancelStaleWrite() {
+    public func cancelStaleWrite() {
         guard claimStaleWrite(write: false) else { return }
         claimedStaleWrite = nil
         refreshPendingStaleWrite()
@@ -1000,7 +1007,7 @@ final class AppModel {
     /// einen headless Regressionstest, der einen laufenden Save exakt anhalten
     /// kann, ohne echte UI- oder Dateitiming-Rennen zu brauchen.
     @discardableResult
-    func save(entry: FileEntry,
+    public func save(entry: FileEntry,
               staleCandidate: FileEntry? = nil,
               writeSnapshot: @escaping @Sendable (FileEntry.SaveSnapshot) async throws -> (LoadedData, FileStamp?)) async -> Bool {
         guard let snapshot = entry.beginSaving() else { return !entry.isDirty }
@@ -1052,7 +1059,7 @@ final class AppModel {
     /// Editor ohne sichtbare Rückfrage verschwinden lassen. Deshalb läuft es
     /// durch dieselbe zentrale Save/Discard/Cancel-Steuerung wie Import und
     /// Fenster-Schließen.
-    func remove(urls: [URL]) async {
+    public func remove(urls: [URL]) async {
         let targets = Set(urls.map(MediaFormats.canonicalFileURL))
         let affected = entries.filter {
             targets.contains(MediaFormats.canonicalFileURL($0.url))

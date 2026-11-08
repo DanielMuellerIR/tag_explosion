@@ -7,7 +7,7 @@
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
-  <strong>Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten —
+  <strong>Desktop-App für macOS und Linux zum Anzeigen und Bearbeiten von Medien-Metadaten —
   Audio-Tags, Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in
   einem schnellen Editor im Apple-Stil, mit skriptfähiger CLI. Zeigt außerdem
   E-Rechnungen an (ZUGFeRD/Factur-X, XRechnung, Peppol), rein lesend.</strong>
@@ -15,12 +15,16 @@
 
 <p align="center">
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
-  <img alt="Plattform: macOS 14+" src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg">
+  <img alt="Plattform: macOS 14+ und Linux x86_64" src="https://img.shields.io/badge/platform-macOS%2014%2B%20%7C%20Linux-lightgrey.svg">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-orange.svg">
 </p>
 
 ![Ein Hörbuch bearbeiten: Cover, Tags und Kopier-Menüs an jedem Feld](docs/screenshots/de/audio.png)
 *Der Audio-Editor: Cover, alle Tag-Felder und Kopier-Menüs an den allgemeinen Textfeldern.*
+
+Unter Linux verwendet die App Rust/Tauri und dieselbe Swift-Dateiverarbeitung
+wie unter macOS. Installation als AppImage, Voraussetzungen und Updates:
+[Linux-Anleitung](docs/linux.md). Die gezeigten Bilder stammen von macOS.
 
 ## Funktionen
 

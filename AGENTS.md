@@ -2,7 +2,7 @@
 
 ## Typ & Zweck
 
-- **Typ:** macOS-App (SwiftUI) + portabler Swift-Core + CLI
+- **Typ:** macOS-App (SwiftUI), Linux-App (Rust/Tauri) + gemeinsamer Swift-Core + CLI
 - **Zweck:** Medien-Metadaten anzeigen (alles, was mediainfo kann) und editieren
   (alles, was kid3 kann: Tags + Cover für mp3, m4a/m4b, flac, ogg, opus, wav, aiff …),
   Apple-like und schnell. Dazu Bilder (EXIF/IPTC/XMP via exiftool), Video,
@@ -11,7 +11,7 @@
   Profil aus BT-24 plus alle Felder mit EN-16931-Bezeichnungen;
   XRechnung und aktuelle ZUGFeRD-/Factur-X-Profile zusätzlich lokal mit
   XSD/Schematron über KoSIT prüfen).
-- **Plattform:** macOS (App); Core/CLI Linux-portabel gehalten. Open Source, MIT.
+- **Plattform:** macOS und Linux x86_64 (Mint 22 / Arch-basiert, glibc ≥ 2.39). Open Source, MIT.
 
 ## Architektur
 
@@ -20,12 +20,18 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - `Sources/CTagShim/` — eigener C++-Shim (MIT) über System-TagLib (Homebrew/apt,
   LGPL/MPL) mit C-Schnittstelle. **Einziger** TagLib-Berührungspunkt.
 - `Sources/EInvoiceCore/` — E-Rechnungs-Leser und begrenzte PDF-Inspektion, ohne
-  TagLib-/ZIP-Abhängigkeit; PDF-Extraktion via CoreGraphics ist der einzige
-  Apple-only-Teil. Fallen: [knowledge/e-rechnung-anzeige.md](knowledge/e-rechnung-anzeige.md).
+  TagLib-/ZIP-Abhängigkeit; PDF-Objekte kommen aus CoreGraphics (macOS) oder QPDF (Linux). Fallen: [knowledge/e-rechnung-anzeige.md](knowledge/e-rechnung-anzeige.md).
 - `Sources/TagExplosionCore/` — portables Swift: Datenmodell, Tag-IO über Shim,
   MediaInfo-JSON-Wrapper und Rechnungsvalidierung über Prozessaufrufe.
   `InvoiceValidationInput` bindet Anzeige/Prüfung an Originalbytes;
   `InvoiceValidationService` liefert abgestufte Ergebnisse. Kein AppKit/SwiftUI hier.
+- `Sources/TagExplosionApplication/` — gemeinsames AppModel/FileEntry und Desktop-Aktionen;
+  macOS bindet direkt, Linux über `tagx-engine` (begrenztes JSONL, eine Engine,
+  eine Sitzung pro Fenster). Beobachtungs-Makros nur auf macOS.
+- `Linux/` — Rust/Tauri-Host, lokale WebKit-Oberfläche, Secret Service und
+  signierter GitHub-Updatekanal. Bau/Installation: [docs/linux.md](docs/linux.md).
+- `Sources/CPDFShim/` / `CQPDF/` — Linux-PDF-Objektadapter für denselben
+  begrenzten EInvoiceCore-Durchlauf; QPDF dynamisch, kein zweiter Rechnungsleser.
 - `Sources/tagx/` — CLI (maschinenlesbare Ausgabe, Exit-Codes) für Headless-Betrieb
   und Tests.
 - `App/` — SwiftUI-App; wird als SPM-Executable gebaut und per `build.sh` zu
@@ -55,6 +61,9 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - `swift test` — Unit-/Roundtrip-/Integritätstests (Fixtures werden bei Bedarf
   generiert). Dieselben Tests laufen in `.github/workflows/tests.yml` auf macOS.
 - App-Tests: `swift test` im Ordner `App/`.
+- Linux: `Tests/Linux/engine_integration.py` prüft den echten Worker; GUI über
+  Tauri Driver/WebKitWebDriver in Xvfb oder eigener virtueller KWin-Sitzung.
+  Docker mit `--init` betreiben, damit Prozessabbruchtests keine Zombies messen.
 - Cross-Check der Schreibergebnisse: `kid3-cli` (unter macOS im Bundle
   /Applications/kid3.app/Contents/MacOS/), `mediainfo`, `ffprobe`.
 - Reale lokale Testdateien nur lesend bzw. auf Kopien bearbeiten; nie committen.
@@ -84,6 +93,11 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
   Erste Sparkle-Version muss einmal manuell installiert werden (Bootstrap).
 - Projekt-Erkenntnisse (TagLib-Fallen, Format-Quirks) gehören nach `knowledge/`
   (eine Datei pro Problem + Zeile in `knowledge/INDEX.md`).
+
+- Linux-Updates: Downloadsignatur und internes Paketmanifest vor dem Wechsel
+  prüfen; `TagExplosion.previous.AppImage` bewahrt die vorige Datei. GTK/WebKit
+  kommen vom System; Engine-Bibliotheken ausschließlich unter `usr/lib/tagx`.
+  `scripts/linux-package.py` verlangt Prüfer- und Bibliotheksquellen samt Notices.
 
 ## Status
 

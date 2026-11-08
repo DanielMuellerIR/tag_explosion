@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tag Explosion</title><link rel="stylesheet" href="style.css"><script type="module" src="app.js"></script></head>
+<body>
+<header>
+  <button id="sidebar-toggle" title="Dateiliste" aria-label="Dateiliste">☷</button>
+  <div id="window-title"><strong>Tag Explosion</strong><small id="window-subtitle"></small></div>
+  <nav aria-label="Werkzeuge">
+    <button id="new-window" title="Neues Fenster">＋</button>
+    <button id="open">Öffnen …</button>
+    <button id="open-folder">Ordner …</button>
+    <button id="save" disabled>Speichern</button>
+    <button id="save-all" disabled>Alle speichern</button>
+    <button id="check" disabled>Prüfen …</button>
+    <button id="settings" title="Einstellungen">⚙</button>
+  </nav>
+</header>
+<div id="workspace">
+  <aside id="sidebar" aria-label="Dateien">
+    <div class="list-controls">
+      <input id="search" type="search" placeholder="Dateiname, Titel oder Interpret" aria-label="Dateien suchen">
+      <div class="row"><select id="kind" aria-label="Medienart"><option value="">Alle Medienarten</option><option value="audio">Audio / Video</option><option value="image">Bilder</option><option value="ebook">E-Books</option><option value="document">Dokumente</option><option value="invoice">E-Rechnungen</option><option value="sidecar">Sidecars</option><option value="playlist">Playlists</option></select><select id="sort" aria-label="Sortierung"><option value="input">Öffnungsreihenfolge</option><option value="filename">Dateiname</option><option value="title">Titel</option><option value="artist">Interpret</option></select></div>
+      <div class="row"><label><input type="checkbox" id="dirty-only"> Ungespeichert</label><label><input type="checkbox" id="errors-only"> Fehler</label></div>
+      <small id="selection-count"></small>
+    </div>
+    <div id="file-list" role="listbox" aria-label="Geöffnete Dateien" aria-multiselectable="true" tabindex="0"></div>
+    <button id="remove" class="list-footer">Aus Liste entfernen</button>
+  </aside>
+  <main>
+    <div id="tabs" role="tablist" aria-label="Ansichten"></div>
+    <div id="editor" tabindex="-1"></div>
+  </main>
+</div>
+<footer role="status"><span id="status">Dateien oder Ordner hierher ziehen</span><button id="cancel" hidden>Abbrechen</button></footer>
+<dialog id="dialog"><form method="dialog"><h2 id="dialog-title"></h2><div id="dialog-content"></div><div id="dialog-actions" class="dialog-actions"></div></form></dialog>
+</body>
+</html>

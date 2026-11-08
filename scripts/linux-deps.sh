@@ -30,7 +30,7 @@ as_root apt-get update -qq
 as_root apt-get install -y -qq --no-install-recommends \
     build-essential cmake pkg-config zlib1g-dev libutfcpp-dev \
     curl ca-certificates \
-    mediainfo libimage-exiftool-perl ffmpeg python3-minimal zip
+    mediainfo libimage-exiftool-perl ffmpeg python3-minimal zip libqpdf-dev imagemagick
 
 # Schon vorhanden (zweiter Lauf im selben Container)? Dann nichts bauen.
 if pkg-config --exists "taglib_c >= $taglib_version" 2>/dev/null; then

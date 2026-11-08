@@ -137,6 +137,15 @@ public struct ImageWriteDestination: Sendable, Equatable {
 }
 
 public enum ExifTool {
+    public static func readEmbeddedPreview(url: URL) throws -> Data? {
+        let executable = try locateExecutable()
+        for tag in ["PreviewImage", "JpgFromRaw", "ThumbnailImage"] {
+            let bytes = try ExternalToolRunner.run(executable, ["-b", "-" + tag, ExternalToolRunner.toolArgument(for: url)],
+                                                    processTimeout: 15, outputLimit: 8 * 1024 * 1024)
+            if Artwork.sniffMimeType(from: bytes) != nil { return bytes }
+        }
+        return nil
+    }
 
     public static let executableCandidates: [String] = [
         "exiftool",
@@ -153,6 +162,16 @@ public enum ExifTool {
 
     /// Alle Metadaten gruppiert (EXIF/IPTC/XMP/…), menschenlesbare Werte,
     /// Reihenfolge wie von exiftool geliefert.
+    public static func readAllGroups(url: URL, sidecarURL: URL?) throws -> [MetadataGroup] {
+        var groups = try readAllGroups(url: url)
+        if let sidecarURL {
+            groups += try readAllGroups(url: sidecarURL).map {
+                MetadataGroup(name: "Sidecar · \($0.name)", fields: $0.fields)
+            }
+        }
+        return groups
+    }
+
     public static func readAllGroups(url: URL) throws -> [MetadataGroup] {
         let exe = try locateExecutable()
         // -G1 = Untergruppen (IFD0, ExifIFD, XMP-dc …), -s = Tag-Namen statt Beschreibungen

@@ -5,7 +5,7 @@ Tag Explosion selbst steht unter der MIT-Lizenz, © 2026 Daniel Müller (siehe
 mitgeliefert, gelinkt oder aufgerufen werden, und gibt die Lizenztexte
 vollständig wieder, wo die jeweilige Lizenz das verlangt.
 
-Stand: 2026-10-16. Portabler macOS-Release: TagLib 2.3.2;
+Stand: 2026-11-08. Portabler macOS-Release: TagLib 2.3.2;
 Entwicklungsbuilds verwenden die installierte System-TagLib.
 
 ## Übersicht
@@ -54,10 +54,37 @@ unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
   neu signiert; der Framework-Code selbst bleibt unverändert. Die MIT-Lizenz
   erlaubt das ausdrücklich, der Copyright-Vermerk bleibt erhalten.
 
+## Linux-Distribution
+
+Die Linux-Oberfläche verwendet [Tauri](https://github.com/tauri-apps/tauri)
+(MIT oder Apache-2.0) und Rust-Abhängigkeiten aus `Linux/Cargo.lock`.
+[QPDF](https://qpdf.readthedocs.io/en/stable/license.html) (Apache-2.0) wird
+unter Linux dynamisch gelinkt. Die statische Swift-Laufzeit behält ihre
+Apache-2.0-/Runtime-Exception-Hinweise. ImageMagick bleibt ein getrenntes
+Systemprogramm unter seiner [ImageMagick-Lizenz](https://imagemagick.org/license/).
+Sparkle wird ausschließlich mit der Mac-App verteilt.
+
+Das Linux-Paket enthält unter `usr/share/tag-explosion/legal/` die Originaltexte
+und ein Inventar der tatsächlich verpackten ELF-Bibliotheken sowie der
+Rust-Abhängigkeiten. `scripts/linux-notices.py` ordnet jede Bibliothek dem
+installierten Quellpaket und dessen exakter Version zu. Fehlen Quellen oder
+Hinweise, bricht die Paketierung ab. Das versionsgleiche
+`TagExplosion-VERSION-linux-library-sources.zip` enthält diese Ubuntu-Quellpakete,
+das unveränderte TagLib-2.3.1-Archiv und die Rust-/ZIPFoundation-Quellen.
+Beide zusätzlichen Quellen-ZIPs der Rechnungsprüfer bleiben ebenfalls Pflicht.
+
+Die dynamischen Bibliotheken der Engine liegen getrennt unter `usr/lib/tagx`;
+relative ELF-RUNPATH-Einträge werden beim Verpacken angepasst. Die
+Bibliotheksquellen bleiben unverändert.
+Das AppImage lässt sich mit `--appimage-extract` auspacken; Bibliotheken können
+im ausgepackten AppDir ersetzt und die App anschließend über `AppRun` gestartet
+werden. Es gibt keine technische Sperre gegen einen solchen Austausch. GTK,
+WebKit und Grafikbibliotheken stammen vom System und werden nicht mitgeliefert.
+
 ## Datenquellen der E-Rechnungs-Anzeige
 
-Die E-Rechnungs-Anzeige (`Sources/EInvoiceCore/`) ist vollständig eigener
-MIT-Code ohne zusätzliche Abhängigkeiten. Sie stützt sich auf öffentlich
+Die Interpretation der E-Rechnungen (`Sources/EInvoiceCore/`) ist eigener
+MIT-Code. Unter Linux liefert QPDF die PDF-Objekte; unter macOS CoreGraphics. Sie stützt sich auf öffentlich
 dokumentierte Fakten, nicht auf übernommene Texte oder Fremdcode:
 
 - Die Feldnummern (BT-/BG-Nummern) und XML-Pfade folgen dem **semantischen

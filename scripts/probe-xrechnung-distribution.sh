@@ -13,9 +13,10 @@ if [ "$#" = 3 ]; then
     notarize=1
 fi
 bundle="$(cd "$1" && pwd)"
-[ -f "$bundle/manifest.json" ] && [ -x "$bundle/runtime/Contents/Home/bin/java" ] || exit 1
+[ -f "$bundle/manifest.json" ] || exit 1
 sources="${VALIDATION_SOURCES:-${bundle}-sources}"
 python3 "$here/scripts/validation_compliance.py" "$bundle" --sources "$sources"
+[ -x "$bundle/runtime/Contents/Home/bin/java" ] || { echo "Die Mac-Probehülle benötigt eine macOS-Laufzeit." >&2; exit 1; }
 [ ! -e "$2" ] || { echo "Ausgabeordner existiert bereits." >&2; exit 1; }
 mkdir -p "$2"
 output="$(cd "$2" && pwd)"

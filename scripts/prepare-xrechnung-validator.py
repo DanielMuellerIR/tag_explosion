@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gepinntes KoSIT-Prüfpaket mit privater macOS-Java-Laufzeit vorbereiten."""
+"""Gepinntes KoSIT-Prüfpaket mit privater, plattformgebundener Java-Laufzeit."""
 import argparse
 import hashlib
 import json
@@ -71,11 +71,12 @@ def main():
     parser.add_argument("--arch", choices=RUNTIMES, default=platform.machine())
     parser.add_argument("--output", type=Path)
     parser.add_argument("--sources-output", type=Path, help="Passendes Quellenpaket; Standard: <output>-sources")
+    parser.add_argument("--os", choices=["macos", "linux"], default="macos" if platform.system() == "Darwin" else "linux")
     args = parser.parse_args()
-    if platform.system() != "Darwin" or args.arch not in RUNTIMES:
-        parser.error("Der Paket-Prototyp unterstützt macOS arm64 und x86_64.")
+    if args.arch not in RUNTIMES or (args.os == "linux" and args.arch != "x86_64"):
+        parser.error("Unterstützt werden macOS arm64/x86_64 und Linux x86_64.")
     root = Path(__file__).resolve().parent.parent
-    destination = (args.output or root / ".build" / ("xrechnung-validator-" + args.arch)).resolve()
+    destination = (args.output or root / ".build" / ("xrechnung-validator-" + (args.os + "-" if args.os != "macos" else "") + args.arch)).resolve()
     source_destination = (args.sources_output or Path(str(destination) + "-sources")).resolve()
     if destination.exists():
         parser.error("Ziel existiert bereits; vorhandene Prüfpakete werden nicht überschrieben.")
@@ -86,9 +87,11 @@ def main():
     destination.parent.mkdir(parents=True, exist_ok=True)
     source_destination.parent.mkdir(parents=True, exist_ok=True)
     java_arch, java_hash = RUNTIMES[args.arch]
+    if args.os == "linux":
+        java_hash = "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500"
     artifacts = dict(ARTIFACTS)
     artifacts["runtime.tar.gz"] = (
-        JAVA_RELEASE + "/OpenJDK21U-jre_" + java_arch + "_mac_hotspot_21.0.12.1_1.tar.gz", java_hash
+        JAVA_RELEASE + "/OpenJDK21U-jre_" + java_arch + ("_mac" if args.os == "macos" else "_linux") + "_hotspot_21.0.12.1_1.tar.gz", java_hash
     )
     # Erst nach vollständigem Download und Prüfung veröffentlichen. Ein
     # abgebrochener Lauf hinterlässt kein scheinbar fertiges Prüfpaket.
@@ -106,10 +109,11 @@ def main():
         runtime = work / "runtime"
         runtime.mkdir()
         subprocess.run(["/usr/bin/tar", "-xzf", str(work / "runtime.tar.gz"), "-C", str(runtime)], check=True)
-        java_bundles = list(runtime.glob("*/Contents"))
+        java_bundles = list(runtime.glob("*/Contents")) if args.os == "macos" else list(runtime.glob("*/bin/java"))
         if len(java_bundles) != 1:
             raise ValueError("Unerwartete Struktur des Java-Archivs")
-        shutil.move(str(java_bundles[0].parent), package / "runtime")
+        runtime_root = java_bundles[0].parent if args.os == "macos" else java_bundles[0].parent.parent
+        shutil.move(str(runtime_root), package / "runtime")
         manifest = {
             "validatorVersion": "1.6.3",
             "configurationRelease": "2026-08-31",
@@ -118,6 +122,7 @@ def main():
             "zugferdVersion": "2.5.2",
             "javaVersion": "Temurin 21.0.12.1+1",
             "architecture": args.arch,
+            "operatingSystem": args.os,
             "packaging": "omit-jansi-native-and-daemon-ui-v2",
             "omittedNativeConsoleLibraries": removed,
             "packagedJarSHA256": hashlib.sha256((package / "validator.jar").read_bytes()).hexdigest(),

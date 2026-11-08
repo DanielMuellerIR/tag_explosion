@@ -65,7 +65,7 @@ enum InvoicePDFValidator {
         try pdf.write(to: snapshot)
         var environment = ExternalToolRunner.utf8Environment()
         for key in ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH"] { environment.removeValue(forKey: key) }
-        let java = kositBundle.appendingPathComponent("runtime/Contents/Home/bin/java")
+        let java = ValidationRuntime.java(in: kositBundle)
         let completion = try ExternalToolRunner.runResult(java.path, [
             "-Xmx512m", "-Djava.awt.headless=true", "-Dfile.encoding=UTF-8",
             "-Djavax.xml.accessExternalDTD=", "-Djavax.xml.accessExternalSchema=",

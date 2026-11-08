@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Selbstbeendende Abnahme der echten SwiftUI-Ansichten im notarisierten Bundle.
 // Ausschließlich expliziter Testmodus; normale App-Starts bleiben unberührt.
 import AppKit

@@ -4,10 +4,8 @@
 //
 // Plattformgrenze: Die Analyse von JPEG und PNG läuft über eigenes
 // Header-Parsing und damit überall. Andere Formate (GIF, BMP, WebP) und jede
-// Umwandlung, die neu kodiert (verkleinern, Format wechseln), brauchen
-// ImageIO/CoreGraphics und gibt es deshalb nur auf Apple-Plattformen; unter
-// Linux kommt `CoverToolError.conversionUnavailable` statt einer stillen
-// Falschmeldung. Das verlustfreie Entfernen von Metadaten (EXIF/XMP/Text-
+// Umwandlung, die neu kodiert (verkleinern, Format wechseln), verwenden
+// ImageIO auf macOS beziehungsweise ein getrenntes ImageMagick unter Linux. Das verlustfreie Entfernen von Metadaten (EXIF/XMP/Text-
 // Chunks) arbeitet auf Byte-Ebene und läuft ebenfalls überall.
 import Foundation
 #if canImport(ImageIO)
@@ -97,7 +95,7 @@ public struct CoverAnalysis: Sendable, Codable, Equatable {
 public enum CoverToolError: Error, LocalizedError, Sendable, Equatable {
     /// Die Daten sind kein Bild, das die Werkzeuge verstehen.
     case unsupportedImage
-    /// Neu kodieren (verkleinern, Format wechseln) geht nur mit ImageIO.
+    /// Neu kodieren (verkleinern, Format wechseln) braucht ImageIO oder ImageMagick.
     case conversionUnavailable
     /// ImageIO konnte das Bild nicht dekodieren oder kodieren.
     case conversionFailed(reason: String)
@@ -111,7 +109,7 @@ public enum CoverToolError: Error, LocalizedError, Sendable, Equatable {
         case .unsupportedImage:
             return "Cover data is not a supported image (JPEG, PNG, GIF, BMP, WebP)"
         case .conversionUnavailable:
-            return "Cover conversion is not available on this platform (needs ImageIO)"
+            return "Cover conversion requires ImageIO on macOS or ImageMagick on Linux"
         case .conversionFailed(let reason):
             return "Cover conversion failed: \(reason)"
         case .targetExists(let path):
@@ -124,11 +122,13 @@ public enum CoverToolError: Error, LocalizedError, Sendable, Equatable {
 
 public enum CoverTools {
 
-    /// Verkleinern und Format wechseln brauchen ImageIO (Apple-Plattformen).
+    /// Verkleinern und Format wechseln brauchen ImageIO oder ImageMagick.
     /// Anzeigen, Prüfen, Metadaten entfernen und Ordner-Cover gehen überall.
     public static var isConversionAvailable: Bool {
         #if canImport(ImageIO)
         return true
+        #elseif os(Linux)
+        return LinuxCoverCodec.executable != nil
         #else
         return false
         #endif
@@ -172,6 +172,11 @@ public enum CoverTools {
                                          pixelWidth: props.width, pixelHeight: props.height,
                                          colorModel: props.colorModel, hasAlpha: props.hasAlpha,
                                          isProgressiveJPEG: nil)
+            }
+            #elseif os(Linux)
+            if let size = ImagePixelSize.read(from: data) {
+                analysis = CoverAnalysis(mimeType: mime, format: formatName(for: mime), bytes: data.count,
+                    pixelWidth: size.width, pixelHeight: size.height, colorModel: nil, hasAlpha: nil, isProgressiveJPEG: nil)
             }
             #endif
         }
@@ -382,6 +387,8 @@ public enum CoverTools {
             throw CoverToolError.conversionFailed(reason: "encoding failed")
         }
         return output as Data
+        #elseif os(Linux)
+        return try LinuxCoverCodec.convert(data, maxPixelSize: maxPixelSize, format: format, quality: jpegQuality)
         #else
         throw CoverToolError.conversionUnavailable
         #endif

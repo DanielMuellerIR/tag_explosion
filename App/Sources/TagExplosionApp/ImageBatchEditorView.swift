@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Batch-Editor für Bilder: setzt Titel/Beschreibung/Ersteller/Copyright/
 // Schlagwörter/Bewertung für alle ausgewählten Bilder. Textfelder können ihren
 // Wert pro Datei aus einem beliebigen rohen Metadaten-Tag übernehmen

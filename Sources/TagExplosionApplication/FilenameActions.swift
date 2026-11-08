@@ -7,7 +7,7 @@ import TagExplosionCore
 extension FileEntry {
     /// Feldwerte für die Muster-Engine — aus dem Bearbeitungspuffer, damit
     /// die Vorschau genau das zeigt, was gerade in den Feldern steht.
-    var patternFields: [String: String] {
+    public var patternFields: [String: String] {
         switch kind {
         case .audio: return PatternFields.fields(from: properties)
         case .image: return PatternFields.fields(from: imageFields)
@@ -26,13 +26,13 @@ extension FileEntry {
 
     /// Rechnungen sind reine Anzeige, Playlists tragen keine Tags im Sinne
     /// der Muster: kein Umbenennen aus Tags, keine Tags aus dem Dateinamen.
-    var supportsFilenamePatterns: Bool { kind != .invoice && kind != .playlist }
+    public var supportsFilenamePatterns: Bool { kind != .invoice && kind != .playlist }
 
     /// Überträgt aus dem Dateinamen geparste Werte in den Bearbeitungspuffer.
     /// Der Eintrag wird dadurch „dirty" und läuft beim Speichern über den
     /// gewohnten Weg (Sicherung, atomarer Austausch). Wirft, wenn ein
     /// Schlüssel für diese Medienart kein Feld hat.
-    func applyParsedFields(_ parsed: [String: String]) throws {
+    public func applyParsedFields(_ parsed: [String: String]) throws {
         switch kind {
         case .audio: PatternFields.apply(parsed, to: &properties)
         case .image: try PatternFields.apply(parsed, to: &imageFields)
@@ -54,12 +54,12 @@ extension FileEntry {
 }
 
 /// Zuletzt benutzte Muster, getrennt je Richtung, plus ein paar Vorgaben.
-enum PatternHistory {
-    enum Direction {
+public enum PatternHistory {
+    public enum Direction {
         case rename
         case parse
 
-        var defaultsKey: String {
+        public var defaultsKey: String {
             switch self {
             case .rename: return "filenamePatternHistoryRename"
             case .parse: return "filenamePatternHistoryParse"
@@ -67,10 +67,10 @@ enum PatternHistory {
         }
     }
 
-    static let maxEntries = 8
+    public static let maxEntries = 8
 
     /// Vorgaben, die für beide Richtungen taugen.
-    static let presets: [String] = [
+    public static let presets: [String] = [
         "%{track:2} - %{title}",
         "%{artist} - %{title}",
         "%{track:2} - %{artist} - %{title}",
@@ -78,12 +78,12 @@ enum PatternHistory {
         "%{disc}-%{track:2} %{title}",
     ]
 
-    static func load(_ direction: Direction) -> [String] {
+    public static func load(_ direction: Direction) -> [String] {
         UserDefaults.standard.stringArray(forKey: direction.defaultsKey) ?? []
     }
 
     /// Merkt sich ein Muster vorn in der Liste (ohne Dubletten, gedeckelt).
-    static func remember(_ pattern: String, _ direction: Direction) {
+    public static func remember(_ pattern: String, _ direction: Direction) {
         let trimmed = pattern.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         var history = load(direction).filter { $0 != trimmed }
@@ -92,7 +92,7 @@ enum PatternHistory {
     }
 
     /// Startwert für das Musterfeld: das zuletzt benutzte, sonst die erste Vorgabe.
-    static func initialPattern(_ direction: Direction) -> String {
+    public static func initialPattern(_ direction: Direction) -> String {
         load(direction).first ?? presets[0]
     }
 }
@@ -100,7 +100,7 @@ enum PatternHistory {
 extension AppModel {
 
     /// Vorschau: alter Name → neuer Name je Eintrag, mit Konflikten.
-    func renamePlan(for targets: [FileEntry], pattern: FilenamePattern) -> FileRenamer.Plan {
+    public func renamePlan(for targets: [FileEntry], pattern: FilenamePattern) -> FileRenamer.Plan {
         FileRenamer.plan(
             targets.filter(\.supportsFilenamePatterns)
                 .map { FileRenamer.Request(url: $0.url, fields: $0.patternFields) },
@@ -112,7 +112,7 @@ extension AppModel {
     /// Abbrechen-Dialog geklärt: Der neue Name soll zu dem passen, was
     /// wirklich in der Datei steht — nicht zu einem Puffer, der beim
     /// Verwerfen wieder verschwindet.
-    func renameFiles(_ targets: [FileEntry], pattern: FilenamePattern) async {
+    public func renameFiles(_ targets: [FileEntry], pattern: FilenamePattern) async {
         guard !isDestructiveActionLocked else { return }
         await requestDestructiveAction(
             title: String(localized: "Ungespeicherte Änderungen"),
@@ -153,7 +153,7 @@ extension AppModel {
 
     /// Einträge folgen erfolgreichen Umzügen auch bei einem Journalfehler;
     /// dessen Warnung bleibt sichtbar, damit die Historie nicht sicher erscheint.
-    func applyRenameOutcomes(_ outcomes: [FileRenamer.Outcome]) {
+    public func applyRenameOutcomes(_ outcomes: [FileRenamer.Outcome]) {
         var failures: [String] = []
         var warnings: [String] = []
         for outcome in outcomes {
@@ -183,7 +183,7 @@ extension AppModel {
     /// ab und folgen damit automatisch.
     /// `sidecar`: neuer Pfad der mit umbenannten XMP-Sidecar, damit der
     /// Eintrag seine Sidecar weiter unter dem richtigen Namen kennt.
-    func relocateEntry(from oldURL: URL, to newURL: URL, sidecar: URL? = nil) {
+    public func relocateEntry(from oldURL: URL, to newURL: URL, sidecar: URL? = nil) {
         let canonicalOld = MediaFormats.canonicalFileURL(oldURL)
         guard let index = entries.firstIndex(where: {
             MediaFormats.canonicalFileURL($0.url) == canonicalOld
@@ -197,18 +197,18 @@ extension AppModel {
     }
 
     /// Ergebnis von „Tags aus Dateiname" für die Rückmeldung.
-    struct ParseOutcome: Equatable {
-        var applied = 0
+    public struct ParseOutcome: Equatable {
+        public var applied = 0
         /// Dateinamen, auf die das Muster nicht passt.
-        var unmatched: [String] = []
+        public var unmatched: [String] = []
         /// Dateien, deren Medienart ein geparstes Feld nicht kennt.
-        var failed: [String] = []
+        public var failed: [String] = []
     }
 
     /// Überträgt die aus dem Dateinamen gelesenen Werte in die Puffer der
     /// Einträge. Geschrieben wird nichts — das erledigt das normale Speichern.
     @discardableResult
-    func applyFileNamePattern(_ pattern: FilenamePattern, to targets: [FileEntry]) -> ParseOutcome {
+    public func applyFileNamePattern(_ pattern: FilenamePattern, to targets: [FileEntry]) -> ParseOutcome {
         var outcome = ParseOutcome()
         for entry in targets where entry.supportsFilenamePatterns {
             let stem = entry.url.deletingPathExtension().lastPathComponent

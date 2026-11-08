@@ -1,33 +1,44 @@
 # Tag Explosion — Architekturplan
 
-Stand: 2026-10-06. Dieses Dokument beschreibt die aktuelle Architektur und
+Stand: 2026-11-08. Dieses Dokument beschreibt die aktuelle Architektur und
 abgeschlossene Meilensteine; offene Erweiterungen stehen in der Roadmap.
 
 ## Ziel
 
-Native macOS-App zum Anzeigen und Bearbeiten von Medien-Metadaten:
+Desktop-App für macOS und Linux zum Anzeigen und Bearbeiten von Medien-Metadaten:
 
 - **Anzeigen**: alles, was `mediainfo` ausgeben kann (technische Details aller Container/Codecs).
 - **Bearbeiten**: alles, was kid3 kann (Tags inkl. Coverbilder für mp3/ID3, m4a/m4b/MP4,
   ogg/Vorbis, opus, flac, wav, aiff, ape, wavpack, dsf …) — aber schick, modern, Apple-like.
 - **Prioritäten**: 1. Audio (Einzeldatei), 2. Batch, 3. Bilder (EXIF/IPTC/XMP), 4. Video (nice-to-have).
-- Open Source, MIT. GUI Swift-nativ (SwiftUI), Core Linux-portabel.
+- Open Source, MIT. macOS mit SwiftUI, Linux mit Rust/Tauri; gemeinsame Swift-Anwendungslogik.
 
 ## Architektur
 
-Ein Monorepo mit zwei Swift-Packages: Core/CLI im Wurzelverzeichnis und die
-macOS-App samt Finder-Vorschau unter `App/`.
+Ein Monorepo mit zwei Swift-Packages und einem Rust-Desktopclient unter `Linux/`.
 
 ```text
-SwiftUI-App ────────┐
-Finder-Vorschau ────┼──→ TagExplosionCore ──→ CTagShim ──→ TagLib
-CLI tagx ───────────┘          │
-                              └────────────→ EInvoiceCore
+SwiftUI-App ───────────────────────→ TagExplosionApplication
+Linux Tauri/Rust → tagx-engine ────→ TagExplosionApplication
+                                              │
+Finder-Vorschau ───────────────────────────────┼→ TagExplosionCore → CTagShim → TagLib
+CLI tagx ──────────────────────────────────────┘        │
+                                                       └→ EInvoiceCore
 ```
 
-`EInvoiceCore` ist der eigenständige Rechnungsleser ohne TagLib- oder
-ZIP-Abhängigkeit. Die App verwendet ihn zusätzlich direkt für die Anzeige.
-Core und CLI bleiben Linux-portabel; App und Finder-Vorschau sind macOS-only.
+`TagExplosionApplication` enthält `AppModel`, `FileEntry`, Lade-/Speicherabläufe,
+Konfliktentscheidungen, Regeln und gemeinsame Darstellungsregeln. macOS verwendet
+die Objekte direkt. Linux spricht mit genau einer langlebigen `tagx-engine` über
+begrenztes JSONL auf stdin/stdout; jedes Fenster besitzt eine eigene Sitzung.
+Revisionen schützen Bearbeitungspuffer vor veralteten Anfragen. Dateimutationen
+bleiben in den bisherigen atomaren Core-Schreibwegen.
+
+`EInvoiceCore` ist der eigenständige Rechnungsleser ohne TagLib-/ZIP-Abhängigkeit.
+PDF-Objekte liefert CoreGraphics auf macOS beziehungsweise ein kleiner QPDF-Shim
+auf Linux. Der begrenzte Durchlauf und die Rechnungsregeln bleiben gemeinsam.
+Finder-Vorschau und Finder-Dienst sind macOS-spezifisch. Linux verwendet native
+Dateidialoge und Secret Service. Paketierung, Voraussetzungen und begründete
+Plattformunterschiede stehen in [linux.md](linux.md).
 
 Die E-Rechnungsvalidierung für XRechnung, aktuelle Factur-X-Profile und hybride PDF-Träger liegt in `TagExplosionCore`: Ein unveränderter
 XML-/PDF-Schnappschuss verbindet Anzeige und Prüfergebnis. Der gemeinsame Dienst
@@ -108,10 +119,14 @@ tag_explosion/
 ├── Package.swift          # SPM: CTagShim, TagExplosionCore, tagx, Tests
 ├── Sources/
 │   ├── CTagShim/          # C++-Shim (include/ + shim.cpp), linkt libtag
+│   ├── EInvoiceCore/     # Rechnungsleser; CoreGraphics/QPDF als PDF-Adapter
+│   ├── TagExplosionApplication/ # gemeinsames Desktop-Modell und Aktionen
+│   ├── TagExplosionDesktopEngine/ # langlebiger JSONL-Adapter für Linux
 │   ├── TagExplosionCore/  # portables Swift
 │   └── tagx/              # CLI (swift-argument-parser)
 ├── App/                   # eigenes Swift-Package: SwiftUI-App + Quick-Look-Erweiterung
-├── Tests/                 # XCTest; Fixtures werden per ffmpeg-Skript generiert
+├── Linux/                 # Rust/Tauri, lokale WebKit-Oberfläche, AppImage-Bau
+├── Tests/                 # Swift Testing und echte Desktop-IPC-/GUI-Prüfungen; Fixtures werden per ffmpeg-Skript generiert
 │   └── TagExplosionCoreTests/Fixtures/generate_fixtures.sh
 ├── docs/PLAN.md           # dieses Dokument
 ├── VERSION                # semver, Quelle der Wahrheit

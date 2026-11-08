@@ -1,3 +1,4 @@
+import TagExplosionApplication
 // Batch-Editor für E-Books: setzt Autor(en)/Serie/Verlag/Sprache/Schlagwörter/
 // Datum für alle ausgewählten Bücher (Titel und Beschreibung bleiben bewusst
 // Einzel-Editor-Sache — die sind pro Buch individuell).

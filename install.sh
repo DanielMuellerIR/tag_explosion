@@ -23,6 +23,9 @@
 
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
+if [ "$(uname -s)" = Linux ]; then
+    exec python3 "$here/Linux/install.py" "$@"
+fi
 cd "$here"
 
 NOTARIZE=1

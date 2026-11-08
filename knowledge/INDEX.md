@@ -153,3 +153,6 @@ Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
 - [Factur-X-Validierungsartefakte](facturx-validierungsartefakte.md) — Profilketten, mehrdeutige URNs, KoSIT-Fallback, Warnungen und MINIMUM-Summenprüfung.
 
 - [Hybride PDF-Validierung](hybride-pdf-validierung.md) — getrennte Ergebnisse, Dictionary-Identität, veraPDF-Exit und exakte bevorzugte Profilquellen.
+
+- [Linux-Desktopclient](linux-desktop.md) — gemeinsame Anwendungsschicht, IPC,
+  QPDF, getrennte Engine-Bibliotheken, Updates und isolierte Wayland-Prüfung.

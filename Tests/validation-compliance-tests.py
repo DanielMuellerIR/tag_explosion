@@ -31,6 +31,8 @@ class ReleaseComplianceTests(unittest.TestCase):
         cls.sources = cls.root / "sources"
         shutil.copytree(options.bundle.resolve(), cls.bundle, symlinks=True)
         shutil.copytree(options.sources.resolve(), cls.sources, symlinks=True)
+        manifest = json.loads((cls.bundle / "manifest.json").read_text())
+        cls.java_home = cls.bundle / ("runtime" if manifest.get("operatingSystem") == "linux" else "runtime/Contents/Home")
 
     @classmethod
     def tearDownClass(cls):
@@ -84,10 +86,10 @@ class ReleaseComplianceTests(unittest.TestCase):
         self.mutate(self.bundle / "validator.jar", add_code)
 
     def test_changed_runtime_blocks_release(self):
-        self.mutate(self.bundle / "runtime/Contents/Home/release", lambda path: path.write_text("OTHER_RUNTIME=1\n"))
+        self.mutate(self.java_home / "release", lambda path: path.write_text("OTHER_RUNTIME=1\n"))
 
     def test_missing_runtime_license_blocks_release(self):
-        self.mutate(self.bundle / "runtime/Contents/Home/legal/java.base/LICENSE", lambda path: path.unlink())
+        self.mutate(self.java_home / "legal/java.base/LICENSE", lambda path: path.unlink())
 
     def test_unreviewed_license_is_rejected(self):
         policy = json.loads(compliance.POLICY.read_text())
