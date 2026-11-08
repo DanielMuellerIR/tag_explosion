@@ -11,4 +11,10 @@ RUN apt-get update -qq && apt-get upgrade -y -qq && apt-get install -y -qq --no-
 RUN sed 's/^Types: deb$/Types: deb-src/' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/tagx-sources.sources \
     && apt-get update -qq
 RUN apt-get install -y -qq --no-install-recommends file xdotool python3-gi gir1.2-gtk-3.0
+ARG TAGX_UID=1000
+ARG TAGX_GID=1000
+RUN if ! getent group "$TAGX_GID" > /dev/null; then groupadd --gid "$TAGX_GID" tagx-build; fi \
+    && if ! getent passwd "$TAGX_UID" > /dev/null; then \
+      useradd --uid "$TAGX_UID" --gid "$TAGX_GID" --no-create-home --home-dir /tmp/tagx-home --shell /bin/bash tagx-build; \
+    fi
 WORKDIR /src

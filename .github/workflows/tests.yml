@@ -88,7 +88,7 @@ jobs:
       - name: Isolierte GUI-Bauumgebung
         run: |
           docker build -t tag-explosion-linux-builder:local -f Linux/Dockerfile .
-          docker build -t tag-explosion-linux-ui:local -f Linux/Dockerfile.ui .
+          docker build --build-arg TAGX_UID="$(id -u)" --build-arg TAGX_GID="$(id -g)" -t tag-explosion-linux-ui:local -f Linux/Dockerfile.ui .
       - name: Rust und echte Linux-GUI prüfen
         run: |
           docker run --rm --init --user "$(id -u):$(id -g)" -v "$PWD:/src" -w /src -e HOME=/tmp/tagx-home -e CARGO_HOME=/src/.build/cargo-cache tag-explosion-linux-ui:local bash -eu -c '

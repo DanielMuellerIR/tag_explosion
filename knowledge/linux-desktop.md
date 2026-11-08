@@ -45,3 +45,8 @@ macOS. [Architektur](../docs/PLAN.md), [Bau und Distribution](../docs/linux.md).
   kann diesen Ordner im `PATH` haben, die Desktop-Sitzung dagegen nicht. Der
   gemeinsame Werkzeugfinder braucht den absoluten Fallback; Installationstests
   müssen die tatsächliche Desktop-Umgebung verwenden.
+
+- `docker run --user` allein erzeugt keinen Eintrag in `/etc/passwd`. D-Bus
+  braucht diesen Eintrag auch für eine private Sitzung. Das GUI-Bild erhält
+  deshalb `TAGX_UID`/`TAGX_GID` passend zum Runner; der Start wird mit einer
+  vom Standard abweichenden UID separat geprüft.
