@@ -483,10 +483,10 @@ function editValue(value, changed, key, disabled = false) {
                     {
                       chapters: {
                         title: "",
-                        startMilliseconds: 0,
-                        endMilliseconds: 0,
+                        start: 0,
+                        end: 0,
                       },
-                      syncedLyrics: { milliseconds: 0, text: "" },
+                      syncedLyrics: { time: 0, text: "" },
                       custom: { key: "", value: "" },
                       entries: { title: "", performer: "" },
                       actors: { name: "", role: "" },
@@ -1206,7 +1206,8 @@ async function renderBatch() {
                   .split(";")
                   .map((value) => value.trim())
                   .filter(Boolean)
-              : typeof first.fields[key] === "number" || key === "rating"
+              : typeof first.fields[key] === "number" ||
+                  (first.kind === "image" && key === "rating")
                 ? event.target.value === ""
                   ? null
                   : Number(event.target.value)

@@ -8,7 +8,7 @@ enum LinuxCoverCodec {
         try? ExternalToolRunner.locateTool(candidates: ["magick", "convert", "/usr/bin/convert"], name: "ImageMagick")
     }
 
-    static func convert(_ data: Data, maxPixelSize: Int?, format: CoverTools.OutputFormat, quality: Double) throws -> Data {
+    static func convert(_ data: Data, maxPixelSize: Int?, format: CoverTools.OutputFormat, quality: Double, cancellation: ExternalToolRunner.Cancellation? = nil) throws -> Data {
         guard let executable else { throw CoverToolError.conversionUnavailable }
         guard data.count <= 64 * 1024 * 1024,
               let size = ImagePixelSize.read(from: data), size.width > 0, size.height > 0,
@@ -30,7 +30,7 @@ enum LinuxCoverCodec {
         var environment = ExternalToolRunner.utf8Environment()
         environment["MAGICK_TEMPORARY_PATH"] = directory.path
         return try ExternalToolRunner.run(executable, arguments, processTimeout: 30,
-                                          outputLimit: 64 * 1024 * 1024, environment: environment)
+                                          outputLimit: 64 * 1024 * 1024, environment: environment, cancellation: cancellation)
     }
 }
 #endif

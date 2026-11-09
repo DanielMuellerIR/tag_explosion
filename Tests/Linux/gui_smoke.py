@@ -6,14 +6,158 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import sys
+import tempfile
 import time
 import urllib.request
+import xml.etree.ElementTree as ET
 import zipfile
 
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.remote_connection import RemoteConnection
+
+
+def review_regressions(driver, wait, media_call, work):
+    # Eigene MP3s unterstützen sowohl CHAP als auch SYLT; keine Imports oder
+    # Backend-edits ersetzen die zu prüfenden Hinzufügen-/Eingabe-Callbacks.
+    fixtures = Path(tempfile.mkdtemp(prefix='review-', dir=work))
+    audio = fixtures / 'Kapitel-Lyrics.mp3'
+    other = fixtures / 'Auswahlwechsel.mp3'
+    subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-f', 'lavfi', '-i',
+                    'sine=duration=2', str(audio)], check=True, timeout=15)
+    shutil.copyfile(audio, other)
+    nfos = [fixtures / 'Film-1.nfo', fixtures / 'Film-2.nfo']
+    for index, path in enumerate(nfos):
+        path.write_text(f'<movie><title>Review {index}</title><rating>8</rating><reviewFixture>bleibt</reviewFixture></movie>', encoding='utf-8')
+    media_call('open', {'paths': list(map(str, [audio, other, *nfos]))})
+    driver.refresh()
+    wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, '.file-row')) >= 4)
+
+    def entry(path):
+        return media_call('entry', {'path': str(path)})
+
+    def select_path(path, additional=False, expected=None):
+        previous = driver.find_elements(By.CSS_SELECTOR, '#editor .editor-content')
+        row = wait.until(lambda d: d.find_element(By.CSS_SELECTOR, '.file-row[data-path=' + json.dumps(str(path)) + ']'))
+        if additional:
+            ActionChains(driver).key_down(Keys.CONTROL).click(row).key_up(Keys.CONTROL).perform()
+        else:
+            row.click()
+        selected = set(map(str, expected or [path]))
+        # Nur lesen: Erst der echte Auswahlklick darf flush/select auslösen.
+        wait.until(lambda d: set(media_call('state', {})['selection']) == selected)
+        if previous:
+            # Auch ein Klick auf die bereits ausgewählte Datei rendert neu.
+            # Nicht versehentlich Controls des alten Editors weiterbenutzen.
+            wait.until(lambda d: d.find_element(By.CSS_SELECTOR, '#editor .editor-content').id != previous[0].id)
+        if len(selected) == 1:
+            wait.until(lambda d: d.find_element(By.ID, 'window-subtitle').get_attribute('textContent') == path.name)
+        else:
+            wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '#editor .batch-note'))
+        assert not driver.find_elements(By.CSS_SELECTOR, 'dialog[open]'), driver.page_source
+
+    def group(german, english):
+        return wait.until(lambda d: d.find_element(By.XPATH,
+            f'//div[@id="editor"]//h3[normalize-space()="{german}" or normalize-space()="{english}"]/following-sibling::section[1]'))
+
+    def enter(field, value):
+        field.click()
+        field.send_keys(Keys.CONTROL, 'a')
+        field.send_keys(Keys.BACKSPACE)
+        if value:
+            field.send_keys(value)
+
+    def save(paths):
+        wait.until(lambda d: d.find_element(By.ID, 'save').is_enabled())
+        driver.find_element(By.ID, 'save').click()
+        wait.until(lambda d: d.find_element(By.ID, 'save').get_attribute('disabled'))
+        assert not driver.find_elements(By.CSS_SELECTOR, 'dialog[open]'), driver.page_source
+        state = media_call('state', {})
+        assert not state['busy'] and not state.get('alert'), state
+        for path in paths:
+            assert entry(path)['dirty'] is False, entry(path)
+
+    def reopen(paths):
+        # Nach dem Speichern neu vom Dateisystem lesen, nicht nur draft oder
+        # den zuvor editierten FileEntry-Puffer als Read-back ausgeben.
+        media_call('remove', {'paths': list(map(str, paths))})
+        media_call('open', {'paths': list(map(str, paths))})
+        driver.refresh()
+        wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '.file-row'))
+
+    initial = entry(audio)
+    if not initial.get('supportsChapters') or not initial.get('supportsSyncedLyrics'):
+        raise RuntimeError('Umgebungsgrenze: Diese Engine unterstützt CHAP/SYLT im erzeugten MP3 nicht; GUI-Regressionen nicht vollständig geprüft.')
+    assert initial['chapters'] == [] and initial['syncedLyrics'] == [], initial
+    select_path(audio)
+    chapters = group('Kapitel', 'Chapters')
+    chapters.find_element(By.XPATH, './/button[normalize-space()="Hinzufügen" or normalize-space()="Add"]').click()
+    # Sofortiger Auswahlwechsel prüft den produktiven flush auch ohne Save.
+    select_path(other)
+    assert entry(audio)['chapters'] == [{'title': '', 'start': 0, 'end': 0}], entry(audio)
+    select_path(audio)
+    chapters = group('Kapitel', 'Chapters')
+    enter(chapters.find_element(By.CSS_SELECTOR, 'input[aria-label="Titel"], input[aria-label="Title"]'), 'Erstes Kapitel')
+    enter(chapters.find_element(By.CSS_SELECTOR, 'input[aria-label="end"]'), '1000')
+    save([audio])
+    reopen([audio])
+    assert entry(audio)['chapters'] == [{'title': 'Erstes Kapitel', 'start': 0, 'end': 1000}], entry(audio)
+
+    select_path(audio)
+    lyrics = group('Synchronisierte Liedtexte', 'Synchronized lyrics')
+    lyrics.find_element(By.XPATH, './/button[normalize-space()="Hinzufügen" or normalize-space()="Add"]').click()
+    select_path(other)
+    assert entry(audio)['syncedLyrics'] == [{'time': 0, 'text': ''}], entry(audio)
+    select_path(audio)
+    lyrics = group('Synchronisierte Liedtexte', 'Synchronized lyrics')
+    enter(lyrics.find_element(By.CSS_SELECTOR, 'input[aria-label="time"]'), '200')
+    enter(lyrics.find_element(By.CSS_SELECTOR, 'textarea[aria-label="Text"]'), 'Erste Liedtextzeile')
+    save([audio])
+    reopen([audio])
+    assert entry(audio)['syncedLyrics'] == [{'time': 200, 'text': 'Erste Liedtextzeile'}], entry(audio)
+    assert entry(audio)['chapters'] == [{'title': 'Erstes Kapitel', 'start': 0, 'end': 1000}], entry(audio)
+
+    select_path(audio)
+    for german, english, filename in [('Kapitel', 'Chapters', 'review-chapter.png'), ('Synchronisierte Liedtexte', 'Synchronized lyrics', 'review-lyrics.png')]:
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'})", group(german, english))
+        driver.execute_async_script('const done=arguments[arguments.length-1]; requestAnimationFrame(()=>requestAnimationFrame(done));')
+        driver.save_screenshot(str(work / filename))
+
+    def select_nfos():
+        select_path(nfos[0])
+        select_path(nfos[1], additional=True, expected=nfos)
+        return wait.until(lambda d: d.find_element(By.CSS_SELECTOR, '#editor input[aria-label="Bewertung"], #editor input[aria-label="Rating"]'))
+
+    for value in ('7.50', ''):
+        rating = select_nfos()
+        enter(rating, value)
+        if value:
+            # Der sichtbare Übernehmen-Button läuft ebenfalls über flush.
+            driver.find_element(By.XPATH, '//div[@id="editor"]//button[normalize-space()="Änderungen übernehmen" or normalize-space()="Apply changes"]').click()
+            wait.until(lambda d: all(entry(path)['fields']['rating'] == value for path in nfos))
+        else:
+            # Ein leerer String darf weder null werden noch den Wechsel sperren.
+            select_path(other)
+        for path in nfos:
+            result = entry(path)['fields']['rating']
+            assert isinstance(result, str) and result == value, (path, result)
+        if not value:
+            select_nfos()
+        driver.save_screenshot(str(work / ('review-rating-' + ('empty' if not value else 'value') + '.png')))
+        save(nfos)
+        reopen(nfos)
+        for path in nfos:
+            assert entry(path)['fields']['rating'] == value, entry(path)
+            tree = ET.parse(path)
+            assert tree.findtext('rating', default='') == value, path.read_text()
+            assert tree.findtext('reviewFixture') == 'bleibt', path.read_text()
+    driver.save_screenshot(str(work / 'review-regressions.png'))
+    print('GUI-Regressionen: erste Kapitel-/SYLT-Zeile per Hinzufügen, Auswahlwechsel-flush, Eingabe und Speichern; NFO-Stapelbewertung als String 7.50 und Leerstring, Übernehmen/Wechsel, Backend-Neuöffnung und XML-Read-back bestanden.')
+
 
 root = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -22,9 +166,14 @@ parser.add_argument('--engine', type=Path)
 parser.add_argument('--validate', action='store_true')
 parser.add_argument('--exiftool', type=Path, help='Unabhängiges Prüfwerkzeug, falls es außerhalb des Desktop-PATH liegt')
 parser.add_argument('--basic-fixture', type=Path, help='Native Grundprüfung ohne optionale Systemwerkzeuge')
+parser.add_argument('--review-regressions', action='store_true', help='Nach der Audio-Grundprüfung nur Kapitel/SYLT und NFO-Stapelbewertung prüfen (Linux, ffmpeg)')
 parser.add_argument('--work-dir', type=Path, default=root / '.build/linux-gui-smoke')
 parser.add_argument('--driver', type=Path, default=root / '.build/driver/bin/tauri-driver')
 args = parser.parse_args()
+if args.review_regressions and sys.platform != 'linux':
+    parser.exit(2, 'Umgebungsgrenze: GUI-Regressionen benötigen Linux/Tauri/WebKit; nicht ausgeführt.\n')
+if args.review_regressions and not shutil.which('ffmpeg'):
+    parser.exit(2, 'Umgebungsgrenze: ffmpeg für eigene Review-Fixtures fehlt; nicht ausgeführt.\n')
 exiftool = str(args.exiftool) if args.exiftool else "exiftool"
 work = args.work_dir.resolve()
 work.mkdir(parents=True, exist_ok=True)
@@ -75,15 +224,24 @@ try:
     wait.until(lambda d: d.find_element(By.ID, 'save').get_attribute('disabled'))
     assert driver.execute_script('return window.untrustedTagExecuted === true') is False
     assert not driver.find_elements(By.CSS_SELECTOR, '#editor img[src="x"]')
+    def media_call(method, params):
+        result = driver.execute_async_script("const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:arguments[0],params:arguments[1]}).then(done).catch(error=>done({error:String(error)}));", method, params)
+        assert not isinstance(result, dict) or not result.get('error'), result
+        return result
     if args.basic_fixture:
         driver.save_screenshot(str(work / 'native-basic.png'))
-        result = driver.execute_async_script("const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:'entry',params:{path:arguments[0]}}).then(done);", str(media))
+        result = media_call('entry', {'path': str(media)})
         assert any(item['key'] == 'TITLE' and item['value'].startswith('<img src=x') for item in result['properties'])
         print('GUI: nativer Mint-AppImage-Start, Audioformular, sicheres HTML und Speichern mit Read-back bestanden.')
+        if not args.review_regressions:
+            raise SystemExit(0)
+    else:
+        # Speichern muss auf der Platte angekommen sein, einschließlich Read-back.
+        result = subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format_tags=title', '-of', 'json', str(media)], text=True)
+        assert json.loads(result)['format']['tags']['title'].startswith('<img src=x')
+    if args.review_regressions:
+        review_regressions(driver, wait, media_call, work)
         raise SystemExit(0)
-    # Speichern muss auf der Platte angekommen sein, einschließlich Read-back.
-    result = subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format_tags=title', '-of', 'json', str(media)], text=True)
-    assert json.loads(result)['format']['tags']['title'].startswith('<img src=x')
     driver.find_element(By.XPATH, '//div[@id="tabs"]/button[contains(text(),"Technik")]').click()
     wait.until(lambda d: 'General' in d.find_element(By.ID, 'editor').text)
     assert 'Format' in driver.find_element(By.ID, 'editor').text
@@ -96,10 +254,6 @@ try:
     driver.execute_async_script('const done=arguments[arguments.length-1]; requestAnimationFrame(()=>requestAnimationFrame(done));')
     driver.save_screenshot(str(work / 'audio-dark.png'))
     driver.execute_script("document.documentElement.dataset.theme='light'")
-    def media_call(method, params):
-        result = driver.execute_async_script("const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:arguments[0],params:arguments[1]}).then(done).catch(error=>done({error:String(error)}));", method, params)
-        assert not isinstance(result, dict) or not result.get('error'), result
-        return result
     def select_file(path):
         media_call('open', {'paths': [str(path)]})
         media_call('select', {'paths': [str(path)]})

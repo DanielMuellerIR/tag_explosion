@@ -17,7 +17,28 @@ public final class DesktopService {
     private var validation: [String: ExternalToolRunner.Cancellation] = [:]
     private var infoJobs: [String: (id: UUID, task: Task<MediaInfoReport, Error>)] = [:]
 
-    public init() { AppModel.applySafeMode() }
+    private final class CoverJob {
+        let cancellation = ExternalToolRunner.Cancellation()
+        var cancelled = false
+        var completed = 0
+        let total: Int
+        init(total: Int) { self.total = total }
+        func cancel() { cancelled = true; cancellation.cancel() }
+    }
+    private var coverJobs: [String: CoverJob] = [:]
+    private let convertArtwork: @Sendable (Artwork, CoverTools.Conversion, ExternalToolRunner.Cancellation) throws -> Artwork
+
+    public init() {
+        convertArtwork = { try CoverTools.convert($0, $1, cancellation: $2) }
+        AppModel.applySafeMode()
+    }
+
+    // Headless-Tests arbeiten ausschließlich mit selbst erzeugten Puffern.
+    init(models: [String: AppModel], convertArtwork: @escaping @Sendable (Artwork, CoverTools.Conversion, ExternalToolRunner.Cancellation) throws -> Artwork) {
+        self.models = models
+        self.revisions = models.mapValues { _ in 0 }
+        self.convertArtwork = convertArtwork
+    }
 
     public func handle(_ request: DesktopRequest) async -> DesktopResponse {
         do {
@@ -70,7 +91,7 @@ public final class DesktopService {
         }
         if request.method == "endUpdate" { updating = false; return .bool(true) }
         if request.method == "prepareUpdate" || request.method == "beginUpdate" {
-            let allowed = !writing && !updating && validation.isEmpty && infoJobs.isEmpty && models.values.allSatisfy { !$0.hasSavingEntries && !$0.hasRunningExports && !$0.isLoading && !$0.isDestructiveActionLocked }
+            let allowed = !writing && !updating && coverJobs.isEmpty && validation.isEmpty && infoJobs.isEmpty && models.values.allSatisfy { !$0.hasSavingEntries && !$0.hasRunningExports && !$0.isLoading && !$0.isDestructiveActionLocked }
             if request.method == "beginUpdate", allowed { updating = true }
             return .bool(allowed)
         }
@@ -160,6 +181,7 @@ public final class DesktopService {
             infoJobs[request.session]?.task.cancel()
             if p["operation"].text != "info" {
                 model.cancelBatchSave(); model.cancelLoading(); validation[request.session]?.cancel()
+                coverJobs[request.session]?.cancel()
             }
         case "select":
             let paths = Set(p["paths"].values.compactMap(\.text))
@@ -224,7 +246,8 @@ public final class DesktopService {
         case "close":
             infoJobs[request.session]?.task.cancel()
             validation[request.session]?.cancel()
-            while infoJobs[request.session] != nil || validation[request.session] != nil {
+            coverJobs[request.session]?.cancel()
+            while infoJobs[request.session] != nil || validation[request.session] != nil || coverJobs[request.session] != nil {
                 try await Task.sleep(for: .milliseconds(10))
             }
             var permitted = false
@@ -294,7 +317,7 @@ public final class DesktopService {
                 case "folder": model.alertMessage = CoverToolActions.report(CoverToolActions.applyFolderCover(selected), action: String(localized: "Ordner-Cover übernehmen"))
                 case "convert":
                     let conversion = CoverTools.Conversion(maxPixelSize: p["maxPixelSize"].integer, format: p["format"].text.flatMap(CoverTools.OutputFormat.init(rawValue:)), stripMetadata: p["stripMetadata"].flag)
-                    model.alertMessage = CoverToolActions.report(CoverToolActions.convert(selected, conversion), action: String(localized: "Cover-Werkzeuge"))
+                    try await convertBatchCovers(selected, conversion, params: p, model: model, session: request.session)
                 default: throw DesktopFailure("invalid_parameter", "Unknown artwork action")
                 }
             }
@@ -408,10 +431,14 @@ public final class DesktopService {
         }
         var value: [String: DesktopValue] = ["revision": .number(Double(revisions[session] ?? 0)), "entries": .array(entries),
             "selection": try .encoding(model.selection.map(\.path)), "total": .number(Double(model.entries.count)),
-            "hiddenSelection": .number(Double(model.hiddenSelectionCount)), "busy": .bool(writing),
+            "hiddenSelection": .number(Double(model.hiddenSelectionCount)), "busy": .bool(writing || coverJobs[session] != nil),
             "loading": .bool(model.isLoading), "completed": .number(Double(model.loadingCompleted)), "count": .number(Double(model.loadingTotal)),
             "alert": model.alertMessage.map(DesktopValue.string) ?? .null, "dirty": .bool(model.hasDirtyEntries),
             "batch": .array(model.batchResults.map { .object(["path": .string($0.url.path), "status": .string(String(describing: $0.status)), "reason": .string($0.reason)]) })]
+        if let job = coverJobs[session] {
+            value["coverCompleted"] = .number(Double(job.completed))
+            value["coverTotal"] = .number(Double(job.total))
+        }
         if let conflict = model.pendingConflict {
             value["conflict"] = .object(["title": .string(conflict.title), "message": .string(conflict.displayedMessage)])
         }
@@ -435,7 +462,8 @@ public final class DesktopService {
             result["loudnessKeys"] = try .encoding(FixedFields.loudnessKeys.sorted())
             result["podcastKeys"] = try .encoding(FixedFields.podcastKeys.sorted())
             result["artworks"] = .array(entry.artworks.enumerated().map { i, art in
-                .object(["index": .number(Double(i)), "mimeType": .string(art.resolvedMimeType), "pictureType": .string(art.pictureType), "description": .string(art.description), "analysis": (try? .encoding(CoverTools.analyze(art.data))) ?? .null, "summary": .string(CoverTools.analyze(art.data).summary), "issues": .array(CoverTools.analyze(art.data).issues.map { .string(CoverToolActions.issueText($0.code)) })])
+                let analysis = CoverTools.analyze(art.data)
+                return .object(["index": .number(Double(i)), "mimeType": .string(art.resolvedMimeType), "pictureType": .string(art.pictureType), "description": .string(art.description), "analysis": (try? .encoding(analysis)) ?? .null, "summary": .string(analysis.summary), "issues": .array(analysis.issues.map { .string(CoverToolActions.issueText($0.code)) })])
             })
             result["audio"] = try .encoding(entry.audio)
             result["chapters"] = try .encoding(entry.chapters)
@@ -496,6 +524,46 @@ public final class DesktopService {
         case .playlist: entry.playlistFields = try values["fields"].decode(PlaylistCoreFields.self)
         case .invoice: break
         }
+    }
+
+    private func convertBatchCovers(_ entries: [FileEntry], _ conversion: CoverTools.Conversion, params p: DesktopValue, model: AppModel, session: String) async throws {
+        guard coverJobs[session] == nil, !model.isDestructiveActionLocked,
+              entries.allSatisfy({ !$0.isSaving }) else { throw DesktopFailure("busy", "A file operation or decision is active") }
+        let sources = entries.map { ($0, $0.frontCover) }
+        let job = CoverJob(total: sources.count)
+        coverJobs[session] = job
+        defer { coverJobs.removeValue(forKey: session) }
+        let convert = convertArtwork
+        var prepared: [(FileEntry, Artwork)] = []
+        var outcome = CoverToolActions.Outcome()
+        for (entry, source) in sources {
+            try Task.checkCancellation()
+            guard !job.cancelled else { throw CancellationError() }
+            if let source {
+                let cancellation = job.cancellation
+                let result = try await BlockingWork.run { Result { try convert(source, conversion, cancellation) } }
+                try Task.checkCancellation()
+                guard !job.cancelled else { throw CancellationError() }
+                try requireRevision(p, session: session)
+                guard !model.isDestructiveActionLocked, !entry.isSaving else { throw DesktopFailure("busy", "A file operation is active") }
+                switch result {
+                case .success(let converted):
+                    if converted.data == source.data { outcome.unchanged += 1 }
+                    else { prepared.append((entry, converted)); outcome.changed += 1 }
+                case .failure(let error):
+                    outcome.errors.append("\(entry.url.lastPathComponent): \(error.localizedDescription)")
+                }
+            } else { outcome.skipped += 1 }
+            job.completed += 1
+        }
+        // Keine Teilübernahme: erst nach allen Wartezeiten den Puffer freigeben.
+        try requireRevision(p, session: session)
+        guard !job.cancelled else { throw CancellationError() }
+        guard !model.isDestructiveActionLocked, entries.allSatisfy({ entry in
+            !entry.isSaving && model.entries.contains(where: { $0 === entry })
+        }) else { throw DesktopFailure("busy", "A file operation is active") }
+        for (entry, artwork) in prepared { entry.setFrontCover(artwork) }
+        model.alertMessage = CoverToolActions.report(outcome, action: String(localized: "Cover-Werkzeuge"))
     }
 
     private func changeCover(_ entry: FileEntry, method: String, params p: DesktopValue, beforeApply: () throws -> Void) async throws {

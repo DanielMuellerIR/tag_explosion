@@ -277,7 +277,7 @@ public enum CoverTools {
 
     /// Wandelt Bilddaten gemäß `conversion`. Liefert die Eingabe unverändert
     /// zurück, wenn nichts zu tun ist (z.B. Bild schon klein genug).
-    public static func convert(_ data: Data, _ conversion: Conversion) throws -> Data {
+    public static func convert(_ data: Data, _ conversion: Conversion, cancellation: ExternalToolRunner.Cancellation? = nil) throws -> Data {
         let analysis = analyze(data)
         guard let width = analysis.pixelWidth, let height = analysis.pixelHeight, width > 0, height > 0 else {
             throw CoverToolError.unsupportedImage
@@ -287,7 +287,7 @@ public enum CoverTools {
             let target = conversion.format
                 ?? (analysis.mimeType == "image/png" ? OutputFormat.png : OutputFormat.jpeg)
             return try reencode(data, maxPixelSize: needsShrink ? conversion.maxPixelSize : nil,
-                                format: target, jpegQuality: conversion.jpegQuality)
+                                format: target, jpegQuality: conversion.jpegQuality, cancellation: cancellation)
         }
         if conversion.stripMetadata {
             return try stripMetadata(data)
@@ -297,8 +297,8 @@ public enum CoverTools {
 
     /// Wie `convert(_:_:)`, hält aber Bildtyp und Beschreibung des Artworks
     /// und setzt den MIME-Type auf das neue Format.
-    public static func convert(_ artwork: Artwork, _ conversion: Conversion) throws -> Artwork {
-        let data = try convert(artwork.data, conversion)
+    public static func convert(_ artwork: Artwork, _ conversion: Conversion, cancellation: ExternalToolRunner.Cancellation? = nil) throws -> Artwork {
+        let data = try convert(artwork.data, conversion, cancellation: cancellation)
         guard data != artwork.data else { return artwork }
         return Artwork(data: data, mimeType: Artwork.sniffMimeType(from: data) ?? "",
                        pictureType: artwork.pictureType, description: artwork.description)
@@ -327,7 +327,7 @@ public enum CoverTools {
     /// sRGB-Kontext zeichnen (das wandelt CMYK und flacht Transparenz für JPEG
     /// auf Weiß ab) und als JPEG oder PNG ohne Metadaten ausgeben.
     static func reencode(_ data: Data, maxPixelSize: Int?, format: OutputFormat,
-                         jpegQuality: Double) throws -> Data {
+                         jpegQuality: Double, cancellation: ExternalToolRunner.Cancellation? = nil) throws -> Data {
         #if canImport(ImageIO)
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             throw CoverToolError.conversionFailed(reason: "image could not be decoded")
@@ -388,7 +388,7 @@ public enum CoverTools {
         }
         return output as Data
         #elseif os(Linux)
-        return try LinuxCoverCodec.convert(data, maxPixelSize: maxPixelSize, format: format, quality: jpegQuality)
+        return try LinuxCoverCodec.convert(data, maxPixelSize: maxPixelSize, format: format, quality: jpegQuality, cancellation: cancellation)
         #else
         throw CoverToolError.conversionUnavailable
         #endif

@@ -8,6 +8,20 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.3 — 2026-11-09
+
+- Linux: Erste Kapitel und synchronisierte Liedtextzeilen lassen sich wieder
+  hinzufügen; NFO-Stapelbewertungen behalten ihren Texttyp.
+- Stapel-Coverkonvertierungen halten die Desktop-Engine während der Arbeit
+  erreichbar. Abbruch und zwischenzeitliche Änderungen verhindern eine veraltete
+  Übernahme; der externe Bildprozess lässt sich abbrechen.
+- Dateiargumente eines Linux-Zweitstarts werden im Arbeitsverzeichnis dieses
+  Aufrufs aufgelöst.
+- Dateibasierte Linux-Signierschlüssel werden beim signierenden Paketbau lesend
+  eingebunden. Widersprüchliche Schlüsselquellen werden vor dem Bau abgewiesen;
+  andere Bauarten benötigen keine Schlüsselweitergabe.
+- Die Coveranalyse wird pro Beschreibung nur einmal ausgeführt.
+
 ## 0.54.2 — 2026-11-08
 
 - ExifTool unter Arch-basierten Distributionen auch dann finden, wenn das

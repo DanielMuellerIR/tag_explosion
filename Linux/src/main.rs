@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod engine;
+mod file_args;
 mod menus;
 mod updates;
 
@@ -206,7 +207,7 @@ fn engine_path(app: &tauri::App) -> PathBuf {
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             let windows = app.webview_windows();
             if let Some(window) = windows
                 .get("main")
@@ -217,11 +218,7 @@ fn main() {
                 })
                 .or_else(|| windows.values().next())
             {
-                let paths: Vec<_> = args
-                    .into_iter()
-                    .skip(1)
-                    .filter(|path| PathBuf::from(path).exists())
-                    .collect();
+                let paths = file_args::existing_file_arguments(args, &cwd);
                 let queued = app
                     .state::<Desktop>()
                     .initial_files

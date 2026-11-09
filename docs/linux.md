@@ -88,7 +88,12 @@ Aufruf erzeugt unter `build/linux/` das AppImage sowie die versionsgleichen
 Quellen-ZIPs der Bibliotheken und beider Rechnungsprüfer. Der Lizenz-/Quellencheck ist eine Bausperre.
 `./release.sh --linux` verlangt zusätzlich den eigenen
 `TAURI_SIGNING_PRIVATE_KEY` oder `TAURI_SIGNING_PRIVATE_KEY_PATH` und erzeugt
-Signatur, Updatefeed und Prüfsummen. Er veröffentlicht keine Dateien.
+Signatur, Updatefeed und Prüfsummen. Er veröffentlicht keine Dateien. Für einen
+signierenden Paketbau genau eine Schlüsselquelle setzen: Inline-Inhalt oder
+Dateipfad. Sind beide gesetzt, bricht der Bau vor dem Docker-Aufruf ab.
+Eine Schlüsseldatei wird separat und ausschließlich lesend in den Container
+gebunden. Debug-, unsignierte und reine Bauten ohne Paket erhalten keinen
+Signierschlüssel.
 
 Die Browseroberfläche verwendet lokale JavaScript-Module ohne separaten
 Frontend-Bundler. Übersetzungen werden aus dem gemeinsamen String-Catalog
