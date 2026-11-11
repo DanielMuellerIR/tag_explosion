@@ -26,6 +26,10 @@ The Linux desktop client uses Rust/Tauri and shares its Swift file processing
 with macOS. AppImage installation, requirements and updates are described in
 [the Linux guide](docs/linux.md). Screenshots below show the macOS client.
 
+**Distribution status:** The current macOS DMG is 0.47.7 and does not include the
+full invoice validation integrated later. The features below describe the current
+source and Linux app; the [Linux release 0.54.2](https://github.com/DanielMuellerIR/tag_explosion/releases/tag/v0.54.2) includes the validation packages.
+
 ## Features
 
 - **Audio** — every tag field including custom keys, cover art, and batch
@@ -333,7 +337,7 @@ does not guarantee that Quick Look will choose it over a system preview.
 ## Installation
 
 Download the notarized DMG from the
-[Releases](../../releases) page, open it, and drag `TagExplosion.app` onto the
+[macOS 0.47.7 release](https://github.com/DanielMuellerIR/tag_explosion/releases/tag/v0.47.7), open it, and drag `TagExplosion.app` onto the
 `Applications` folder. `TagExplosion.app` is Apple-Silicon-only (`arm64`) and
 requires macOS 14 or later. There is no Intel/x86_64 or universal build.
 

@@ -26,6 +26,10 @@ Unter Linux verwendet die App Rust/Tauri und dieselbe Swift-Dateiverarbeitung
 wie unter macOS. Installation als AppImage, Voraussetzungen und Updates:
 [Linux-Anleitung](docs/linux.md). Die gezeigten Bilder stammen von macOS.
 
+**Auslieferungsstand:** Das aktuelle macOS-DMG ist 0.47.7 und enthält die später
+integrierte vollständige Rechnungsprüfung noch nicht. Die Funktionen unten beschreiben
+den aktuellen Quellstand und die Linux-App; der [Linux-Release 0.54.2](https://github.com/DanielMuellerIR/tag_explosion/releases/tag/v0.54.2) enthält die Prüfpakete.
+
 ## Funktionen
 
 - **Audio** — alle Tag-Felder inklusive Custom-Keys, Coverbilder und
@@ -135,9 +139,17 @@ wie unter macOS. Installation als AppImage, Voraussetzungen und Updates:
   entschlüsselt (Rechnungstyp, USt-Kategorie, Zahlungsart, Einheiten).
   Funktioniert für eigenständige XML-Dateien und für PDFs mit eingebetteter
   Rechnung — die bekommen einen zusätzlichen Tab „E-Rechnung“.
-  Ein separater [KoSIT-CLI-Prototyp](docs/e-invoice-validation.md) prüft
-  XRechnung-XML gegen XSD und Schematron mit privater Java-Laufzeit; er ist
-  noch nicht in die App oder die reguläre Distribution integriert.
+  **[E-Rechnung prüfen](docs/e-invoice-validation-app.md)** prüft das originale
+  XML lokal gegen XSD und Schematron mit der mitgelieferten privaten Java-Laufzeit,
+  ohne zusätzliche Installation. Ergebnisse unterscheiden Warnungen, Rechnungsfehler,
+  nicht unterstützte Profile, Abbruch und Werkzeugfehler; Berichte enthalten
+  Quellenprüfsummen und den Gewährleistungshinweis. Bei hybriden PDFs werden XML,
+  PDF/A und Einbettung getrennt geprüft, unter anderem mit dem gebündelten veraPDF.
+  Alle fünf aktuellen ZUGFeRD-2.5.2-/Factur-X-1.09.2-Profile haben eigene Schemata
+  und Profilregeln. Reduzierte Profile und mehrdeutige Dokumentversionen bleiben
+  sichtbar. PDF/A-3a/3b/3u und PDF/A-4f werden als Träger unterstützt. Sichtbarer
+  Rechnungsinhalt, Signaturen und steuerliche Voraussetzungen bleiben ungeprüft.
+  Die vollständige Peppol-Validierung steht noch aus.
 - **Dateinamen aus Tags, Tags aus Dateinamen** — Muster im kid3-Stil wie
   `%{track:2} - %{artist} - %{title}` (jeder Tag-Schlüssel geht, `%{track:2}`
   füllt mit Nullen auf). Das Umbenennen zeigt eine Vorschau und verweigert
@@ -337,7 +349,7 @@ der Erweiterung vor der Systemvorschau.
 
 ## Installation
 
-Das notarisierte DMG von der [Releases-Seite](../../releases) laden, öffnen
+Das notarisierte [macOS-DMG 0.47.7](https://github.com/DanielMuellerIR/tag_explosion/releases/tag/v0.47.7) laden, öffnen
 und `TagExplosion.app` auf den Ordner `Programme` ziehen. Benötigt macOS 14
 oder neuer und Apple Silicon (`arm64`). Es gibt keinen Intel/x86_64- oder
 Universal-Build.
