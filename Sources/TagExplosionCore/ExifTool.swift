@@ -178,35 +178,78 @@ public enum ExifTool {
         let exe = try locateExecutable()
         // -G1 = Untergruppen (IFD0, ExifIFD, XMP-dc …), -s = Tag-Namen statt Beschreibungen
         let data = try ExternalToolRunner.run(exe, ["-use", "MWG", "-j", "-G1", "-s", ExternalToolRunner.toolArgument(for: url)])
-        guard let root = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+        return try parseGroups(data)
+    }
+
+    static func parseGroups(_ data: Data) throws -> [MetadataGroup] {
+        let json = Data(ExternalToolText.decodeLossyJSON(data).utf8)
+        guard let root = try JSONSerialization.jsonObject(with: json) as? [[String: Any]],
               let dict = root.first
         else { return [] }
 
-        let jsonText = ExternalToolText.decodeLossyJSON(data)
-        // Gruppen in stabiler Reihenfolge des JSON-Textes aufbauen
         var groups: [String: [TagProperty]] = [:]
         var groupOrder: [String] = []
-        var keyPositions: [(String, String.Index)] = []
-        for key in dict.keys {
-            if let range = jsonText.range(of: "\"\(key)\":") {
-                keyPositions.append((key, range.lowerBound))
-            } else {
-                keyPositions.append((key, jsonText.endIndex))
-            }
-        }
-        for (key, _) in keyPositions.sorted(by: { $0.1 < $1.1 }) {
-            guard key.contains(":") else { continue } // SourceFile etc. überspringen
-            let parts = key.split(separator: ":", maxSplits: 1)
+        var seen: Set<String> = []
+        for key in orderedKeys(in: json) where seen.insert(key).inserted {
+            let parts = key.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty, let raw = dict[key] else { continue }
             let group = String(parts[0])
             let tag = String(parts[1])
-            let value = stringify(dict[key])
             if groups[group] == nil {
                 groups[group] = []
                 groupOrder.append(group)
             }
-            groups[group]?.append(TagProperty(key: tag, value: value))
+            groups[group]?.append(TagProperty(key: tag, value: stringify(raw)))
         }
         return groupOrder.map { MetadataGroup(name: $0, fields: groups[$0] ?? []) }
+    }
+
+    /// Foundation liest die Werte. Aus dem geprüften JSON brauchen wir nur die
+    /// Reihenfolge der Schlüssel im ersten Objekt des äußeren Arrays.
+    private static func orderedKeys(in json: Data) -> [String] {
+        let decoder = JSONDecoder()
+        var keys: [String] = []
+        var depth = 0
+        var index = json.startIndex
+        while index < json.endIndex {
+            switch json[index] {
+            case 0x5B, 0x7B: // [ {
+                depth += 1
+                index += 1
+            case 0x5D, 0x7D: // ] }
+                if depth == 2 { return keys }
+                depth -= 1
+                index += 1
+            case 0x22: // "
+                let start = index
+                var escaped = false
+                index += 1
+                while index < json.endIndex, json[index] != 0x22 {
+                    if json[index] == 0x5C {
+                        escaped = true
+                        index += 2
+                    } else {
+                        index += 1
+                    }
+                }
+                guard index < json.endIndex else { return keys }
+                let end = index
+                index += 1
+                guard depth == 2 else { continue }
+                while index < json.endIndex, [0x20, 0x09, 0x0A, 0x0D].contains(json[index]) {
+                    index += 1
+                }
+                guard index < json.endIndex, json[index] == 0x3A else { continue }
+                if escaped {
+                    if let key = try? decoder.decode(String.self, from: json[start...end]) { keys.append(key) }
+                } else {
+                    keys.append(String(decoding: json[(start + 1)..<end], as: UTF8.self))
+                }
+            default:
+                index += 1
+            }
+        }
+        return keys
     }
 
     /// Roh-Metadaten mehrerer Bilder in EINEM exiftool-Aufruf, gedacht als

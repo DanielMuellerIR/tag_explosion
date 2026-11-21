@@ -14,16 +14,21 @@ struct InvoicePDFReportTests {
     @Test("Nur vollständiger, konsistenter Einzelauftrag bestätigt PDF/A")
     func completeReport() throws {
         #expect(try InvoicePDFValidator.parseReport(Data(valid.utf8)).compliant)
-        for invalid in [
-            valid.replacingOccurrences(of: "totalJobs=\"1\"", with: "totalJobs=\"2\""),
-            valid.replacingOccurrences(of: "version=\"1.30.3\"", with: "version=\"1.30.2\""),
-            valid.replacingOccurrences(of: "jobEndStatus=\"normal\"", with: "jobEndStatus=\"failed\""),
-            valid.replacingOccurrences(of: "outOfMemory=\"0\"", with: "outOfMemory=\"1\""),
-            valid.replacingOccurrences(of: "failedChecks=\"0\"", with: "failedChecks=\"1\""),
-            valid.replacingOccurrences(of: "passedChecks=\"201\"", with: "passedChecks=\"0\""),
-            valid.replacingOccurrences(of: "</jobs>", with: "<job/></jobs>"),
+        for (original, replacement, section): (String, String, InvoicePDFValidator.ReportSection) in [
+            ("<report>", "<report xmlns=\"urn:unbekannt\">", .structure),
+            ("version=\"1.30.3\"", "version=\"1.30.2\"", .versions),
+            ("totalJobs=\"1\"", "totalJobs=\"2\"", .batch),
+            ("outOfMemory=\"0\"", "outOfMemory=\"1\"", .batch),
+            ("</jobs>", "<job/></jobs>", .job),
+            ("jobEndStatus=\"normal\"", "jobEndStatus=\"failed\"", .validation),
+            ("passedChecks=\"201\"", "passedChecks=\"0\"", .counts),
+            ("nonCompliant=\"0\"", "nonCompliant=\"1\"", .totals),
+            ("failedChecks=\"0\"", "failedChecks=\"1\"", .rules),
         ] {
-            #expect(throws: (any Error).self) { try InvoicePDFValidator.parseReport(Data(invalid.utf8)) }
+            let invalid = valid.replacingOccurrences(of: original, with: replacement)
+            #expect(throws: InvoicePDFValidator.Failure.invalidReportSection(section)) {
+                _ = try InvoicePDFValidator.parseReport(Data(invalid.utf8))
+            }
         }
     }
 
@@ -184,5 +189,11 @@ struct InvoicePDFRuntimeTests {
         let legacy = try runTagx(arguments: ["validate-xrechnung", invoice.path, "--bundle", coreLink.path, "--format", "common", "--json"])
         #expect(legacy.status == 5)
         #expect(try JSONDecoder().decode([Output].self, from: Data(legacy.stdout.utf8))[0].validation.pdf == nil)
+        try FileManager.default.removeItem(at: dir.appendingPathComponent("PDFValidator"))
+        let explicit = try runTagx(arguments: [
+            "validate-invoice", invoice.path, "--bundle", coreLink.path, "--pdf-bundle", pdf.path, "--json",
+        ])
+        #expect(explicit.status == 0)
+        #expect(try JSONDecoder().decode([Output].self, from: Data(explicit.stdout.utf8))[0].validation.pdf?.status == .passed)
     }
 }

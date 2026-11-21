@@ -7,6 +7,19 @@ import Testing
 @Suite("ExifTool")
 struct ExifToolTests {
 
+    @Test("Gruppen folgen den obersten JSON-Schlüsseln nach Reparatur der Textbytes")
+    func repairedGroupsKeepJSONOrder() throws {
+        var json = Data(#"[{"SourceFile":"test.jpg","IFD0:Description":{"XMP:Later":"innen","nested":[{"EXIF:Middle":"innen"}]},"IFD0:Title" : "Gr"#.utf8)
+        json.append(contentsOf: [0xFC, 0xDF])
+        json.append(contentsOf: #"e 🎵", "EXIF:Middle" : "Früher", "IFD0:Note" : "Notiz", "XMP:Later":"Später"},{"Ignored:Other":"zweite Datei"}]"#.utf8)
+        let groups = try ExifTool.parseGroups(json)
+
+        #expect(groups.map(\.name) == ["IFD0", "EXIF", "XMP"])
+        #expect(groups.first?.fields.map(\.key) == ["Description", "Title", "Note"])
+        #expect(groups.first?.fields.first { $0.key == "Title" }?.value == "Grüße 🎵")
+        #expect(groups.last?.fields == [TagProperty(key: "Later", value: "Später")])
+    }
+
     @Test("Kernfelder schreiben und lesen (JPEG)")
     func coreFieldsRoundtripJPEG(  ) throws {
         let url = try Fixtures.workingCopy("cover.jpg")

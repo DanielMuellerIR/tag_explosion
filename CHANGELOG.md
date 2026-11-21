@@ -8,6 +8,14 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.6 — 2026-11-21
+
+- Beide Rechnungsbefehle teilen die Ausführungslogik. `validate-invoice`
+  akzeptiert `--pdf-bundle` und behält die Suche neben dem KoSIT-Paket bei.
+- Fehler in veraPDF-Berichten nennen die betroffene Prüfgruppe.
+- ExifTool-Gruppen behalten ihre Reihenfolge auch bei eingerücktem JSON und
+  gemischt kodierten Metadaten.
+
 ## 0.54.5 — 2026-11-21
 
 - Die Online-Suche begrenzt Metadaten- und Bildantworten beim Empfang. Der

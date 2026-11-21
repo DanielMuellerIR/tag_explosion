@@ -118,7 +118,9 @@ ein Timeout ein Werkzeugfehler mit Exit 1. Aufruffehler behalten ArgumentParsers
 Prüfung das gesonderte XML-Ergebnis. Seit 0.52.0 ergänzt das optionale Feld `pdf`
 Engine, Hybridregelstand, Trägerprofil sowie `pdfaStatus` und `embeddingStatus`.
 App und `validate-invoice` prüfen beide PDF-Schritte mit dem gebündelten
-PDF-Paket. Ein Dienstaufruf ohne `pdfBundle` und der kompatible Befehl
+PDF-Paket. `validate-invoice` sucht standardmäßig nach `PDFValidator` neben
+dem KoSIT-Paket. `--pdf-bundle <pfad>` gibt bei Bedarf einen anderen Ort an.
+Ein Dienstaufruf ohne `pdfBundle` und der kompatible Befehl
 `validate-xrechnung --format common` bleiben ausdrücklich auf XML im PDF
 begrenzt und liefern bei XML-Erfolg `partial`. Sichtbarer PDF-Inhalt und XML
 werden nicht verglichen. [PDF-Prüfumfang](e-invoice-validation-pdf.md).

@@ -12,8 +12,9 @@ struct ValidateXRechnung: ParsableCommand {
         commandName: "validate-xrechnung",
         abstract: "Validate XRechnung locally with a private KoSIT/Java bundle.",
         discussion: """
-            Default format preserves the XML prototype output. --format common adds versioned
-            source-bound results and PDF attachment input, including current Factur-X profiles. No system Java or network service is used.
+            Default format preserves the established XRechnung XML output. --format common adds
+            versioned source-bound results and PDF attachment input, including current Factur-X profiles.
+            No system Java or network service is used.
             Both formats: 0: passed; 3: failed; 4: unsupported; 130: cancelled;
             1: tool/report error (including legacy timeout). Common format additionally:
             5: partial; 6: stale input; 124: timeout. No warranty of results.
@@ -27,7 +28,45 @@ struct ValidateXRechnung: ParsableCommand {
     enum Format: String, ExpressibleByArgument { case legacy, common }
     @Option(name: .long, help: "Result format: legacy (compatible XML output) or common (XML/PDF)")
     var format: Format = .legacy
-    var pdfBundle: URL?
+
+    func run() throws {
+        try InvoiceValidationCLI(files: files, bundle: URL(fileURLWithPath: bundle), json: json,
+                                 mode: format == .legacy ? .legacy : .common(pdfBundle: nil)).run()
+    }
+}
+
+struct ValidateInvoice: ParsableCommand {
+    static let configuration = CommandConfiguration(commandName: "validate-invoice",
+        abstract: "Validate XRechnung and current ZUGFeRD/Factur-X XML or PDF locally.")
+    @Argument(help: "Invoice XML or PDF file(s)") var files: [String]
+    @Option(name: .long, help: "Prepared KoSIT bundle") var bundle: String
+    @Option(name: .long, help: "Prepared PDF validator bundle (defaults to PDFValidator beside --bundle)")
+    var pdfBundle: String?
+    @Flag(name: .long, help: "Output reports as JSON") var json = false
+
+    func run() throws {
+        let bundleURL = URL(fileURLWithPath: bundle)
+        let pdfBundleURL = pdfBundle.map { URL(fileURLWithPath: $0) }
+            ?? bundleURL.deletingLastPathComponent().appendingPathComponent("PDFValidator")
+        try InvoiceValidationCLI(files: files, bundle: bundleURL, json: json,
+                                 mode: .common(pdfBundle: pdfBundleURL)).run()
+    }
+}
+
+private struct InvoiceValidationCLI {
+    enum Mode {
+        case legacy
+        case common(pdfBundle: URL?)
+    }
+    struct Report<Validation: Encodable>: Encodable {
+        let file: String
+        let validation: Validation
+    }
+
+    let files: [String]
+    let bundle: URL
+    let json: Bool
+    let mode: Mode
 
     func run() throws {
         guard !files.isEmpty else { throw ValidationError("Provide at least one invoice file.") }
@@ -46,20 +85,21 @@ struct ValidateXRechnung: ParsableCommand {
             signal(SIGINT, previousInterrupt)
             signal(SIGTERM, previousTermination)
         }
-        if format == .common {
-            try runCommon(cancellation: control)
-            return
+        switch mode {
+        case .legacy:
+            try runLegacy(cancellation: control)
+        case .common(let pdfBundle):
+            try runCommon(pdfBundle: pdfBundle, cancellation: control)
         }
-        struct Report: Encodable {
-            let file: String
-            let validation: XRechnungValidationReport
-        }
-        var reports: [Report] = []
+    }
+
+    private func runLegacy(cancellation: ExternalToolRunner.Cancellation) throws {
+        var reports: [Report<XRechnungValidationReport>] = []
         for file in files {
             let url = try resolveFile(file)
             let validation: XRechnungValidationReport
             do {
-                validation = try XRechnungValidator.validate(url: url, bundle: URL(fileURLWithPath: bundle), cancellation: control)
+                validation = try XRechnungValidator.validate(url: url, bundle: bundle, cancellation: cancellation)
             } catch is CancellationError { throw ExitCode(130) }
             reports.append(.init(file: url.path, validation: validation))
         }
@@ -85,15 +125,11 @@ struct ValidateXRechnung: ParsableCommand {
         if reports.contains(where: { $0.validation.status == .unsupported }) { throw ExitCode(4) }
     }
 
-    private func runCommon(cancellation: ExternalToolRunner.Cancellation) throws {
-        struct Report: Encodable {
-            let file: String
-            let validation: InvoiceValidationResult
-        }
+    private func runCommon(pdfBundle: URL?, cancellation: ExternalToolRunner.Cancellation) throws {
         let reports = try files.map { file in
             let url = try resolveFile(file)
             return Report(file: url.path, validation: InvoiceValidationService.validate(
-                url: url, bundle: URL(fileURLWithPath: bundle), pdfBundle: pdfBundle, cancellation: cancellation))
+                url: url, bundle: bundle, pdfBundle: pdfBundle, cancellation: cancellation))
         }
         if json {
             try printJSON(reports)
@@ -125,23 +161,5 @@ struct ValidateXRechnung: ParsableCommand {
             (.technicalError, 1), (.timedOut, 124), (.cancelled, 130), (.stale, 6),
             (.failed, 3), (.unsupported, 4), (.partial, 5),
         ] where statuses.contains(status) { throw ExitCode(code) }
-    }
-}
-
-struct ValidateInvoice: ParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "validate-invoice",
-        abstract: "Validate XRechnung and current ZUGFeRD/Factur-X XML or PDF locally.")
-    @Argument(help: "Invoice XML or PDF file(s)") var files: [String]
-    @Option(name: .long, help: "Prepared KoSIT bundle") var bundle: String
-    @Flag(name: .long, help: "Output reports as JSON") var json = false
-
-    func run() throws {
-        var command = ValidateXRechnung()
-        command.files = files
-        command.bundle = bundle
-        command.json = json
-        command.format = .common
-        command.pdfBundle = URL(fileURLWithPath: bundle).deletingLastPathComponent().appendingPathComponent("PDFValidator")
-        try command.run()
     }
 }

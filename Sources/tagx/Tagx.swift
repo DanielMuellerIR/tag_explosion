@@ -126,7 +126,7 @@ struct Show: ParsableCommand {
         }
 
         if json {
-            try printJSON(reports.count == 1 ? [reports[0]] : reports)
+            try printJSON(reports)
             return
         }
         for report in reports {

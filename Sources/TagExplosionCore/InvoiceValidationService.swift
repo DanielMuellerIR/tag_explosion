@@ -140,7 +140,7 @@ public enum InvoiceValidationService {
                 } catch is CancellationError { throw CancellationError() }
                 catch {
                     status = error is ExternalToolRunner.ProcessTimeoutError ? .timedOut : .technicalError
-                    pdfSummary = .init(engine: "veraPDF 1.30.3", rules: InvoicePDFValidator.rules, profile: nil,
+                    pdfSummary = .init(engine: InvoicePDFValidator.engine, rules: InvoicePDFValidator.rules, profile: nil,
                         status: status, pdfaStatus: .notChecked, embeddingStatus: .notChecked)
                     steps += [.init(id: "pdfa", status: .notChecked), .init(id: "pdf-embedding", status: .notChecked)]
                     issues.append(.init(severity: .error, code: "PDF_VALIDATION_ERROR", location: nil,

@@ -1,6 +1,6 @@
 [package]
 name = "tag-explosion-linux"
-version = "0.54.5"
+version = "0.54.6"
 edition = "2021"
 license = "MIT"
 

@@ -15,6 +15,8 @@ public struct InvoicePDFValidationSummary: Codable, Sendable {
 
 enum InvoicePDFValidator {
     static let inventorySHA256 = "0a6967172baf5e751e3d8449a765201bce19f0be39f76accede143c1a20b7e03"
+    private static let engineVersion = "1.30.3"
+    static let engine = "veraPDF \(engineVersion)"
     static let rules = "ZUGFeRD 2.5.2 / Factur-X 1.09.2 · Hybrid 2026-08-04"
     struct Result {
         let summary: InvoicePDFValidationSummary
@@ -30,12 +32,26 @@ enum InvoicePDFValidator {
         let engineVersion: String
         let jar: Artifact
     }
-    enum Failure: Error, LocalizedError {
+    enum ReportSection: String {
+        case structure = "Berichtsstruktur"
+        case versions = "Prüferversion"
+        case batch = "Auftragsübersicht"
+        case job = "Einzelauftrag"
+        case validation = "Einzelbericht"
+        case counts = "Prüfzähler"
+        case totals = "Gesamtergebnis"
+        case rules = "Regelergebnisse"
+    }
+    enum Failure: Error, LocalizedError, Equatable {
         case changedPackage, invalidReport
+        case invalidReportSection(ReportSection)
+
         var errorDescription: String? {
             switch self {
             case .changedPackage: "Das PDF-Prüfpaket fehlt oder wurde verändert."
             case .invalidReport: "veraPDF lieferte keinen vollständigen, widerspruchsfreien Prüfbericht."
+            case .invalidReportSection(let section):
+                "Der Abschnitt „\(section.rawValue)“ im veraPDF-Prüfbericht ist ungültig."
             }
         }
     }
@@ -44,7 +60,7 @@ enum InvoicePDFValidator {
         let data = try Data(contentsOf: bundle.appendingPathComponent("legal/components.lock.json"))
         guard validationDigest(data) == inventorySHA256 else { throw Failure.changedPackage }
         let policy = try JSONDecoder().decode(Policy.self, from: data)
-        guard policy.engineVersion == "1.30.3",
+        guard policy.engineVersion == engineVersion,
               try BackupJournal.sha256(of: bundle.appendingPathComponent("validator.jar")) == policy.jar.sha256 else {
             throw Failure.changedPackage
         }
@@ -86,12 +102,14 @@ enum InvoicePDFValidator {
         var issues = try embeddingIssues(inspection, document: document, ruleSet: ruleSet)
         issues += try deliveryIssues(document: document, xml: input.payload.xml)
         let domestic = document.firstValue(term: "BT-40") == "DE" && document.firstValue(term: "BT-55") == "DE"
-        let permitted = ["PDF/A-3a validation profile", "PDF/A-3b validation profile", "PDF/A-3u validation profile", "PDF/A-4f validation profile"].contains(report.profile)
+        let permitted = [
+            "PDF/A-3a validation profile", "PDF/A-3b validation profile",
+            "PDF/A-3u validation profile", "PDF/A-4f validation profile",
+        ].contains(report.profile)
         let pdfaPassed = report.compliant && permitted
-        let pdfaSeverity: InvoiceValidationResult.Issue.Severity = .error
-        issues += report.issues.map { .init(severity: pdfaSeverity, code: $0.code, location: $0.location, message: $0.message) }
+        issues += report.issues
         if !permitted {
-            issues.append(.init(severity: pdfaSeverity, code: "BR-HYBRID-02", location: "PDF/A",
+            issues.append(.init(severity: .error, code: "BR-HYBRID-02", location: "PDF/A",
                 message: "Der Hybridträger verlangt PDF/A-3 oder PDF/A-4f. Der geprüfte PDF/A-Teil ist nicht geeignet."))
         }
         let limited = issues.contains { $0.code == "PDF_INSPECTION_INCOMPLETE" }
@@ -99,16 +117,23 @@ enum InvoicePDFValidator {
             issues.append(.init(severity: .information, code: "BR-FX-DE-03", location: nil,
                 message: "Der Standard beschreibt eine nationale Sonderbewertung von PDF/A-Abweichungen. Deren rechtliche Voraussetzungen werden hier nicht bestätigt; das technische PDF/A-Ergebnis bleibt getrennt ausgewiesen."))
         }
-        let embeddingFailed = issues.contains { $0.severity == .error && !($0.code?.hasPrefix("PDFA:") ?? false) && $0.code != "BR-HYBRID-02" }
+        let embeddingFailed = issues.contains {
+            $0.severity == .error && !($0.code?.hasPrefix("PDFA:") ?? false) && $0.code != "BR-HYBRID-02"
+        }
         let status: InvoiceValidationStatus
-        if embeddingFailed || (!pdfaPassed && pdfaSeverity == .error) { status = .failed }
-        else if !inspection.complete || limited || !pdfaPassed { status = .partial }
-        else if issues.contains(where: { $0.severity == .warning }) { status = .passedWithWarnings }
-        else { status = .passed }
+        if embeddingFailed || !pdfaPassed {
+            status = .failed
+        } else if !inspection.complete || limited {
+            status = .partial
+        } else if issues.contains(where: { $0.severity == .warning }) {
+            status = .passedWithWarnings
+        } else {
+            status = .passed
+        }
         issues.append(.init(severity: .information, code: "PDF_VISUAL_CONTENT_NOT_CHECKED", location: nil,
             message: "Geprüft wurden PDF/A, technische Einbettung und Metadaten. Sichtbarer Rechnungsinhalt, Echtheit, Signaturen und steuerliche Voraussetzungen werden nicht bestätigt."))
         try cancellation?.check()
-        return .init(summary: .init(engine: "veraPDF 1.30.3", rules: rules, profile: report.profile, status: status,
+        return .init(summary: .init(engine: engine, rules: rules, profile: report.profile, status: status,
             pdfaStatus: pdfaPassed ? .passed : .failed,
             embeddingStatus: embeddingFailed ? .failed : inspection.complete && !limited ? .passed : .notChecked), issues: issues)
     }
@@ -116,42 +141,64 @@ enum InvoicePDFValidator {
     static func parseReport(_ data: Data) throws -> PDFReport {
         try XRechnungValidator.checkInput(data)
         let document = try XMLTools.document(from: data, path: "veraPDF-Bericht")
-        guard let root = document.rootElement(), XMLTools.localName(root) == "report", XMLTools.namespace(of: root).isEmpty,
+        guard let root = document.rootElement(), XMLTools.localName(root) == "report",
+              XMLTools.namespace(of: root).isEmpty,
               let builds = XMLTools.firstElement(named: "buildInformation", in: root),
               let jobs = XMLTools.firstElement(named: "jobs", in: root),
-              let batch = XMLTools.firstElement(named: "batchSummary", in: root) else { throw Failure.invalidReport }
+              let batch = XMLTools.firstElement(named: "batchSummary", in: root) else {
+            throw Failure.invalidReportSection(.structure)
+        }
         let versions = XMLTools.elements(named: "releaseDetails", in: builds)
-        guard versions.count == 3, Set(versions.compactMap { XMLTools.attribute($0, "id") }) == Set(["core", "validation-model", "apps"]),
-              versions.allSatisfy({ XMLTools.attribute($0, "version") == "1.30.3" }),
-              XMLTools.attribute(batch, "totalJobs") == "1",
-              ["failedToParse", "encrypted", "outOfMemory", "veraExceptions"].allSatisfy({ XMLTools.attribute(batch, $0) == "0" }),
-              XMLTools.elements(named: "job", in: jobs).count == 1,
-              let job = XMLTools.firstElement(named: "job", in: jobs),
-              XMLTools.elements(named: "validationReport", in: job).count == 1,
-              let report = XMLTools.firstElement(named: "validationReport", in: job),
+        let expectedModules: Set<String> = ["core", "validation-model", "apps"]
+        guard versions.count == expectedModules.count,
+              Set(versions.compactMap { XMLTools.attribute($0, "id") }) == expectedModules,
+              versions.allSatisfy({ XMLTools.attribute($0, "version") == engineVersion }) else {
+            throw Failure.invalidReportSection(.versions)
+        }
+        let failureCounters = ["failedToParse", "encrypted", "outOfMemory", "veraExceptions"]
+        guard XMLTools.attribute(batch, "totalJobs") == "1",
+              failureCounters.allSatisfy({ XMLTools.attribute(batch, $0) == "0" }) else {
+            throw Failure.invalidReportSection(.batch)
+        }
+        let jobElements = XMLTools.elements(named: "job", in: jobs)
+        guard jobElements.count == 1, let job = jobElements.first else {
+            throw Failure.invalidReportSection(.job)
+        }
+        let reports = XMLTools.elements(named: "validationReport", in: job)
+        guard reports.count == 1, let report = reports.first,
               XMLTools.attribute(report, "jobEndStatus") == "normal",
-              let compliant = XMLTools.attribute(report, "isCompliant"), ["true", "false"].contains(compliant),
+              let rawCompliance = XMLTools.attribute(report, "isCompliant"),
+              let compliant = Bool(rawCompliance),
               let profile = XMLTools.attribute(report, "profileName"),
-              let details = XMLTools.firstElement(named: "details", in: report),
-              let failedRules = Int(XMLTools.attribute(details, "failedRules") ?? ""), failedRules >= 0,
+              let details = XMLTools.firstElement(named: "details", in: report) else {
+            throw Failure.invalidReportSection(.validation)
+        }
+        guard let failedRules = Int(XMLTools.attribute(details, "failedRules") ?? ""), failedRules >= 0,
               let failedChecks = Int(XMLTools.attribute(details, "failedChecks") ?? ""), failedChecks >= 0,
-              let passedChecks = Int(XMLTools.attribute(details, "passedChecks") ?? ""), passedChecks > 0,
-              let totals = XMLTools.firstElement(named: "validationReports", in: batch),
+              let passedChecks = Int(XMLTools.attribute(details, "passedChecks") ?? ""), passedChecks > 0 else {
+            throw Failure.invalidReportSection(.counts)
+        }
+        guard let totals = XMLTools.firstElement(named: "validationReports", in: batch),
               XMLTools.attribute(totals, "failedJobs") == "0",
-              XMLTools.attribute(totals, "compliant") == (compliant == "true" ? "1" : "0"),
-              XMLTools.attribute(totals, "nonCompliant") == (compliant == "true" ? "0" : "1") else { throw Failure.invalidReport }
+              XMLTools.attribute(totals, "compliant") == (compliant ? "1" : "0"),
+              XMLTools.attribute(totals, "nonCompliant") == (compliant ? "0" : "1") else {
+            throw Failure.invalidReportSection(.totals)
+        }
         let rules = XMLTools.elements(named: "rule", in: details)
-        guard (compliant == "true" && failedRules == 0 && failedChecks == 0 && rules.isEmpty)
-            || (compliant == "false" && failedRules > 0 && failedChecks > 0 && rules.count == failedRules && rules.allSatisfy { XMLTools.attribute($0, "status") == "failed" }) else { throw Failure.invalidReport }
+        let rulesMatch = compliant
+            ? failedRules == 0 && failedChecks == 0 && rules.isEmpty
+            : failedRules > 0 && failedChecks > 0 && rules.count == failedRules
+                && rules.allSatisfy { XMLTools.attribute($0, "status") == "failed" }
+        guard rulesMatch else { throw Failure.invalidReportSection(.rules) }
         let issues = rules.map { rule in
-            let code = ["PDFA", XMLTools.attribute(rule, "specification") ?? "", XMLTools.attribute(rule, "clause") ?? "", XMLTools.attribute(rule, "testNumber") ?? ""].joined(separator: ":")
+            let code = ["PDFA"] + ["specification", "clause", "testNumber"].map { XMLTools.attribute(rule, $0) ?? "" }
             let check = XMLTools.firstElement(named: "check", in: rule)
-            return InvoiceValidationResult.Issue(severity: .error, code: code,
+            return InvoiceValidationResult.Issue(severity: .error, code: code.joined(separator: ":"),
                 location: check.map { XMLTools.text(of: "context", in: $0) },
                 message: check.map { XMLTools.text(of: "errorMessage", in: $0) }.flatMap { $0.isEmpty ? nil : $0 }
                     ?? XMLTools.text(of: "description", in: rule))
         }
-        return .init(compliant: compliant == "true", profile: profile, issues: issues)
+        return .init(compliant: compliant, profile: profile, issues: issues)
     }
 
     private static func allElements(_ root: XMLElement) throws -> [XMLElement] {
