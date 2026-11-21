@@ -12,17 +12,17 @@ public enum RuleFileHistory {
     public static let defaultsKey = "tagRuleFileHistory"
     public static let maxEntries = 8
 
-    public static func load() -> [URL] {
-        (UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [])
+    public static func load(defaults: UserDefaults = .standard) -> [URL] {
+        (defaults.stringArray(forKey: defaultsKey) ?? [])
             .map { URL(fileURLWithPath: $0) }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    public static func remember(_ url: URL) {
-        var paths = (UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [])
+    public static func remember(_ url: URL, defaults: UserDefaults = .standard) {
+        var paths = (defaults.stringArray(forKey: defaultsKey) ?? [])
             .filter { $0 != url.path }
         paths.insert(url.path, at: 0)
-        UserDefaults.standard.set(Array(paths.prefix(maxEntries)), forKey: defaultsKey)
+        defaults.set(Array(paths.prefix(maxEntries)), forKey: defaultsKey)
     }
 }
 
@@ -41,15 +41,21 @@ public struct RuleApplyOutcome: Equatable {
 
 extension AppModel {
 
-    /// Vorschau: je Eintrag die geplanten Änderungen (nur Einträge mit
-    /// Änderungen). Grundlage sind die Bearbeitungspuffer, damit die Tabelle
-    /// zeigt, was der Anwenden-Knopf wirklich tut. Wirft bei einer
-    /// ungültigen Regel (`TagRulesError`).
-    public func rulePlan(for targets: [FileEntry], document: TagRuleDocument) throws -> [TagRulePlan] {
-        let inputs = targets.filter(\.supportsFilenamePatterns).map {
-            TagRuleInput(url: $0.url, kind: $0.kind, values: $0.kind == .audio ? TagProperty.valuesByKey($0.properties) : $0.patternFields.mapValues { [$0] })
+    /// Sendbarer Schnappschuss der Editorpuffer für die Regelauswertung.
+    public func ruleInputs(for targets: [FileEntry]) -> [TagRuleInput] {
+        targets.filter(\.supportsFilenamePatterns).map { entry in
+            let values = entry.kind == .audio
+                ? TagProperty.valuesByKey(entry.properties) : entry.patternFields.mapValues { [$0] }
+            return TagRuleInput(url: entry.url, kind: entry.kind, values: values)
         }
+    }
+
+    public nonisolated static func rulePlan(for inputs: [TagRuleInput], document: TagRuleDocument) throws -> [TagRulePlan] {
         return try TagRuleEngine.plan(document, inputs: inputs).filter { !$0.changes.isEmpty }
+    }
+
+    public func rulePlan(for targets: [FileEntry], document: TagRuleDocument) throws -> [TagRulePlan] {
+        try Self.rulePlan(for: ruleInputs(for: targets), document: document)
     }
 
     /// Überträgt einen Plan in die Bearbeitungspuffer der Einträge. Die
@@ -91,14 +97,29 @@ extension AppModel {
     public func applyRules(_ document: TagRuleDocument, to targets: [FileEntry],
                     save: ([FileEntry]) async -> Bool) async -> Bool {
         guard !isDestructiveActionLocked else { return false }
+        let inputs = ruleInputs(for: targets)
         let plans: [TagRulePlan]
         do {
-            plans = try rulePlan(for: targets, document: document)
+            plans = try await BlockingWork.run { try Self.rulePlan(for: inputs, document: document) }
+            try Task.checkCancellation()
         } catch {
             alertMessage = String(localized: "Regeln konnten nicht angewendet werden:")
                 + "\n" + error.localizedDescription
             return false
         }
+        return await applyPreparedRules(plans, matching: inputs, to: targets, save: save)
+    }
+
+    /// Übernimmt die sichtbare Vorschau erst nach einem erneuten Abgleich der
+    /// Eingaben. Planung und Übernahme können verschiedene Actor-Turns sein.
+    public func applyPreparedRules(_ plans: [TagRulePlan], matching inputs: [TagRuleInput],
+                                   to targets: [FileEntry]) async -> Bool {
+        await applyPreparedRules(plans, matching: inputs, to: targets) { await self.saveEntries($0) }
+    }
+
+    private func applyPreparedRules(_ plans: [TagRulePlan], matching inputs: [TagRuleInput],
+                                    to targets: [FileEntry], save: ([FileEntry]) async -> Bool) async -> Bool {
+        guard !isDestructiveActionLocked, inputs == ruleInputs(for: targets) else { return false }
         let outcome = applyRulePlan(plans, to: targets)
         if !outcome.failed.isEmpty {
             alertMessage = String(localized: "Nicht übernommen:") + "\n"

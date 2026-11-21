@@ -83,14 +83,14 @@ public struct DesktopFramer: Sendable {
         var start = data.startIndex
         for index in data.indices where data[index] == 10 {
             let slice = data[start..<index]
-            guard pending.count + slice.count <= Self.maximumBytes else { throw DesktopFailure("message_too_large", "IPC message exceeds its size limit") }
+            guard pending.count + slice.count <= Self.maximumBytes else { throw DesktopFailure("message_too_large", String(localized: "Die Anfrage überschreitet die zulässige Größe.")) }
             pending.append(slice)
             if !pending.isEmpty { lines.append(pending) }
             pending = Data()
             start = data.index(after: index)
         }
         let tail = data[start...]
-        guard pending.count + tail.count <= Self.maximumBytes else { throw DesktopFailure("message_too_large", "IPC message exceeds its size limit") }
+        guard pending.count + tail.count <= Self.maximumBytes else { throw DesktopFailure("message_too_large", String(localized: "Die Anfrage überschreitet die zulässige Größe.")) }
         pending.append(tail)
         return lines
     }

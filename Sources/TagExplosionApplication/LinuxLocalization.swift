@@ -1,6 +1,29 @@
 #if os(Linux)
 import Foundation
 
+private enum LinuxLanguage {
+    static let language = resolve(ProcessInfo.processInfo.environment)
+
+    static func resolve(_ environment: [String: String]) -> String {
+        func supported(_ locale: String) -> String? {
+            let code = locale.trimmingCharacters(in: .whitespacesAndNewlines)
+                .prefix { !"_-.@".contains($0) }.lowercased()
+            return ["de", "en"].contains(code) ? code : nil
+        }
+        if let chosen = environment["TAGX_DESKTOP_LANGUAGE"], let language = supported(chosen) {
+            return language
+        }
+        if let preferred = environment["LANGUAGE"] {
+            for locale in preferred.split(separator: ":") {
+                if let language = supported(String(locale)) { return language }
+            }
+        }
+        let locale = ["LC_ALL", "LC_MESSAGES", "LANG"].lazy.compactMap { environment[$0] }
+            .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return locale.flatMap(supported) ?? "en"
+    }
+}
+
 /// SwiftUI liefert diese Katalogauflösung auf macOS. Linux verwendet denselben
 /// Katalog einschließlich der Formatargumente, ohne Apple-Frameworks zu laden.
 struct ApplicationLocalizedString: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
@@ -23,8 +46,7 @@ struct ApplicationLocalizedString: ExpressibleByStringLiteral, ExpressibleByStri
 }
 extension String {
     init(localized value: ApplicationLocalizedString) {
-        let language = ProcessInfo.processInfo.environment["LANGUAGE"] ?? ProcessInfo.processInfo.environment["LANG"] ?? "en"
-        let text = language.lowercased().hasPrefix("de") ? value.key : ApplicationTranslations.english[value.key] ?? value.key
+        let text = LinuxLanguage.language == "de" ? value.key : ApplicationTranslations.english[value.key] ?? value.key
         self = String(format: text, arguments: value.arguments)
     }
 }

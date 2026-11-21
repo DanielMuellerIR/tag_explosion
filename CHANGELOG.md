@@ -8,6 +8,21 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.8 — 2026-11-21
+
+- Linux: Das native Verwerfen-Menü öffnet die Bestätigung und verwirft
+  Editorentwürfe. Tastaturaktionen melden Fehler einmal. Playlists werden am
+  bestätigten Pfad geschrieben.
+- Linux: Oberfläche, zugängliche Namen und Engine-Meldungen verwenden dieselbe
+  Sprachwahl. Die Dateiliste behält unveränderte Zeilen und reagiert auch bei
+  großen Auswahlen auf Änderungen.
+- Unterbrochene Engine-Anfragen werden aufgeräumt. Lesetimeouts lassen den
+  Worker verfügbar. Die Update-Installation hält und löst die Workersperre
+  unabhängig vom Fensteraufruf.
+- Desktop-Dateileser lassen andere Aufträge weiterlaufen. Stapel-Edits werden
+  vor der Übernahme vollständig vorbereitet. App-Einstellungen sind separat
+  testbar.
+
 ## 0.54.7 — 2026-11-21
 
 - Regelplanung, Regeldateien und Textoperationen sind getrennt. Reguläre

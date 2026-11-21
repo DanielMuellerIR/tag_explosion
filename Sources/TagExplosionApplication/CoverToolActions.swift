@@ -45,30 +45,33 @@ public enum CoverToolActions {
     /// Ordner-Cover (folder/cover/front .jpg/.png neben der Datei) als Cover
     /// übernehmen. Jeder Eintrag sucht in seinem eigenen Verzeichnis.
     public static func applyFolderCover(_ entries: [FileEntry]) -> Outcome {
+        let directories = entries.map { $0.url.deletingLastPathComponent() }
+        return applyFolderCover(entries, covers: loadFolderCovers(directories, load: FolderCover.load))
+    }
+
+    nonisolated static func loadFolderCovers(_ directories: [URL],
+                                             load: (URL) throws -> Artwork?) -> [URL: Result<Artwork?, Error>] {
+        Dictionary(uniqueKeysWithValues: Set(directories).map { directory in
+            (directory, Result { try load(directory) })
+        })
+    }
+
+    static func applyFolderCover(_ entries: [FileEntry], covers: [URL: Result<Artwork?, Error>]) -> Outcome {
         var outcome = Outcome()
-        // Je Verzeichnis nur einmal lesen.
-        var cache: [URL: Artwork?] = [:]
+        var reported: Set<URL> = []
         for entry in entries {
             let directory = entry.url.deletingLastPathComponent()
-            let artwork: Artwork?
-            if let cached = cache[directory] {
-                artwork = cached
-            } else {
-                do {
-                    artwork = try FolderCover.load(in: directory)
-                } catch {
-                    outcome.errors.append("\(directory.lastPathComponent): \(error.localizedDescription)")
-                    cache[directory] = .some(nil)
-                    continue
+            switch covers[directory] {
+            case .failure(let error) where reported.insert(directory).inserted:
+                outcome.errors.append("\(directory.lastPathComponent): \(error.localizedDescription)")
+            case .success(.some(let artwork)):
+                if entry.frontCover?.data == artwork.data {
+                    outcome.unchanged += 1
+                } else {
+                    entry.setFrontCover(artwork)
+                    outcome.changed += 1
                 }
-                cache[directory] = artwork
-            }
-            guard let artwork else { outcome.skipped += 1; continue }
-            if entry.frontCover?.data == artwork.data {
-                outcome.unchanged += 1
-            } else {
-                entry.setFrontCover(artwork)
-                outcome.changed += 1
+            default: outcome.skipped += 1
             }
         }
         return outcome

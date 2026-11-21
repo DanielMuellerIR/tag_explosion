@@ -73,16 +73,13 @@ struct TagLayerEntryTests {
     }
 
     @Test("Einstellung ID3v2.3: Voreinstellung aus, Schalter wirkt")
-    func id3VersionSetting() {
-        let defaults = UserDefaults.standard
-        let previous = defaults.object(forKey: AppModel.id3v23DefaultsKey)
-        defer {
-            if let previous { defaults.set(previous, forKey: AppModel.id3v23DefaultsKey) }
-            else { defaults.removeObject(forKey: AppModel.id3v23DefaultsKey) }
-        }
-        defaults.removeObject(forKey: AppModel.id3v23DefaultsKey)
-        #expect(AppModel.preferredID3Version == .v24)
+    func id3VersionSetting() throws {
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = AppPreferences(defaults: defaults)
+        #expect(preferences.preferredID3Version == .v24)
         defaults.set(true, forKey: AppModel.id3v23DefaultsKey)
-        #expect(AppModel.preferredID3Version == .v23)
+        #expect(preferences.preferredID3Version == .v23)
     }
 }

@@ -3,9 +3,9 @@ use tauri::{
     Emitter, Manager,
 };
 
+use crate::localization::text;
+
 pub fn install(app: &tauri::App) -> tauri::Result<()> {
-    let german = super::system_locale().to_lowercase().starts_with("de");
-    let text = |de, en| if german { de } else { en };
     let mut file = SubmenuBuilder::new(app, text("Datei", "File"));
     for (id, de, en, key) in [
         ("new", "Neues Fenster", "New Window", "Ctrl+N"),

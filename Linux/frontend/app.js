@@ -1,5 +1,6 @@
 import { editRules } from "./rules.js";
 import { labels, translate, setLanguage } from "./translations.js";
+import { createFileList } from "./file-list.js";
 const tauri = window.__TAURI__;
 const invoke = tauri.core.invoke;
 const nativeWindow = tauri.window.getCurrentWindow();
@@ -7,6 +8,20 @@ const $ = (id) => document.getElementById(id);
 const language = await invoke("system_locale");
 setLanguage(language);
 const t = translate;
+const emptyStatus = t($("status").textContent);
+for (const element of document.querySelectorAll("button,option,label")) {
+  for (const child of element.childNodes)
+    if (child.nodeType === Node.TEXT_NODE && child.textContent.trim())
+      child.textContent = t(child.textContent.trim());
+}
+for (const name of ["placeholder", "title", "aria-label"])
+  for (const element of document.querySelectorAll(`[${name}]`))
+    element.setAttribute(name, t(element.getAttribute(name)));
+document.documentElement.lang = language.toLowerCase().startsWith("de")
+  ? "de"
+  : "en";
+status(emptyStatus);
+
 let state = { revision: 0, entries: [], selection: [], total: 0 };
 let draft = null,
   activeTab = "tags",
@@ -62,9 +77,8 @@ function button(text, action, attributes = {}) {
 }
 function enqueue(action) {
   const operation = chain.then(action);
-  chain = operation.catch((error) => {
-    showError(error);
-  });
+  // Die Warteschlange läuft nach Fehlern weiter. Die auslösende UI-Aktion meldet sie.
+  chain = operation.catch(() => {});
   return operation;
 }
 async function request(method, params = {}) {
@@ -78,12 +92,13 @@ function status(message) {
 }
 function updateState(next) {
   state = next;
-  renderList();
-  $("save").disabled =
-    !state.selection.some(
-      (path) => state.entries.find((entry) => entry.path === path)?.dirty,
-    ) && !pending;
-  $("save-all").disabled = !state.dirty && !pending;
+  const selection = new Set(state.selection);
+  renderFileList(state.entries, selection);
+  const hasDraft = pending || Object.keys(batchChanges).length > 0;
+  $("save").disabled = !hasDraft && !state.entries.some(
+    (entry) => entry.dirty && selection.has(entry.path),
+  );
+  $("save-all").disabled = !state.dirty && !hasDraft;
   $("check").disabled = !state.total;
   $("cancel").hidden = !state.busy && !state.loading && !operations;
   $("selection-count").textContent =
@@ -91,7 +106,9 @@ function updateState(next) {
   status(
     state.loading
       ? `${t("Lade Dateien …")} ${state.completed}/${state.count}`
-      : `${state.total} ${t("Dateien")} · ${state.selection.length} ${t("ausgewählt")}`,
+      : state.total
+        ? `${state.total} ${t("Dateien")} · ${state.selection.length} ${t("ausgewählt")}`
+        : emptyStatus,
   );
   if (!state.total) document.body.classList.add("sidebar-hidden");
 }
@@ -110,8 +127,13 @@ async function flush() {
   if (!pending || !draft) return;
   const current = generation;
   const values = structuredClone(draft);
-  updateState(await request("edit", { path: values.path, values }));
+  const next = await request("edit", { path: values.path, values });
   if (generation === current) pending = false;
+  updateState(next);
+}
+function scheduleFlush() {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => enqueue(flush).catch(showError), 450);
 }
 function edited() {
   pending = true;
@@ -119,8 +141,7 @@ function edited() {
   $("save").disabled = false;
   $("save-all").disabled = false;
   status(t("Ungespeicherte Änderungen"));
-  clearTimeout(debounce);
-  debounce = setTimeout(() => enqueue(flush), 450);
+  scheduleFlush();
 }
 async function act(method, params = {}, reload = true) {
   return enqueue(async () => {
@@ -162,6 +183,9 @@ async function openFiles(paths) {
 async function choose(purpose = "open", suggested) {
   return invoke("choose", { purpose, suggested: suggested ?? null });
 }
+async function openFromDialog(purpose) {
+  await openFiles(await choose(purpose));
+}
 let currentModal = null;
 function dismissDialog() {
   if (currentModal) currentModal(null);
@@ -200,8 +224,9 @@ function modal(title, content, actions = [{ title: "Schließen" }]) {
   });
 }
 function showError(error) {
-  status(String(error));
-  return modal("Hinweis", String(error));
+  const message = error instanceof Error ? error.message : String(error);
+  status(message);
+  return modal("Hinweis", message);
 }
 async function decisions() {
   while (state.conflict || state.externalImport || state.staleWrite) {
@@ -238,32 +263,11 @@ async function decisions() {
     await modal("Hinweis", text);
   }
 }
-function renderList() {
-  const list = $("file-list"),
-    top = list.scrollTop;
-  list.replaceChildren(
-    ...state.entries.map((entry) =>
-      node(
-        "div",
-        {
-          role: "option",
-          "aria-selected": state.selection.includes(entry.path),
-          "data-path": entry.path,
-          class: `file-row${entry.dirty ? " dirty" : ""}${entry.error ? " error" : ""}`,
-          title: entry.path,
-          onclick: (event) => selectEntry(entry.path, event),
-          oncontextmenu: (event) => {
-            event.preventDefault();
-            selectEntry(entry.path, {}).then(() => toolsMenu());
-          },
-        },
-        node("strong", {}, entry.title),
-        node("small", {}, entry.error || entry.subtitle || entry.name),
-      ),
-    ),
-  );
-  list.scrollTop = top;
-}
+const renderFileList = createFileList(
+  $("file-list"),
+  (path, event) => selectEntry(path, event).catch(showError),
+  (path) => selectEntry(path).then(toolsMenu).catch(showError),
+);
 async function selectEntry(path, event = {}) {
   if (technicalLoading) await request("cancel", { operation: "info" });
   return enqueue(async () => {
@@ -1348,10 +1352,8 @@ function renderEmpty() {
       node(
         "div",
         { class: "row" },
-        button("Dateien öffnen …", async () => openFiles(await choose())),
-        button("Ordner öffnen …", async () =>
-          openFiles(await choose("folder")),
-        ),
+        button("Dateien öffnen …", () => openFromDialog()),
+        button("Ordner öffnen …", () => openFromDialog("folder")),
       ),
       node(
         "div",
@@ -1817,6 +1819,44 @@ async function rules() {
     readonly,
   });
 }
+async function discardEdits() {
+  clearTimeout(debounce);
+  await enqueue(async () => {
+    if (!state.selection.length) return;
+    const confirmed = await modal(
+      "Änderungen verwerfen?",
+      t("Ungespeicherte Änderungen der Auswahl werden verworfen."),
+      [
+        { title: "Abbrechen", value: false },
+        { title: "Verwerfen", value: true, danger: true },
+      ],
+    );
+    if (!confirmed) {
+      if (pending) scheduleFlush();
+      return;
+    }
+    // Auch Entwürfe, die der Worker beim Übernehmen ablehnen würde, verwerfen.
+    const next = await request("revert");
+    pending = false;
+    batchChanges = {};
+    updateState(next);
+    await renderSelection();
+  });
+}
+async function exportPlaylist() {
+  const [destination] = await choose("save", "playlist.m3u8");
+  if (!destination) return;
+  const basename = destination.slice(destination.lastIndexOf("/") + 1);
+  const dot = basename.lastIndexOf(".");
+  const format = dot > 0 && dot < basename.length - 1
+    ? basename.slice(dot + 1).toLowerCase()
+    : "m3u8";
+  if (!["m3u", "m3u8", "pls", "xspf"].includes(format))
+    throw new Error(
+      t("Für Playlists sind die Endungen .m3u, .m3u8, .pls und .xspf verfügbar."),
+    );
+  await act("exportPlaylist", { destination, format, absolutePaths: false });
+}
 async function toolsMenu() {
   const content = node("div", { class: "row" });
   const action = (title, callback) =>
@@ -1834,29 +1874,9 @@ async function toolsMenu() {
     const [source] = await choose("archive");
     if (source) await act("import", { source });
   });
-  action("Playlist exportieren …", async () => {
-    const [destination] = await choose("save", "playlist.m3u8");
-    if (destination)
-      await act("exportPlaylist", {
-        destination,
-        format: destination.split(".").pop().toLowerCase(),
-        absolutePaths: false,
-      });
-  });
+  action("Playlist exportieren …", exportPlaylist);
   action("Regeln …", rules);
-  action("Änderungen verwerfen", async () => {
-    if (
-      await modal(
-        "Änderungen verwerfen?",
-        t("Ungespeicherte Änderungen der Auswahl werden verworfen."),
-        [
-          { title: "Abbrechen", value: false },
-          { title: "Verwerfen", value: true, danger: true },
-        ],
-      )
-    )
-      await act("revert");
-  });
+  action("Änderungen verwerfen", discardEdits);
   action("Speicherergebnisse", () =>
     modal(
       "Speicherergebnisse",
@@ -1866,7 +1886,7 @@ async function toolsMenu() {
         readonly(state.batch || []),
         button("Fehlgeschlagene wiederholen", () => {
           dismissDialog();
-          act("retry");
+          return act("retry");
         }),
       ),
     ),
@@ -2271,17 +2291,16 @@ async function close() {
     closingDecision = false;
   }
 }
-$("open").onclick = () => choose().then(openFiles).catch(showError);
-$("open-folder").onclick = () =>
-  choose("folder").then(openFiles).catch(showError);
-$("save").onclick = () => act("save");
-$("save-all").onclick = () => act("saveAll");
+$("open").onclick = () => openFromDialog().catch(showError);
+$("open-folder").onclick = () => openFromDialog("folder").catch(showError);
+$("save").onclick = () => act("save").catch(showError);
+$("save-all").onclick = () => act("saveAll").catch(showError);
 $("check").onclick = () => check().catch(showError);
 $("settings").onclick = () => settings().catch(showError);
 $("new-window").onclick = () => invoke("new_window").catch(showError);
 $("sidebar-toggle").onclick = () =>
   document.body.classList.toggle("sidebar-hidden");
-$("remove").onclick = () => act("remove");
+$("remove").onclick = () => act("remove").catch(showError);
 $("cancel").onclick = () =>
   request("cancel").then(updateState).catch(showError);
 for (const id of ["search", "kind", "sort", "dirty-only", "errors-only"])
@@ -2296,7 +2315,7 @@ for (const id of ["search", "kind", "sort", "dirty-only", "errors-only"])
         errorsOnly: $("errors-only").checked,
       },
       false,
-    ),
+    ).catch(showError),
   );
 $("file-list").addEventListener("keydown", (event) => {
   if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
@@ -2314,22 +2333,23 @@ $("file-list").addEventListener("keydown", (event) => {
               index + (event.key === "ArrowDown" ? 1 : -1),
             ),
           );
-  if (state.entries[index]) selectEntry(state.entries[index].path, event);
+  if (state.entries[index])
+    selectEntry(state.entries[index].path, event).catch(showError);
 });
 document.addEventListener("keydown", (event) => {
   if (!(event.ctrlKey || event.metaKey)) return;
   const key = event.key.toLowerCase();
   if (key === "s") {
     event.preventDefault();
-    act(event.shiftKey ? "saveAll" : "save");
+    act(event.shiftKey ? "saveAll" : "save").catch(showError);
   }
   if (key === "o") {
     event.preventDefault();
-    choose().then(openFiles);
+    openFromDialog(event.shiftKey ? "folder" : "open").catch(showError);
   }
   if (key === "w") {
     event.preventDefault();
-    close();
+    close().catch(showError);
   }
   if (key === "n") {
     event.preventDefault();
@@ -2337,24 +2357,25 @@ document.addEventListener("keydown", (event) => {
   }
   if (key === ",") {
     event.preventDefault();
-    settings();
+    settings().catch(showError);
   }
   if (key === "a" && event.target === $("file-list")) {
     event.preventDefault();
-    act("select", { paths: state.entries.map((entry) => entry.path) });
+    act("select", { paths: state.entries.map((entry) => entry.path) })
+      .catch(showError);
   }
 });
 await tauri.event.listen("menu-action", (event) => {
   const actions = {
     new: () => invoke("new_window"),
-    open: () => choose().then(openFiles),
-    folder: () => choose("folder").then(openFiles),
+    open: () => openFromDialog(),
+    folder: () => openFromDialog("folder"),
     save: () => act("save"),
     saveAll: () => act("saveAll"),
     close,
     settings,
     history: () => (draft ? history() : undefined),
-    revert: () => toolsMenu(),
+    revert: discardEdits,
     updates: () => updates(false),
     about: async () =>
       modal(
@@ -2379,9 +2400,12 @@ await tauri.event.listen("update-progress", (event) => {
     `${t("Update wird geladen")} · ${megabytes(event.payload.downloaded)} MiB${event.payload.total ? " / " + megabytes(event.payload.total) + " MiB" : ""}`,
   );
 });
-await tauri.event.listen("request-close", close);
-await tauri.event.listen("open-files", (event) => openFiles(event.payload));
-await nativeWindow.onDragDropEvent(async (event) => {
+await tauri.event.listen("request-close", () => close().catch(showError));
+await tauri.event.listen("open-files", (event) =>
+  openFiles(event.payload).catch(showError),
+);
+await nativeWindow.onDragDropEvent((event) => handleDrop(event).catch(showError));
+async function handleDrop(event) {
   const payload = event.payload;
   document.body.classList.toggle(
     "drop-active",
@@ -2409,17 +2433,7 @@ await nativeWindow.onDragDropEvent(async (event) => {
       index: coverIndex,
     });
   else await openFiles(payload.paths);
-});
-for (const element of document.querySelectorAll("button,option,label")) {
-  for (const child of element.childNodes)
-    if (child.nodeType === Node.TEXT_NODE && child.textContent.trim())
-      child.textContent = t(child.textContent.trim());
 }
-for (const input of document.querySelectorAll("[placeholder]"))
-  input.placeholder = t(input.placeholder);
-document.documentElement.lang = language.toLowerCase().startsWith("de")
-  ? "de"
-  : "en";
 applyTheme();
 try {
   await request("hello");

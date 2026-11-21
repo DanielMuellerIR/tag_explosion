@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod engine;
 mod file_args;
+mod localization;
 mod menus;
 mod updates;
 
 use engine::Engine;
+use localization::text;
 use serde_json::{json, Value};
 use std::{
     collections::{HashMap, HashSet},
@@ -37,24 +39,25 @@ async fn media(
             .call(window.label(), "lookupAuthorization", params.clone())
             .await?;
         if authorization["allowed"] != true {
-            return Err(
-                "Online-Dienste und Datenschutzhinweis zuerst in den Einstellungen freigeben"
-                    .into(),
-            );
+            return Err(text(
+                "Online-Dienste und Datenschutzhinweis zuerst in den Einstellungen freigeben",
+                "Enable online services and acknowledge the privacy notice in Settings first",
+            )
+            .into());
         }
         if let Some(account) = authorization["account"].as_str() {
             let account = account.to_string();
-            let credentials = tauri::async_runtime::spawn_blocking(move || {
+            let credentials = tauri::async_runtime::spawn_blocking(move || -> Result<Value, String> {
                 let value = match keyring::Entry::new("io.github.danielmuellerir.tagexplosion.online-lookup", &account)
-                    .map_err(|_| "Schlüsselbund ist nicht verfügbar")?.get_password() {
+                    .map_err(|_| text("Schlüsselbund ist nicht verfügbar", "Keyring is unavailable"))?.get_password() {
                     Ok(value) => Some(value), Err(keyring::Error::NoEntry) => None,
-                    Err(_) => return Err("Der Schlüsselbund ist nicht verfügbar oder gesperrt".to_string()),
+                    Err(_) => return Err(text("Der Schlüsselbund ist nicht verfügbar oder gesperrt", "The keyring is unavailable or locked").into()),
                 };
                 Ok(json!({if account == "discogs-token" { "discogsToken" } else { "acoustIDKey" }: value}))
-            }).await.map_err(|_| "Schlüsselbund-Auftrag unterbrochen")??;
+            }).await.map_err(|_| text("Schlüsselbund-Auftrag unterbrochen", "Keyring operation was interrupted"))??;
             params
                 .as_object_mut()
-                .ok_or("Ungültige Parameter")?
+                .ok_or(text("Ungültige Parameter", "Invalid parameters"))?
                 .insert("credentials".into(), credentials);
         }
     }
@@ -77,7 +80,10 @@ async fn choose(
             "folder" => dialog.blocking_pick_folder().into_iter().collect(),
             "save" => dialog.blocking_save_file().into_iter().collect(),
             "cover" => dialog
-                .add_filter("Bilder", &["jpg", "jpeg", "png", "webp", "gif", "bmp"])
+                .add_filter(
+                    text("Bilder", "Images"),
+                    &["jpg", "jpeg", "png", "webp", "gif", "bmp"],
+                )
                 .blocking_pick_file()
                 .into_iter()
                 .collect(),
@@ -94,25 +100,25 @@ async fn choose(
                 value
                     .into_path()
                     .map(|path| path.to_string_lossy().into_owned())
-                    .map_err(|_| "Ungültiger Dateipfad".to_string())
+                    .map_err(|_| text("Ungültiger Dateipfad", "Invalid file path").into())
             })
             .collect::<Result<Vec<_>, _>>()
     })
     .await
-    .map_err(|_| "Dateidialog unterbrochen")?;
+    .map_err(|_| text("Dateidialog unterbrochen", "File dialog was interrupted"))?;
     result
 }
 
 #[tauri::command]
 async fn save_credential(account: String, value: String) -> Result<(), String> {
     if !["discogs-token", "acoustid-client-key"].contains(&account.as_str()) {
-        return Err("Unbekannter Dienst".into());
+        return Err(text("Unbekannter Dienst", "Unknown service").into());
     }
     tauri::async_runtime::spawn_blocking(move || {
-        let entry = keyring::Entry::new("io.github.danielmuellerir.tagexplosion.online-lookup", &account).map_err(|_| "Schlüsselbund nicht verfügbar")?;
+        let entry = keyring::Entry::new("io.github.danielmuellerir.tagexplosion.online-lookup", &account).map_err(|_| text("Schlüsselbund nicht verfügbar", "Keyring is unavailable"))?;
         let result = if value.is_empty() { entry.delete_credential() } else { entry.set_password(&value) };
-        match result { Ok(()) | Err(keyring::Error::NoEntry) => Ok(()), Err(_) => Err("Schlüsselbund ist gesperrt oder nicht verfügbar; Zugangsdaten wurden nicht gespeichert".into()) }
-    }).await.map_err(|_| "Schlüsselbund-Auftrag unterbrochen")?
+        match result { Ok(()) | Err(keyring::Error::NoEntry) => Ok(()), Err(_) => Err(text("Schlüsselbund ist gesperrt oder nicht verfügbar. Zugangsdaten wurden nicht gespeichert.", "The keyring is locked or unavailable. The credentials were not saved.").into()) }
+    }).await.map_err(|_| text("Schlüsselbund-Auftrag unterbrochen", "Keyring operation was interrupted"))?
 }
 
 #[tauri::command]
@@ -122,14 +128,23 @@ fn new_window(
     paths: Option<Vec<String>>,
 ) -> Result<(), String> {
     if app.webview_windows().len() >= 32 {
-        return Err("Höchstens 32 Fenster können gleichzeitig geöffnet sein".into());
+        return Err(text(
+            "Höchstens 32 Fenster können gleichzeitig geöffnet sein",
+            "Up to 32 windows can be open at once",
+        )
+        .into());
     }
     let id = desktop.windows.fetch_add(1, Ordering::Relaxed);
     let label = format!("window-{id}");
     desktop
         .initial_files
         .lock()
-        .map_err(|_| "Fensterzustand nicht verfügbar")?
+        .map_err(|_| {
+            text(
+                "Fensterzustand nicht verfügbar",
+                "Window state is unavailable",
+            )
+        })?
         .insert(label.clone(), paths.unwrap_or_default());
     let created = tauri::WebviewWindowBuilder::new(
         &app,
@@ -144,10 +159,20 @@ fn new_window(
         desktop
             .initial_files
             .lock()
-            .map_err(|_| "Fensterzustand nicht verfügbar")?
+            .map_err(|_| {
+                text(
+                    "Fensterzustand nicht verfügbar",
+                    "Window state is unavailable",
+                )
+            })?
             .remove(&label);
     }
-    created.map_err(|_| "Fenster konnte nicht geöffnet werden")?;
+    created.map_err(|_| {
+        text(
+            "Fenster konnte nicht geöffnet werden",
+            "The window could not be opened",
+        )
+    })?;
     Ok(())
 }
 
@@ -161,21 +186,26 @@ async fn close_window(window: WebviewWindow, desktop: State<'_, Desktop>) -> Res
         desktop
             .closing
             .lock()
-            .map_err(|_| "Fensterzustand nicht verfügbar")?
+            .map_err(|_| {
+                text(
+                    "Fensterzustand nicht verfügbar",
+                    "Window state is unavailable",
+                )
+            })?
             .insert(window.label().into());
-        window
-            .close()
-            .map_err(|_| "Fenster konnte nicht geschlossen werden")?;
+        window.close().map_err(|_| {
+            text(
+                "Fenster konnte nicht geschlossen werden",
+                "The window could not be closed",
+            )
+        })?;
     }
     Ok(result)
 }
 
 #[tauri::command]
 fn system_locale() -> String {
-    std::env::var("LANGUAGE")
-        .or_else(|_| std::env::var("LC_MESSAGES"))
-        .or_else(|_| std::env::var("LANG"))
-        .unwrap_or_else(|_| "en".into())
+    localization::language().into()
 }
 
 #[tauri::command]

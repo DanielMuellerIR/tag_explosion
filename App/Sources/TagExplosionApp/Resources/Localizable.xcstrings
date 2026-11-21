@@ -641,6 +641,16 @@
         }
       }
     },
+    "Ansichten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Views"
+          }
+        }
+      }
+    },
     "Anwenden": {
       "localizations": {
         "en": {
@@ -831,6 +841,16 @@
         }
       }
     },
+    "Bearbeitbar ist nur die NFO-Datei neben der schreibgeschützten Mediendatei.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the NFO sidecar of the read-only media file can be edited."
+          }
+        }
+      }
+    },
     "Bearbeitet": {
       "localizations": {
         "en": {
@@ -891,6 +911,16 @@
         }
       }
     },
+    "Bestätigen Sie die ausgewählte Sicherung vor der Wiederherstellung.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm the selected backup before restoring."
+          }
+        }
+      }
+    },
     "Bewertung": {
       "localizations": {
         "en": {
@@ -927,6 +957,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Strip image metadata"
+          }
+        }
+      }
+    },
+    "Bild-Metadaten in XMP-Sidecar schreiben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write image metadata to an XMP sidecar"
           }
         }
       }
@@ -1181,6 +1221,36 @@
         }
       }
     },
+    "Das ausgewählte Feld lässt sich für diese Dateien nicht kopieren.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected field cannot be copied for these files."
+          }
+        }
+      }
+    },
+    "Das Bildformat wird nicht unterstützt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The image format is unsupported."
+          }
+        }
+      }
+    },
+    "Das Fenster wird bereits geschlossen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The window is already closing."
+          }
+        }
+      }
+    },
     "Das Muster braucht mindestens einen Platzhalter, zum Beispiel für den Titel.": {
       "localizations": {
         "en": {
@@ -1207,6 +1277,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Write the embedded cover next to the file; an existing file is replaced only after confirmation"
+          }
+        }
+      }
+    },
+    "Das Paket zur Rechnungsprüfung ist nicht installiert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The invoice validation package is not installed."
+          }
+        }
+      }
+    },
+    "Das Playlist-Format ist ungültig.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The playlist format is invalid."
+          }
+        }
+      }
+    },
+    "Das Suchergebnis ist nicht mehr verfügbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The search result has expired."
+          }
+        }
+      }
+    },
+    "Das Update wird gerade installiert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update is being installed."
           }
         }
       }
@@ -1271,12 +1381,42 @@
         }
       }
     },
+    "Dateien oder Ordner hierher ziehen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop files or folders here"
+          }
+        }
+      }
+    },
     "Dateien oder Ordner öffnen (⌘O)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Open files or folders (⌘O)"
+          }
+        }
+      }
+    },
+    "Dateien suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search files"
+          }
+        }
+      }
+    },
+    "Dateiliste": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File list"
           }
         }
       }
@@ -1351,6 +1491,56 @@
         }
       }
     },
+    "Der Editorstand hat sich geändert. Laden Sie den aktuellen Stand und versuchen Sie es erneut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The editor state changed. Reload the current state and try again."
+          }
+        }
+      }
+    },
+    "Der Parameter %@ fehlt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The parameter %@ is missing."
+          }
+        }
+      }
+    },
+    "Der Vorgang ist unbekannt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown desktop operation."
+          }
+        }
+      }
+    },
+    "Die Anfrage überschreitet die zulässige Größe.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The request exceeds its size limit."
+          }
+        }
+      }
+    },
+    "Die ausgewählte Datei lässt sich nicht bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected file cannot be edited."
+          }
+        }
+      }
+    },
     "Die Auswahl in Listenreihenfolge als Playlist-Datei sichern": {
       "localizations": {
         "en": {
@@ -1371,6 +1561,36 @@
         }
       }
     },
+    "Die Cover-Aktion ist unbekannt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown artwork action."
+          }
+        }
+      }
+    },
+    "Die Datei enthält kein löschbares Cover.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file has no removable cover."
+          }
+        }
+      }
+    },
+    "Die Datei enthält keine bearbeitbaren Metadaten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file has no editable metadata."
+          }
+        }
+      }
+    },
     "Die Datei enthält keine lesbare E-Rechnung.": {
       "localizations": {
         "en": {
@@ -1381,12 +1601,102 @@
         }
       }
     },
+    "Die Datei ist nicht mehr geöffnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is no longer open."
+          }
+        }
+      }
+    },
+    "Die Datei ist schreibgeschützt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is read-only."
+          }
+        }
+      }
+    },
     "Die Dateien bleiben in ihrem Ordner; nur der Name ändert sich, die Endung bleibt.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Files stay in their folder; only the name changes, the extension is kept."
+          }
+        }
+      }
+    },
+    "Die Eingabedatei überschreitet 16 MiB.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The input file exceeds 16 MiB."
+          }
+        }
+      }
+    },
+    "Die Einstellung erwartet einen Ein- oder Aus-Wert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The setting expects a boolean value."
+          }
+        }
+      }
+    },
+    "Die Fenstersitzung ist ungültig.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The window session is invalid."
+          }
+        }
+      }
+    },
+    "Die Online-Suche ist nicht verfügbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online lookup is unavailable."
+          }
+        }
+      }
+    },
+    "Die Quelldatei hat sich geändert. Prüfen Sie sie erneut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source file has changed. Validate it again."
+          }
+        }
+      }
+    },
+    "Die Quelldatei hat sich geändert. Prüfen Sie sie vor dem Berichtsexport erneut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source file has changed. Validate it again before exporting a report."
+          }
+        }
+      }
+    },
+    "Die Rechnungsprüfung läuft bereits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invoice validation is already running."
           }
         }
       }
@@ -1437,6 +1747,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The values read go into the fields; nothing is written until you save."
+          }
+        }
+      }
+    },
+    "Die Sicherung ist nicht mehr verfügbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The backup is no longer available."
           }
         }
       }
@@ -1511,12 +1831,42 @@
         }
       }
     },
+    "Dieses Format kann das ausgewählte Feld nicht speichern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This format cannot store the selected field."
+          }
+        }
+      }
+    },
+    "Dieses Format kann keine Kapitel speichern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This format cannot store chapters."
+          }
+        }
+      }
+    },
     "Dieses Format kennt keinen Titel für die ganze Liste.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This format has no title for the whole list."
+          }
+        }
+      }
+    },
+    "Dieses Format unterstützt kein bearbeitbares eingebettetes Cover.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This format has no editable embedded cover."
           }
         }
       }
@@ -1651,6 +2001,16 @@
         }
       }
     },
+    "E-Rechnungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-invoices"
+          }
+        }
+      }
+    },
     "E-Rechnungen einzeln auswählen": {
       "localizations": {
         "en": {
@@ -1671,6 +2031,36 @@
         }
       }
     },
+    "Ein anderes Fenster schreibt gerade Dateien.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another window is writing files."
+          }
+        }
+      }
+    },
+    "Eine Dateioperation läuft gerade.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A file operation is active."
+          }
+        }
+      }
+    },
+    "Eine Dateioperation oder Entscheidung steht noch aus.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A file operation or decision is still pending."
+          }
+        }
+      }
+    },
     "EPUB-OPF · PDF Info/XMP (mobi/azw3/fb2 mit Calibre)": {
       "localizations": {
         "en": {
@@ -1687,6 +2077,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "EPUB OPF · PDF Info/XMP · Calibre (mobi/azw3/fb2)"
+          }
+        }
+      }
+    },
+    "Es können nur reguläre Dateien gelesen werden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only regular files can be read."
+          }
+        }
+      }
+    },
+    "Es sind zu viele Fenster geöffnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many windows are open."
           }
         }
       }
@@ -2111,6 +2521,26 @@
         }
       }
     },
+    "Für Playlists sind die Endungen .m3u, .m3u8, .pls und .xspf verfügbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use .m3u, .m3u8, .pls, or .xspf for playlists."
+          }
+        }
+      }
+    },
+    "Geöffnete Dateien": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open files"
+          }
+        }
+      }
+    },
     "GPS Breite": {
       "localizations": {
         "en": {
@@ -2397,6 +2827,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show in Finder"
+          }
+        }
+      }
+    },
+    "Im Ordner wurde kein Cover gefunden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No folder cover was found."
           }
         }
       }
@@ -3201,6 +3641,16 @@
         }
       }
     },
+    "Mindestens eines der ausgewählten Formate kann keine Cover speichern.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At least one of the selected formats cannot store artwork."
+          }
+        }
+      }
+    },
     "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
       "localizations": {
         "en": {
@@ -3761,6 +4211,16 @@
         }
       }
     },
+    "Ordner …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder …"
+          }
+        }
+      }
+    },
     "Ordner-Cover übernehmen": {
       "localizations": {
         "en": {
@@ -3967,6 +4427,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check"
+          }
+        }
+      }
+    },
+    "Prüfen Sie zuerst die Rechnung.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run invoice validation first."
           }
         }
       }
@@ -5261,6 +5731,16 @@
         }
       }
     },
+    "Vor jeder Änderung im Papierkorb sichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy originals to the trash before every change"
+          }
+        }
+      }
+    },
     "Vor jeder Änderung landet eine unveränderte Kopie der Datei im Papierkorb — gesammelt in einem Ordner je Sitzung. Geht etwas schief, ziehen Sie die Kopie einfach zurück; zum Aufräumen genügt es, den Papierkorb zu leeren.": {
       "localizations": {
         "en": {
@@ -5407,6 +5887,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Restore"
+          }
+        }
+      }
+    },
+    "Wählen Sie beschreibbare Audiodateien.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select writable audio files."
+          }
+        }
+      }
+    },
+    "Wählen Sie Dateien desselben Typs.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select files of the same type."
+          }
+        }
+      }
+    },
+    "Wählen Sie ein Cover aus.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a cover."
           }
         }
       }

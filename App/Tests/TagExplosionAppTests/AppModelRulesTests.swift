@@ -142,19 +142,19 @@ struct AppModelRulesTests {
     func ruleFileHistory() throws {
         let directory = try makeDirectory("rules-history")
         defer { try? FileManager.default.removeItem(at: directory) }
-        let saved = UserDefaults.standard.stringArray(forKey: RuleFileHistory.defaultsKey)
-        defer { UserDefaults.standard.set(saved, forKey: RuleFileHistory.defaultsKey) }
-        UserDefaults.standard.removeObject(forKey: RuleFileHistory.defaultsKey)
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
 
         let a = directory.appendingPathComponent("a.json")
         let b = directory.appendingPathComponent("b.json")
         try Data("{}".utf8).write(to: a)
         try Data("{}".utf8).write(to: b)
-        RuleFileHistory.remember(a)
-        RuleFileHistory.remember(b)
-        RuleFileHistory.remember(a)
-        #expect(RuleFileHistory.load() == [a, b])
+        RuleFileHistory.remember(a, defaults: defaults)
+        RuleFileHistory.remember(b, defaults: defaults)
+        RuleFileHistory.remember(a, defaults: defaults)
+        #expect(RuleFileHistory.load(defaults: defaults) == [a, b])
         try FileManager.default.removeItem(at: b)
-        #expect(RuleFileHistory.load() == [a])
+        #expect(RuleFileHistory.load(defaults: defaults) == [a])
     }
 }

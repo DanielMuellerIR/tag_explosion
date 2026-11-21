@@ -57,7 +57,11 @@ public enum TerminationDecision: Sendable {
 #endif
 @MainActor
 public final class AppModel {
-    public init() {}
+    let preferences: AppPreferences
+
+    public init(preferences: AppPreferences = AppPreferences()) {
+        self.preferences = preferences
+    }
 
     private struct PendingAction {
         var conflict: PendingDirtyConflict
@@ -181,17 +185,16 @@ public final class AppModel {
     // MARK: - Speichern
 
     /// Schlüssel der Auto-Backup-Einstellung (Toggle in den Einstellungen).
-    public static let autoBackupDefaultsKey = "autoBackupBeforeBatchSave"
+    public static let autoBackupDefaultsKey = AppPreferences.Setting.automaticBackup.rawValue
 
     /// Schlüssel des abgesicherten Modus (Kopie in den Papierkorb vor jeder
     /// Änderung).
-    public static let safeModeDefaultsKey = "trashBackupBeforeSave"
+    public static let safeModeDefaultsKey = AppPreferences.Setting.safeMode.rawValue
 
     /// Abgesicherter Modus aktiv? Default an — solange die App jung ist, soll
     /// keine Änderung eine Datei endgültig kosten.
     public static var safeModeEnabled: Bool {
-        UserDefaults.standard.object(forKey: safeModeDefaultsKey) == nil
-            || UserDefaults.standard.bool(forKey: safeModeDefaultsKey)
+        AppPreferences().enabled(.safeMode)
     }
 
     /// Überträgt die Einstellung in den Core. Muss beim Start und nach jeder
@@ -204,29 +207,25 @@ public final class AppModel {
     /// Schlüssel der Einstellung „Bild-Metadaten in die XMP-Sidecar schreiben
     /// statt in die Bilddatei". Voreinstellung aus; für Kamera-RAW und
     /// Formate ohne exiftool-Schreibweg erzwingt der Core die Sidecar ohnehin.
-    public nonisolated static let imageSidecarDefaultsKey = "writeImageSidecar"
+    public nonisolated static let imageSidecarDefaultsKey = AppPreferences.Setting.imageSidecar.rawValue
 
     /// Sidecar statt Original für alle Bildformate? (Default: aus).
-    /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest; UserDefaults
-    /// ist threadsicher.
     public nonisolated static var imageSidecarPreferred: Bool {
-        UserDefaults.standard.bool(forKey: imageSidecarDefaultsKey)
+        AppPreferences().enabled(.imageSidecar)
     }
 
     /// Schlüssel der Einstellung „ID3v2.3 statt ID3v2.4 schreiben" (für alte
     /// Player, die v2.4 nicht lesen). Voreinstellung aus.
-    public nonisolated static let id3v23DefaultsKey = "writeID3v23"
+    public nonisolated static let id3v23DefaultsKey = AppPreferences.Setting.id3v23.rawValue
 
     /// ID3v2-Version für den Audio-Schreibweg laut Einstellung (Default v2.4).
-    /// `nonisolated`, weil der Hintergrund-Schreibweg sie liest.
     public nonisolated static var preferredID3Version: ID3Version {
-        UserDefaults.standard.bool(forKey: id3v23DefaultsKey) ? .v23 : .v24
+        AppPreferences().preferredID3Version
     }
 
     /// Auto-Backup vor Batch-Speichern? (Default: an)
     public static var autoBackupEnabled: Bool {
-        UserDefaults.standard.object(forKey: autoBackupDefaultsKey) == nil
-            || UserDefaults.standard.bool(forKey: autoBackupDefaultsKey)
+        AppPreferences().enabled(.automaticBackup)
     }
 
     /// Speichert alle ausgewählten Dateien mit Änderungen.
@@ -372,7 +371,7 @@ public final class AppModel {
     /// damit CLI-Wiederherstellung und App dasselbe Format teilen).
     /// false = Backup fehlgeschlagen, Speichern wird abgebrochen.
     private func backupIfNeeded(before dirtyEntries: [FileEntry]) async -> Bool {
-        guard Self.autoBackupEnabled, dirtyEntries.count > 1 else { return true }
+        guard preferences.enabled(.automaticBackup), dirtyEntries.count > 1 else { return true }
         let files = dirtyEntries.map(\.url)
         do {
             _ = try await Task.detached(priority: .userInitiated) {
@@ -887,6 +886,8 @@ public final class AppModel {
         let url = entry.url
         let kind = entry.kind
         let stamp = ignoringDiskChange ? nil : entry.diskStamp
+        let preferSidecar = preferences.enabled(.imageSidecar)
+        let id3Version = preferences.preferredID3Version
         return await save(entry: entry, staleCandidate: ignoringDiskChange ? nil : entry) { snapshot in
             return try await Task.detached(priority: .userInitiated) {
                 var prepared = snapshot
@@ -900,7 +901,8 @@ public final class AppModel {
                     prepared = .image(fields: fields, original: original,
                         sidecar: SidecarState.current(of: MediaFormats.sidecarURL(for: url)))
                 }
-                return try Self.write(snapshot: prepared, to: url, kind: kind, expecting: stamp)
+                return try AppFileIO.write(snapshot: prepared, to: url, kind: kind, expecting: stamp,
+                                           preferImageSidecar: preferSidecar, id3Version: id3Version)
             }.value
         }
     }
@@ -1044,13 +1046,6 @@ public final class AppModel {
             }
             return false
         }
-    }
-
-    nonisolated private static func write(snapshot: FileEntry.SaveSnapshot,
-                                          to url: URL, kind: MediaKind,
-                                          expecting stamp: FileStamp?) throws -> (LoadedData, FileStamp?) {
-        try AppFileIO.write(snapshot: snapshot, to: url, kind: kind, expecting: stamp,
-                            preferImageSidecar: imageSidecarPreferred, id3Version: preferredID3Version)
     }
 
     // MARK: - Liste verwalten

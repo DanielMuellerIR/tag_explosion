@@ -78,22 +78,22 @@ public enum PatternHistory {
         "%{disc}-%{track:2} %{title}",
     ]
 
-    public static func load(_ direction: Direction) -> [String] {
-        UserDefaults.standard.stringArray(forKey: direction.defaultsKey) ?? []
+    public static func load(_ direction: Direction, defaults: UserDefaults = .standard) -> [String] {
+        defaults.stringArray(forKey: direction.defaultsKey) ?? []
     }
 
     /// Merkt sich ein Muster vorn in der Liste (ohne Dubletten, gedeckelt).
-    public static func remember(_ pattern: String, _ direction: Direction) {
+    public static func remember(_ pattern: String, _ direction: Direction, defaults: UserDefaults = .standard) {
         let trimmed = pattern.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        var history = load(direction).filter { $0 != trimmed }
+        var history = load(direction, defaults: defaults).filter { $0 != trimmed }
         history.insert(trimmed, at: 0)
-        UserDefaults.standard.set(Array(history.prefix(maxEntries)), forKey: direction.defaultsKey)
+        defaults.set(Array(history.prefix(maxEntries)), forKey: direction.defaultsKey)
     }
 
     /// Startwert für das Musterfeld: das zuletzt benutzte, sonst die erste Vorgabe.
-    public static func initialPattern(_ direction: Direction) -> String {
-        load(direction).first ?? presets[0]
+    public static func initialPattern(_ direction: Direction, defaults: UserDefaults = .standard) -> String {
+        load(direction, defaults: defaults).first ?? presets[0]
     }
 }
 

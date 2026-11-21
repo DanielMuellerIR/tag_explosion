@@ -150,9 +150,12 @@ public enum LRC {
 
     /// Liest eine LRC-Datei (UTF-8).
     public static func load(from url: URL) throws -> Document {
-        let data = try Data(contentsOf: url)
+        try parse(Data(contentsOf: url), sourceName: url.lastPathComponent)
+    }
+
+    package static func parse(_ data: Data, sourceName: String) throws -> Document {
         guard let text = String(data: data, encoding: .utf8) else {
-            throw TagError.invalidLyrics(reason: "\(url.lastPathComponent) is not UTF-8 text")
+            throw TagError.invalidLyrics(reason: "\(sourceName) is not UTF-8 text")
         }
         return try parse(text)
     }

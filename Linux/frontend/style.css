@@ -186,13 +186,8 @@ body.sidebar-hidden aside {
   flex-direction: column;
   gap: 9px;
 }
-.list-controls .row {
-  gap: 8px;
-}
-.list-controls select {
-  width: 50%;
-  font-size: 12px;
-}
+.list-controls input[type="search"],
+.list-controls select,
 .list-controls label {
   font-size: 12px;
 }
@@ -325,6 +320,7 @@ main {
 .cover-block .row {
   justify-content: center;
   margin-top: 9px;
+  flex-wrap: nowrap;
 }
 .cover-block button {
   font-size: 12px;
@@ -644,6 +640,9 @@ dialog form {
   .cover {
     height: 145px;
   }
+  .cover-block .row {
+    flex-wrap: wrap;
+  }
   .hero {
     gap: 18px;
   }
@@ -695,9 +694,6 @@ header nav button {
 .list-controls .row {
   flex-wrap: nowrap;
 }
-.list-controls select {
-  width: calc(50% - 4px);
-}
 .editor-content {
   max-width: 760px;
 }
@@ -725,9 +721,6 @@ header nav button {
 }
 .hero-info h1 {
   font-size: 18px;
-}
-.cover-block .row {
-  flex-wrap: nowrap;
 }
 .cover-block button {
   white-space: nowrap;

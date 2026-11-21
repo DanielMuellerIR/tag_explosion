@@ -51,6 +51,17 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
         assert not response.get('error'), response
         return response.get('result')
     try:
+        requested_language = {'LANGUAGE', 'LC_ALL', 'LC_MESSAGES', 'LANG', 'TAGX_DESKTOP_LANGUAGE'}
+        locale_base = {key: value for key, value in environment.items() if key not in requested_language}
+        invalid = b'{"id":1,"session":"locale","method":"unknown","params":{}}\n'
+        for locale, expected in [
+            ({'LC_MESSAGES': 'de_DE.UTF-8', 'LANG': 'en_US.UTF-8'}, 'Der Vorgang ist unbekannt.'),
+            ({'LANGUAGE': 'fr:en:de', 'LC_MESSAGES': 'de_DE.UTF-8'}, 'Unknown desktop operation.'),
+        ]:
+            probe = subprocess.run([str(args.engine.resolve())], input=invalid, env=locale_base | locale,
+                                   capture_output=True, check=True, timeout=10)
+            failure = json.loads(probe.stdout)['error']
+            assert failure == {'code': 'unknown_method', 'message': expected}, failure
         assert call('hello')['protocolVersion'] == 1
         assert call('state')['total'] == 0
         media = work / 'Signal.mp3'
@@ -144,6 +155,26 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
             incoming = json.loads(engine.stdout.readline()); responses[incoming['id']] = incoming
         assert responses.pop(info_id)['result']['cancelled'] is True
         assert time.monotonic() - started < 5
+        assert call('prepareUpdate') is True
+        # Das Schließen bricht den laufenden Werkzeugauftrag selbst ab und
+        # wartet auf sein Ende, bevor die Sitzung freigegeben wird.
+        marker.unlink()
+        call('open', {'paths': [str(media)]}, session='closing')
+        sequence += 1
+        closing_info_id = sequence
+        engine.stdin.write(json.dumps({'id': closing_info_id, 'session': 'closing', 'method': 'info',
+                                       'params': {'path': str(media)}}).encode() + b'\n')
+        engine.stdin.flush()
+        deadline = time.monotonic() + 10
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(.02)
+        assert marker.exists(), 'Werkzeugauftrag für den Schließtest wurde nicht gestartet'
+        assert call('close', session='closing')['closed'] is True
+        while closing_info_id not in responses:
+            assert selector.select(5), 'Werkzeugauftrag endete nach dem Schließen nicht'
+            incoming = json.loads(engine.stdout.readline())
+            responses[incoming['id']] = incoming
+        assert responses.pop(closing_info_id)['result']['cancelled'] is True
         assert call('prepareUpdate') is True
         # Ungültige JSON-Zeile beendet den Worker mit definiertem Fehler, ohne
         # einen vorher akzeptierten Speichervorgang ungeprüft zu wiederholen.

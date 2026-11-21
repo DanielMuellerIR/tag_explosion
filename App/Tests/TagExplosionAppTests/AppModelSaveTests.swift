@@ -40,7 +40,8 @@ struct AppModelSaveTests {
         let image = folder.appendingPathComponent("cover.jpg")
         try FileManager.default.copyItem(at: AppTestFixtures.directory.appendingPathComponent("cover.jpg"), to: image)
         let sidecar = MediaFormats.sidecarURL(for: image)
-        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8).write(to: sidecar)
+        let originalSidecar = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8)
+        try originalSidecar.write(to: sidecar)
         var archive = try TagArchiveIO.build(files: [image, audio], baseDirectory: folder, includeCovers: true)
         archive.files[1].properties?["TITLE"] = ["Imported audio title"]
         let json = folder.appendingPathComponent("tags.json")
@@ -53,7 +54,8 @@ struct AppModelSaveTests {
         #expect(try TagFile.read(at: audio).firstValue(for: "TITLE") == "Imported audio title")
         #expect(entry.firstValue("TITLE") == "Imported audio title")
         #expect(!entry.isDirty)
-        #expect(model.alertMessage?.contains("1 geändert, 1 unverändert") == true)
+        #expect(try Data(contentsOf: sidecar) == originalSidecar)
+        #expect(!imageEntry.isDirty)
     }
 
     @Test("Batch-Speichern sichert überlappende Kapitel und leere SYLT und erhält beide")
@@ -70,10 +72,11 @@ struct AppModelSaveTests {
             entry.setSingleValue("TITLE", "Batch title")
             return entry
         }
-        let previous = UserDefaults.standard.object(forKey: AppModel.autoBackupDefaultsKey)
-        UserDefaults.standard.set(true, forKey: AppModel.autoBackupDefaultsKey)
-        defer { UserDefaults.standard.set(previous, forKey: AppModel.autoBackupDefaultsKey) }
-        let model = AppModel()
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: AppModel.autoBackupDefaultsKey)
+        let model = AppModel(preferences: AppPreferences(defaults: defaults))
         model.entries = entries
         #expect(await model.saveEntries(entries))
         #expect(model.batchResults.allSatisfy { $0.status == .success })

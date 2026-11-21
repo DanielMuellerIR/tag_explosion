@@ -21,6 +21,213 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 
 
+def review_linux_frontend(driver, wait, media_call, work, media, english):
+    import gi
+
+    gi.require_version('Atspi', '2.0')
+    from gi.repository import Atspi, GLib
+
+    Atspi.init()
+
+    def text(german, translated):
+        return translated if english else german
+
+    def xdotool(*args):
+        return subprocess.check_output(['xdotool', *args], text=True, timeout=5)
+
+    def menu_item(name):
+        def find(item):
+            role = item.get_role()
+            if role in (Atspi.Role.MENU, Atspi.Role.MENU_ITEM):
+                if item.get_name() == name and item.get_state_set().contains(Atspi.StateType.SHOWING):
+                    bounds = item.get_extents(Atspi.CoordType.SCREEN)
+                    if bounds.width > 0 and bounds.height > 0:
+                        return bounds
+            if role in (Atspi.Role.DESKTOP_FRAME, Atspi.Role.APPLICATION, Atspi.Role.FRAME,
+                        Atspi.Role.PANEL, Atspi.Role.FILLER, Atspi.Role.MENU_BAR,
+                        Atspi.Role.MENU, Atspi.Role.POPUP_MENU):
+                for index in range(item.get_child_count()):
+                    child = item.get_child_at_index(index)
+                    if child is not None and (found := find(child)):
+                        return found
+            return None
+
+        try:
+            return find(Atspi.get_desktop(0))
+        except GLib.Error:
+            return None
+
+    def click_menu(name):
+        bounds = wait.until(lambda _: menu_item(name), f'GTK-Menüeintrag fehlt: {name}')
+        xdotool('mousemove', str(bounds.x + bounds.width // 2),
+                str(bounds.y + bounds.height // 2), 'click', '1')
+
+    def dialog(title):
+        actual = wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, 'dialog[open] #dialog-title'))[0].text
+        assert actual == title, (actual, title)
+
+    def dialog_button(german, translated):
+        driver.find_element(By.XPATH, f'//dialog[@open]//button[normalize-space()="{text(german, translated)}"]').click()
+
+    def screenshot(name):
+        driver.execute_async_script('const done=arguments[arguments.length-1]; requestAnimationFrame(()=>requestAnimationFrame(done));')
+        driver.save_screenshot(str(work / name))
+
+    def discard():
+        click_menu(text('Bearbeiten', 'Edit'))
+        click_menu(text('Änderungen verwerfen …', 'Discard Edits…'))
+        dialog(text('Änderungen verwerfen?', 'Discard edits?'))
+
+    start_status = driver.find_element(By.ID, 'status').get_attribute('textContent')
+    screenshot('initial-status.png')
+    original = media.read_bytes()
+    media_call('open', {'paths': [str(media)]})
+    driver.refresh()
+    row = wait.until(lambda d: d.find_element(By.CSS_SELECTOR, '.file-row'))
+    title_selector = f'input[aria-label="{text("Titel", "Title")}"]'
+    title = wait.until(lambda d: d.find_element(By.CSS_SELECTOR, title_selector))
+    assert title.get_attribute('value') == 'Signal'
+    title.clear()
+    title.send_keys('Ungespeicherter Titel')
+    wait.until(lambda d: 'dirty' in d.find_element(By.CSS_SELECTOR, '.file-row').get_attribute('class'))
+    discard()
+    assert driver.find_element(By.CSS_SELECTOR, '.file-row').id == row.id
+    screenshot('discard-confirmation.png')
+    dialog_button('Abbrechen', 'Cancel')
+    assert title.get_attribute('value') == 'Ungespeicherter Titel'
+    assert media_call('entry', {'path': str(media)})['dirty']
+    discard()
+    dialog_button('Verwerfen', 'Discard')
+    wait.until(lambda d: d.execute_script('return document.querySelector(arguments[0])?.value', title_selector) == 'Signal')
+    assert not media_call('entry', {'path': str(media)})['dirty']
+    assert not driver.find_element(By.ID, 'save').is_enabled()
+    assert media.read_bytes() == original
+
+    other = work / 'Zweites Signal.mp3'
+    other.write_bytes(original)
+    media_call('open', {'paths': [str(other)]})
+    driver.refresh()
+    wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, '.file-row')) == 2)
+    rows = driver.find_elements(By.CSS_SELECTOR, '.file-row')
+    rows[0].click()
+    ActionChains(driver).key_down(Keys.CONTROL).click(rows[1]).key_up(Keys.CONTROL).perform()
+    wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '#editor .batch-note'))
+    batch_title = wait.until(lambda d: d.find_element(By.CSS_SELECTOR, title_selector))
+    batch_title.clear()
+    batch_title.send_keys('Entwurf für beide Dateien')
+    assert not media_call('state', {})['dirty']
+    discard()
+    dialog_button('Verwerfen', 'Discard')
+    wait.until(lambda d: d.execute_script('return document.querySelector(arguments[0])?.value', title_selector) == 'Signal')
+    assert not driver.find_element(By.ID, 'save').is_enabled()
+    assert not media_call('state', {})['dirty']
+    assert media.read_bytes() == other.read_bytes() == original
+    media_call('remove', {'paths': [str(other)]})
+    driver.refresh()
+    wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, '.file-row')) == 1)
+
+    assert start_status == text('Dateien oder Ordner hierher ziehen', 'Drop files or folders here'), start_status
+    assert driver.execute_script('return document.documentElement.lang') == text('de', 'en')
+    for selector, attribute, german, translated in [
+        ('#sidebar-toggle', 'title', 'Dateiliste', 'File list'),
+        ('#search', 'aria-label', 'Dateien suchen', 'Search files'),
+        ('#file-list', 'aria-label', 'Geöffnete Dateien', 'Open files'),
+        ('#tabs', 'aria-label', 'Ansichten', 'Views'),
+        ('#settings', 'title', 'Einstellungen', 'Settings'),
+        ('#settings', 'aria-label', 'Einstellungen', 'Settings'),
+        ('#new-window', 'aria-label', 'Neues Fenster', 'New Window'),
+    ]:
+        assert driver.find_element(By.CSS_SELECTOR, selector).get_attribute(attribute) == text(german, translated)
+    assert driver.find_element(By.ID, 'open-folder').text == text('Ordner …', 'Folder …')
+    assert driver.find_element(By.CSS_SELECTOR, '#kind option[value="invoice"]').get_attribute('textContent') == text('E-Rechnungen', 'E-invoices')
+
+    window_id = xdotool('search', '--onlyvisible', '--name', '^Tag Explosion$').splitlines()[0]
+    for width, height in [(1100, 800), (760, 500)]:
+        xdotool('windowsize', '--sync', window_id, str(width), str(height))
+        wait.until(lambda d: d.execute_script('return innerWidth') == width)
+        sizes = driver.execute_script('''
+          const canvas = document.createElement('canvas').getContext('2d');
+          return ['search', 'kind', 'sort'].map(id => {
+            const control = document.getElementById(id);
+            const style = getComputedStyle(control);
+            canvas.font = style.fontSize + ' ' + style.fontFamily;
+            const captions = control.options
+              ? Array.from(control.options, option => option.text)
+              : [control.placeholder];
+            const caption = Math.max(...captions.map(text => canvas.measureText(text).width));
+            const inset = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+            const border = parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+            const arrow = control.options ? 22 : 0;
+            return {id, width: control.offsetWidth, needed: Math.ceil(caption + inset + border + arrow)};
+          });
+        ''')
+        assert all(size['width'] >= size['needed'] for size in sizes), (width, sizes)
+        if width == 760:
+            cover_buttons_fit = driver.execute_script('''
+              const row = document.querySelector('.cover-block .row');
+              const {left, right} = row.getBoundingClientRect();
+              const buttons = [...row.querySelectorAll('button')];
+              return buttons.length > 0 && buttons.every(button => {
+                const bounds = button.getBoundingClientRect();
+                return bounds.left >= left && bounds.right <= right;
+              });
+            ''')
+            assert cover_buttons_fit, 'Cover-Schaltflächen ragen aus ihrer Gruppe'
+        screenshot(f'sidebar-{width}.png')
+    xdotool('windowsize', '--sync', window_id, '1100', '800')
+    wait.until(lambda d: d.execute_script('return innerWidth') == 1100)
+
+    ActionChains(driver).key_down(Keys.CONTROL).send_keys(',').key_up(Keys.CONTROL).perform()
+    dialog(text('Einstellungen', 'Settings'))
+    labels = [label.text for label in driver.find_elements(By.CSS_SELECTOR, '#dialog-content label')]
+    assert text('Vor jeder Änderung im Papierkorb sichern', 'Copy originals to the trash before every change') in labels
+    assert text('Bild-Metadaten in XMP-Sidecar schreiben', 'Write image metadata to an XMP sidecar') in labels
+    screenshot('keyboard-settings.png')
+    dialog_button('Schließen', 'Close')
+
+    folder = work / 'playlist.v1'
+    folder.mkdir()
+    sibling = folder / 'export.m3u8'
+    sibling.write_bytes(b'vorhandene Datei')
+
+    def native_save(destination):
+        ActionChains(driver).context_click(driver.find_element(By.CSS_SELECTOR, '.file-row')).perform()
+        dialog(text('Werkzeuge', 'Tools'))
+        dialog_button('Playlist exportieren …', 'Export Playlist …')
+
+        def visible_chooser(_):
+            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^(Save|Speichern)( File)?$'],
+                                    capture_output=True, text=True, timeout=5)
+            return result.stdout.splitlines()[0] if result.returncode == 0 else None
+
+        chooser = wait.until(visible_chooser)
+        xdotool('windowfocus', '--sync', chooser, 'key', 'ctrl+a')
+        xdotool('type', '--clearmodifiers', str(destination))
+        xdotool('key', 'Return')
+        wait.until(lambda _: not visible_chooser(None))
+
+    for basename in ('export', '.playlist'):
+        destination = folder / basename
+        native_save(destination)
+        wait.until(lambda _: destination.exists())
+        assert destination.read_text().startswith('#EXTM3U\n')
+    assert sibling.read_bytes() == b'vorhandene Datei'
+    destination = folder / 'export.PLS'
+    native_save(destination)
+    wait.until(lambda _: destination.exists())
+    assert destination.read_text().startswith('[playlist]\n')
+    destination = folder / 'export.txt'
+    native_save(destination)
+    dialog(text('Hinweis', 'Notice'))
+    assert driver.find_element(By.ID, 'dialog-content').text == text(
+        'Für Playlists sind die Endungen .m3u, .m3u8, .pls und .xspf verfügbar.',
+        'Use .m3u, .m3u8, .pls, or .xspf for playlists.',
+    )
+    assert not destination.exists()
+    dialog_button('Schließen', 'Close')
+    print('Linux-GUI: natives Verwerfen/Abbrechen (Einzel- und Stapelentwurf), Dateibytes, stabile Listenzeile, lokalisierte Attribute und native Playlist-Ziele geprüft.')
+
+
 def review_regressions(driver, wait, media_call, work):
     # Eigene MP3s unterstützen sowohl CHAP als auch SYLT; keine Imports oder
     # Backend-edits ersetzen die zu prüfenden Hinzufügen-/Eingabe-Callbacks.
@@ -166,7 +373,10 @@ parser.add_argument('--engine', type=Path)
 parser.add_argument('--validate', action='store_true')
 parser.add_argument('--exiftool', type=Path, help='Unabhängiges Prüfwerkzeug, falls es außerhalb des Desktop-PATH liegt')
 parser.add_argument('--basic-fixture', type=Path, help='Native Grundprüfung ohne optionale Systemwerkzeuge')
-parser.add_argument('--review-regressions', action='store_true', help='Nach der Audio-Grundprüfung nur Kapitel/SYLT und NFO-Stapelbewertung prüfen (Linux, ffmpeg)')
+review = parser.add_mutually_exclusive_group()
+review.add_argument('--review-regressions', action='store_true', help='Nach der Audio-Grundprüfung nur Kapitel/SYLT und NFO-Stapelbewertung prüfen (Linux, ffmpeg)')
+review.add_argument('--review-linux-frontend', action='store_true', help='Natives GTK-Menü, Playlist und zugängliche WebKit-Beschriftungen prüfen (X11)')
+parser.add_argument('--frontend-language', choices=['de', 'en'], default='de', help='Sprache für --review-linux-frontend')
 parser.add_argument('--work-dir', type=Path, default=root / '.build/linux-gui-smoke')
 parser.add_argument('--driver', type=Path, default=root / '.build/driver/bin/tauri-driver')
 args = parser.parse_args()
@@ -184,6 +394,13 @@ else:
     subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', '-metadata', 'title=Signal', '-metadata', 'artist=Beispiel', str(media)], check=True)
 for folder in ['home', 'config', 'data', 'cache']: (work / folder).mkdir(exist_ok=True)
 environment = dict(os.environ, LANG='de_DE.UTF-8', HOME=str(work / 'home'), XDG_CONFIG_HOME=str(work / 'config'), XDG_DATA_HOME=str(work / 'data'), XDG_CACHE_HOME=str(work / 'cache'))
+if args.review_linux_frontend:
+    if args.frontend_language == 'en':
+        environment['LANG'] = 'C.UTF-8'
+    for name in ('LC_ALL', 'LC_MESSAGES', 'LANGUAGE'):
+        environment.pop(name, None)
+    if not shutil.which('xdotool') or environment.get('GDK_BACKEND') == 'wayland':
+        parser.exit(2, 'Die GTK-Menüprüfung benötigt X11 und xdotool.\n')
 if args.engine: environment['TAGX_ENGINE'] = str(args.engine.resolve())
 elif args.app == root / 'Linux/target/debug/tag-explosion-linux': environment['TAGX_ENGINE'] = str(root / '.build/debug/tagx-engine')
 driver_process = subprocess.Popen([str(args.driver), '--port', '4444'], env=environment, stdout=(work / 'driver.log').open('w'), stderr=subprocess.STDOUT)
@@ -211,6 +428,16 @@ try:
     driver = webdriver.Remote(command_executor=connection, options=options)
     wait = WebDriverWait(driver, 20)
     wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, '.empty h1'))
+
+    def media_call(method, params):
+        result = driver.execute_async_script("const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:arguments[0],params:arguments[1]}).then(done).catch(error=>done({error:String(error)}));", method, params)
+        assert not isinstance(result, dict) or not result.get('error'), result
+        return result
+
+    if args.review_linux_frontend:
+        review_linux_frontend(driver, wait, media_call, work, media, args.frontend_language == 'en')
+        raise SystemExit(0)
+
     # Native Dateipanel/Drop bekommen getrennte Interaktionsprüfungen. Hier
     # wird der echte produktive Frontend-Aufruf benutzt, kein Swift-Direktaufruf.
     driver.execute_async_script('''const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:'open',params:{paths:[arguments[0]]}}).then(done).catch(error=>done({error:String(error)}));''', str(media))
@@ -224,10 +451,6 @@ try:
     wait.until(lambda d: d.find_element(By.ID, 'save').get_attribute('disabled'))
     assert driver.execute_script('return window.untrustedTagExecuted === true') is False
     assert not driver.find_elements(By.CSS_SELECTOR, '#editor img[src="x"]')
-    def media_call(method, params):
-        result = driver.execute_async_script("const done=arguments[arguments.length-1]; window.__TAURI__.core.invoke('media',{method:arguments[0],params:arguments[1]}).then(done).catch(error=>done({error:String(error)}));", method, params)
-        assert not isinstance(result, dict) or not result.get('error'), result
-        return result
     if args.basic_fixture:
         driver.save_screenshot(str(work / 'native-basic.png'))
         result = media_call('entry', {'path': str(media)})

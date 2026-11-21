@@ -179,23 +179,19 @@ struct AppModelRenameTests {
     }
 
     @Test("Muster-Verlauf: vorn einsortiert, ohne Dubletten, gedeckelt")
-    func patternHistoryRemembersRecentPatterns() {
-        let key = PatternHistory.Direction.rename.defaultsKey
-        let saved = UserDefaults.standard.stringArray(forKey: key)
-        defer {
-            if let saved { UserDefaults.standard.set(saved, forKey: key) }
-            else { UserDefaults.standard.removeObject(forKey: key) }
-        }
-        UserDefaults.standard.removeObject(forKey: key)
+    func patternHistoryRemembersRecentPatterns() throws {
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
 
         for index in 0..<(PatternHistory.maxEntries + 2) {
-            PatternHistory.remember("%{title} \(index)", .rename)
+            PatternHistory.remember("%{title} \(index)", .rename, defaults: defaults)
         }
-        PatternHistory.remember("%{title} 3", .rename)
-        let history = PatternHistory.load(.rename)
+        PatternHistory.remember("%{title} 3", .rename, defaults: defaults)
+        let history = PatternHistory.load(.rename, defaults: defaults)
         #expect(history.count == PatternHistory.maxEntries)
         #expect(history.first == "%{title} 3")
         #expect(history.filter { $0 == "%{title} 3" }.count == 1)
-        #expect(PatternHistory.initialPattern(.rename) == "%{title} 3")
+        #expect(PatternHistory.initialPattern(.rename, defaults: defaults) == "%{title} 3")
     }
 }

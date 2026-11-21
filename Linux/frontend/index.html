@@ -6,20 +6,21 @@
   <button id="sidebar-toggle" title="Dateiliste" aria-label="Dateiliste">☷</button>
   <div id="window-title"><strong>Tag Explosion</strong><small id="window-subtitle"></small></div>
   <nav aria-label="Werkzeuge">
-    <button id="new-window" title="Neues Fenster">＋</button>
+    <button id="new-window" title="Neues Fenster" aria-label="Neues Fenster">＋</button>
     <button id="open">Öffnen …</button>
     <button id="open-folder">Ordner …</button>
     <button id="save" disabled>Speichern</button>
     <button id="save-all" disabled>Alle speichern</button>
     <button id="check" disabled>Prüfen …</button>
-    <button id="settings" title="Einstellungen">⚙</button>
+    <button id="settings" title="Einstellungen" aria-label="Einstellungen">⚙</button>
   </nav>
 </header>
 <div id="workspace">
   <aside id="sidebar" aria-label="Dateien">
     <div class="list-controls">
       <input id="search" type="search" placeholder="Dateiname, Titel oder Interpret" aria-label="Dateien suchen">
-      <div class="row"><select id="kind" aria-label="Medienart"><option value="">Alle Medienarten</option><option value="audio">Audio / Video</option><option value="image">Bilder</option><option value="ebook">E-Books</option><option value="document">Dokumente</option><option value="invoice">E-Rechnungen</option><option value="sidecar">Sidecars</option><option value="playlist">Playlists</option></select><select id="sort" aria-label="Sortierung"><option value="input">Öffnungsreihenfolge</option><option value="filename">Dateiname</option><option value="title">Titel</option><option value="artist">Interpret</option></select></div>
+      <select id="kind" aria-label="Medienart"><option value="">Alle Medienarten</option><option value="audio">Audio / Video</option><option value="image">Bilder</option><option value="ebook">E-Books</option><option value="document">Dokumente</option><option value="invoice">E-Rechnungen</option><option value="sidecar">Sidecars</option><option value="playlist">Playlists</option></select>
+      <select id="sort" aria-label="Sortierung"><option value="input">Öffnungsreihenfolge</option><option value="filename">Dateiname</option><option value="title">Titel</option><option value="artist">Interpret</option></select>
       <div class="row"><label><input type="checkbox" id="dirty-only"> Ungespeichert</label><label><input type="checkbox" id="errors-only"> Fehler</label></div>
       <small id="selection-count"></small>
     </div>

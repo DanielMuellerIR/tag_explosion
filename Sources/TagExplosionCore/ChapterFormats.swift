@@ -194,9 +194,12 @@ public enum ChapterList {
     /// Erkennt JSON am ersten sichtbaren Zeichen (`[` oder `{`), alles andere
     /// gilt als Textformat — die Endung ist damit egal.
     public static func load(from url: URL, totalLength: Int?) throws -> [Chapter] {
-        let data = try Data(contentsOf: url)
+        try parse(Data(contentsOf: url), sourceName: url.lastPathComponent, totalLength: totalLength)
+    }
+
+    package static func parse(_ data: Data, sourceName: String, totalLength: Int?) throws -> [Chapter] {
         guard let text = String(data: data, encoding: .utf8) else {
-            throw TagError.invalidChapters(reason: "\(url.lastPathComponent) is not UTF-8 text")
+            throw TagError.invalidChapters(reason: "\(sourceName) is not UTF-8 text")
         }
         let first = text.first { !$0.isWhitespace }
         if first == "[" || first == "{" {

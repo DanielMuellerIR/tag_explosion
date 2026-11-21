@@ -6,6 +6,7 @@ import TagExplosionCore
 /// ausschließlich den lokalen Nachrichtenvertrag in dieselben Aktionen.
 @MainActor
 public final class DesktopService {
+    private let preferences = AppPreferences()
     private var models: [String: AppModel] = [:]
     private var revisions: [String: Int] = [:]
     private var writing = false
@@ -15,7 +16,9 @@ public final class DesktopService {
     private var candidates: [String: LookupCandidate] = [:]
     private var validationResults: [String: (URL, InvoiceValidationResult, EInvoiceDocument?)] = [:]
     private var validation: [String: ExternalToolRunner.Cancellation] = [:]
-    private var infoJobs: [String: (id: UUID, task: Task<MediaInfoReport, Error>)] = [:]
+    private var infoJobs: [String: [UUID: Task<MediaInfoReport, Error>]] = [:]
+    private var closingSessions: Set<String> = []
+    private var closeWaiters: [String: CheckedContinuation<Void, Never>] = [:]
 
     private final class CoverJob {
         let cancellation = ExternalToolRunner.Cancellation()
@@ -53,10 +56,10 @@ public final class DesktopService {
     }
 
     private func model(_ session: String) throws -> AppModel {
-        guard !session.isEmpty, session.utf8.count <= 128 else { throw DesktopFailure("invalid_session", "Invalid session") }
+        guard !session.isEmpty, session.utf8.count <= 128 else { throw DesktopFailure("invalid_session", String(localized: "Die Fenstersitzung ist ungültig.")) }
         if let model = models[session] { return model }
-        guard models.count < 32 else { throw DesktopFailure("too_many_windows", "Too many open windows") }
-        let model = AppModel()
+        guard models.count < 32 else { throw DesktopFailure("too_many_windows", String(localized: "Es sind zu viele Fenster geöffnet.")) }
+        let model = AppModel(preferences: preferences)
         models[session] = model
         revisions[session] = 0
         return model
@@ -65,7 +68,7 @@ public final class DesktopService {
     private func entry(_ value: DesktopValue, in model: AppModel) throws -> FileEntry {
         guard let path = value["path"].text,
               let entry = model.entries.first(where: { $0.url.path == path }) else {
-            throw DesktopFailure("entry_missing", "The file is no longer open")
+            throw DesktopFailure("entry_missing", String(localized: "Die Datei ist nicht mehr geöffnet."))
         }
         return entry
     }
@@ -77,11 +80,54 @@ public final class DesktopService {
 
     private func requireRevision(_ value: DesktopValue, session: String) throws {
         guard value["revision"].integer == revisions[session] else {
-            throw DesktopFailure("revision_changed", "The editor state changed; reload its current state before retrying")
+            throw DesktopFailure("revision_changed", String(localized: "Der Editorstand hat sich geändert. Laden Sie den aktuellen Stand und versuchen Sie es erneut."))
         }
     }
 
     private func changed(_ session: String) { revisions[session, default: 0] += 1 }
+
+    private func requireCurrentEditor(_ params: DesktopValue, model: AppModel, session: String) throws {
+        guard models[session] === model else { throw DesktopFailure("entry_missing", String(localized: "Die Datei ist nicht mehr geöffnet.")) }
+        try requireRevision(params, session: session)
+        guard !updating, !closingSessions.contains(session), !model.isDestructiveActionLocked else {
+            throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade."))
+        }
+    }
+
+    private func cancelInfo(in session: String) {
+        guard let jobs = infoJobs[session] else { return }
+        for task in jobs.values { task.cancel() }
+    }
+
+    private func hasJobs(in session: String) -> Bool {
+        infoJobs[session] != nil || validation[session] != nil || coverJobs[session] != nil
+    }
+
+    private func jobFinished(in session: String) {
+        guard !hasJobs(in: session) else { return }
+        closeWaiters.removeValue(forKey: session)?.resume()
+    }
+
+    private func close(_ model: AppModel, session: String) async throws -> DesktopValue {
+        guard closingSessions.insert(session).inserted else {
+            throw DesktopFailure("busy", String(localized: "Das Fenster wird bereits geschlossen."))
+        }
+        defer { closingSessions.remove(session) }
+        cancelInfo(in: session)
+        validation[session]?.cancel()
+        coverJobs[session]?.cancel()
+        if hasJobs(in: session) {
+            await withCheckedContinuation { closeWaiters[session] = $0 }
+        }
+        var permitted = false
+        await model.requestWindowClose { permitted = true }
+        if permitted {
+            models.removeValue(forKey: session)
+            revisions.removeValue(forKey: session)
+            validationResults.removeValue(forKey: session)
+        }
+        return .object(["closed": .bool(permitted), "state": try state(model, session: session)])
+    }
 
     private func perform(_ request: DesktopRequest) async throws -> DesktopValue {
         let p = request.params
@@ -91,18 +137,24 @@ public final class DesktopService {
         }
         if request.method == "endUpdate" { updating = false; return .bool(true) }
         if request.method == "prepareUpdate" || request.method == "beginUpdate" {
-            let allowed = !writing && !updating && coverJobs.isEmpty && validation.isEmpty && infoJobs.isEmpty && models.values.allSatisfy { !$0.hasSavingEntries && !$0.hasRunningExports && !$0.isLoading && !$0.isDestructiveActionLocked }
+            let allowed = !writing && !updating && closingSessions.isEmpty && coverJobs.isEmpty
+                && validation.isEmpty && infoJobs.isEmpty && models.values.allSatisfy {
+                    !$0.hasSavingEntries && !$0.hasRunningExports && !$0.isLoading && !$0.isDestructiveActionLocked
+                }
             if request.method == "beginUpdate", allowed { updating = true }
             return .bool(allowed)
         }
         if request.method == "lookupAuthorization" {
-            let allowed = UserDefaults.standard.bool(forKey: "onlineServicesAllowed") && UserDefaults.standard.bool(forKey: "privacyAcknowledged")
+            let allowed = preferences.onlineLookupEnabled
             let source = p["source"].text.flatMap(LookupSource.init(rawValue:)) ?? candidates[p["id"].text ?? ""]?.source ?? .musicbrainz
             let account: DesktopValue = source == .discogs ? .string("discogs-token") : source == .acoustid ? .string("acoustid-client-key") : .null
             return .object(["allowed": .bool(allowed), "account": account])
         }
         if updating && !["state", "entry", "cover", "endUpdate", "cancel"].contains(request.method) {
-            throw DesktopFailure("busy", "The application update is being installed")
+            throw DesktopFailure("busy", String(localized: "Das Update wird gerade installiert."))
+        }
+        if closingSessions.contains(request.session) && !["state", "entry", "cover", "cancel"].contains(request.method) {
+            throw DesktopFailure("busy", String(localized: "Das Fenster wird bereits geschlossen."))
         }
         if request.method == "close", models[request.session] == nil { return .object(["closed": .bool(true)]) }
         let model = try model(request.session)
@@ -130,7 +182,7 @@ public final class DesktopService {
             return try await .encoding(BlockingWork.run { try ExifTool.readRawStringTags(urls: urls) })
         case "copyField":
             try requireRevision(p, session: request.session)
-            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             let selected = targets(p, in: model)
             let source = try required(p, "source"), target = try required(p, "target")
             if selected.allSatisfy({ $0.kind == .audio && !$0.isReadOnly && (MediaFormats.writableTagKeys(for: $0.url)?.contains(target) ?? true) }) {
@@ -138,8 +190,7 @@ public final class DesktopService {
             } else if selected.allSatisfy({ $0.kind == .image }), ["title", "description", "keywords", "creator", "copyright"].contains(target) {
                 let urls = selected.map(\.url)
                 let tags = try await BlockingWork.run { try ExifTool.readRawStringTags(urls: urls) }
-                try requireRevision(p, session: request.session)
-                guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+                try requireCurrentEditor(p, model: model, session: request.session)
                 for entry in selected {
                     guard let value = tags[entry.url.path]?[source], !value.isEmpty else { continue }
                     switch target {
@@ -151,11 +202,11 @@ public final class DesktopService {
                     default: break
                     }
                 }
-            } else { throw DesktopFailure("unsupported", "The selected field cannot be copied for these files") }
+            } else { throw DesktopFailure("unsupported", String(localized: "Das ausgewählte Feld lässt sich für diese Dateien nicht kopieren.")) }
             changed(request.session)
         case "batchInfo":
             let selected = targets(p, in: model)
-            guard let first = selected.first, selected.allSatisfy({ $0.kind == first.kind }) else { throw DesktopFailure("mixed_selection", "Select files of one type") }
+            guard let first = selected.first, selected.allSatisfy({ $0.kind == first.kind }) else { throw DesktopFailure("mixed_selection", String(localized: "Wählen Sie Dateien desselben Typs.")) }
             let descriptions = try selected.map(describe)
             var common: [String: DesktopValue] = [:]
             var mixed: [String] = []
@@ -178,7 +229,7 @@ public final class DesktopService {
             await model.open(urls: p["paths"].values.compactMap(\.text).map { URL(fileURLWithPath: $0) })
             changed(request.session)
         case "cancel":
-            infoJobs[request.session]?.task.cancel()
+            cancelInfo(in: request.session)
             if p["operation"].text != "info" {
                 model.cancelBatchSave(); model.cancelLoading(); validation[request.session]?.cancel()
                 coverJobs[request.session]?.cancel()
@@ -205,9 +256,9 @@ public final class DesktopService {
             return .object(["data": try .encoding(data), "mimeType": .string(Artwork.sniffMimeType(from: data) ?? "image/jpeg")])
         case "edit":
             try requireRevision(p, session: request.session)
-            guard !model.isDestructiveActionLocked else { throw DesktopFailure("busy", "A file operation or decision is still active") }
+            guard !model.isDestructiveActionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation oder Entscheidung steht noch aus.")) }
             let target = try entry(p, in: model)
-            try edit(target, values: p["values"])
+            try DesktopEdit.prepare(target, values: p["values"]).apply(to: target)
             changed(request.session)
         case "cover":
             let target = try entry(p, in: model)
@@ -223,14 +274,14 @@ public final class DesktopService {
         case "setCover", "removeCover", "folderCover", "convertCover":
             try requireRevision(p, session: request.session)
             let target = try entry(p, in: model)
-            guard !target.isSaving, !model.isDestructiveActionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !target.isSaving, !model.isDestructiveActionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             try await changeCover(target, method: request.method, params: p) {
-                try self.requireRevision(p, session: request.session)
-                guard !target.isSaving, !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+                try self.requireCurrentEditor(p, model: model, session: request.session)
+                guard !target.isSaving else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             }
             changed(request.session)
         case "save", "saveAll", "retry", "restore", "stripLayer", "import", "rename", "rulesApply", "shiftSubtitle", "export", "exportCover", "exportPlaylist", "saveRules", "exportChapters", "exportLRC", "exportValidation":
-            guard !writing else { throw DesktopFailure("busy", "Another window is writing files") }
+            guard !writing else { throw DesktopFailure("busy", String(localized: "Ein anderes Fenster schreibt gerade Dateien.")) }
             try requireRevision(p, session: request.session)
             writing = true
             defer { writing = false }
@@ -238,24 +289,14 @@ public final class DesktopService {
             changed(request.session)
         case "revert":
             try requireRevision(p, session: request.session)
-            guard !model.isDestructiveActionLocked, !model.hasSavingEntries else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !model.isDestructiveActionLocked, !model.hasSavingEntries else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             for target in targets(p, in: model) { target.revert() }
             changed(request.session)
         case "remove":
             await model.remove(urls: targets(p, in: model).map(\.url)); changed(request.session)
-        case "close":
-            infoJobs[request.session]?.task.cancel()
-            validation[request.session]?.cancel()
-            coverJobs[request.session]?.cancel()
-            while infoJobs[request.session] != nil || validation[request.session] != nil || coverJobs[request.session] != nil {
-                try await Task.sleep(for: .milliseconds(10))
-            }
-            var permitted = false
-            await model.requestWindowClose { permitted = true }
-            if permitted { models.removeValue(forKey: request.session); revisions.removeValue(forKey: request.session); validationResults.removeValue(forKey: request.session) }
-            return .object(["closed": .bool(permitted), "state": try state(model, session: request.session)])
+        case "close": return try await close(model, session: request.session)
         case "resolve":
-            guard !writing else { throw DesktopFailure("busy", "Another window is writing files") }
+            guard !writing else { throw DesktopFailure("busy", String(localized: "Ein anderes Fenster schreibt gerade Dateien.")) }
             writing = true
             defer { writing = false }
             if let raw = p["dirty"].text {
@@ -269,90 +310,104 @@ public final class DesktopService {
                 if model.claimStaleWrite(write: overwrite) { await model.resolveClaimedStaleWrite() }
             }
             changed(request.session)
-        case "history": return try .encoding(BackupHistory.versions(of: entry(p, in: model).url))
+        case "history":
+            let url = try entry(p, in: model).url
+            return try await .encoding(BlockingWork.run { BackupHistory.versions(of: url) })
         case "historyDiff":
-            let target = try entry(p, in: model)
-            guard let version = BackupHistory.versions(of: target.url).first(where: { $0.id == p["id"].text }) else { throw DesktopFailure("version_missing", "Backup is no longer available") }
-            return try .encoding(BackupHistory.diff(current: target.url, against: version))
+            let url = try entry(p, in: model).url
+            let id = p["id"].text
+            return try await .encoding(BlockingWork.run {
+                guard let version = BackupHistory.versions(of: url).first(where: { $0.id == id }) else {
+                    throw DesktopFailure("version_missing", String(localized: "Die Sicherung ist nicht mehr verfügbar."))
+                }
+                return try BackupHistory.diff(current: url, against: version)
+            })
         case "invoice":
             let url = try entry(p, in: model).url
             return try await .encoding(BlockingWork.run { try EInvoiceReader.read(url: url) })
         case "importChapters", "importLRC":
             try requireRevision(p, session: request.session)
             let target = try entry(p, in: model)
-            guard target.kind == .audio, !target.isReadOnly, !model.isEditorInteractionLocked else { throw DesktopFailure("read_only", "The selected file cannot be edited") }
+            guard target.kind == .audio, !target.isReadOnly, !model.isEditorInteractionLocked else { throw DesktopFailure("read_only", String(localized: "Die ausgewählte Datei lässt sich nicht bearbeiten.")) }
             let source = URL(fileURLWithPath: try required(p, "source"))
             if request.method == "importChapters" {
-                guard target.supportsChapters else { throw DesktopFailure("unsupported", "This format cannot store chapters") }
-                target.chapters = try ChapterList.load(from: source, totalLength: target.audio?.lengthMilliseconds)
+                guard target.supportsChapters else { throw DesktopFailure("unsupported", String(localized: "Dieses Format kann keine Kapitel speichern.")) }
+                let length = target.audio?.lengthMilliseconds
+                let chapters = try await BlockingWork.run {
+                    try ChapterList.parse(DesktopFileInput.read(at: source), sourceName: source.lastPathComponent,
+                                          totalLength: length)
+                }
+                try requireCurrentEditor(p, model: model, session: request.session)
+                target.chapters = chapters
             } else {
-                let document = try LRC.load(from: source)
+                let document = try await BlockingWork.run {
+                    try LRC.parse(DesktopFileInput.read(at: source), sourceName: source.lastPathComponent)
+                }
+                try requireCurrentEditor(p, model: model, session: request.session)
                 target.syncedLyrics = document.lines
                 if FixedFields.lyricsText(in: target.properties).isEmpty { target.properties = FixedFields.settingLyrics(LRC.plainText(document.lines), in: target.properties) }
             }
             changed(request.session)
         case "readRules":
-            let data = try DesktopFileInput.read(at: URL(fileURLWithPath: required(p, "source")))
-            _ = try JSONDecoder().decode(TagRuleDocument.self, from: data)
-            return .string(String(decoding: data, as: UTF8.self))
+            let url = URL(fileURLWithPath: try required(p, "source"))
+            return try await BlockingWork.run {
+                let data = try DesktopFileInput.read(at: url)
+                _ = try JSONDecoder().decode(TagRuleDocument.self, from: data)
+                return .string(String(decoding: data, as: UTF8.self))
+            }
         case "batchNumber", "batchTitles", "batchCover":
             try requireRevision(p, session: request.session)
-            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             let selected = targets(p, in: model)
-            guard !selected.isEmpty, selected.allSatisfy({ $0.kind == .audio && !$0.isReadOnly }) else { throw DesktopFailure("mixed_selection", "Select writable audio files") }
+            guard !selected.isEmpty, selected.allSatisfy({ $0.kind == .audio && !$0.isReadOnly }) else { throw DesktopFailure("mixed_selection", String(localized: "Wählen Sie beschreibbare Audiodateien.")) }
             if request.method == "batchNumber" || request.method == "batchTitles" {
                 let key = request.method == "batchNumber" ? "TRACKNUMBER" : "TITLE"
-                guard selected.allSatisfy({ MediaFormats.writableTagKeys(for: $0.url)?.contains(key) ?? true }) else { throw DesktopFailure("unsupported", "This format cannot store the selected field") }
+                guard selected.allSatisfy({ MediaFormats.writableTagKeys(for: $0.url)?.contains(key) ?? true }) else { throw DesktopFailure("unsupported", String(localized: "Dieses Format kann das ausgewählte Feld nicht speichern.")) }
                 if request.method == "batchNumber" { BatchAudioActions.renumber(selected) }
                 else { for entry in selected { entry.setSingleValue("TITLE", BatchAudioActions.titleFromFilename(entry)) } }
             } else {
-                guard selected.allSatisfy({ MediaFormats.supportsEmbeddedArtwork($0.url) }) else { throw DesktopFailure("unsupported", "The selected formats cannot all store artwork") }
+                guard selected.allSatisfy({ MediaFormats.supportsEmbeddedArtwork($0.url) }) else { throw DesktopFailure("unsupported", String(localized: "Mindestens eines der ausgewählten Formate kann keine Cover speichern.")) }
                 switch p["action"].text {
                 case "set":
-                    let data = try DesktopFileInput.read(at: URL(fileURLWithPath: required(p, "source")))
-                    guard Artwork.sniffMimeType(from: data) != nil else { throw DesktopFailure("invalid_image", "Unsupported image data") }
-                    let artwork = Artwork(data: data, pictureType: "Front Cover")
+                    let url = URL(fileURLWithPath: try required(p, "source"))
+                    let artwork = try await BlockingWork.run { try DesktopFileInput.artwork(at: url) }
+                    try requireCurrentEditor(p, model: model, session: request.session)
                     for entry in selected { entry.setFrontCover(artwork) }
                 case "remove": for entry in selected { entry.removeFrontCover() }
-                case "folder": model.alertMessage = CoverToolActions.report(CoverToolActions.applyFolderCover(selected), action: String(localized: "Ordner-Cover übernehmen"))
+                case "folder":
+                    let directories = selected.map { $0.url.deletingLastPathComponent() }
+                    let covers = try await BlockingWork.run {
+                        CoverToolActions.loadFolderCovers(directories, load: DesktopFileInput.folderCover)
+                    }
+                    try requireCurrentEditor(p, model: model, session: request.session)
+                    let outcome = CoverToolActions.applyFolderCover(selected, covers: covers)
+                    model.alertMessage = CoverToolActions.report(outcome, action: String(localized: "Ordner-Cover übernehmen"))
                 case "convert":
                     let conversion = CoverTools.Conversion(maxPixelSize: p["maxPixelSize"].integer, format: p["format"].text.flatMap(CoverTools.OutputFormat.init(rawValue:)), stripMetadata: p["stripMetadata"].flag)
                     try await convertBatchCovers(selected, conversion, params: p, model: model, session: request.session)
-                default: throw DesktopFailure("invalid_parameter", "Unknown artwork action")
+                default: throw DesktopFailure("invalid_parameter", String(localized: "Die Cover-Aktion ist unbekannt."))
                 }
             }
             changed(request.session)
         case "batchEdit":
             try requireRevision(p, session: request.session)
-            guard !model.isDestructiveActionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !model.isDestructiveActionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             let selected = targets(p, in: model)
-            guard Set(selected.map(\.kind)).count == 1 else { throw DesktopFailure("mixed_selection", "Select files of the same type") }
-            var prepared: [(FileEntry, DesktopValue)] = []
-            for target in selected {
-                var value = try describe(target).fields
-                if target.kind == .audio {
-                    var properties = target.properties
-                    let changes = try p["changes"].decode([String: [String]].self)
-                    TagRuleFields.apply(changes, to: &properties)
-                    value["properties"] = try .encoding(properties)
-                } else {
-                    var fields = value["fields"]?.fields ?? [:]
-                    for (key, item) in p["changes"].fields where fields[key] != nil || (target.kind == .image && key == "rating") { fields[key] = item }
-                    value["fields"] = .object(fields)
-                }
-                guard let trial = FileEntry(relocating: target, to: target.url) else { throw DesktopFailure("entry_missing", "The file is no longer open") }
-                try edit(trial, values: .object(value))
-                prepared.append((target, .object(value)))
-            }
-            for (target, value) in prepared { try edit(target, values: value) }
+            guard Set(selected.map(\.kind)).count == 1 else { throw DesktopFailure("mixed_selection", String(localized: "Wählen Sie Dateien desselben Typs.")) }
+            let prepared = try DesktopEdit.prepareBatch(selected, changes: p["changes"])
+            for (entry, edit) in zip(selected, prepared) { edit.apply(to: entry) }
             changed(request.session)
         case "info":
             let url = try entry(p, in: model).url
-            infoJobs[request.session]?.task.cancel()
+            cancelInfo(in: request.session)
             let id = UUID()
             let task = Task { try await MediaInfoCache.shared.read(url: url) }
-            infoJobs[request.session] = (id, task)
-            defer { if infoJobs[request.session]?.id == id { infoJobs.removeValue(forKey: request.session) } }
+            infoJobs[request.session, default: [:]][id] = task
+            defer {
+                infoJobs[request.session]?.removeValue(forKey: id)
+                if infoJobs[request.session]?.isEmpty == true { infoJobs.removeValue(forKey: request.session) }
+                jobFinished(in: request.session)
+            }
             do { return try await .encoding(task.value) }
             catch is CancellationError { return .object(["tracks": .array([]), "text": .string(""), "cancelled": .bool(true)]) }
         case "imageMetadata":
@@ -361,7 +416,12 @@ public final class DesktopService {
             return try await .encoding(BlockingWork.run { try ExifTool.readAllGroups(url: url, sidecarURL: sidecar) })
         case "rulesPreview":
             let document = try p["document"].decode(TagRuleDocument.self)
-            return .array(try model.rulePlan(for: targets(p, in: model), document: document).map { .object(["path": .string($0.url.path), "kind": .string($0.kind.rawValue), "changes": try .encoding($0.changes)]) })
+            let inputs = model.ruleInputs(for: targets(p, in: model))
+            let plans = try await BlockingWork.run { try AppModel.rulePlan(for: inputs, document: document) }
+            return .array(try plans.map { plan in
+                .object(["path": .string(plan.url.path), "kind": .string(plan.kind.rawValue),
+                         "changes": try .encoding(plan.changes)])
+            })
         case "parseFilename":
             try requireRevision(p, session: request.session)
             let outcome = model.applyFileNamePattern(try FilenamePattern(required(p, "pattern")), to: targets(p, in: model))
@@ -377,20 +437,23 @@ public final class DesktopService {
         case "lookupSearch", "lookupDetails", "lookupPreview", "lookupApply":
             return try await online(request.method, p, model: model, session: request.session)
         case "validationCurrent", "validationReport":
-            guard let (url, result, document) = validationResults[request.session] else { throw DesktopFailure("validation_missing", "Run validation first") }
+            guard let (url, result, document) = validationResults[request.session] else { throw DesktopFailure("validation_missing", String(localized: "Prüfen Sie zuerst die Rechnung.")) }
             let current = try await BlockingWork.run { result.isCurrent(at: url) }
             if request.method == "validationCurrent" { return .bool(current) }
-            guard current else { throw DesktopFailure("stale_validation", "The source has changed; validate it again before exporting a report") }
+            guard current else { throw DesktopFailure("stale_validation", String(localized: "Die Quelldatei hat sich geändert. Prüfen Sie sie vor dem Berichtsexport erneut.")) }
             return .string(InvoiceValidationPresentation.report(result: result, status: result.status, error: nil, url: url, document: document))
         case "validate":
-            guard validation[request.session] == nil else { throw DesktopFailure("busy", "Validation is already running") }
+            guard validation[request.session] == nil else { throw DesktopFailure("busy", String(localized: "Die Rechnungsprüfung läuft bereits.")) }
             let target = try entry(p, in: model)
             let url = target.url
             let expected = target.diskStamp
             let cancellation = ExternalToolRunner.Cancellation()
             validation[request.session] = cancellation
-            defer { validation.removeValue(forKey: request.session) }
-            guard let root = ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"] else { throw DesktopFailure("validator_missing", "The validation package is not installed") }
+            defer {
+                validation.removeValue(forKey: request.session)
+                jobFinished(in: request.session)
+            }
+            guard let root = ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"] else { throw DesktopFailure("validator_missing", String(localized: "Das Paket zur Rechnungsprüfung ist nicht installiert.")) }
             let pdf = ProcessInfo.processInfo.environment["TAGX_PDF_VALIDATION_BUNDLE"].map { URL(fileURLWithPath: $0) }
             let input = try await BlockingWork.run {
                 try FileStamp.requireUnchanged(expected, at: url)
@@ -399,27 +462,38 @@ public final class DesktopService {
             let result = try await BlockingWork.run {
                 InvoiceValidationService.validate(input: input, bundle: URL(fileURLWithPath: root), pdfBundle: pdf, cancellation: cancellation)
             }
-            let document = try? input.payload.document()
+            let (document, current) = try await BlockingWork.run {
+                (try? input.payload.document(), result.isCurrent(at: url))
+            }
             validationResults[request.session] = (url, result, document)
-            return .object(["result": try .encoding(result), "invoice": try .encoding(document), "current": .bool(result.isCurrent(at: url)),
+            return .object(["result": try .encoding(result), "invoice": try .encoding(document), "current": .bool(current),
                             "title": .string(InvoiceValidationPresentation.title(result.status, includesPDF: result.pdf != nil)),
                             "steps": .array(InvoiceValidationPresentation.steps(result).map { .object(["title": .string(InvoiceValidationPresentation.step($0.id, ruleSet: result.ruleSet)), "status": .string(InvoiceValidationPresentation.stepStatus($0.status))]) })])
         case "preferences":
-            let allowed = [AppModel.safeModeDefaultsKey, AppModel.autoBackupDefaultsKey, AppModel.imageSidecarDefaultsKey, AppModel.id3v23DefaultsKey, "onlineServicesAllowed", "privacyAcknowledged"]
-            for (key, value) in p["values"].fields where allowed.contains(key) {
-                guard case .bool(let flag) = value else { throw DesktopFailure("invalid_setting", "Expected a boolean setting") }
-                UserDefaults.standard.set(flag, forKey: key)
-            }
-            AppModel.applySafeMode()
-            return .object(Dictionary(uniqueKeysWithValues: allowed.map { ($0, .bool(UserDefaults.standard.object(forKey: $0) == nil ? [AppModel.safeModeDefaultsKey, AppModel.autoBackupDefaultsKey].contains($0) : UserDefaults.standard.bool(forKey: $0))) }))
+            return try applyPreferences(p["values"].fields)
         case "clearAlert": model.alertMessage = nil
-        default: throw DesktopFailure("unknown_method", "Unknown desktop operation")
+        default: throw DesktopFailure("unknown_method", String(localized: "Der Vorgang ist unbekannt."))
         }
         return try state(model, session: request.session)
     }
 
+    private func applyPreferences(_ values: [String: DesktopValue]) throws -> DesktopValue {
+        let changes: [(AppPreferences.Setting, Bool)] = try values.compactMap { key, value in
+            guard let setting = AppPreferences.Setting(rawValue: key) else { return nil }
+            guard case .bool(let flag) = value else {
+                throw DesktopFailure("invalid_setting", String(localized: "Die Einstellung erwartet einen Ein- oder Aus-Wert."))
+            }
+            return (setting, flag)
+        }
+        for (setting, flag) in changes { preferences.set(flag, for: setting) }
+        if changes.contains(where: { $0.0 == .safeMode }) { AppModel.applySafeMode() }
+        return .object(Dictionary(uniqueKeysWithValues: AppPreferences.Setting.allCases.map {
+            ($0.rawValue, .bool(preferences.enabled($0)))
+        }))
+    }
+
     private func required(_ value: DesktopValue, _ key: String) throws -> String {
-        guard let result = value[key].text, !result.isEmpty else { throw DesktopFailure("invalid_parameter", "Missing parameter: \(key)") }
+        guard let result = value[key].text, !result.isEmpty else { throw DesktopFailure("invalid_parameter", String(localized: "Der Parameter \(key) fehlt.")) }
         return result
     }
 
@@ -473,7 +547,7 @@ public final class DesktopService {
             if entry.videoNFO?.isEditable == true { result["videoNFO"] = try .encoding(entry.videoNFOFields) }
         case .image:
             result["fields"] = try .encoding(entry.imageFields)
-            let destination = ExifTool.writeDestination(for: entry.url, preferSidecar: AppModel.imageSidecarPreferred)
+            let destination = ExifTool.writeDestination(for: entry.url, preferSidecar: preferences.enabled(.imageSidecar))
             result["writeDestination"] = destination.isSidecar ? .string(ImagePresentation.destinationText(destination)) : .null
             result["ratingOptions"] = .array(RatingPicker.options(current: entry.imageFields.rating).map { .object(["value": $0.value.map { .number(Double($0)) } ?? .null, "label": .string($0.label)]) })
             result["sidecarFields"] = try .encoding(entry.imageReading.sidecarFields.map(\.rawValue))
@@ -495,44 +569,16 @@ public final class DesktopService {
         return .object(result)
     }
 
-    private func edit(_ entry: FileEntry, values: DesktopValue) throws {
-        guard entry.kind != .invoice, !entry.isReadOnly || entry.videoNFO?.isEditable == true else { throw DesktopFailure("read_only", "This file is read-only") }
-        // Erst vollständig dekodieren, dann übernehmen. Ein fehlerhaftes Feld
-        // darf nicht die Hälfte einer mehrteiligen Eingabe verändern.
-        switch entry.kind {
-        case .audio:
-            let properties = try values["properties"].decode([TagProperty].self)
-            let chapters = try values["chapters"].decode([Chapter].self)
-            let lyrics = try values["syncedLyrics"].decode([SyncedLyricLine].self)
-            let nfo = try values["videoNFO"] == .null ? nil : values["videoNFO"].decode(NFOFields.self)
-            if entry.isReadOnly {
-                guard properties == entry.properties, chapters == entry.chapters, lyrics == entry.syncedLyrics,
-                      values["lyricsLanguage"].text == entry.lyricsLanguage else { throw DesktopFailure("read_only", "The media metadata is read-only; only its NFO sidecar can be edited") }
-            }
-            entry.properties = properties; entry.chapters = chapters; entry.syncedLyrics = lyrics
-            entry.lyricsLanguage = values["lyricsLanguage"].text ?? entry.lyricsLanguage
-            if let nfo { entry.videoNFOFields = nfo }
-        case .image: entry.imageFields = try values["fields"].decode(ImageCoreFields.self)
-        case .ebook: entry.ebookFields = try values["fields"].decode(EbookCoreFields.self)
-        case .document: entry.documentFields = try values["fields"].decode(DocumentCoreFields.self)
-        case .sidecar:
-            switch entry.sidecarContents {
-            case .nfo: entry.nfoFields = try values["fields"].decode(NFOFields.self)
-            case .subtitle: entry.subtitleFields = try values["fields"].decode(SubtitleEditableFields.self)
-            case nil: throw DesktopFailure("read_only", "No editable metadata")
-            }
-        case .playlist: entry.playlistFields = try values["fields"].decode(PlaylistCoreFields.self)
-        case .invoice: break
-        }
-    }
-
     private func convertBatchCovers(_ entries: [FileEntry], _ conversion: CoverTools.Conversion, params p: DesktopValue, model: AppModel, session: String) async throws {
         guard coverJobs[session] == nil, !model.isDestructiveActionLocked,
-              entries.allSatisfy({ !$0.isSaving }) else { throw DesktopFailure("busy", "A file operation or decision is active") }
+              entries.allSatisfy({ !$0.isSaving }) else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation oder Entscheidung steht noch aus.")) }
         let sources = entries.map { ($0, $0.frontCover) }
         let job = CoverJob(total: sources.count)
         coverJobs[session] = job
-        defer { coverJobs.removeValue(forKey: session) }
+        defer {
+            coverJobs.removeValue(forKey: session)
+            jobFinished(in: session)
+        }
         let convert = convertArtwork
         var prepared: [(FileEntry, Artwork)] = []
         var outcome = CoverToolActions.Outcome()
@@ -545,7 +591,7 @@ public final class DesktopService {
                 try Task.checkCancellation()
                 guard !job.cancelled else { throw CancellationError() }
                 try requireRevision(p, session: session)
-                guard !model.isDestructiveActionLocked, !entry.isSaving else { throw DesktopFailure("busy", "A file operation is active") }
+                guard !model.isDestructiveActionLocked, !entry.isSaving else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
                 switch result {
                 case .success(let converted):
                     if converted.data == source.data { outcome.unchanged += 1 }
@@ -561,35 +607,40 @@ public final class DesktopService {
         guard !job.cancelled else { throw CancellationError() }
         guard !model.isDestructiveActionLocked, entries.allSatisfy({ entry in
             !entry.isSaving && model.entries.contains(where: { $0 === entry })
-        }) else { throw DesktopFailure("busy", "A file operation is active") }
+        }) else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
         for (entry, artwork) in prepared { entry.setFrontCover(artwork) }
         model.alertMessage = CoverToolActions.report(outcome, action: String(localized: "Cover-Werkzeuge"))
     }
 
     private func changeCover(_ entry: FileEntry, method: String, params p: DesktopValue, beforeApply: () throws -> Void) async throws {
-        guard !entry.isReadOnly, (entry.kind == .audio && MediaFormats.supportsEmbeddedArtwork(entry.url)) || (entry.kind == .ebook && EbookTool.supportsCover(url: entry.url)) else { throw DesktopFailure("read_only", "This format has no editable embedded cover") }
+        guard !entry.isReadOnly, (entry.kind == .audio && MediaFormats.supportsEmbeddedArtwork(entry.url)) || (entry.kind == .ebook && EbookTool.supportsCover(url: entry.url)) else { throw DesktopFailure("read_only", String(localized: "Dieses Format unterstützt kein bearbeitbares eingebettetes Cover.")) }
         let index = p["index"].integer ?? 0
         if method == "removeCover" {
             try beforeApply()
-            guard entry.kind == .audio, entry.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", "No removable cover") }
+            guard entry.kind == .audio, entry.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", String(localized: "Die Datei enthält kein löschbares Cover.")) }
             entry.artworks.remove(at: index); return
         }
         let artwork: Artwork
         if method == "convertCover" {
-            guard entry.kind == .audio, entry.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", "No cover selected") }
+            guard entry.kind == .audio, entry.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", String(localized: "Wählen Sie ein Cover aus.")) }
             let source = entry.artworks[index]
             let conversion = CoverTools.Conversion(maxPixelSize: p["maxPixelSize"].integer,
                 format: p["format"].text.flatMap(CoverTools.OutputFormat.init(rawValue:)),
                 jpegQuality: 0.85, stripMetadata: p["stripMetadata"].flag)
             artwork = try await BlockingWork.run { try CoverTools.convert(source, conversion) }
         } else if method == "folderCover" {
-            guard let cover = try FolderCover.load(in: entry.url.deletingLastPathComponent()) else { throw DesktopFailure("cover_missing", "No folder cover found") }
+            let directory = entry.url.deletingLastPathComponent()
+            guard let cover = try await BlockingWork.run({ try DesktopFileInput.folderCover(directory) }) else {
+                throw DesktopFailure("cover_missing", String(localized: "Im Ordner wurde kein Cover gefunden."))
+            }
             artwork = cover
         } else {
-            let path = try required(p, "source")
-            let data = try DesktopFileInput.read(at: URL(fileURLWithPath: path))
-            guard Artwork.sniffMimeType(from: data) != nil else { throw DesktopFailure("invalid_image", "Unsupported image data") }
-            artwork = Artwork(data: data, pictureType: p["pictureType"].text ?? "Front Cover", description: p["description"].text ?? "")
+            let url = URL(fileURLWithPath: try required(p, "source"))
+            let type = p["pictureType"].text ?? "Front Cover"
+            let description = p["description"].text ?? ""
+            artwork = try await BlockingWork.run {
+                try DesktopFileInput.artwork(at: url, pictureType: type, description: description)
+            }
         }
         try beforeApply()
         switch entry.kind {
@@ -598,7 +649,7 @@ public final class DesktopService {
             else if entry.artworks.indices.contains(index) { entry.artworks[index] = artwork }
             else { entry.setFrontCover(artwork) }
         case .ebook: entry.setEbookCover(artwork.data)
-        default: throw DesktopFailure("read_only", "This format has no editable embedded cover")
+        default: throw DesktopFailure("read_only", String(localized: "Dieses Format unterstützt kein bearbeitbares eingebettetes Cover."))
         }
     }
 
@@ -606,8 +657,8 @@ public final class DesktopService {
         let selected = targets(p, in: model)
         switch method {
         case "exportValidation":
-            guard let (url, result, document) = validationResults[session] else { throw DesktopFailure("validation_missing", "Run validation first") }
-            guard try await BlockingWork.run({ result.isCurrent(at: url) }) else { throw DesktopFailure("stale_validation", "The source has changed; validate it again") }
+            guard let (url, result, document) = validationResults[session] else { throw DesktopFailure("validation_missing", String(localized: "Prüfen Sie zuerst die Rechnung.")) }
+            guard try await BlockingWork.run({ result.isCurrent(at: url) }) else { throw DesktopFailure("stale_validation", String(localized: "Die Quelldatei hat sich geändert. Prüfen Sie sie erneut.")) }
             let report = InvoiceValidationPresentation.report(result: result, status: result.status, error: nil, url: url, document: document)
             await model.exportData(Data(report.utf8), to: URL(fileURLWithPath: try required(p, "destination")))
         case "exportChapters", "exportLRC":
@@ -623,7 +674,12 @@ public final class DesktopService {
         case "stripLayer": _ = try await model.stripLayer(entry: entry(p, in: model), kind: p["layer"].decode(TagLayerKind.self))
         case "restore":
             let target = try entry(p, in: model)
-            guard p["confirmed"].flag, let version = BackupHistory.versions(of: target.url).first(where: { $0.id == p["id"].text }) else { throw DesktopFailure("confirmation_required", "Confirm the selected backup before restoring") }
+            let url = target.url
+            let id = p["id"].text
+            guard p["confirmed"].flag, let version = try await BlockingWork.run({
+                BackupHistory.versions(of: url).first(where: { $0.id == id })
+            }) else { throw DesktopFailure("confirmation_required", String(localized: "Bestätigen Sie die ausgewählte Sicherung vor der Wiederherstellung.")) }
+            try requireCurrentEditor(p, model: model, session: session)
             _ = await model.restoreVersion(version, for: target)
         case "import": try await model.importArchive(from: URL(fileURLWithPath: required(p, "source")))
         case "export": try await model.exportEntries(selected, to: URL(fileURLWithPath: required(p, "destination")))
@@ -640,24 +696,24 @@ public final class DesktopService {
         case "exportCover":
             let target = try entry(p, in: model)
             let index = p["index"].integer ?? 0
-            guard target.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", "No cover selected") }
+            guard target.artworks.indices.contains(index) else { throw DesktopFailure("cover_missing", String(localized: "Wählen Sie ein Cover aus.")) }
             try await model.exportData(target.artworks[index].data, to: URL(fileURLWithPath: required(p, "destination")))
         case "exportPlaylist":
-            guard let format = PlaylistFormat(rawValue: try required(p, "format")) else { throw DesktopFailure("invalid_format", "Invalid playlist format") }
+            guard let format = PlaylistFormat(rawValue: try required(p, "format")) else { throw DesktopFailure("invalid_format", String(localized: "Das Playlist-Format ist ungültig.")) }
             try await model.exportPlaylist(files: selected.map(\.url), to: URL(fileURLWithPath: required(p, "destination")), format: format, absolutePaths: p["absolutePaths"].flag, title: p["title"].text ?? "")
         default: break
         }
     }
 
     private func online(_ method: String, _ p: DesktopValue, model: AppModel, session: String) async throws -> DesktopValue {
-        try OnlineLookupConsent.require(enabled: UserDefaults.standard.bool(forKey: "onlineServicesAllowed") && UserDefaults.standard.bool(forKey: "privacyAcknowledged"))
+        try OnlineLookupConsent.require(enabled: preferences.onlineLookupEnabled)
         var credentials = lookupCredentials
         let supplied = p["credentials"].fields
         if supplied["discogsToken"] != nil { credentials.discogsToken = supplied["discogsToken"]?.text }
         if supplied["acoustIDKey"] != nil { credentials.acoustIDKey = supplied["acoustIDKey"]?.text }
         if credentials != lookupCredentials { lookup = nil; lookupCredentials = credentials }
         if lookup == nil { lookup = OnlineLookupService(appVersion: "desktop", credentials: lookupCredentials) }
-        guard let lookup else { throw DesktopFailure("lookup_unavailable", "Lookup is unavailable") }
+        guard let lookup else { throw DesktopFailure("lookup_unavailable", String(localized: "Die Online-Suche ist nicht verfügbar.")) }
         switch method {
         case "lookupSearch":
             let source = p["source"].text.flatMap(LookupSource.init(rawValue:)) ?? .musicbrainz
@@ -668,12 +724,12 @@ public final class DesktopService {
             for candidate in found { candidates[candidate.id] = candidate }
             return .array(try found.map { candidate in var value = try DesktopValue.encoding(candidate).fields; value["id"] = .string(candidate.id); return .object(value) })
         case "lookupDetails":
-            guard let candidate = candidates[p["id"].text ?? ""] else { throw DesktopFailure("candidate_missing", "Search result expired") }
+            guard let candidate = candidates[p["id"].text ?? ""] else { throw DesktopFailure("candidate_missing", String(localized: "Das Suchergebnis ist nicht mehr verfügbar.")) }
             let detailed = try await lookup.details(for: candidate)
             candidates[detailed.id] = detailed
             var value = try DesktopValue.encoding(detailed).fields; value["id"] = .string(detailed.id); return .object(value)
         default:
-            guard let candidate = candidates[p["id"].text ?? ""] else { throw DesktopFailure("candidate_missing", "Search result expired") }
+            guard let candidate = candidates[p["id"].text ?? ""] else { throw DesktopFailure("candidate_missing", String(localized: "Das Suchergebnis ist nicht mehr verfügbar.")) }
             let selected = targets(p, in: model).filter { $0.kind == .audio && !$0.isReadOnly }
             let assignments = TrackMatcher.assign(files: selected.map(\.lookupFileInfo), tracks: candidate.tracks)
             let options = LookupPlanOptions(includeIdentifiers: p["includeIdentifiers"] != .bool(false), overwriteExisting: p["overwriteExisting"].flag, includeCover: p["includeCover"].flag)
@@ -689,11 +745,10 @@ public final class DesktopService {
                 })
             }
             try requireRevision(p, session: session)
-            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
             let cover = options.includeCover ? try await lookup.coverData(for: candidate) : nil
-            try OnlineLookupConsent.require(enabled: UserDefaults.standard.bool(forKey: "onlineServicesAllowed") && UserDefaults.standard.bool(forKey: "privacyAcknowledged"))
-            try requireRevision(p, session: session)
-            guard !model.isEditorInteractionLocked else { throw DesktopFailure("busy", "A file operation is active") }
+            try OnlineLookupConsent.require(enabled: preferences.onlineLookupEnabled)
+            try requireCurrentEditor(p, model: model, session: session)
             let artwork = cover.map { Artwork(data: $0, mimeType: Artwork.sniffMimeType(from: $0) ?? "", pictureType: "Front Cover") }
             for (target, track, plan) in plans where track != nil || selected.count == 1 { target.applyLookup(plan, artwork: artwork) }
             changed(session)
