@@ -74,9 +74,10 @@ enum InvoicePDFValidator {
             "--format", "xml", "--flavour", "0", "--defaultflavour", "3b",
             "--maxfailuresdisplayed", "5", snapshot.path,
         ], processTimeout: timeout, outputLimit: 8 * 1024 * 1024, environment: environment, cancellation: cancellation)
-        guard [0, 1].contains(completion.exitCode) else { throw Failure.invalidReport }
+        guard case .exited(let exitCode) = completion.termination,
+              [0, 1].contains(exitCode) else { throw Failure.invalidReport }
         let report = try parseReport(completion.stdout)
-        guard (completion.exitCode == 0) == report.compliant else { throw Failure.invalidReport }
+        guard (exitCode == 0) == report.compliant else { throw Failure.invalidReport }
         try cancellation?.check()
         try inspect(bundle)
         _ = try InvoiceValidationPackage.inspect(kositBundle, cancellation: cancellation)

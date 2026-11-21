@@ -227,11 +227,13 @@ it happens anyway.
 
 **Every change is written to a copy first.** The new version is created next to
 the original, then checked (does the file still open, are channels, sample rate
-and duration unchanged, is the cover count right), and only then does it replace
-the original in a single atomic step. A crash, a format error or a full disk
-cannot leave a half-written file behind: either the change is complete, or the
-original is untouched. On APFS the initial copy can share disk blocks with the original; changed
-blocks still require space, and backend processing can take time.
+and duration unchanged, is the cover count right), synchronized to the file
+system, and published in a single atomic step. A process crash leaves the
+original path pointing to either the old file or the complete replacement.
+Format errors and write failures before publication leave the original in
+place. Recovery after power loss or a system crash depends on the file system
+and storage hardware. On APFS the initial copy can share disk blocks with the
+original. Changed blocks still require space.
 
 **Safe mode puts the previous version in the trash.** Before each change, an
 untouched copy of the file goes to the trash — collected in one folder per

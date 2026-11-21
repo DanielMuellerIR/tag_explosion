@@ -16,13 +16,16 @@ struct DesktopMain {
         var failed = false
         await withTaskGroup(of: Void.self) { group in
             var framer = DesktopFramer()
-            var running = 0
+            var outstanding = 0
             do {
                 while let chunk = try await BlockingInput.read(), !chunk.isEmpty {
                     for line in try framer.append(chunk) {
                         let request = try JSONDecoder().decode(DesktopRequest.self, from: line)
-                        if running >= 64 { await group.next(); running -= 1 }
-                        running += 1
+                        if outstanding >= 64 {
+                            await group.next()
+                            outstanding -= 1
+                        }
+                        outstanding += 1
                         group.addTask {
                             let response = await service.handle(request)
                             await output.send(response)

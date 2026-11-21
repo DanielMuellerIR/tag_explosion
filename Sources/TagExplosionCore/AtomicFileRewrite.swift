@@ -1,5 +1,5 @@
-// Hilfsrahmen fuer dateibasierte Backends: Aenderungen entstehen an einer
-// Geschwisterkopie und ersetzen das Original erst nach erfolgreicher Pruefung.
+// Änderungen entstehen an einer Geschwisterkopie und ersetzen das Original
+// erst nach erfolgreicher Prüfung.
 import Foundation
 #if canImport(Darwin)
 import Darwin
@@ -8,11 +8,8 @@ import Glibc
 #endif
 
 enum AtomicFileRewrite {
-    /// `expecting` traegt den beim Lesen erhobenen `FileStamp` bis unmittelbar
-    /// vor den Austausch: Hat ein anderes Programm das Original waehrend
-    /// Kopieren/Mutieren/Pruefen veraendert, wird abgebrochen statt dessen
-    /// Aenderung per rename zu verwerfen. nil = keine Pruefung (Aufrufer ohne
-    /// bekannten Ausgangsstand).
+    /// `expecting` trägt den beim Lesen erhobenen `FileStamp` bis zum
+    /// Austausch, damit Änderungen anderer Programme erhalten bleiben.
     static func run(
         url: URL,
         expecting stamp: FileStamp? = nil,
@@ -41,58 +38,39 @@ enum AtomicFileRewrite {
         let temp = siblingTempURL(for: destination)
         let fileManager = FileManager.default
 
-        // Einen bereits veralteten Lesestand ablehnen, bevor Kopie, Platztest
-        // und Backend-Arbeit beginnen. Die zweite, verbindliche Prüfung direkt
-        // vor rename bleibt bestehen und schließt das anschließende Zeitfenster.
         try FileStamp.requireUnchanged(stamp, at: destination)
-
-        // Ein schreibgeschuetztes Original darf durch die beschreibbare
-        // Verzeichnis-Kopie nicht unbemerkt doch veraendert werden.
-        let attributes = try fileManager.attributesOfItem(atPath: destination.path)
-        if let permissions = attributes[.posixPermissions] as? NSNumber,
-           permissions.intValue & 0o222 == 0 {
-            throw TagError.saveFailed(path: url.path)
-        }
+        try requireWritable(destination, reportedAt: url)
 
         // Die Kopie braucht Platz. Auf Dateisystemen mit Copy-on-Write (APFS)
-        // kostet sie zunaechst nichts, sonst die volle Dateigroesse.
+        // kostet sie zunächst nichts, sonst die volle Dateigröße.
         try VolumeSpace.requireRoom(for: destination)
 
-        do {
+        try withWriteError(at: url) {
             try fileManager.copyItem(at: destination, to: temp)
-        } catch {
-            throw TagError.saveFailed(path: url.path)
         }
         defer { try? fileManager.removeItem(at: temp) }
 
-        do {
+        try withWriteError(at: url) {
             try mutate(temp)
             try validate(temp)
-        } catch let error as TagError {
-            // Den echten Grund erhalten — er unterscheidet ein nicht
-            // unterstuetztes Feld von einem kaputten Schreibvorgang.
-            throw error
-        } catch {
-            throw TagError.saveFailed(path: url.path)
         }
 
-        // Letzte Kontrolle direkt vor dem Austausch: Die Kopie entstand aus dem
-        // Stand von vor Mutation und Pruefung. Hat sich das Original seither
-        // geaendert, wuerde rename genau diese fremde Aenderung ueberschreiben.
         try FileStamp.requireUnchanged(stamp, at: destination)
         guard replacingOriginal else { return }
+        try synchronize(temp, reportedAt: url)
 
         // Eine Sicherung gehört hinter Mutation und Prüfung: Ein vom Backend
         // normalisierter, also nicht exakt wiederherstellbarer Archivwert darf
         // weder im Dry-run als anwendbar gelten noch eine unnötige Sicherung
         // erzeugen. Der Hook arbeitet noch vor dem atomaren Austausch.
         try beforeReplace()
+        try requireWritable(destination, reportedAt: url)
         try FileStamp.requireUnchanged(stamp, at: destination)
 
         // Beide Pfade liegen im selben Verzeichnis. POSIX rename ersetzt
         // das Ziel in genau einem atomaren Dateisystem-Schritt.
         guard rename(temp.path, destination.path) == 0 else {
-            throw TagError.saveFailed(path: url.path)
+            throw systemWriteError(at: url, code: errno)
         }
     }
 
@@ -118,30 +96,28 @@ enum AtomicFileRewrite {
         let fileManager = FileManager.default
         defer { try? fileManager.removeItem(at: temp) }
 
-        do {
+        try withWriteError(at: url) {
             try mutate(temp)
             try validate(temp)
-        } catch let error as TagError {
-            throw error
-        } catch {
-            throw TagError.saveFailed(path: url.path)
         }
         guard replacingOriginal else { return }
+        try synchronize(temp, reportedAt: url)
 
         try beforeReplace()
         guard linkFile(temp.path, destination.path) == 0 else {
+            let code = errno
             // Linux meldet fehlende Hardlinks (etwa exFAT) auch als EPERM.
             // open prüft die Schreibrechte erneut und bleibt exklusiv.
-            if allowStreamingBackup && (errno == ENOTSUP || errno == EOPNOTSUPP || errno == EPERM) {
+            if allowStreamingBackup && (code == ENOTSUP || code == EOPNOTSUPP || code == EPERM) {
                 try createExclusiveBackup(from: temp, at: destination)
                 return
             }
             // EEXIST: Jemand anderes hat die Datei gerade angelegt — dessen
             // Stand bleibt unangetastet, der Aufrufer liest neu.
-            if errno == EEXIST {
+            if code == EEXIST {
                 throw TagError.fileChangedOnDisk(path: url.path)
             }
-            throw TagError.saveFailed(path: url.path)
+            throw systemWriteError(at: url, code: code)
         }
     }
 
@@ -149,20 +125,22 @@ enum AtomicFileRewrite {
     // exklusiv angelegt werden. Der Batch beginnt erst nach vollständigem Write
     // und fsync; keine leere Datei läuft durch TrashBackup oder das Journal.
     static func createExclusiveBackup(from source: URL, at destination: URL) throws {
-        let data = try Data(contentsOf: source)
-        let fd = open(destination.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        let sourceFD = open(source.path, O_RDONLY | O_CLOEXEC)
+        guard sourceFD >= 0 else { throw systemWriteError(at: destination, code: errno) }
+        defer { close(sourceFD) }
+
+        let fd = open(destination.path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0o600)
         guard fd >= 0 else {
             if errno == EEXIST { throw TagError.fileChangedOnDisk(path: destination.path) }
-            throw TagError.saveFailed(path: destination.path)
+            throw systemWriteError(at: destination, code: errno)
         }
+        let output = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
         var own = stat()
         guard fstat(fd, &own) == 0 else {
-            close(fd)
-            throw TagError.saveFailed(path: destination.path)
+            throw systemWriteError(at: destination, code: errno)
         }
         var complete = false
         defer {
-            close(fd)
             if !complete {
                 var current = stat()
                 if lstat(destination.path, &current) == 0
@@ -171,17 +149,82 @@ enum AtomicFileRewrite {
                 }
             }
         }
-        try data.withUnsafeBytes { buffer in
-            var offset = 0
-            while offset < buffer.count {
-                let count = write(fd, buffer.baseAddress!.advanced(by: offset), buffer.count - offset)
+        var bytes = [UInt8](repeating: 0, count: 1024 * 1024)
+        try bytes.withUnsafeMutableBufferPointer { buffer in
+            let start = buffer.baseAddress!
+            while true {
+                let count = read(sourceFD, start, buffer.count)
                 if count < 0 && errno == EINTR { continue }
-                guard count > 0 else { throw TagError.saveFailed(path: destination.path) }
-                offset += count
+                guard count >= 0 else { throw systemWriteError(at: destination, code: errno) }
+                if count == 0 { break }
+
+                var offset = 0
+                while offset < count {
+                    let written = write(fd, start.advanced(by: offset), count - offset)
+                    if written < 0 && errno == EINTR { continue }
+                    guard written > 0 else {
+                        throw systemWriteError(at: destination, code: written == 0 ? EIO : errno)
+                    }
+                    offset += written
+                }
             }
         }
-        guard fsync(fd) == 0 else { throw TagError.saveFailed(path: destination.path) }
+        try withWriteError(at: destination) {
+            try output.synchronize()
+            try output.close()
+        }
         complete = true
+    }
+
+    private static func requireWritable(_ destination: URL, reportedAt url: URL) throws {
+        let attributes = try withWriteError(at: url) {
+            try FileManager.default.attributesOfItem(atPath: destination.path)
+        }
+        let permissions = attributes[.posixPermissions] as? NSNumber
+        let immutable = attributes[.immutable] as? NSNumber
+        let appendOnly = attributes[.appendOnly] as? NSNumber
+        if permissions.map({ $0.intValue & 0o222 == 0 }) == true
+            || immutable?.boolValue == true || appendOnly?.boolValue == true {
+            throw TagError.readOnly(path: url.path)
+        }
+        guard faccessat(AT_FDCWD, destination.path, W_OK, AT_EACCESS) == 0 else {
+            let code = errno
+            if code == EACCES || code == EPERM || code == EROFS {
+                throw TagError.readOnly(path: url.path)
+            }
+            throw systemWriteError(at: url, code: code)
+        }
+    }
+
+    private static func synchronize(_ temporary: URL, reportedAt url: URL) throws {
+        // Schreibfehler der Kopie melden, solange das Original noch existiert.
+        // Der atomare Austausch selbst ist keine Stromausfallgarantie.
+        try withWriteError(at: url) {
+            let file = try FileHandle(forWritingTo: temporary)
+            try file.synchronize()
+            try file.close()
+        }
+    }
+
+    static func systemWriteError(at url: URL, code: Int32) -> TagError {
+        let reason = String(cString: strerror(code))
+        return .fileSystemWriteFailed(path: url.path, reason: "\(reason) (errno \(code))")
+    }
+
+    private static func withWriteError<T>(at url: URL, _ body: () throws -> T) throws -> T {
+        do {
+            return try body()
+        } catch let error as TagError {
+            throw error
+        } catch {
+            let reported = error as NSError
+            let underlying = reported.userInfo[NSUnderlyingErrorKey] as? NSError ?? reported
+            if underlying.domain == NSPOSIXErrorDomain, let code = Int32(exactly: underlying.code) {
+                throw systemWriteError(at: url, code: code)
+            }
+            let reason = underlying.localizedFailureReason ?? underlying.localizedDescription
+            throw TagError.fileSystemWriteFailed(path: url.path, reason: reason)
+        }
     }
 
     private static func siblingTempURL(for url: URL) -> URL {
@@ -206,10 +249,13 @@ enum VolumeSpace {
     /// auf ihren eigenen Datentraeger passt. Kann der Datentraeger klonen
     /// (APFS), belegt die Kopie anfangs keine zusaetzlichen Bloecke.
     static func requireRoom(for url: URL, extraFiles: [URL] = []) throws {
-        let needed = try requiredBytes(for: [url] + extraFiles)
+        try requireRoom(for: url, bytes: requiredBytes(for: [url] + extraFiles))
+    }
+
+    static func requireRoom(for url: URL, bytes needed: Int64) throws {
         guard needed > 0 else { return }
         guard let free = availableBytes(at: url) else { return }
-        guard free >= needed + margin else {
+        guard free >= margin, needed <= free - margin else {
             throw TagError.notEnoughSpace(path: url.path, needBytes: needed, freeBytes: free)
         }
     }

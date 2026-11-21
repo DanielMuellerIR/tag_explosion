@@ -1,8 +1,10 @@
 // CTagShim — schlanke C-Schnittstelle über die TagLib-C++-API (MIT-lizenziert).
 // Konventionen:
-//  - Alle Strings sind UTF-8, heap-allokiert und gehören dem Aufrufer nach
-//    Rückgabe (Freigabe über die passende tx_free_*-Funktion).
+//  - Strings sind UTF-8. Ausgabestrings gehören dem Aufrufer (Freigabe wie
+//    bei der jeweiligen Funktion angegeben).
 //  - Rückgabewert int: 1 = Erfolg, 0 = Fehler (sofern nicht anders vermerkt).
+//  - Arraylängen sind nicht negativ. Bei einer Länge von 0 darf der Zeiger
+//    NULL sein. Lesefunktionen geben bei Fehlern keine Teilresultate zurück.
 //  - Mehrwertige Tag-Felder werden als wiederholte Key/Value-Paare abgebildet.
 #ifndef CTAGSHIM_H
 #define CTAGSHIM_H
@@ -16,7 +18,7 @@ extern "C" {
 // Opakes Handle auf eine geöffnete Mediendatei.
 typedef struct tx_file tx_file;
 
-// Öffnet eine Datei (Pfad UTF-8). NULL, wenn TagLib das Format nicht lesen kann.
+// Öffnet eine Datei (Pfad UTF-8). NULL, wenn sie nicht geöffnet werden kann.
 tx_file* tx_open(const char* path);
 
 // Schließt das Handle und gibt alle internen Ressourcen frei.
@@ -41,8 +43,10 @@ tx_prop* tx_get_properties(tx_file* f, int32_t* out_count);
 void tx_free_properties(tx_prop* props, int32_t count);
 
 // Ersetzt die komplette Property-Map durch die übergebenen Paare.
-// Rückgabe: Anzahl der vom Format abgelehnten Properties (0 = alles übernommen),
-// -1 bei Fehler. Erst tx_save() macht die Änderung persistent.
+// Rückgabe: Anzahl der vom Format abgelehnten Property-Werte (0 = alles
+// übernommen), -1 bei Fehler. Bei kollidierenden USLT-Schlüsseln wird 1
+// zurückgegeben, bevor Änderungen stattfinden. Erst tx_save() macht Änderungen
+// persistent.
 int32_t tx_set_properties(tx_file* f, const tx_prop* props, int32_t count);
 
 // ---- Bilder (Cover etc.) ---------------------------------------------------
@@ -55,10 +59,13 @@ typedef struct {
     char* description;   // Freitext, kann leer sein
 } tx_picture;
 
+// Liefert alle Bilder. NULL bei 0 Einträgen oder Fehler (out_count 0 bzw. -1).
 tx_picture* tx_get_pictures(tx_file* f, int32_t* out_count);
 void tx_free_pictures(tx_picture* pics, int32_t count);
 
-// Ersetzt alle eingebetteten Bilder. Erst tx_save() macht es persistent.
+// Ersetzt alle eingebetteten Bilder. size darf nicht negativ sein. Bei
+// positiver Größe muss data auf die angegebenen Bytes zeigen.
+// Erst tx_save() macht die Änderung persistent.
 int tx_set_pictures(tx_file* f, const tx_picture* pics, int32_t count);
 
 // ---- Audio-Eigenschaften (read-only) ---------------------------------------
@@ -70,7 +77,8 @@ typedef struct {
     int32_t channels;
 } tx_audio_properties;
 
-// 1 = Werte gefüllt, 0 = keine Audio-Eigenschaften verfügbar.
+// 1 = Werte gefüllt, 0 = keine Audio-Eigenschaften verfügbar oder Fehler.
+// Bei 0 werden alle Ausgabefelder auf 0 gesetzt, falls out angegeben ist.
 int tx_get_audio_properties(tx_file* f, tx_audio_properties* out);
 
 // ---- Kapitel (Hörbücher, Podcasts) -----------------------------------------
@@ -126,37 +134,39 @@ typedef struct {
 int tx_id3v2_supported(tx_file* f);
 
 // Sprache des ersten USLT-Frames (drei Buchstaben, z.B. "deu"; "XXX" =
-// unbekannt). NULL, wenn kein USLT vorhanden ist oder das Format kein ID3v2
-// kennt. Aufrufer gibt mit free() frei.
+// unbekannt). NULL bei fehlendem USLT, Format ohne ID3v2 oder Fehler.
+// Aufrufer gibt mit free() frei.
 char* tx_get_lyrics_language(tx_file* f);
 
 // Setzt die Sprache aller USLT-Frames. Ohne USLT-Frame passiert nichts (1).
-// 0 = Format ohne ID3v2 oder ungültige Sprache (nicht genau drei Zeichen).
+// 0 = Format ohne ID3v2, Sprache hat nicht genau drei Bytes oder Fehler.
 // Erst tx_save() macht die Änderung persistent.
 int tx_set_lyrics_language(tx_file* f, const char* language);
 
 // Zeilen des ersten SYLT-Frames mit Millisekunden-Zeitstempeln, nach Zeit
 // sortiert. out_count = Anzahl; NULL bei 0 Einträgen oder Fehler (out_count
 // unterscheidet: 0 bzw. -1). out_language (optional) erhält die Sprache des
-// Frames (Aufrufer gibt frei) oder NULL. Array und Texte mit
+// Frames (Aufrufer gibt mit free() frei) oder NULL. Ein leerer Frame kann eine
+// Sprache haben. Bei Fehler bleibt out_language NULL. Array und Texte mit
 // tx_free_synced_lyrics freigeben.
 tx_synced_line* tx_get_synced_lyrics(tx_file* f, int32_t* out_count, char** out_language);
 void tx_free_synced_lyrics(tx_synced_line* lines, int32_t count);
 
 // Ersetzt alle SYLT-Frames durch genau einen mit den übergebenen Zeilen
 // (count 0 = alle entfernen, außer preserve_empty ist gesetzt: leerer Frame).
-// language: drei Buchstaben oder NULL ("XXX").
+// time_ms muss als vorzeichenlose 32-Bit-Zahl darstellbar sein. language
+// enthält drei Bytes, bei NULL oder anderer Länge wird "XXX" gespeichert.
 // Der Shim kopiert die Daten. 1 = Erfolg, 0 = Fehler oder Format ohne ID3v2.
 int tx_set_synced_lyrics(tx_file* f, const tx_synced_line* lines, int32_t count,
                          const char* language, int preserve_empty);
 
 // Feld außerhalb der PropertyMap: id3_frame ist eine ID3v2-Frame-ID (vier
-// Zeichen, z.B. "TKWD"; "PCST" = Podcast-Flag), mp4_atom ein MP4-Atomname
+// Bytes, z.B. "TKWD"; "PCST" = Podcast-Flag), mp4_atom ein MP4-Atomname
 // (z.B. "keyw"; "pcst" = Podcast-Flag). Leer/NULL = für dieses Format kein
 // Speicherort. Flags liefern "1", wenn gesetzt.
 // 1, wenn das Format der Datei einen der beiden Speicherorte hat.
 int tx_native_field_supported(tx_file* f, const char* id3_frame, const char* mp4_atom);
-// Wert (UTF-8, Aufrufer gibt mit free() frei) oder NULL, wenn nicht vorhanden.
+// Wert (UTF-8, Aufrufer gibt mit free() frei) oder NULL bei Fehlen oder Fehler.
 char* tx_get_native_field(tx_file* f, const char* id3_frame, const char* mp4_atom);
 // Setzt den Wert; leer/NULL entfernt das Feld. 1 = Erfolg, 0 = Format ohne
 // Speicherort oder Fehler. Erst tx_save() macht die Änderung persistent.
@@ -212,7 +222,7 @@ int tx_save_id3v2(tx_file* f, int32_t id3v2_version);
 
 // ---- Sonstiges --------------------------------------------------------------
 
-// TagLib-Versionsstring der gelinkten Bibliothek, z.B. "2.3.0". Statisch, nicht freigeben.
+// Version der beim Bau verwendeten TagLib-Header, z.B. "2.3.0". Statisch.
 const char* tx_taglib_version(void);
 
 #ifdef __cplusplus

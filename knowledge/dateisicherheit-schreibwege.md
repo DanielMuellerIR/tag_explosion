@@ -17,6 +17,12 @@ oder `FileStamp` — und bevor irgendwo ein neuer Schreibweg entsteht.
 Schicht 1 verhindert kaputte Dateien, Schicht 2 verhindert *falsche* Dateien
 (erfolgreich geschrieben, aber ungewollt).
 
+Vor der Veröffentlichung synchronisiert der Schreibrahmen die fertig geprüfte
+Datei. Scheitert das, wird das Original nicht ersetzt. Atomarer Austausch
+schützt bei einem Absturz des App- oder CLI-Prozesses. Eine Zusage für
+Stromausfall oder Kernelabsturz würde auch dauerhafte Verzeichniseinträge,
+Dateisystem und Speichermedium einbeziehen.
+
 ## Fallen
 
 - **`URL.resourceValues` cached.** Eine URL-Instanz merkt sich einmal

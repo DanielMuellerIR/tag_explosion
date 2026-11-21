@@ -20,7 +20,14 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
     tools = work / 'tools'; tools.mkdir()
     marker = work / 'mediainfo-started'
     fake = tools / 'mediainfo'
-    fake.write_text('#!' + sys.executable + '\nfrom pathlib import Path\nimport time\nPath(' + repr(str(marker)) + ').touch()\ntime.sleep(60)\n')
+    fake.write_text(
+        f'#!{sys.executable}\n'
+        'from pathlib import Path\nimport os\nimport time\n'
+        'stdin = os.fstat(0)\nnull = os.stat(os.devnull)\n'
+        'isolated = (stdin.st_dev, stdin.st_ino) == (null.st_dev, null.st_ino)\n'
+        f'Path({str(marker)!r}).write_text("EOF" if isolated and not os.read(0, 1) else "inherited")\n'
+        'time.sleep(60)\n'
+    )
     fake.chmod(0o755)
     environment['PATH'] = str(tools) + os.pathsep + os.environ.get('PATH', '')
     engine = subprocess.Popen([str(args.engine.resolve())], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=environment, bufsize=0)
@@ -125,8 +132,10 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
         engine.stdin.write(json.dumps({'id': info_id, 'session': 'main', 'method': 'info', 'params': {'path': str(media)}}).encode() + b'\n')
         engine.stdin.flush()
         deadline = time.monotonic() + 10
-        while not marker.exists() and time.monotonic() < deadline: time.sleep(.02)
+        while (not marker.exists() or not marker.stat().st_size) and time.monotonic() < deadline:
+            time.sleep(.02)
         assert marker.exists(), 'MediaInfo-Auftrag wurde nicht gestartet'
+        assert marker.read_text() == 'EOF', 'Werkzeug hat keinen getrennten stdin'
         assert call('prepareUpdate') is False
         started = time.monotonic()
         call('cancel', {'operation': 'info'})

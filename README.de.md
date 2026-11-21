@@ -232,13 +232,14 @@ gebaut, dass das unwahrscheinlich wird — und im Ernstfall umkehrbar bleibt.
 
 **Jede Änderung entsteht zuerst an einer Kopie.** Die neue Fassung wird neben
 dem Original angelegt, geprüft (lässt sich die Datei noch öffnen, sind Kanäle,
-Samplerate und Spielzeit unverändert, stimmt die Zahl der Cover) und ersetzt das
-Original erst danach in einem einzigen atomaren Schritt. Ein Absturz, ein
-Formatfehler oder ein voller Datenträger kann keine halb geschriebene Datei
-hinterlassen: Entweder die Änderung ist vollständig, oder das Original ist
-unberührt. Auf APFS kann die anfängliche Kopie Blöcke mit dem Original teilen;
-geänderte Blöcke brauchen weiterhin Platz, und die Backend-Verarbeitung kann
-Zeit benötigen.
+Samplerate und Spielzeit unverändert, stimmt die Zahl der Cover), mit dem
+Dateisystem synchronisiert und in einem atomaren Schritt veröffentlicht. Bei
+einem Prozessabsturz zeigt der Originalpfad weiterhin auf die alte Datei oder
+auf den vollständigen Ersatz. Format- und Schreibfehler vor dem Austausch
+lassen das Original unverändert. Die Wiederherstellung nach Stromausfall oder
+Systemabsturz hängt vom Dateisystem und dem Speichermedium ab. Auf APFS kann
+die anfängliche Kopie Blöcke mit dem Original teilen. Geänderte Blöcke brauchen
+weiterhin Platz.
 
 **Der abgesicherte Modus legt die alte Fassung in den Papierkorb.** Vor jeder
 Änderung wandert eine unveränderte Kopie der Datei dorthin — gesammelt in einem

@@ -42,12 +42,7 @@ enum ZipContainer {
             throw TagError.cannotOpen(path: archive.url.path)
         }
         var data = Data()
-        try extract(entry, in: archive) {
-            guard $0.count <= maximumSize - data.count else {
-                throw TagError.cannotOpen(path: archive.url.path)
-            }
-            data.append($0)
-        }
+        try extract(entry, in: archive) { data.append($0) }
         return data
     }
 
@@ -56,8 +51,18 @@ enum ZipContainer {
     /// unveränderte Nutzdaten, die beim Neuaufbau eine neue Prüfsumme bekommen.
     private static func extract(_ entry: Entry, in archive: Archive,
                                 consume: (Data) throws -> Void) throws {
-        let checksum = try archive.extract(entry, bufferSize: 256 * 1024, consumer: consume)
-        guard checksum == entry.checksum else { throw TagError.cannotOpen(path: archive.url.path) }
+        var remaining = entry.uncompressedSize
+        let checksum = try archive.extract(entry, bufferSize: 256 * 1024) { chunk in
+            // Die komprimierte Eingabelänge begrenzt die Ausgabe nicht.
+            // Vor dem Puffern oder Schreiben jeden entpackten Block prüfen.
+            let count = UInt64(chunk.count)
+            guard count <= remaining else { throw TagError.cannotOpen(path: archive.url.path) }
+            remaining -= count
+            try consume(chunk)
+        }
+        guard remaining == 0, checksum == entry.checksum else {
+            throw TagError.cannotOpen(path: archive.url.path)
+        }
     }
 
     /// Inhalt des Eintrags unter `path`; nil, wenn es ihn nicht gibt.
@@ -97,7 +102,7 @@ enum ZipContainer {
         // Das neue ZIP enthält schon vor der Metadatenübernahme private Daten.
         // Ein exklusiver Ordner schützt deshalb auch den gesamten Zwischenstand.
         guard mkdir(workspace.path, 0o700) == 0 else {
-            throw TagError.saveFailed(path: url.path)
+            throw AtomicFileRewrite.systemWriteError(at: url, code: errno)
         }
         defer { try? FileManager.default.removeItem(at: workspace) }
         let content = workspace.appendingPathComponent("content.zip")
@@ -112,7 +117,7 @@ enum ZipContainer {
         // Kopie ist danach weg, das Original bleibt bis zum Ende von
         // AtomicFileRewrite unangetastet.
         guard rename(rebuilt.path, url.path) == 0 else {
-            throw TagError.saveFailed(path: url.path)
+            throw AtomicFileRewrite.systemWriteError(at: url, code: errno)
         }
     }
 
@@ -143,12 +148,15 @@ enum ZipContainer {
     /// ist, bevor `rewrite` es per rename an seinen Platz schiebt.
     private static func build(from sourceURL: URL, to targetURL: URL,
                               replacing replacements: [String: Data]) throws {
+        let expectedEntries = try declaredEntryCount(at: sourceURL)
         let source = try open(url: sourceURL, accessMode: .read)
         let target = try open(url: targetURL, accessMode: .create)
         var pending = replacements
+        var copiedEntries: UInt64 = 0
         for entry in source {
+            copiedEntries += 1
             let path = entry.path
-            if replacements[path] == nil, entry.type == .file, entry.uncompressedSize > 1024 * 1024 {
+            if pending[path] == nil, entry.type == .file, entry.uncompressedSize > 1024 * 1024 {
                 try copyLargeEntry(entry, from: source, to: target,
                     staging: targetURL.deletingLastPathComponent().appendingPathComponent("entry-content"))
                 continue
@@ -168,6 +176,7 @@ enum ZipContainer {
                     compressed: entry.isCompressed,
                     attributes: entry.fileAttributes, to: target)
         }
+        guard copiedEntries == expectedEntries else { throw TagError.cannotOpen(path: sourceURL.path) }
         // Neue Einträge in stabiler Reihenfolge anhängen.
         for path in pending.keys.sorted() {
             try add(path: path, data: pending[path]!, type: .file, compressed: true,
@@ -175,11 +184,60 @@ enum ZipContainer {
         }
     }
 
+    // ZIPFoundation beendet die Iteration auch bei einem nicht lesbaren
+    // Eintrag ohne Fehler. Die Anzahl aus dem Verzeichnisende (ZIP APPNOTE,
+    // §§ 4.3.14–16) verhindert dann, dass ein verkürztes Archiv gespeichert wird.
+    private static func declaredEntryCount(at url: URL) throws -> UInt64 {
+        let archive = try FileHandle(forReadingFrom: url)
+        defer { try? archive.close() }
+        let length = try archive.seekToEnd()
+        let endRecordSize = 22
+        let locatorSize = 20
+        let tailSize = Int(min(length, UInt64(endRecordSize + locatorSize + Int(UInt16.max))))
+        let tailOffset = length - UInt64(tailSize)
+        try archive.seek(toOffset: tailOffset)
+        guard let tail = try archive.read(upToCount: tailSize), tail.count >= endRecordSize else {
+            throw TagError.cannotOpen(path: url.path)
+        }
+        func number<T: FixedWidthInteger>(_ type: T.Type, in bytes: Data, at position: Int) -> T {
+            bytes.withUnsafeBytes { T(littleEndian: $0.loadUnaligned(fromByteOffset: position, as: type)) }
+        }
+        for end in stride(from: tail.count - endRecordSize, through: 0, by: -1) {
+            guard number(UInt32.self, in: tail, at: end) == 0x06054b50,
+                  Int(number(UInt16.self, in: tail, at: end + 20)) == tail.count - end - endRecordSize
+            else { continue }
+
+            let locator = end - locatorSize
+            if locator >= 0, number(UInt32.self, in: tail, at: locator) == 0x07064b50 {
+                let recordOffset = number(UInt64.self, in: tail, at: locator + 8)
+                let locatorOffset = tailOffset + UInt64(locator)
+                let zip64RecordSize = 56
+                guard recordOffset <= locatorOffset, locatorOffset - recordOffset >= zip64RecordSize else {
+                    throw TagError.cannotOpen(path: url.path)
+                }
+                try archive.seek(toOffset: recordOffset)
+                guard let record = try archive.read(upToCount: zip64RecordSize), record.count == zip64RecordSize,
+                      number(UInt32.self, in: record, at: 0) == 0x06064b50 else {
+                    throw TagError.cannotOpen(path: url.path)
+                }
+                return number(UInt64.self, in: record, at: 32)
+            }
+            return UInt64(number(UInt16.self, in: tail, at: end + 10))
+        }
+        throw TagError.cannotOpen(path: url.path)
+    }
+
     /// ZIPFoundation stellt entpackte Daten als Push-Strom bereit, addEntry
     /// fordert sie dagegen blockweise an. Eine Datei verbindet beide APIs,
     /// ohne einen kompletten Medieninhalt im Arbeitsspeicher zu halten.
     private static func copyLargeEntry(_ entry: Entry, from source: Archive, to target: Archive,
                                        staging: URL) throws {
+        guard let size = Int64(exactly: entry.uncompressedSize) else {
+            throw TagError.cannotOpen(path: source.url.path)
+        }
+        // Nur ein großer Eintrag liegt gleichzeitig entpackt vor. Maßstab ist
+        // der freie Platz nach den bisherigen Einträgen im Zielarchiv.
+        try VolumeSpace.requireRoom(for: source.url, bytes: size)
         try Data().write(to: staging, options: .withoutOverwriting)
         defer { try? FileManager.default.removeItem(at: staging) }
         let output = try FileHandle(forWritingTo: staging)
@@ -189,15 +247,15 @@ enum ZipContainer {
         let input = try FileHandle(forReadingFrom: staging)
         defer { try? input.close() }
         let attributes = entry.fileAttributes
-        try target.addEntry(with: entry.path, type: entry.type, uncompressedSize: Int64(entry.uncompressedSize),
+        try target.addEntry(with: entry.path, type: entry.type, uncompressedSize: size,
             modificationDate: attributes[.modificationDate] as? Date ?? Date(),
             permissions: (attributes[.posixPermissions] as? NSNumber)?.uint16Value,
             compressionMethod: entry.isCompressed ? .deflate : .none, bufferSize: 256 * 1024
-        ) { position, size in
+        ) { position, requested in
             try input.seek(toOffset: UInt64(position))
-            let chunk = try readChunk(from: input, size: size) ?? Data()
+            let chunk = try readChunk(from: input, size: requested) ?? Data()
             // Deflate darf zum Abschluss über das Dateiende hinaus anfragen.
-            let expected = min(Int64(size), max(0, Int64(entry.uncompressedSize) - position))
+            let expected = min(Int64(requested), max(0, size - position))
             guard Int64(chunk.count) == expected else { throw TagError.saveFailed(path: staging.path) }
             return chunk
         }

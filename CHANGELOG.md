@@ -8,6 +8,18 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.4 — 2026-11-21
+
+- Dokumentarchive prüfen entpackte Blocklängen, Prüfsummen und die vollständige
+  Übernahme des ZIP-Verzeichnisses vor dem Austausch.
+- Atomare Schreibwege prüfen effektive Rechte und synchronisieren die geprüfte
+  Kopie vor dem Austausch. Automatische Archivkopien ohne Hardlinks werden
+  blockweise geschrieben.
+- TagLib- und QPDF-Adapter behandeln ungültige Eingaben und Fehler an der
+  C-Schnittstelle. Das Auflösen von PDF-Anhängen nutzt Objektidentitäten.
+- Externe Werkzeuge erhalten einen eigenen leeren Eingabekanal. Prozesssignale
+  und Exitcodes sind getrennt, beim Abbruch wird die Prozessgruppe bereinigt.
+
 ## 0.54.3 — 2026-11-09
 
 - Linux: Erste Kapitel und synchronisierte Liedtextzeilen lassen sich wieder

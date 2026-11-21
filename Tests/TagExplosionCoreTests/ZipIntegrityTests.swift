@@ -66,4 +66,23 @@ struct ZipIntegrityTests {
         }
         #expect(try Data(contentsOf: url) == before)
     }
+
+    @Test("Ein vorzeitig endendes ZIP-Verzeichnis verhindert das Speichern")
+    func incompleteDirectoryPreventsRewrite() throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        let original = try DocumentTool.readCoreFields(url: url)
+        var edited = original
+        edited.title = "Darf nicht gespeichert werden"
+        var before = try Data(contentsOf: url)
+        let end = try #require(before.range(of: Data([0x50, 0x4b, 0x05, 0x06]), options: .backwards))
+        try #require(end.lowerBound + 22 == before.count)
+        before[end.lowerBound + 8] += 1
+        before[end.lowerBound + 10] += 1
+        try before.write(to: url)
+
+        #expect(throws: TagError.cannotOpen(path: url.path)) {
+            try DocumentTool.write(url: url, fields: edited, original: original)
+        }
+        #expect(try Data(contentsOf: url) == before)
+    }
 }

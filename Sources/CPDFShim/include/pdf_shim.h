@@ -15,6 +15,8 @@ size_t tagx_pdf_count(void *document, uint32_t node);
 uint32_t tagx_pdf_item(void *document, uint32_t node, size_t index);
 int tagx_pdf_integer(void *document, uint32_t node, int64_t *value);
 const char *tagx_pdf_text(void *document, uint32_t node);
+// Bei gültigen Ausgabezeigern bleiben diese im Fehlerfall leer.
+// Ein erfolgreicher Aufruf überträgt den Puffer an den Aufrufer (tagx_pdf_free).
 int tagx_pdf_stream(void *document, uint32_t node, uint8_t **bytes, size_t *length);
 void tagx_pdf_free(uint8_t *bytes);
 #ifdef __cplusplus

@@ -290,10 +290,12 @@ public extension String {
 public enum TagError: Error, LocalizedError, Sendable, Equatable {
     case cannotOpen(path: String)
     case saveFailed(path: String)
+    case fileSystemWriteFailed(path: String, reason: String)
     case readOnly(path: String)
     case propertiesRejected(count: Int)
     case toolNotFound(name: String)
     case toolFailed(name: String, exitCode: Int32, stderr: String)
+    case toolTerminated(name: String, signal: Int32, stderr: String)
     /// Auf dem Datenträger ist zu wenig Platz für die Sicherheitskopie, die
     /// jedem Schreibvorgang vorausgeht.
     case notEnoughSpace(path: String, needBytes: Int64, freeBytes: Int64)
@@ -355,6 +357,8 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             switch error {
             case .cannotOpen: throw TagError.cannotOpen(path: url.path)
             case .saveFailed: throw TagError.saveFailed(path: url.path)
+            case .fileSystemWriteFailed(_, let reason):
+                throw TagError.fileSystemWriteFailed(path: url.path, reason: reason)
             case .readOnly: throw TagError.readOnly(path: url.path)
             case .fileChangedOnDisk: throw TagError.fileChangedOnDisk(path: url.path)
             case .backupFailed(_, let reason):
@@ -368,7 +372,7 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             case .layerUnsupported(_, let layer):
                 throw TagError.layerUnsupported(path: url.path, layer: layer)
             // Diese Fälle tragen keinen Dateipfad und bleiben unverändert.
-            case .propertiesRejected, .toolNotFound, .toolFailed,
+            case .propertiesRejected, .toolNotFound, .toolFailed, .toolTerminated,
                  .unsupportedCoverData, .seriesIndexWithoutSeries, .invalidChapters,
                  .unsupportedDocumentField, .invalidDocumentValue,
                  .invalidFieldValue, .invalidLyrics,
@@ -386,6 +390,8 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "Cannot read file as a media file: \(path)"
         case .saveFailed(let path):
             return "Changes could not be saved: \(path)"
+        case .fileSystemWriteFailed(let path, let reason):
+            return "Changes could not be saved: \(path) (\(reason))"
         case .readOnly(let path):
             return "File is read-only: \(path)"
         case .propertiesRejected(let count):
@@ -394,6 +400,8 @@ public enum TagError: Error, LocalizedError, Sendable, Equatable {
             return "External program not found: \(name)"
         case .toolFailed(let name, let code, let stderr):
             return "\(name) failed (exit code \(code)): \(stderr)"
+        case .toolTerminated(let name, let signal, let stderr):
+            return "\(name) terminated by signal \(signal): \(stderr)"
         case .notEnoughSpace(let path, let need, let free):
             return "Not enough free space for a safety copy of \(path) "
                 + "(needs \(need) bytes, \(free) bytes available)"

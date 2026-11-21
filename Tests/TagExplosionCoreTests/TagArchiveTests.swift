@@ -1298,12 +1298,16 @@ struct TagArchiveTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let target = directory.appendingPathComponent("export.json")
-        #expect(throws: TagError.saveFailed(path: target.path)) {
+        do {
             try AtomicFileRewrite.create(url: target, replacingOriginal: true,
                                          linkFile: { _, _ in errno = linkError; return -1 },
                                          beforeReplace: {},
                                          mutate: { try Data("Export".utf8).write(to: $0) },
                                          validate: { _ in })
+            Issue.record("Normale Exporte dürfen nicht auf direktes Schreiben ausweichen")
+        } catch TagError.fileSystemWriteFailed(let path, let reason) {
+            #expect(path == target.path)
+            #expect(reason.contains("errno \(linkError)"))
         }
         #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
     }

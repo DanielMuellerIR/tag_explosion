@@ -204,12 +204,14 @@ public final class TrashBackup: @unchecked Sendable {
 
     /// Setzt die Sitzung zurück (Tests; danach entsteht ein neuer Ordner).
     public func resetSession() {
-        lock.withLock {
-            stamp = nil
-            folders = [:]
-            subfolderNames = [:]
-            savedStates = [:]
-            bytesWritten = 0
+        operationLock.withLock {
+            lock.withLock {
+                stamp = nil
+                folders = [:]
+                subfolderNames = [:]
+                savedStates = [:]
+                bytesWritten = 0
+            }
         }
     }
 

@@ -186,7 +186,7 @@ struct DocumentToolTests {
     @Test("Große ZIP-Einträge behalten Inhalt, Kompression und Rechte", arguments: [false, true])
     func largeZipEntrySurvives(compressed: Bool) throws {
         let url = try Fixtures.workingCopy("doc.docx")
-        let payload = Data(repeating: 0x5a, count: 2 * 1024 * 1024)
+        let payload = Data(repeating: 0x5a, count: ZipContainer.metadataSizeLimit + 1)
         let entryPath = "word/media/large.bin"
         do {
             let archive = try ZipContainer.open(url: url, accessMode: .update)
@@ -202,7 +202,7 @@ struct DocumentToolTests {
         let entry = try #require(archive[entryPath])
         #expect(entry.isCompressed == compressed)
         #expect((entry.fileAttributes[.posixPermissions] as? NSNumber)?.intValue == 0o640)
-        #expect(try ZipContainer.data(of: entry, in: archive) == payload)
+        #expect(try ZipContainer.data(of: entry, in: archive, maximumSize: payload.count) == payload)
         #expect(try DocumentTool.readCoreFields(url: url) == fields)
     }
 

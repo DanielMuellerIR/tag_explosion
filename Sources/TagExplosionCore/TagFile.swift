@@ -240,8 +240,8 @@ public final class TagFile {
     // MARK: - Schreiben
 
     /// Ersetzt alle Text-Properties (noch nicht persistent — `save()` aufrufen).
-    /// Wirft `propertiesRejected`, wenn das Format Felder nicht aufnehmen kann;
-    /// die restlichen Felder sind dann trotzdem gesetzt.
+    /// Wirft `propertiesRejected` bei abgelehnten Feldern. Die PropertyMap
+    /// kann dabei bereits teilweise übernommen worden sein.
     ///
     /// Bewusst nicht public: Von außen führt jeder Schreibweg über das
     /// statische `write(properties:artworks:to:)` (Backup + atomarer
@@ -254,17 +254,21 @@ public final class TagFile {
         let nativeSlots = supportedNativeSlots()
         let nativeKeys = Set(nativeSlots.map(\.key))
         let plain = properties.filter { !nativeKeys.contains($0.key) }
+        guard let count = Int32(exactly: plain.count) else { throw TagError.saveFailed(path: path) }
         var cProps: [tx_prop] = []
         // C-Strings müssen bis zum Aufruf gültig bleiben — strdup + explizites free.
         cProps.reserveCapacity(plain.count)
-        for prop in plain {
-            cProps.append(tx_prop(key: strdup(prop.key), value: strdup(prop.value)))
-        }
         defer {
             for p in cProps { free(p.key); free(p.value) }
         }
-        let rejected = tx_set_properties(h, cProps, Int32(cProps.count))
+        for prop in plain {
+            let entry = tx_prop(key: strdup(prop.key), value: strdup(prop.value))
+            cProps.append(entry)
+            guard entry.key != nil, entry.value != nil else { throw TagError.saveFailed(path: path) }
+        }
+        let rejected = tx_set_properties(h, cProps, count)
         guard rejected >= 0 else { throw TagError.cannotOpen(path: path) }
+        guard rejected == 0 else { throw TagError.propertiesRejected(count: Int(rejected)) }
         // Erst nach der PropertyMap, weil TagLib dort Frames ohne Schlüssel in
         // der neuen Map entfernt (das PCST-Flag) — der eigene Weg setzt sie
         // anschließend wieder. Ein fehlender Schlüssel entfernt das Feld.
@@ -279,7 +283,6 @@ public final class TagFile {
                 throw TagError.saveFailed(path: path)
             }
         }
-        if rejected > 0 { throw TagError.propertiesRejected(count: Int(rejected)) }
     }
 
     /// Ersetzt alle SYLT-Frames (leer = entfernen); nicht public — siehe
@@ -288,14 +291,16 @@ public final class TagFile {
     func setSyncedLyrics(_ lines: [SyncedLyricLine], language: String, preservingEmptyFrame: Bool = false) throws {
         let h = try requireHandle()
         guard supportsSyncedLyrics else { throw TagError.syncedLyricsUnsupported(path: path) }
+        guard let count = Int32(exactly: lines.count) else { throw TagError.saveFailed(path: path) }
         var cLines: [tx_synced_line] = []
         cLines.reserveCapacity(lines.count)
-        for line in lines {
-            cLines.append(tx_synced_line(text: strdup(line.text), time_ms: Int64(line.milliseconds)))
-        }
         defer { for line in cLines { free(line.text) } }
+        for line in lines {
+            guard let text = strdup(line.text) else { throw TagError.saveFailed(path: path) }
+            cLines.append(tx_synced_line(text: text, time_ms: Int64(line.milliseconds)))
+        }
         let lang = language.isEmpty ? "XXX" : language
-        guard tx_set_synced_lyrics(h, cLines, Int32(cLines.count), lang, preservingEmptyFrame ? 1 : 0) == 1 else {
+        guard tx_set_synced_lyrics(h, cLines, count, lang, preservingEmptyFrame ? 1 : 0) == 1 else {
             throw TagError.saveFailed(path: path)
         }
     }
@@ -313,31 +318,40 @@ public final class TagFile {
     /// aufrufen). Nicht public — siehe `setProperties`.
     func setArtworks(_ artworks: [Artwork]) throws {
         let h = try requireHandle()
+        guard let count = Int32(exactly: artworks.count) else { throw TagError.saveFailed(path: path) }
         // Bilddaten in stabile Heap-Puffer kopieren, damit die Pointer während
         // des C-Aufrufs garantiert gültig bleiben.
         var cPics: [tx_picture] = []
         cPics.reserveCapacity(artworks.count)
-        for art in artworks {
-            let size = art.data.count
-            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: max(size, 1))
-            art.data.copyBytes(to: buffer, count: size)
-            // Leerer MIME-Type wird beim Schreiben aus den Magic Bytes ergänzt,
-            // damit Player das Bild zuverlässig anzeigen.
-            cPics.append(tx_picture(
-                data: buffer,
-                size: Int32(size),
-                mime: strdup(art.resolvedMimeType),
-                picture_type: strdup(art.pictureType),
-                description: strdup(art.description)
-            ))
-        }
         defer {
             for p in cPics {
-                p.data?.deallocate()
+                free(p.data)
                 free(p.mime); free(p.picture_type); free(p.description)
             }
         }
-        guard tx_set_pictures(h, cPics, Int32(cPics.count)) == 1 else {
+        for art in artworks {
+            let size = art.data.count
+            let capacity = max(size, 1)
+            guard let shimSize = Int32(exactly: size), let memory = malloc(capacity) else {
+                throw TagError.saveFailed(path: path)
+            }
+            let buffer = memory.bindMemory(to: UInt8.self, capacity: capacity)
+            art.data.copyBytes(to: buffer, count: size)
+            // Leerer MIME-Type wird beim Schreiben aus den Magic Bytes ergänzt,
+            // damit Player das Bild zuverlässig anzeigen.
+            let entry = tx_picture(
+                data: buffer,
+                size: shimSize,
+                mime: strdup(art.resolvedMimeType),
+                picture_type: strdup(art.pictureType),
+                description: strdup(art.description)
+            )
+            cPics.append(entry)
+            guard entry.mime != nil, entry.picture_type != nil, entry.description != nil else {
+                throw TagError.saveFailed(path: path)
+            }
+        }
+        guard tx_set_pictures(h, cPics, count) == 1 else {
             throw TagError.saveFailed(path: path)
         }
     }
@@ -348,17 +362,19 @@ public final class TagFile {
     func setChapters(_ chapters: [Chapter]) throws {
         let h = try requireHandle()
         guard supportsChapters else { throw TagError.chaptersUnsupported(path: path) }
+        guard let count = Int32(exactly: chapters.count) else { throw TagError.saveFailed(path: path) }
         // C-Strings bis zum Aufruf am Leben halten — strdup + explizites free.
         var cChapters: [tx_chapter] = []
         cChapters.reserveCapacity(chapters.count)
+        defer { for c in cChapters { free(c.title) } }
         for chapter in chapters {
+            guard let title = strdup(chapter.title) else { throw TagError.saveFailed(path: path) }
             cChapters.append(tx_chapter(
-                title: strdup(chapter.title),
+                title: title,
                 start_ms: Int64(chapter.startMilliseconds),
                 end_ms: Int64(chapter.endMilliseconds)))
         }
-        defer { for c in cChapters { free(c.title) } }
-        guard tx_set_chapters(h, cChapters, Int32(cChapters.count)) == 1 else {
+        guard tx_set_chapters(h, cChapters, count) == 1 else {
             throw TagError.saveFailed(path: path)
         }
     }
@@ -618,7 +634,7 @@ public final class TagFile {
         else { throw TagError.saveFailed(path: originalPath) }
     }
 
-    /// Version der gelinkten TagLib, z.B. "2.3.0".
+    /// Version der TagLib-Header, mit denen der Shim gebaut wurde, z.B. "2.3.0".
     public static var tagLibVersion: String {
         String(cString: tx_taglib_version())
     }

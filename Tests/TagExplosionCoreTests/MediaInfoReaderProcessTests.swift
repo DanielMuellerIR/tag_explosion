@@ -123,6 +123,16 @@ struct MediaInfoReaderProcessTests {
         }
     }
 
+    @Test("Ein Signal wird von einem identischen Exitcode unterschieden")
+    func distinguishesSignalFromExitCode() throws {
+        #expect(throws: TagError.toolFailed(name: "sh", exitCode: 15, stderr: "")) {
+            _ = try ExternalToolRunner.run("/bin/sh", ["-c", "exit 15"])
+        }
+        #expect(throws: TagError.toolTerminated(name: "sh", signal: 15, stderr: "")) {
+            _ = try ExternalToolRunner.run("/bin/sh", ["-c", "kill -TERM $$"])
+        }
+    }
+
     // MARK: - Review-Fund 2026-08-17
 
     @Test("MacRoman und Latin-1 duerfen im selben Bericht nebeneinander stehen")

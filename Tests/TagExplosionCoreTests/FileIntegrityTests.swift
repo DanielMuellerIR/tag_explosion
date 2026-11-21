@@ -88,6 +88,41 @@ struct FileIntegrityTests {
         #expect(try Data(contentsOf: url) == before)
     }
 
+    #if os(macOS)
+    @Test("Finder-Sperre bleibt erhalten und wird vor der Mutation erkannt")
+    func finderLockedFileIsRejected() throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let before = try Data(contentsOf: url)
+        try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: url.path)
+        defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: url.path) }
+
+        #expect(throws: TagError.readOnly(path: url.path)) {
+            try AtomicFileRewrite.run(url: url) { _ in
+                Issue.record("Backend darf eine gesperrte Datei nicht vorbereiten")
+            } validate: { _ in }
+        }
+        #expect(try Data(contentsOf: url) == before)
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        #expect((attributes[.immutable] as? NSNumber)?.boolValue == true)
+    }
+    #endif
+
+    @Test("Spät entzogene Schreibrechte verhindern den Austausch")
+    func permissionsChangeBeforeReplace() throws {
+        let url = try Fixtures.workingCopy("sample.mp3")
+        let before = try Data(contentsOf: url)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path) }
+
+        #expect(throws: TagError.readOnly(path: url.path)) {
+            try AtomicFileRewrite.run(url: url, replacingOriginal: true) {
+                try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: url.path)
+            } mutate: { temporary in
+                try Data("geprüfte Ersatzbytes".utf8).write(to: temporary)
+            } validate: { _ in }
+        }
+        #expect(try Data(contentsOf: url) == before)
+    }
+
     @Test("Schreibgeschützter Ordner bricht vor jeder Änderung ab")
     func readOnlyDirectoryIsRejected() throws {
         let url = try Fixtures.workingCopy("sample.mp3")

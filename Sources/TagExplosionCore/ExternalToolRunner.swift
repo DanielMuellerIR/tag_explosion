@@ -10,6 +10,8 @@ public enum ExternalToolRunner {
     // Signale dürfen nicht hinter blockierenden IO-Arbeiten auf der globalen
     // Queue warten, sonst verzögert Last gerade den benötigten Abbruch.
     private static let signalQueue = DispatchQueue(label: "io.github.tagexplosion.process-signals", qos: .userInitiated)
+    private static let drainQueue = DispatchQueue(label: "io.github.tagexplosion.pipe-drain",
+                                                  qos: .userInitiated, attributes: .concurrent)
 
     /// Fehler für Aufrufe mit bewusstem Zeitlimit (Tests und KoSIT-Prototyp).
     /// Normale Metadaten-Aufrufe verwenden weiterhin keinen Timeout.
@@ -61,29 +63,34 @@ public enum ExternalToolRunner {
     /// Ein Abbruchsignal gehört einem Leseauftrag, auch wenn er nacheinander
     /// mehrere Prozesse benötigt. Start und Abbruch sind unter demselben Lock.
     public final class Cancellation: @unchecked Sendable {
-        private let lock = NSLock()
+        private let lock = NSCondition()
         private var pid: pid_t?
         private var cancelled = false
         private var timedOut = false
         private var escalated = false
 
         public init() {}
-        public func cancel() { stop(timeout: false) }
-        fileprivate func stop(timeout: Bool) {
+        public func cancel() { stop() }
+        fileprivate func stop(timedOutChild: pid_t? = nil) {
             lock.lock()
-            if cancelled || (timeout && pid == nil) { lock.unlock(); return }
+            if cancelled || (timedOutChild != nil && pid != timedOutChild) {
+                lock.unlock()
+                return
+            }
             cancelled = true
-            timedOut = timedOut || timeout
+            timedOut = timedOutChild != nil
             let running = pid
             if let running { _ = kill(-running, SIGTERM) }
             lock.unlock()
+            guard let running else { return }
             // Nur nach einem Abbruch, kein Zeitlimit für große Mediendateien.
             ExternalToolRunner.signalQueue.asyncAfter(deadline: .now() + 0.3) { [self] in
                 lock.lock()
                 defer { lock.unlock() }
-                guard let running, pid == running else { return }
+                guard pid == running else { return }
                 _ = kill(-running, SIGKILL)
                 escalated = true
+                lock.broadcast()
             }
         }
         fileprivate func start(_ launch: () throws -> pid_t) throws -> pid_t {
@@ -100,29 +107,25 @@ public enum ExternalToolRunner {
             lock.unlock()
         }
         fileprivate func reap(_ child: pid_t) throws -> Int32 {
-            while true {
-                lock.lock()
-                // Auch ein Kind ohne offene Pipes muss den Gruppen-Kill bekommen.
-                // Bis dahin reserviert der unreapte Leiter die Prozessgruppen-ID.
-                if cancelled && !escalated {
-                    lock.unlock()
-                    Thread.sleep(forTimeInterval: 0.005)
-                    continue
-                }
-                var status: Int32 = 0
-                let waited = waitpid(child, &status, WNOHANG)
-                let failure = errno
-                if waited == child {
-                    pid = nil // Reaping und PID-Freigabe atomar gegenüber dem Gruppen-Kill.
-                    lock.unlock()
-                    return status
-                }
-                lock.unlock()
-                if waited == -1 && failure != EINTR {
-                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(failure))
-                }
-                Thread.sleep(forTimeInterval: 0.005)
+            // Erst das Ende beobachten, ohne die PID freizugeben. Während
+            // des Wartens bleibt der Gruppenleiter für cancel erreichbar.
+            var info = siginfo_t()
+            while waitid(P_PID, id_t(child), &info, WEXITED | WNOWAIT) == -1 {
+                let code = errno
+                if code != EINTR { throw NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
             }
+            lock.lock()
+            defer { lock.unlock() }
+            // Auch Nachkommen ohne offene Pipes brauchen den Gruppen-Kill.
+            // Bis dahin hält der noch nicht abgeholte Leiter die ID reserviert.
+            while cancelled && !escalated { lock.wait() }
+            var status: Int32 = 0
+            while waitpid(child, &status, 0) == -1 {
+                let code = errno
+                if code != EINTR { throw NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
+            }
+            pid = nil
+            return status
         }
         public func check() throws {
             lock.lock()
@@ -146,8 +149,6 @@ public enum ExternalToolRunner {
         return path
     }
 
-    /// Externes Programm ausführen, stdout zurückgeben. Metadaten-Aufrufe
-    /// übergeben kein Zeitlimit; der KoSIT-Prototyp begrenzt seine Prüflaufzeit.
     /// Umgebung für den Werkzeugaufruf mit garantierter UTF-8-Locale.
     /// mediainfo richtet seine Textausgabe nach `LC_ALL`/`LC_CTYPE`/`LANG`;
     /// ohne UTF-8-Locale (Docker-Container, CI-Job, `LANG=C`) ersetzt es
@@ -174,17 +175,23 @@ public enum ExternalToolRunner {
     ) throws -> Data {
         let result = try runResult(executable, arguments, processTimeout: processTimeout,
             outputLimit: outputLimit, environment: environment, cancellation: cancellation)
-        guard result.exitCode == 0 else {
-            throw TagError.toolFailed(name: (executable as NSString).lastPathComponent,
-                exitCode: result.exitCode, stderr: ExternalToolText.decodeLossyPlainText(result.stderr))
+        if result.termination == .exited(0) { return result.stdout }
+        let name = (executable as NSString).lastPathComponent
+        let stderr = ExternalToolText.decodeLossyPlainText(result.stderr)
+        switch result.termination {
+        case .exited(let code): throw TagError.toolFailed(name: name, exitCode: code, stderr: stderr)
+        case .signalled(let signal): throw TagError.toolTerminated(name: name, signal: signal, stderr: stderr)
         }
-        return result.stdout
     }
 
     struct ProcessResult {
+        enum Termination: Equatable {
+            case exited(Int32)
+            case signalled(Int32)
+        }
         let stdout: Data
         let stderr: Data
-        let exitCode: Int32
+        let termination: Termination
     }
 
     // Validatoren können bei regulärer Zurückweisung einen vollständigen
@@ -197,12 +204,11 @@ public enum ExternalToolRunner {
         environment: [String: String]? = nil,
         cancellation: Cancellation? = nil
     ) throws -> ProcessResult {
-        let stdinIsOpen = fcntl(STDIN_FILENO, F_GETFD) != -1
         let stdout = Pipe()
         let stderr = Pipe()
         let control = cancellation ?? Cancellation()
         let child = try control.start {
-            try spawn(executable, arguments, stdout: stdout, stderr: stderr, stdinIsOpen: stdinIsOpen,
+            try spawn(executable, arguments, stdout: stdout, stderr: stderr,
                       environment: environment ?? utf8Environment())
         }
         // Nur die Kinder behalten die Schreibenden; sonst käme niemals EOF.
@@ -211,7 +217,7 @@ public enum ExternalToolRunner {
         defer { control.finish() }
         let timer = processTimeout.map { timeout in
             let timer = DispatchSource.makeTimerSource(queue: signalQueue)
-            timer.setEventHandler { control.stop(timeout: true) }
+            timer.setEventHandler { control.stop(timedOutChild: child) }
             timer.schedule(deadline: .now() + timeout)
             timer.resume()
             return timer
@@ -220,14 +226,12 @@ public enum ExternalToolRunner {
 
         // Niemals zuerst stdout und danach stderr synchron lesen: Schreibt ein
         // Tool beide Pipes über ihren Kernel-Puffer hinaus, würde es beim
-        // ungelesenen zweiten Stream blockieren und `waitUntilExit()` nie
+        // ungelesenen zweiten Stream blockieren und `waitid()` nie
         // erreichen. Genau zwei Queue-Arbeiten pro Prozess reichen aus; sie
         // lesen jeweils bis EOF und erzeugen keine Arbeit pro Daten-Chunk.
         let outCollector = PipeCollector(stdout.fileHandleForReading)
         let errCollector = PipeCollector(stderr.fileHandleForReading)
         let drainGroup = DispatchGroup()
-        let drainQueue = DispatchQueue(label: "io.github.tagexplosion.pipe-drain",
-                                       qos: .userInitiated, attributes: .concurrent)
         drainGroup.enter()
         drainQueue.async {
             outCollector.readToEnd(limit: outputLimit) { control.cancel() }
@@ -245,16 +249,18 @@ public enum ExternalToolRunner {
         timer?.cancel()
         if outCollector.exceeded || errCollector.exceeded { throw ProcessOutputLimitError.exceeded }
         try control.check()
-        let exitCode = (status & 0x7f) == 0 ? (status >> 8) & 0xff : status & 0x7f
+        let signal = status & 0x7f
+        let termination: ProcessResult.Termination = signal == 0
+            ? .exited((status >> 8) & 0xff) : .signalled(signal)
         let outData = outCollector.data()
         let errData = errCollector.data()
-        return .init(stdout: outData, stderr: errData, exitCode: exitCode)
+        return .init(stdout: outData, stderr: errData, termination: termination)
     }
 
     /// posix_spawn legt vor exec eine eigene Prozessgruppe an. Ein nachträgliches
     /// setpgid beim Foundation-Process wäre ein Rennen gegen dessen exec.
     private static func spawn(_ executable: String, _ arguments: [String], stdout: Pipe, stderr: Pipe,
-                              stdinIsOpen: Bool, environment: [String: String]) throws -> pid_t {
+                              environment: [String: String]) throws -> pid_t {
         #if canImport(Darwin)
         var actions: posix_spawn_file_actions_t?
         var attributes: posix_spawnattr_t?
@@ -277,11 +283,9 @@ public enum ExternalToolRunner {
         let errorFD = fcntl(stderr.fileHandleForWriting.fileDescriptor, F_DUPFD_CLOEXEC, 3)
         guard errorFD >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
         defer { close(errorFD) }
-        if stdinIsOpen {
-            try require(posix_spawn_file_actions_adddup2(&actions, STDIN_FILENO, STDIN_FILENO))
-        } else {
-            try require(posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0))
-        }
+        // Die Engine benutzt ihr stdin für JSONL. Werkzeuge bekommen ihre
+        // Eingabe ausschließlich über Argumente und Dateien.
+        try require(posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0))
         try require(posix_spawn_file_actions_adddup2(&actions, outputFD, STDOUT_FILENO))
         try require(posix_spawn_file_actions_adddup2(&actions, errorFD, STDERR_FILENO))
         let descriptors = [stdout.fileHandleForReading, stdout.fileHandleForWriting,
@@ -296,7 +300,17 @@ public enum ExternalToolRunner {
         try require(posix_spawn_file_actions_addclosefrom_np(&actions, STDERR_FILENO + 1))
         #endif
         try require(posix_spawnattr_setpgroup(&attributes, 0))
-        var flags = Int16(POSIX_SPAWN_SETPGROUP)
+        // Ignorierte oder blockierte Signale des App-Prozesses sollen den
+        // regulären SIGTERM-Abbruch des Werkzeugs nicht verhindern.
+        var defaults = sigset_t()
+        sigemptyset(&defaults)
+        sigaddset(&defaults, SIGTERM)
+        try require(posix_spawnattr_setsigdefault(&attributes, &defaults))
+        var mask = sigset_t()
+        try require(pthread_sigmask(SIG_SETMASK, nil, &mask))
+        sigdelset(&mask, SIGTERM)
+        try require(posix_spawnattr_setsigmask(&attributes, &mask))
+        var flags = Int16(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK)
         #if canImport(Darwin)
         flags |= Int16(POSIX_SPAWN_CLOEXEC_DEFAULT)
         #endif
