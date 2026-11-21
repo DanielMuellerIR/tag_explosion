@@ -8,6 +8,12 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.5 — 2026-11-21
+
+- Die Online-Suche begrenzt Metadaten- und Bildantworten beim Empfang. Der
+  Linux-Transport liest bei Weiterleitungen nur die Antwort-Header und
+  übermittelt dienstspezifische Zugangsdaten nur an deren Ursprung.
+
 ## 0.54.4 — 2026-11-21
 
 - Dokumentarchive prüfen entpackte Blocklängen, Prüfsummen und die vollständige

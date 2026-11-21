@@ -47,31 +47,70 @@ public protocol LookupHTTPClient: Sendable {
     func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse
 }
 
-/// Echter Transport über URLSession (unter Linux FoundationNetworking).
+/// Echter Transport über URLSession beziehungsweise libcurl unter Linux.
 public final class URLSessionLookupClient: LookupHTTPClient {
-    private let session: URLSession
+    static let maximumResponseBytes = 16 * 1024 * 1024
+    private enum Transport: Sendable {
+        case session(URLSession, LookupHTTPReceiver)
+        #if os(Linux)
+        case curl
+        #endif
+    }
+    private let transport: Transport
 
+    /// Übernimmt die Konfiguration einer übergebenen Session für eine eigene Session.
     public init(session: URLSession? = nil) {
-        if let session {
-            self.session = session
-        } else {
-            // Eigene Konfiguration ohne Cookie-/Cache-Speicher: Der Lookup soll
-            // keine Spuren auf der Platte hinterlassen.
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = 30
-            configuration.httpCookieAcceptPolicy = .never
-            self.session = URLSession(configuration: configuration)
+        #if os(Linux)
+        if session == nil {
+            transport = .curl
+            return
         }
+        #endif
+        transport = Self.makeTransport(configuration: session?.configuration ?? Self.defaultConfiguration())
+    }
+
+    /// Verwendet URLSession mit eigener Konfiguration, etwa für URLProtocol-Tests.
+    public init(configuration: URLSessionConfiguration) {
+        transport = Self.makeTransport(configuration: configuration)
+    }
+
+    private static func makeTransport(configuration: URLSessionConfiguration) -> Transport {
+        let receiver = LookupHTTPReceiver()
+        return .session(URLSession(configuration: configuration, delegate: receiver, delegateQueue: nil), receiver)
+    }
+
+    deinit {
+        if case let .session(session, _) = transport { session.finishTasksAndInvalidate() }
+    }
+
+    private static func defaultConfiguration() -> URLSessionConfiguration {
+        // Die Lookup-Sitzung soll keine Cookies oder Cache-Daten auf die Platte schreiben.
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 30
+        configuration.httpCookieAcceptPolicy = .never
+        return configuration
     }
 
     public func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse {
+        switch transport {
+        case let .session(session, receiver):
+            return try await send(request, using: session, receiver: receiver)
+        #if os(Linux)
+        case .curl:
+            return try await LinuxLookupHTTP.send(request)
+        #endif
+        }
+    }
+
+    private func send(_ request: LookupHTTPRequest, using session: URLSession,
+                      receiver: LookupHTTPReceiver) async throws -> LookupHTTPResponse {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method
         urlRequest.httpBody = request.body
         for (name, value) in request.headers {
             urlRequest.setValue(value, forHTTPHeaderField: name)
         }
-        let (data, response) = try await session.data(for: urlRequest)
+        let (data, response) = try await receiver.receive(urlRequest, using: session)
         guard let http = response as? HTTPURLResponse else {
             return LookupHTTPResponse(statusCode: 0, body: data)
         }
@@ -82,6 +121,76 @@ public final class URLSessionLookupClient: LookupHTTPClient {
             }
         }
         return LookupHTTPResponse(statusCode: http.statusCode, headers: headers, body: data)
+    }
+}
+
+struct LookupHTTPResponseTooLarge: LocalizedError, Equatable {
+    let maximumBytes: Int
+
+    var errorDescription: String? { "Online lookup response exceeds \(maximumBytes) bytes" }
+}
+
+private final class LookupHTTPReceiver: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private typealias ResponseStream = AsyncThrowingStream<(Data, URLResponse), Error>
+
+    private struct Transfer {
+        let completion: ResponseStream.Continuation
+        var body = Data()
+        var limitExceeded = false
+    }
+
+    private let lock = NSLock()
+    private var transfers: [Int: Transfer] = [:]
+
+    func receive(_ request: URLRequest, using session: URLSession) async throws -> (Data, URLResponse) {
+        let task = session.dataTask(with: request)
+        let (result, completion) = ResponseStream.makeStream(bufferingPolicy: .bufferingNewest(1))
+        lock.withLock {
+            transfers[task.taskIdentifier] = Transfer(completion: completion)
+        }
+        defer {
+            lock.withLock { transfers[task.taskIdentifier] = nil }
+        }
+        return try await withTaskCancellationHandler {
+            if !Task.isCancelled { task.resume() }
+            var iterator = result.makeAsyncIterator()
+            guard let response = try await iterator.next() else {
+                throw URLError(.cancelled)
+            }
+            return response
+        } onCancel: {
+            task.cancel()
+        }
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        let shouldCancel = lock.withLock {
+            let id = dataTask.taskIdentifier
+            guard transfers[id]?.limitExceeded == false, let size = transfers[id]?.body.count else { return false }
+            guard data.count <= URLSessionLookupClient.maximumResponseBytes - size else {
+                transfers[id]?.limitExceeded = true
+                transfers[id]?.body = Data()
+                return true
+            }
+            transfers[id]?.body.append(data)
+            return false
+        }
+        if shouldCancel { dataTask.cancel() }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let transfer = lock.withLock({ transfers.removeValue(forKey: task.taskIdentifier) }) else { return }
+        if transfer.limitExceeded {
+            transfer.completion.finish(throwing: LookupHTTPResponseTooLarge(
+                maximumBytes: URLSessionLookupClient.maximumResponseBytes))
+        } else if let error {
+            transfer.completion.finish(throwing: error)
+        } else if let response = task.response {
+            transfer.completion.yield((transfer.body, response))
+            transfer.completion.finish()
+        } else {
+            transfer.completion.finish(throwing: URLError(.badServerResponse))
+        }
     }
 }
 

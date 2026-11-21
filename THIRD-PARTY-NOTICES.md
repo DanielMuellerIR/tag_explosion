@@ -59,8 +59,10 @@ unter MIT. Er ist der einzige Berührungspunkt mit der TagLib-API.
 Die Linux-Oberfläche verwendet [Tauri](https://github.com/tauri-apps/tauri)
 (MIT oder Apache-2.0) und Rust-Abhängigkeiten aus `Linux/Cargo.lock`.
 [QPDF](https://qpdf.readthedocs.io/en/stable/license.html) (Apache-2.0) wird
-unter Linux dynamisch gelinkt. Die statische Swift-Laufzeit behält ihre
-Apache-2.0-/Runtime-Exception-Hinweise. ImageMagick bleibt ein getrenntes
+unter Linux dynamisch gelinkt. Der Online-Lookup verwendet dynamisch gelinktes
+[libcurl](https://curl.se/docs/copyright.html) (curl-Lizenz). Die statische
+Swift-Laufzeit behält ihre Apache-2.0-/Runtime-Exception-Hinweise.
+ImageMagick bleibt ein getrenntes
 Systemprogramm unter seiner [ImageMagick-Lizenz](https://imagemagick.org/license/).
 Sparkle wird ausschließlich mit der Mac-App verteilt.
 

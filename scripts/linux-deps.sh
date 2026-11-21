@@ -26,10 +26,11 @@ export DEBIAN_FRONTEND=noninteractive
 as_root apt-get update -qq
 # cmake/g++/zlib/utfcpp: TagLib bauen · pkg-config: SwiftPM findet TagLib ·
 # mediainfo/exiftool/ffmpeg: Tests, die ohne sie nur übersprungen würden ·
-# curl/ca-certificates: Quelltext laden · python3/zip: vollständige Fixtures.
+# curl/ca-certificates: Quelltext laden · libcurl: Online-Metadaten und Cover.
+# python3/zip: vollständige Fixtures.
 as_root apt-get install -y -qq --no-install-recommends \
     build-essential cmake pkg-config zlib1g-dev libutfcpp-dev \
-    curl ca-certificates \
+    curl ca-certificates libcurl4-openssl-dev \
     mediainfo libimage-exiftool-perl ffmpeg python3-minimal zip libqpdf-dev imagemagick
 
 # Schon vorhanden (zweiter Lauf im selben Container)? Dann nichts bauen.
