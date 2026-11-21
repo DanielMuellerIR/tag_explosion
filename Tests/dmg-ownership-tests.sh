@@ -1,22 +1,17 @@
 #!/usr/bin/env bash
-# Führt den echten DMG-Abschnitt mit Werkzeugattrappen aus. Die Attrappen
+# Führt die echte DMG-Phase mit Werkzeugattrappen aus. Die Attrappen
 # schreiben ausschließlich ins Testverzeichnis; /Volumes bleibt unangetastet.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 . "$root/Tests/shell-test-support.sh"
 work=$(tagx_make_test_workdir tagx-dmg-ownership)
 trap 'rm -rf -- "$work"' EXIT
-mkdir -p "$work/app" "$work/source"
-awk '/^echo "== DMG bauen =="/ { emit=1 } /^# f\)/ { emit=0 } emit' \
-    "$root/build.sh" > "$work/dmg-section.sh"
-[ -s "$work/dmg-section.sh" ]
+mkdir -p "$work/app"
 cat > "$work/runner.sh" <<'RUNNER'
 #!/usr/bin/env bash
 set -euo pipefail
-here="$TEST_WORK/source"
 app="$TEST_WORK/app"
-version=0.0.0
-finder_layout=0
+NOTARY_PROFILE=test-profile
 uuidgen() { printf 'OWNED-TEST-UUID\n'; }
 mktemp() { /usr/bin/mktemp -d "$TEST_WORK/staging.XXXXXX"; }
 swift() { [ "$TEST_MODE" != before_mount ] || return 71; touch "$2"; }
@@ -41,12 +36,22 @@ hdiutil() {
         *) return 73 ;;
     esac
 }
-. "$TEST_WORK/dmg-section.sh"
+codesign() { printf 'codesign\n' >> "$TEST_WORK/$TEST_MODE.release"; }
+xcrun() {
+    case "$1 $2" in
+        'notarytool submit'|'stapler staple'|'stapler validate')
+            printf '%s %s\n' "$1" "$2" >> "$TEST_WORK/$TEST_MODE.release" ;;
+        *) return 74 ;;
+    esac
+    [ "$TEST_MODE" != notary_failure ] || [ "$1" != notarytool ]
+}
+set -- "$TEST_REPO" "$app" "$TEST_WORK/$TEST_MODE.dmg" 0 'Test Developer ID'
+. "$TEST_REPO/scripts/make-macos-dmg.sh"
 RUNNER
 
 run_case() {
     local mode=$1 expected=$2 status=0
-    TEST_WORK="$work" TEST_MODE="$mode" bash "$work/runner.sh" \
+    TEST_REPO="$root" TEST_WORK="$work" TEST_MODE="$mode" bash "$work/runner.sh" \
         > "$work/$mode.log" 2>&1 || status=$?
     if [ "$expected" = success ]; then
         [ "$status" = 0 ] || { cat "$work/$mode.log"; exit 1; }
@@ -71,6 +76,11 @@ run_case attach_failure failure
 run_case copy_failure failure
 run_case signal_failure failure
 run_case success success
+printf 'codesign\nnotarytool submit\nstapler staple\nstapler validate\n' > "$work/expected-release"
+diff -u "$work/expected-release" "$work/success.release"
+run_case notary_failure failure
+printf 'codesign\nnotarytool submit\n' > "$work/expected-release"
+diff -u "$work/expected-release" "$work/notary_failure.release"
 # Nur ein fehlgeschlagenes Aushängen behält seine eigenen Arbeitsdaten.
 [ -z "$(find "$work" -maxdepth 1 -type d -name 'staging.*' -print)" ]
 run_case detach_failure failure

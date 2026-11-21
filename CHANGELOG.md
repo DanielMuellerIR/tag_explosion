@@ -8,6 +8,16 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+Die Versionsabschnitte dokumentieren Quellstände. Veröffentlichte Builds und
+ihre Plattformen stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
+
+## 0.54.9 — 2026-11-21
+
+- App-Bundle, Signierung und DMG-Erstellung haben getrennte Build-Schritte.
+  Die Optionen und Namen der Auslieferungsdateien bleiben erhalten.
+- Die KoSIT- und veraPDF-Pakete teilen Prüfmechanismen für Downloads,
+  Lizenzhinweise und Manifeste. Beide Paketprüfungen bleiben eigenständig.
+
 ## 0.54.8 — 2026-11-21
 
 - Linux: Das native Verwerfen-Menü öffnet die Bestätigung und verwirft

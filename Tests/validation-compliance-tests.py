@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """Release-Sperren am tatsächlich vorbereiteten Lizenz-/Quellenpaket prüfen."""
 import argparse
-import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
 
 
 ROOT = Path(__file__).resolve().parent.parent
-spec = importlib.util.spec_from_file_location("validation_compliance", ROOT / "scripts/validation_compliance.py")
-compliance = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(compliance)
+sys.path.insert(0, str(ROOT / "scripts"))
+import validation_compliance as compliance
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--bundle", type=Path, required=True)
 parser.add_argument("--sources", type=Path, required=True)
@@ -124,6 +123,25 @@ class ReleaseComplianceTests(unittest.TestCase):
             held.rename(source)
             source_index.write_bytes(original_source_index)
             binary_index.write_bytes(original_binary_index)
+
+    def test_license_directory_must_be_included_as_content(self):
+        legal = self.bundle / "legal"
+        held = self.root / "held-legal"
+        index = self.bundle / "compliance.json"
+        saved_index = index.read_bytes()
+        legal.rename(held)
+        legal.symlink_to(held, target_is_directory=True)
+        try:
+            manifest = json.loads(saved_index)
+            manifest["files"] = compliance.files_in(self.bundle)
+            manifest["files"].pop("compliance.json")
+            index.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(compliance.ComplianceError, "Dateiverweise"):
+                self.verify()
+        finally:
+            legal.unlink()
+            held.rename(legal)
+            index.write_bytes(saved_index)
 
     def test_missing_sources_prevents_probe_creation(self):
         output = self.root / "must-not-be-created"

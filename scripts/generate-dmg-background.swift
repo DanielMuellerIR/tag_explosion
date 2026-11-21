@@ -1,10 +1,10 @@
 import AppKit
 
 // Erzeugt das DMG-Hintergrundbild als reproduzierbaren 2×-Master (1200 × 840 px)
-// für die 600 × 420 Punkte große Finder-Inhaltsfläche. build.sh skaliert daraus
+// für die 600 × 420 Punkte große Finder-Inhaltsfläche. make-macos-dmg.sh skaliert daraus
 // die 1x-/2x-Varianten und kombiniert sie zu einem HiDPI-TIFF. Der Finder legt
 // App- und Programme-Icon später genau über die beiden gestrichelten Kreise
-// (Icon-Positionen im AppleScript von build.sh müssen dazu passen).
+// (Icon-Positionen im AppleScript von make-macos-dmg.sh müssen dazu passen).
 //
 // Aufruf: swift scripts/generate-dmg-background.swift <ausgabe.png>
 

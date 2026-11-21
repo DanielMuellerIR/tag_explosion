@@ -92,6 +92,24 @@ class PDFComplianceTests(unittest.TestCase):
             index.write_bytes(saved_index)
             binary.write_bytes(saved_binary)
 
+    def test_binary_symlink_even_with_matching_index(self):
+        jar = self.bundle / "validator.jar"
+        held = self.root / "held-jar"
+        index = self.bundle / "compliance.json"
+        saved_index = index.read_bytes()
+        jar.rename(held)
+        jar.symlink_to(held)
+        try:
+            manifest = json.loads(saved_index)
+            manifest["files"]["validator.jar"] = {"symlink": str(held)}
+            index.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(compliance.ComplianceError, "Dateiverweise"):
+                self.verify()
+        finally:
+            jar.unlink()
+            held.rename(jar)
+            index.write_bytes(saved_index)
+
 
 if __name__ == "__main__":
     unittest.main(argv=[__file__], verbosity=2)

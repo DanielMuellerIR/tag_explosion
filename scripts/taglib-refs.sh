@@ -1,6 +1,6 @@
 # Ladepfade der gebündelten TagLib-Bibliotheken prüfen und umbiegen.
-# Wird von build.sh eingebunden (POSIX sh) und von Tests/taglib-refs-tests.sh
-# einzeln geprüft — deshalb eine eigene Datei ohne Seiteneffekte beim Einbinden.
+# Die macOS-Signaturphase bindet die Helfer ein. Tests/taglib-refs-tests.sh
+# prüft sie einzeln, daher hat das Einbinden keine Seiteneffekte.
 
 # Abhängigkeits-Ladepfade einer Mach-O-Datei, einer je Zeile.
 #
