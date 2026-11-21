@@ -605,14 +605,19 @@ public final class FileEntry: Identifiable {
     /// gelesenen Dateiversion gehören, die das nächste Speichern dann als
     /// "unverändert" überschriebe.
     public func acceptNew(_ loaded: LoadedData, stamp: FileStamp?) {
+        _ = replaceOriginal(loaded, stamp: stamp)
+    }
+
+    func replaceOriginal(_ loaded: LoadedData, stamp: FileStamp?) -> Bool {
         let payload = EntryState(loaded)
-        guard payload.kind == kind else { return }
+        guard payload.kind == kind else { return false }
         switch (state.payload, payload) {
         case (.nfo, .subtitle), (.subtitle, .nfo):
-            return
+            return false
         default:
             state = (payload, stamp)
             lastError = nil
+            return true
         }
     }
 
@@ -674,6 +679,10 @@ public final class FileEntry: Identifiable {
     /// so kann nie ein Stempel einer neueren, fremden Dateiversion mit den
     /// hier gelesenen älteren Daten kombiniert werden.
     public func acceptSaved(_ snapshot: SaveSnapshot, reloaded: LoadedData, stamp: FileStamp?) {
+        _ = acceptSaveReadBack(snapshot, reloaded: reloaded, stamp: stamp)
+    }
+
+    func acceptSaveReadBack(_ snapshot: SaveSnapshot, reloaded: LoadedData, stamp: FileStamp?) -> Bool {
         let payload: EntryState
         switch (state.payload, snapshot, reloaded) {
         case (.audio(var audio), .audio(let saved), .audio(let data, let sidecars)):
@@ -706,10 +715,11 @@ public final class FileEntry: Identifiable {
             payload = .playlist(contents, fields: fields == saved ? contents.fields : fields)
         default:
             // Der Stempel ist nur zusammen mit dem passenden Lesestand gültig.
-            return
+            return false
         }
         state = (payload, stamp)
         lastError = nil
+        return true
     }
 
     // Bequeme Zugriffe für die UI ------------------------------------------

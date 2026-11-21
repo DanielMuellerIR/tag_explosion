@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import zipfile
 from validation_compliance_support import (
-    ComplianceError, digest, fetch, fetch_all, files_in,
+    ComplianceError, digest, fetch_all,
     prepare_legal_files, verify_inventories, verify_legal_files, write_inventories,
 )
 

@@ -15,6 +15,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import validation_compliance as compliance
+from validation_compliance_support import files_in
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--bundle", type=Path, required=True)
 parser.add_argument("--sources", type=Path, required=True)
@@ -133,7 +134,7 @@ class ReleaseComplianceTests(unittest.TestCase):
         legal.symlink_to(held, target_is_directory=True)
         try:
             manifest = json.loads(saved_index)
-            manifest["files"] = compliance.files_in(self.bundle)
+            manifest["files"] = files_in(self.bundle)
             manifest["files"].pop("compliance.json")
             index.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(compliance.ComplianceError, "Dateiverweise"):

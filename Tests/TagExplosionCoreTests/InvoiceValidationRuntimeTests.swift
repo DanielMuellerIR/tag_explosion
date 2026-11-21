@@ -4,12 +4,14 @@ import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionCore
 
+private let runtimeFixtures = ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"]
+    .map { URL(fileURLWithPath: $0) }
+
 @Suite("KoSIT gemeinsamer Dienst: echte Laufzeit",
        .serialized,
        .enabled(if: ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"] != nil))
 struct InvoiceValidationRuntimeTests {
     private var bundle: URL { URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"]!) }
-    private var fixtures: URL { URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_VALIDATION_FIXTURES"]!) }
 
     private func temporaryDirectory() throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("invoice-runtime-test-\(UUID())")
@@ -78,8 +80,10 @@ struct InvoiceValidationRuntimeTests {
         }
     }
 
-    @Test("CII und UBL prüfen unveränderte Bytes aus XML und PDF", arguments: ["ubl", "cii"])
+    @Test("CII und UBL prüfen unveränderte Bytes aus XML und PDF", .enabled(if: runtimeFixtures != nil),
+          arguments: ["ubl", "cii"])
     func xmlAndPDF(_ syntax: String) throws {
+        let fixtures = try #require(runtimeFixtures)
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let xml = try Data(contentsOf: fixtures.appendingPathComponent(syntax + ".xml"))
@@ -117,11 +121,11 @@ struct InvoiceValidationRuntimeTests {
         #expect(try Data(contentsOf: pdfURL) == pdf)
     }
 
-    @Test("UBL CreditNote verwendet das eigene XRechnung-Szenario")
+    @Test("UBL CreditNote verwendet das eigene XRechnung-Szenario", .enabled(if: runtimeFixtures != nil))
     func creditNote() throws {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let xml = try Data(contentsOf: fixtures.appendingPathComponent("ubl.xml"))
+        let xml = try Data(contentsOf: #require(runtimeFixtures).appendingPathComponent("ubl.xml"))
         let root = try #require(XMLTools.document(from: xml, path: "Testrechnung").rootElement())
         let name = try #require(root.name)
         let prefix = name.contains(":") ? name.components(separatedBy: ":")[0] + ":" : ""
@@ -140,8 +144,10 @@ struct InvoiceValidationRuntimeTests {
         #expect(result.scenario == "EN16931 XRechnung (UBL CreditNote)")
     }
 
-    @Test("Erforderliche Regeln, JAR, Runtime und Inventar können nicht still ausgetauscht werden")
+    @Test("Erforderliche Regeln, JAR, Runtime und Inventar können nicht still ausgetauscht werden",
+          .enabled(if: runtimeFixtures != nil))
     func damagedPackages() throws {
+        let fixtures = try #require(runtimeFixtures)
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let copy = dir.appendingPathComponent("bundle")
@@ -166,9 +172,10 @@ struct InvoiceValidationRuntimeTests {
         #expect(try InvoiceValidationPackage.inspect(copy) == .xrechnung)
     }
 
-    @Test("Zeitüberschreitung und Abbruch der echten Prüfung sind eigene Ergebnisse")
+    @Test("Zeitüberschreitung und Abbruch der echten Prüfung sind eigene Ergebnisse",
+          .enabled(if: runtimeFixtures != nil))
     func stoppedValidation() throws {
-        let url = fixtures.appendingPathComponent("ubl.xml")
+        let url = try #require(runtimeFixtures).appendingPathComponent("ubl.xml")
         #expect(InvoiceValidationService.validate(url: url, bundle: bundle, timeout: 0.001).status == .timedOut)
         #expect(InvoiceValidationService.validate(url: url, bundle: bundle, timeout: 0).status == .technicalError)
         let control = ExternalToolRunner.Cancellation()
@@ -178,13 +185,14 @@ struct InvoiceValidationRuntimeTests {
         #expect(result.xmlStatus == nil)
     }
 
-    @Test("CLI hält das alte JSON stabil und ergänzt gemeinsame Status-/Exit-Codes")
+    @Test("CLI hält das alte JSON stabil und ergänzt gemeinsame Status-/Exit-Codes",
+          .enabled(if: runtimeFixtures != nil))
     func cliFormats() throws {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         struct Common: Decodable { let validation: InvoiceValidationResult }
         struct Legacy: Decodable { let validation: XRechnungValidationReport }
-        let source = fixtures.appendingPathComponent("ubl.xml")
+        let source = try #require(runtimeFixtures).appendingPathComponent("ubl.xml")
         let original = try Data(contentsOf: source)
         let legacy = try runTagx(arguments: ["validate-xrechnung", source.path, "--bundle", bundle.path, "--json"])
         #expect(legacy.status == 0)

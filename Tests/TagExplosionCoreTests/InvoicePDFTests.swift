@@ -48,7 +48,9 @@ struct InvoicePDFReportTests {
 }
 
 @Suite("Hybride Rechnung: echte KoSIT-/veraPDF-Laufzeit", .serialized,
-       .enabled(if: ProcessInfo.processInfo.environment["TAGX_PDF_VALIDATION_BUNDLE"] != nil && EInvoiceReader.isPDFExtractionAvailable))
+       .enabled(if: EInvoiceReader.isPDFExtractionAvailable
+                && ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"] != nil
+                && ProcessInfo.processInfo.environment["TAGX_PDF_VALIDATION_BUNDLE"] != nil))
 struct InvoicePDFRuntimeTests {
     private var core: URL { URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_VALIDATION_BUNDLE"]!) }
     private var pdf: URL { URL(fileURLWithPath: ProcessInfo.processInfo.environment["TAGX_PDF_VALIDATION_BUNDLE"]!) }

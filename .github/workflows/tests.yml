@@ -23,6 +23,12 @@ jobs:
           python3 scripts/check-markdown-links.py
           python3 scripts/linux-translations.py --check
 
+      - name: Python-Skripte statisch prüfen
+        run: |
+          python3 -m venv "$RUNNER_TEMP/tagx-lint"
+          "$RUNNER_TEMP/tagx-lint/bin/python" -m pip install --disable-pip-version-check ruff==0.15.2
+          "$RUNNER_TEMP/tagx-lint/bin/ruff" check scripts
+
       - name: Abhängigkeiten installieren
         shell: bash
         run: |

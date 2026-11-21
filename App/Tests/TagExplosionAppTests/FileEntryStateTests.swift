@@ -25,6 +25,23 @@ struct FileEntryStateTests {
         #expect(entry.isDirty)
     }
 
+    @Test("Ein unpassender Lesestand wird nach einem Schreibvorgang als Fehler gemeldet")
+    func mutationReadBackDoesNotReportSuccessForWrongKind() async {
+        let oldStamp = FileStamp(size: 2, modified: 1)
+        let newStamp = FileStamp(size: 3, modified: 2)
+        let url = URL(fileURLWithPath: "/tmp/readback-pdf.pdf")
+        let entry = FileEntry(url: url, loaded: .ebook(EbookCoreFields(title: "Alt"), cover: nil), stamp: oldStamp)
+        let model = AppModel()
+        await #expect(throws: TagError.cannotOpen(path: url.path)) {
+            try await model.reloadAfterMutation(entry: entry) {
+                (.image(ImageCoreReading(fields: ImageCoreFields(title: "Fremd"))), newStamp)
+            }
+        }
+        #expect(entry.diskStamp == oldStamp)
+        #expect(entry.ebookFields.title == "Alt")
+        #expect(!entry.isSaving)
+    }
+
     @Test("Eine SRT-Datei behält ihren Zustand und liefert eine Momentaufnahme für direkte Aktionen")
     func disabledEditorSnapshot() {
         let stamp = FileStamp(size: 2, modified: 1)

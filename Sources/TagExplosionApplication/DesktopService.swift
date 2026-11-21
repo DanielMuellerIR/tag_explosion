@@ -621,7 +621,12 @@ public final class DesktopService {
         case "import": try await model.importArchive(from: URL(fileURLWithPath: required(p, "source")))
         case "export": try await model.exportEntries(selected, to: URL(fileURLWithPath: required(p, "destination")))
         case "rename": try await model.renameFiles(selected, pattern: FilenamePattern(required(p, "pattern")))
-        case "rulesApply": _ = try await model.applyRules(p["document"].decode(TagRuleDocument.self), to: selected)
+        case "rulesApply":
+            let document = try p["document"].decode(TagRuleDocument.self)
+            let inputs = model.ruleInputs(for: selected)
+            let plans = await model.prepareRules(document, inputs: inputs)
+            try requireCurrentEditor(p, model: model, session: session)
+            if let plans { _ = await model.applyPreparedRules(plans, matching: inputs, to: selected) }
         case "shiftSubtitle": _ = try await model.shiftSubtitle(entry: entry(p, in: model), seconds: Double(p["milliseconds"].integer ?? 0) / 1000)
         case "saveRules":
             let document = try p["document"].decode(TagRuleDocument.self)

@@ -3,7 +3,8 @@ import shutil
 import re
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from validation_compliance import fetch, load_policy
+from validation_compliance import load_policy
+from validation_compliance_support import fetch
 
 
 NAMESPACE = "http://www.xoev.de/de/validator/framework/1/scenarios"

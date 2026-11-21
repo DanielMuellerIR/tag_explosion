@@ -11,6 +11,14 @@ jeder Entscheidung steht im jeweiligen Commit.
 Die Versionsabschnitte dokumentieren Quellstände. Veröffentlichte Builds und
 ihre Plattformen stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 
+## 0.54.13 — 2026-11-21
+
+- Nach der Regelplanung prüft die App erneut die Editorzeilen und unter Linux
+  zusätzlich Sitzung und Revision. Ein unpassender Lesestand nach einem
+  Datei-Schreibvorgang wird als Fehler gemeldet.
+- Die optionalen Rechnungs-Laufzeittests prüfen ihre Eingaben vor dem Start.
+  Ruff prüft die Python-Skripte in CI.
+
 ## 0.54.12 — 2026-11-21
 
 - Dokumentation und Versionshinweise unterscheiden Quellstände und

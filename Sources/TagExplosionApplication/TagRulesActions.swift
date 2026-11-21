@@ -98,23 +98,29 @@ extension AppModel {
                     save: ([FileEntry]) async -> Bool) async -> Bool {
         guard !isDestructiveActionLocked else { return false }
         let inputs = ruleInputs(for: targets)
-        let plans: [TagRulePlan]
+        guard let plans = await prepareRules(document, inputs: inputs) else { return false }
+        return await applyPreparedRules(plans, matching: inputs, to: targets, save: save)
+    }
+
+    func prepareRules(_ document: TagRuleDocument, inputs: [TagRuleInput]) async -> [TagRulePlan]? {
         do {
-            plans = try await BlockingWork.run { try Self.rulePlan(for: inputs, document: document) }
+            let plans = try await BlockingWork.run { try Self.rulePlan(for: inputs, document: document) }
             try Task.checkCancellation()
+            return plans
         } catch {
             alertMessage = String(localized: "Regeln konnten nicht angewendet werden:")
                 + "\n" + error.localizedDescription
-            return false
+            return nil
         }
-        return await applyPreparedRules(plans, matching: inputs, to: targets, save: save)
     }
 
     /// Übernimmt die sichtbare Vorschau erst nach einem erneuten Abgleich der
     /// Eingaben. Planung und Übernahme können verschiedene Actor-Turns sein.
     public func applyPreparedRules(_ plans: [TagRulePlan], matching inputs: [TagRuleInput],
                                    to targets: [FileEntry]) async -> Bool {
-        await applyPreparedRules(plans, matching: inputs, to: targets) { await self.saveEntries($0) }
+        let currentEntries = Set(entries.map(ObjectIdentifier.init))
+        guard targets.allSatisfy({ currentEntries.contains(ObjectIdentifier($0)) }) else { return false }
+        return await applyPreparedRules(plans, matching: inputs, to: targets) { await self.saveEntries($0) }
     }
 
     private func applyPreparedRules(_ plans: [TagRulePlan], matching inputs: [TagRuleInput],

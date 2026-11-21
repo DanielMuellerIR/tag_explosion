@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from urllib.request import urlopen
 import zipfile
 
 root = Path(__file__).resolve().parent.parent
@@ -113,7 +114,6 @@ manifest = {'identifier': 'io.github.danielmuellerir.tagexplosion', 'version': v
 
 # Gepinntes offizielles AppImage-Werkzeug; auch dessen eingebettete Runtime
 # wird wiederverwendet. Es gibt keinen unversionierten Runtime-Nachdownload.
-from urllib.request import urlopen
 cache = root / '.build/appimage-tool'
 cache.mkdir(parents=True, exist_ok=True)
 tool = cache / 'appimagetool-1.9.1-x86_64.AppImage'

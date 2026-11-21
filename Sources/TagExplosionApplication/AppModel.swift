@@ -856,8 +856,9 @@ public final class AppModel {
         entry.isSaving = true
         defer { entry.finishSaving() }
         let (loaded, stamp) = try await operation()
-        if let snapshot { entry.acceptSaved(snapshot, reloaded: loaded, stamp: stamp) }
-        else { entry.acceptNew(loaded, stamp: stamp) }
+        let accepted = if let snapshot { entry.acceptSaveReadBack(snapshot, reloaded: loaded, stamp: stamp) }
+            else { entry.replaceOriginal(loaded, stamp: stamp) }
+        guard accepted else { throw TagError.cannotOpen(path: entry.url.path) }
         return true
     }
 
@@ -869,7 +870,7 @@ public final class AppModel {
             let (loaded, stamp) = try await Task.detached(priority: .userInitiated) {
                 try Self.readStamped(url: url, kind: kind)
             }.value
-            entry.acceptNew(loaded, stamp: stamp)
+            guard entry.replaceOriginal(loaded, stamp: stamp) else { throw TagError.cannotOpen(path: url.path) }
         } catch {
             entry.lastError = error.localizedDescription
         }
@@ -1016,7 +1017,10 @@ public final class AppModel {
 
         do {
             let (reloaded, stamp) = try await writeSnapshot(snapshot)
-            entry.acceptSaved(snapshot, reloaded: reloaded, stamp: stamp)
+            guard entry.acceptSaveReadBack(snapshot, reloaded: reloaded, stamp: stamp) else {
+                throw PartialSaveError(completed: [entry.url.lastPathComponent],
+                                       underlying: TagError.cannotOpen(path: entry.url.path))
+            }
             return true
         } catch let error as PartialSaveError {
             entry.lastError = error.localizedDescription

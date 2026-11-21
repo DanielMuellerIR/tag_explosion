@@ -138,6 +138,24 @@ struct AppModelRulesTests {
         #expect(image.imageFields.title == "Noch nicht gespeichert")
     }
 
+    @Test("Eine Regelvorschau überschreibt keine ausgetauschte Zeile mit demselben Dateipfad")
+    func staleRulePreviewKeepsBothEntriesUnchanged() async throws {
+        let url = URL(fileURLWithPath: "/tmp/tagx-closed-rule-entry.mp3")
+        let data = TagData(properties: [TagProperty(key: "TITLE", value: "Alt")], artworks: [], audio: nil)
+        let previous = FileEntry(url: url, loaded: .audio(data))
+        let current = FileEntry(url: url, loaded: .audio(data))
+        let model = AppModel()
+        model.entries = [previous]
+        let rule = TagRuleDocument(rules: [TagRule(action: .set, field: "TITLE", value: "Neu")])
+        let inputs = model.ruleInputs(for: [previous])
+        let plans = try AppModel.rulePlan(for: inputs, document: rule)
+
+        model.entries = [current]
+        #expect(!(await model.applyPreparedRules(plans, matching: inputs, to: [previous])))
+        #expect(previous.firstValue("TITLE") == "Alt")
+        #expect(current.firstValue("TITLE") == "Alt")
+    }
+
     @Test("Verlauf der Regeldateien: neueste zuerst, ohne Dubletten, fehlende Dateien fallen weg")
     func ruleFileHistory() throws {
         let directory = try makeDirectory("rules-history")
