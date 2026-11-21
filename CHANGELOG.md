@@ -11,6 +11,10 @@ jeder Entscheidung steht im jeweiligen Commit.
 Die Versionsabschnitte dokumentieren Quellstände. Veröffentlichte Builds und
 ihre Plattformen stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 
+## 0.54.15 — 2026-11-21
+
+- Die HTTP-Loopback-Tests beenden ihre Testserver mit einer festen Frist.
+
 ## 0.54.14 — 2026-11-21
 
 - Der Online-Lookup begrenzt den Empfang einschließlich Weiterleitungen unter

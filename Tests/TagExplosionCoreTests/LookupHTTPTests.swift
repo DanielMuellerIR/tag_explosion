@@ -381,43 +381,58 @@ struct MacLookupProxyTests {
 #endif
 
 private struct LookupLoopbackServer {
-    let process: Process
+    private let directory: URL
+    private let cancellation: ExternalToolRunner.Cancellation
+    private let completed: DispatchGroup
     let port: Int
 
     init(connectStatus: Int = 407) throws {
-        let process = Process()
-        let output = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        process.arguments = ["-u", "-c", Self.script, String(connectStatus)]
-        process.standardOutput = output
-        try process.run()
-        try output.fileHandleForWriting.close()
-        let address = String(decoding: output.fileHandleForReading.availableData, as: UTF8.self)
-        guard let port = Int(address.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            if process.isRunning { process.terminate() }
-            process.waitUntilExit()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("tagx-lookup-test-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        let addressFile = directory.appendingPathComponent("port")
+        let cancellation = ExternalToolRunner.Cancellation()
+        let completed = DispatchGroup()
+        completed.enter()
+        DispatchQueue.global(qos: .utility).async {
+            defer { completed.leave() }
+            _ = try? ExternalToolRunner.run("/usr/bin/python3",
+                ["-c", Self.script, String(connectStatus), addressFile.path],
+                processTimeout: 60, cancellation: cancellation)
+        }
+        let deadline = DispatchTime.now() + .seconds(8)
+        var address = try? String(contentsOf: addressFile, encoding: .utf8)
+        while address == nil, DispatchTime.now() < deadline,
+              completed.wait(timeout: .now() + .milliseconds(10)) == .timedOut {
+            address = try? String(contentsOf: addressFile, encoding: .utf8)
+        }
+        guard let address, let port = Int(address) else {
+            cancellation.cancel()
+            _ = completed.wait(timeout: .now() + .seconds(5))
+            try? FileManager.default.removeItem(at: directory)
             throw URLError(.cannotConnectToHost)
         }
-        self.process = process
+        self.directory = directory
+        self.cancellation = cancellation
+        self.completed = completed
         self.port = port
     }
 
     func url(_ path: String) -> URL { URL(string: "http://127.0.0.1:\(port)/\(path)")! }
 
     func stop() {
-        if process.isRunning { process.terminate() }
-        process.waitUntilExit()
+        cancellation.cancel()
+        if completed.wait(timeout: .now() + .seconds(5)) == .timedOut {
+            Issue.record("Der lokale Lookup-Testserver wurde nicht beendet")
+        }
+        try? FileManager.default.removeItem(at: directory)
     }
 
     private static let script = #"""
-        import signal
+        from pathlib import Path
         import sys
         import threading
         import time
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
-        # Swift Testing startet Unterprozesse mit blockierten Signalen.
-        signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGTERM})
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
@@ -504,7 +519,10 @@ private struct LookupLoopbackServer {
         target = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         threading.Thread(target=target.serve_forever, daemon=True).start()
         server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        print(server.server_port)
+        port_file = Path(sys.argv[2])
+        temporary = port_file.with_suffix(".pending")
+        temporary.write_text(str(server.server_port), encoding="ascii")
+        temporary.replace(port_file)
         server.serve_forever()
         """#
 }
