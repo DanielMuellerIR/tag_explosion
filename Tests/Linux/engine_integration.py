@@ -4,8 +4,10 @@ import argparse
 import json
 import os
 from pathlib import Path
+import select
 import selectors
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -22,10 +24,18 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
     fake = tools / 'mediainfo'
     fake.write_text(
         f'#!{sys.executable}\n'
-        'from pathlib import Path\nimport os\nimport time\n'
+        'from pathlib import Path\nimport json\nimport os\nimport signal\nimport time\n'
         'stdin = os.fstat(0)\nnull = os.stat(os.devnull)\n'
         'isolated = (stdin.st_dev, stdin.st_ino) == (null.st_dev, null.st_ino)\n'
-        f'Path({str(marker)!r}).write_text("EOF" if isolated and not os.read(0, 1) else "inherited")\n'
+        'signal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+        'child = os.fork()\n'
+        'if child == 0:\n'
+        '    os.close(1)\n    os.close(2)\n    time.sleep(60)\n    os._exit(0)\n'
+        f'marker = Path({str(marker)!r})\n'
+        'staging = marker.with_suffix(".tmp")\n'
+        'staging.write_text(json.dumps({"stdin": isolated and not os.read(0, 1),\n'
+        '                               "tool": os.getpid(), "child": child}))\n'
+        'staging.rename(marker)\n'
         'time.sleep(60)\n'
     )
     fake.chmod(0o755)
@@ -35,6 +45,7 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
     selector.register(engine.stdout, selectors.EVENT_READ)
     sequence = 0
     responses = {}
+    tool_fds = []
     def call(method, params=None, session='main', error=None):
         global sequence
         sequence += 1
@@ -50,6 +61,41 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
             return
         assert not response.get('error'), response
         return response.get('result')
+
+    def start_info(session, path):
+        global sequence
+        marker.unlink(missing_ok=True)
+        sequence += 1
+        engine.stdin.write(json.dumps({
+            'id': sequence, 'session': session, 'method': 'info', 'params': {'path': str(path)},
+        }).encode() + b'\n')
+        engine.stdin.flush()
+        deadline = time.monotonic() + 10
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(.02)
+        assert marker.exists(), 'MediaInfo-Auftrag wurde nicht gestartet'
+        started = json.loads(marker.read_text())
+        assert started['stdin'], 'Werkzeug hat keinen getrennten stdin'
+        fds = []
+        for key in ('tool', 'child'):
+            descriptor = os.pidfd_open(started[key])
+            tool_fds.append(descriptor)
+            fds.append(descriptor)
+        return sequence, *fds
+
+    def info_cancelled(request_id):
+        while request_id not in responses:
+            assert selector.select(5), 'MediaInfo-Abbruch blieb hängen'
+            incoming = json.loads(engine.stdout.readline())
+            responses[incoming['id']] = incoming
+        assert responses.pop(request_id)['result']['cancelled'] is True
+
+    def assert_tool_exited(tool_fd, child_fd):
+        assert select.select([tool_fd], [], [], 0)[0], 'MediaInfo läuft nach der Abschlussantwort noch'
+        # Der Worker wartet auf den Prozessleiter. Der Nachkomme kann erst
+        # beim nächsten Scheduling auf den Gruppenabbruch reagieren.
+        assert select.select([child_fd], [], [], 2)[0], 'Nachkomme überlebte den Gruppenabbruch'
+
     try:
         requested_language = {'LANGUAGE', 'LC_ALL', 'LC_MESSAGES', 'LANG', 'TAGX_DESKTOP_LANGUAGE'}
         locale_base = {key: value for key, value in environment.items() if key not in requested_language}
@@ -136,45 +182,23 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
             groups = call('imageMetadata', {'path': str(pictures[0])}, session='image-sidecar')
             assert any(g['name'].startswith('Sidecar · ') and any(f['value'] == 'Sidecar-Titel' for f in g['fields']) for g in groups), groups
             assert call('entry', {'path': str(pictures[0])}, session='image-sidecar')['writeDestination']
+        # Das Schließen bricht den laufenden Werkzeugauftrag selbst ab und
+        # wartet auf sein Ende, bevor die Sitzung freigegeben wird.
+        call('open', {'paths': [str(media)]}, session='closing')
+        closing_info_id, tool_fd, child_fd = start_info('closing', media)
+        assert call('close', session='closing')['closed'] is True
+        assert_tool_exited(tool_fd, child_fd)
+        info_cancelled(closing_info_id)
+        assert call('prepareUpdate') is True
         # Ein lang laufendes Werkzeug muss unabhängig von der UI-Auftragskette
         # abbrechbar bleiben und währenddessen den Paketwechsel sperren.
-        sequence += 1
-        info_id = sequence
-        engine.stdin.write(json.dumps({'id': info_id, 'session': 'main', 'method': 'info', 'params': {'path': str(media)}}).encode() + b'\n')
-        engine.stdin.flush()
-        deadline = time.monotonic() + 10
-        while (not marker.exists() or not marker.stat().st_size) and time.monotonic() < deadline:
-            time.sleep(.02)
-        assert marker.exists(), 'MediaInfo-Auftrag wurde nicht gestartet'
-        assert marker.read_text() == 'EOF', 'Werkzeug hat keinen getrennten stdin'
+        info_id, tool_fd, child_fd = start_info('main', media)
         assert call('prepareUpdate') is False
         started = time.monotonic()
         call('cancel', {'operation': 'info'})
-        while info_id not in responses:
-            assert selector.select(5), 'MediaInfo-Abbruch blieb hängen'
-            incoming = json.loads(engine.stdout.readline()); responses[incoming['id']] = incoming
-        assert responses.pop(info_id)['result']['cancelled'] is True
+        info_cancelled(info_id)
+        assert_tool_exited(tool_fd, child_fd)
         assert time.monotonic() - started < 5
-        assert call('prepareUpdate') is True
-        # Das Schließen bricht den laufenden Werkzeugauftrag selbst ab und
-        # wartet auf sein Ende, bevor die Sitzung freigegeben wird.
-        marker.unlink()
-        call('open', {'paths': [str(media)]}, session='closing')
-        sequence += 1
-        closing_info_id = sequence
-        engine.stdin.write(json.dumps({'id': closing_info_id, 'session': 'closing', 'method': 'info',
-                                       'params': {'path': str(media)}}).encode() + b'\n')
-        engine.stdin.flush()
-        deadline = time.monotonic() + 10
-        while not marker.exists() and time.monotonic() < deadline:
-            time.sleep(.02)
-        assert marker.exists(), 'Werkzeugauftrag für den Schließtest wurde nicht gestartet'
-        assert call('close', session='closing')['closed'] is True
-        while closing_info_id not in responses:
-            assert selector.select(5), 'Werkzeugauftrag endete nach dem Schließen nicht'
-            incoming = json.loads(engine.stdout.readline())
-            responses[incoming['id']] = incoming
-        assert responses.pop(closing_info_id)['result']['cancelled'] is True
         assert call('prepareUpdate') is True
         # Ungültige JSON-Zeile beendet den Worker mit definiertem Fehler, ohne
         # einen vorher akzeptierten Speichervorgang ungeprüft zu wiederholen.
@@ -184,6 +208,13 @@ with tempfile.TemporaryDirectory(prefix='tagx-ipc-') as temporary:
         engine.wait(timeout=10)
         print('IPC: Version, Revision, getrennte Fenster, Unicode-Speichern, veraltete Datei, Schließen, Bildbewertung, Sidecar-Anzeige, Werkzeugabbruch und Updatesperre bestanden.')
     finally:
+        for descriptor in tool_fds:
+            try:
+                signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            finally:
+                os.close(descriptor)
         selector.close()
         if engine.poll() is None:
             engine.terminate()

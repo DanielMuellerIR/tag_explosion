@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // Batch-Editor für Bilder: setzt Titel/Beschreibung/Ersteller/Copyright/
 // Schlagwörter/Bewertung für alle ausgewählten Bilder. Textfelder können ihren
 // Wert pro Datei aus einem beliebigen rohen Metadaten-Tag übernehmen
 // (EXIF/IPTC/XMP, formatübergreifend) — geschrieben wird MWG-harmonisiert.
 import SwiftUI
+import TagExplosionApplication
 import TagExplosionCore
 
 struct ImageBatchEditorView: View {
@@ -16,18 +16,12 @@ struct ImageBatchEditorView: View {
     @AppStorage(AppModel.imageSidecarDefaultsKey) private var sidecarPreferred = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                fieldsSection
-                ArchiveButtons(entries: entries)
-                fileListSection
-            }
-            .padding(20)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity)
+        BatchEditorLayout {
+            header
+            fieldsSection
+            ArchiveButtons(entries: entries)
+            fileListSection
         }
-        .background(.background)
         .task(id: entries.map(\.url)) {
             await loadRawTags()
         }
@@ -35,17 +29,9 @@ struct ImageBatchEditorView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(entries.count) Bilder ausgewählt")
-                .font(.title3.weight(.semibold))
-            Text("Änderungen wirken auf alle ausgewählten Bilder.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            let dirtyCount = entries.filter(\.isDirty).count
-            if dirtyCount > 0 {
-                Label("\(dirtyCount) mit ungespeicherten Änderungen", systemImage: "pencil.circle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
+            BatchSelectionSummary(title: "\(entries.count) Bilder ausgewählt",
+                                  hint: "Änderungen wirken auf alle ausgewählten Bilder.",
+                                  entries: entries)
             // Sidecar-Zustand der Auswahl: Wie viele Bilder lesen Werte aus
             // einer Sidecar, wie viele werden beim Speichern in eine Sidecar
             // geschrieben (RAW, nicht schreibbares Format, Einstellung)?
@@ -65,12 +51,7 @@ struct ImageBatchEditorView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("image.batch.sidecar.target")
             }
-            HStack(spacing: 12) {
-                FilenamePatternMenu(entries: entries)
-                // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
-                TagRulesButton(entries: entries)
-            }
-            .padding(.top, 4)
+            BatchRuleActions(entries: entries)
         }
     }
 
@@ -165,29 +146,19 @@ struct ImageBatchEditorView: View {
     }
 
     private var fileListSection: some View {
-        GroupBox("Ausgewählte Bilder") {
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                ForEach(entries) { entry in
-                    GridRow {
-                        Text(entry.url.lastPathComponent)
-                            .lineLimit(1)
-                        Text(entry.imageFields.keywords.joined(separator: ", "))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        if entry.imageReading.sidecarURL != nil {
-                            Text("Sidecar")
-                                .font(.caption2)
-                                .padding(.horizontal, 5)
-                                .background(.quaternary, in: Capsule())
-                                .help("Werte dieses Bildes stammen (teils) aus der XMP-Sidecar-Datei.")
-                        }
-                        if entry.isDirty {
-                            Circle().fill(.orange).frame(width: 6, height: 6)
-                        }
-                    }
-                }
+        BatchFileGrid(title: "Ausgewählte Bilder", entries: entries) { entry in
+            Text(entry.url.lastPathComponent)
+                .lineLimit(1)
+            Text(entry.imageFields.keywords.joined(separator: ", "))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            if entry.imageReading.sidecarURL != nil {
+                Text("Sidecar")
+                    .font(.caption2)
+                    .padding(.horizontal, 5)
+                    .background(.quaternary, in: Capsule())
+                    .help("Werte dieses Bildes stammen (teils) aus der XMP-Sidecar-Datei.")
             }
-            .padding(8)
         }
     }
 

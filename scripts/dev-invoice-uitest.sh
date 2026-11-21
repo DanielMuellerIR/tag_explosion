@@ -89,13 +89,18 @@ func captureOwnedWindows(_ prefix: String) {
     }
 }
 while !app.isTerminated, Date() < deadline {
-    if let focused = attribute(AXUIElementCreateSystemWide(), kAXFocusedUIElementAttribute) {
+    var testHasFocus = NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier
+    if let focused = attribute(AXUIElementCreateSystemWide(), kAXFocusedUIElementAttribute),
+       CFGetTypeID(focused) == AXUIElementGetTypeID() {
         var focusedPID: pid_t = 0
-        if AXUIElementGetPid(focused as! AXUIElement, &focusedPID) == .success,
-           focusedPID == app.processIdentifier {
-            acquiredFocus = true
-            if !allowFocus { app.hide(); break }
+        let element = unsafeBitCast(focused, to: AXUIElement.self)
+        if AXUIElementGetPid(element, &focusedPID) == .success {
+            testHasFocus = testHasFocus || focusedPID == app.processIdentifier
         }
+    }
+    if testHasFocus {
+        acquiredFocus = true
+        if !allowFocus { app.hide(); break }
     }
     let current = inspect(axApp)
     if current.count > tree.count { tree = current }
@@ -125,9 +130,12 @@ if allowFocus, let foreground, NSWorkspace.shared.frontmostApplication?.processI
 }
 guard stopped, app.isTerminated else { kitFail("Eigene Test-App nicht beendet") }
 guard allowFocus || !acquiredFocus else { kitFail("Test-App hat Tastaturfokus übernommen und wurde ausgeblendet") }
-guard captureFailure == nil else { kitFail(captureFailure!) }
+if let captureFailure { kitFail(captureFailure) }
 guard sawButton else { kitFail("Prüfbutton wurde extern nicht im AX-Baum beobachtet") }
-guard NSWorkspace.shared.frontmostApplication?.processIdentifier == foreground else { kitFail("Fensterfokus wurde verändert") }
+// Im Hintergrundmodus darf der Bediener parallel die aktive App wechseln.
+guard !allowFocus || NSWorkspace.shared.frontmostApplication?.processIdentifier == foreground else {
+    kitFail("Fensterfokus wurde verändert")
+}
 let data = try Data(contentsOf: resultURL)
 let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 guard result?["status"] as? String == "passed" else { kitFail("GUI-Abnahme fehlgeschlagen; siehe ui-result.json") }

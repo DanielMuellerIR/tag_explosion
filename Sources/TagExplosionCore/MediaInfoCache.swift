@@ -20,6 +20,7 @@ public actor MediaInfoCache {
         let key: Key
         let cancellation: ExternalToolRunner.Cancellation
         var subscribers: [UUID: CheckedContinuation<MediaInfoReport, Error>]
+        var isCancelling = false
     }
     private let capacity: Int
     private let byteLimit: Int
@@ -55,7 +56,7 @@ public actor MediaInfoCache {
                     continuation.resume(throwing: CancellationError())
                     return
                 }
-                if let index = pending.firstIndex(where: { $0.key == key }) {
+                if let index = pending.firstIndex(where: { $0.key == key && !$0.isCancelling }) {
                     pending[index].subscribers[subscriber] = continuation
                 } else {
                     let cancellation = ExternalToolRunner.Cancellation()
@@ -90,20 +91,25 @@ public actor MediaInfoCache {
     }
 
     private func release(subscriber: UUID) {
-        guard let index = pending.firstIndex(where: { $0.subscribers[subscriber] != nil }) else { return }
-        let continuation = pending[index].subscribers.removeValue(forKey: subscriber)
-        continuation?.resume(throwing: CancellationError())
-        if pending[index].subscribers.isEmpty {
+        guard let index = pending.firstIndex(where: {
+            !$0.isCancelling && $0.subscribers[subscriber] != nil
+        }) else { return }
+        if pending[index].subscribers.count == 1 {
+            // Der letzte Abonnent wartet auf das tatsächliche Prozessende.
+            // Neue Leser dürfen dem bereits abgebrochenen Auftrag nicht beitreten.
+            pending[index].isCancelling = true
             pending[index].cancellation.cancel()
-            pending.remove(at: index)
+        } else {
+            pending[index].subscribers.removeValue(forKey: subscriber)?.resume(throwing: CancellationError())
         }
     }
 
     private func complete(_ id: UUID, key: Key, result: Result<MediaInfoReport, Error>) {
         guard let index = pending.firstIndex(where: { $0.id == id }) else { return }
         let request = pending.remove(at: index)
-        for continuation in request.subscribers.values { continuation.resume(with: result) }
-        guard case .success(let report) = result else { return }
+        let delivery = request.isCancelling ? .failure(CancellationError()) : result
+        for continuation in request.subscribers.values { continuation.resume(with: delivery) }
+        guard case .success(let report) = delivery else { return }
         // Ohne lesbaren Stempel ist keine verlässliche Wiederverwendung möglich.
         guard key.stamp != nil, FileStamp.current(of: key.url) == key.stamp else { return }
         let bytes = report.text.utf8.count + report.tracks.reduce(0) { total, track in

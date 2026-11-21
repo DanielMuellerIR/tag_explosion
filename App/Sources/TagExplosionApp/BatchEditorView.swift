@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // Batch-Editor: bearbeitet mehrere ausgewählte Dateien gleichzeitig.
 // Felder zeigen den gemeinsamen Wert oder "— verschieden —"; eine Eingabe
 // setzt den Wert für ALLE ausgewählten Dateien.
 import SwiftUI
+import TagExplosionApplication
 import TagExplosionCore
 import UniformTypeIdentifiers
 
@@ -19,22 +19,16 @@ struct BatchEditorView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                batchFieldsSection
-                if entries.allSatisfy({ !$0.isReadOnly && FixedFields.supportsLoudness($0.url) }) {
-                    BatchLoudnessSection(entries: entries)
-                }
-                actionsSection
-                ArchiveButtons(entries: entries)
-                fileListSection
+        BatchEditorLayout {
+            header
+            batchFieldsSection
+            if entries.allSatisfy({ !$0.isReadOnly && FixedFields.supportsLoudness($0.url) }) {
+                BatchLoudnessSection(entries: entries)
             }
-            .padding(20)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            actionsSection
+            ArchiveButtons(entries: entries)
+            fileListSection
         }
-        .background(.background)
     }
 
     // MARK: Kopf
@@ -42,19 +36,9 @@ struct BatchEditorView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 16) {
             batchCoverWell
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(entries.count) Dateien ausgewählt")
-                    .font(.title3.weight(.semibold))
-                Text("Änderungen wirken auf alle ausgewählten Dateien.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                let dirtyCount = entries.filter(\.isDirty).count
-                if dirtyCount > 0 {
-                    Label("\(dirtyCount) mit ungespeicherten Änderungen", systemImage: "pencil.circle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
+            BatchSelectionSummary(title: "\(entries.count) Dateien ausgewählt",
+                                  hint: "Änderungen wirken auf alle ausgewählten Dateien.",
+                                  entries: entries)
             Spacer()
         }
     }
@@ -200,26 +184,16 @@ struct BatchEditorView: View {
     // MARK: Dateiliste
 
     private var fileListSection: some View {
-        GroupBox("Ausgewählte Dateien") {
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                ForEach(entries) { entry in
-                    GridRow {
-                        Text(entry.firstValue("TRACKNUMBER"))
-                            .foregroundStyle(.secondary)
-                            .font(.caption.monospacedDigit())
-                            .gridColumnAlignment(.trailing)
-                        Text(entry.url.lastPathComponent)
-                            .lineLimit(1)
-                        Text(entry.displayTitle)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        if entry.isDirty {
-                            Circle().fill(.orange).frame(width: 6, height: 6)
-                        }
-                    }
-                }
-            }
-            .padding(8)
+        BatchFileGrid(title: "Ausgewählte Dateien", entries: entries) { entry in
+            Text(entry.firstValue("TRACKNUMBER"))
+                .foregroundStyle(.secondary)
+                .font(.caption.monospacedDigit())
+                .gridColumnAlignment(.trailing)
+            Text(entry.url.lastPathComponent)
+                .lineLimit(1)
+            Text(entry.displayTitle)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 

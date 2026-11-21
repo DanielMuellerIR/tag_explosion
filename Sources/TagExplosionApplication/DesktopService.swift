@@ -205,25 +205,8 @@ public final class DesktopService {
             } else { throw DesktopFailure("unsupported", String(localized: "Das ausgewählte Feld lässt sich für diese Dateien nicht kopieren.")) }
             changed(request.session)
         case "batchInfo":
-            let selected = targets(p, in: model)
-            guard let first = selected.first, selected.allSatisfy({ $0.kind == first.kind }) else { throw DesktopFailure("mixed_selection", String(localized: "Wählen Sie Dateien desselben Typs.")) }
-            let descriptions = try selected.map(describe)
-            var common: [String: DesktopValue] = [:]
-            var mixed: [String] = []
-            let keys = first.kind == .audio ? Set(selected.flatMap { $0.properties.map(\.key) }) : Set(descriptions.flatMap { $0["fields"].fields.keys }).union(first.kind == .image ? ["rating"] : [])
-            for key in keys {
-                let values = first.kind == .audio ? try selected.map { try DesktopValue.encoding($0.properties.filter { $0.key == key }.map(\.value)) } : descriptions.map { $0["fields"][key] }
-                if values.allSatisfy({ $0 == values.first }) { common[key] = values.first ?? .null }
-                else { mixed.append(key) }
-            }
-            let restrictions = selected.compactMap { MediaFormats.writableTagKeys(for: $0.url) }
-            let writable = restrictions.first.map { first in restrictions.dropFirst().reduce(first) { $0.intersection($1) } }
-            var supported = Set(descriptions[0]["fields"].fields.keys)
-            if first.kind == .image { supported.insert("rating") }
-            for description in descriptions where description["supportedFields"] != .null { supported.formIntersection(description["supportedFields"].values.compactMap(\.text)) }
-            if first.kind == .ebook, selected.contains(where: { !EbookTool.supportsSeries(url: $0.url) }) { supported.subtract(["series", "seriesIndex"]) }
-            return .object(["first": descriptions[0], "common": .object(common), "mixed": try .encoding(mixed), "sourceKeys": try .encoding(keys.sorted()), "writableKeys": try .encoding(writable?.sorted()), "supportedFields": try .encoding(supported.sorted()), "readOnly": .bool(selected.contains(where: \.isReadOnly)),
-                            "loudnessKeys": try .encoding(selected.allSatisfy({ FixedFields.supportsLoudness($0.url) }) ? FixedFields.loudnessKeys.filter { ![FixedFields.r128TrackGain, FixedFields.r128AlbumGain].contains($0) || selected.allSatisfy({ FixedFields.supportsR128($0.url) }) } : [])])
+            return try DesktopPresentation.batchInfo(targets(p, in: model),
+                                                     preferSidecar: preferences.enabled(.imageSidecar))
         case "state": return try state(model, session: request.session)
         case "open":
             await model.open(urls: p["paths"].values.compactMap(\.text).map { URL(fileURLWithPath: $0) })
@@ -242,7 +225,9 @@ public final class DesktopService {
             model.listKind = p["kind"].text.flatMap(MediaKind.init(rawValue:))
             model.listDirtyOnly = p["dirtyOnly"].flag; model.listErrorsOnly = p["errorsOnly"].flag
             model.listSort = p["sort"].text.flatMap(FileListSort.init(rawValue:)) ?? .input
-        case "entry": return try describe(entry(p, in: model))
+        case "entry":
+            return try DesktopPresentation.describe(entry(p, in: model),
+                                                    preferSidecar: preferences.enabled(.imageSidecar))
         case "imagePreview":
             let target = try entry(p, in: model)
             guard target.kind == .image else { return .null }
@@ -519,54 +504,6 @@ public final class DesktopService {
         if let conflict = model.pendingExternalImport { value["externalImport"] = .string(conflict.displayedMessage) }
         if let conflict = model.pendingStaleWrite { value["staleWrite"] = .string(conflict.fileName) }
         return .object(value)
-    }
-
-    private func describe(_ entry: FileEntry) throws -> DesktopValue {
-        var result: [String: DesktopValue] = ["path": .string(entry.url.path), "kind": .string(entry.kind.rawValue),
-            "title": .string(entry.displayTitle), "dirty": .bool(entry.isDirty), "readOnly": .bool(entry.isReadOnly || entry.kind == .invoice),
-            "supportsChapters": .bool(entry.supportsChapters), "supportsSyncedLyrics": .bool(entry.supportsSyncedLyrics),
-            "supportsFilenamePatterns": .bool(entry.supportsFilenamePatterns)]
-        switch entry.kind {
-        case .audio:
-            result["properties"] = try .encoding(entry.properties)
-            result["writableKeys"] = try .encoding(MediaFormats.writableTagKeys(for: entry.url)?.sorted())
-            result["supportsLyrics"] = .bool(FixedFields.supportsLyrics(entry.url))
-            result["supportsLoudness"] = .bool(FixedFields.supportsLoudness(entry.url))
-            result["supportsPodcast"] = .bool(FixedFields.supportsPodcast(entry.url))
-            result["loudnessKeys"] = try .encoding(FixedFields.loudnessKeys.sorted())
-            result["podcastKeys"] = try .encoding(FixedFields.podcastKeys.sorted())
-            result["artworks"] = .array(entry.artworks.enumerated().map { i, art in
-                let analysis = CoverTools.analyze(art.data)
-                return .object(["index": .number(Double(i)), "mimeType": .string(art.resolvedMimeType), "pictureType": .string(art.pictureType), "description": .string(art.description), "analysis": (try? .encoding(analysis)) ?? .null, "summary": .string(analysis.summary), "issues": .array(analysis.issues.map { .string(CoverToolActions.issueText($0.code)) })])
-            })
-            result["audio"] = try .encoding(entry.audio)
-            result["chapters"] = try .encoding(entry.chapters)
-            result["lyricsLanguage"] = .string(entry.lyricsLanguage)
-            result["syncedLyrics"] = try .encoding(entry.syncedLyrics)
-            result["layers"] = try .encoding(entry.layers)
-            if entry.videoNFO?.isEditable == true { result["videoNFO"] = try .encoding(entry.videoNFOFields) }
-        case .image:
-            result["fields"] = try .encoding(entry.imageFields)
-            let destination = ExifTool.writeDestination(for: entry.url, preferSidecar: preferences.enabled(.imageSidecar))
-            result["writeDestination"] = destination.isSidecar ? .string(ImagePresentation.destinationText(destination)) : .null
-            result["ratingOptions"] = .array(RatingPicker.options(current: entry.imageFields.rating).map { .object(["value": $0.value.map { .number(Double($0)) } ?? .null, "label": .string($0.label)]) })
-            result["sidecarFields"] = try .encoding(entry.imageReading.sidecarFields.map(\.rawValue))
-            result["sidecar"] = entry.imageReading.sidecarURL.map { .string($0.path) } ?? .null
-        case .ebook: result["fields"] = try .encoding(entry.ebookFields); result["supportsSeries"] = .bool(EbookTool.supportsSeries(url: entry.url)); result["supportsCover"] = .bool(EbookTool.supportsCover(url: entry.url)); result["hasCover"] = .bool((entry.ebookCoverReplacement ?? entry.ebookOriginalCover) != nil)
-        case .document: result["fields"] = try .encoding(entry.documentFields); result["info"] = try .encoding(entry.documentInfo); result["supportedFields"] = try .encoding(DocumentTool.supportedFields(url: entry.url).map(\.rawValue)); result["hasCover"] = .bool(entry.documentCover != nil)
-        case .invoice: result["invoice"] = try .encoding(entry.invoiceDocument)
-        case .sidecar:
-            switch entry.sidecarContents {
-            case .nfo(let contents): result["fields"] = try .encoding(entry.nfoFields); result["subkind"] = .string("nfo"); result["readOnly"] = .bool(contents.isURLOnly); result["info"] = try .encoding(contents.info); result["urls"] = try .encoding(contents.urls)
-            case .subtitle(let contents): result["fields"] = try .encoding(entry.subtitleFields); result["subkind"] = .string("subtitle"); result["supportedFields"] = try .encoding(contents.info.format == .vtt ? ["title", "language"] : [String]()); result["info"] = try .encoding(contents.info)
-            case nil: break
-            }
-        case .playlist:
-            result["fields"] = try .encoding(entry.playlistFields)
-            result["supportedFields"] = try .encoding(PlaylistTool.supportedFields(url: entry.url).map(\.rawValue))
-            result["playlist"] = try .encoding(entry.playlistContents)
-        }
-        return .object(result)
     }
 
     private func convertBatchCovers(_ entries: [FileEntry], _ conversion: CoverTools.Conversion, params p: DesktopValue, model: AppModel, session: String) async throws {

@@ -1836,11 +1836,19 @@ async function discardEdits() {
       return;
     }
     // Auch Entwürfe, die der Worker beim Übernehmen ablehnen würde, verwerfen.
-    const next = await request("revert");
-    pending = false;
-    batchChanges = {};
-    updateState(next);
-    await renderSelection();
+    const editor = $("editor");
+    editor.inert = true;
+    editor.setAttribute("aria-busy", "true");
+    try {
+      const next = await request("revert");
+      pending = false;
+      batchChanges = {};
+      updateState(next);
+      await renderSelection();
+    } finally {
+      editor.inert = false;
+      editor.removeAttribute("aria-busy");
+    }
   });
 }
 async function exportPlaylist() {

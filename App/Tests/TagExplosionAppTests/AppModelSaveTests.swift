@@ -1,8 +1,5 @@
-// Der Test hält den Hintergrundspeicherweg gezielt an. So lässt sich ohne
-// Fenster prüfen, dass neuere Editoränderungen und ein zweiter Speichern-Klick
-// nicht im Rennen verlorengehen.
-import Foundation
 import EInvoiceCore
+import Foundation
 import TagExplosionTestSupport
 import Testing
 @testable import TagExplosionApp
@@ -11,53 +8,6 @@ import TagExplosionCore
 @Suite("AppModel Speichern", .serialized)
 @MainActor
 struct AppModelSaveTests {
-    @Test("Import lädt einen separat geöffneten XMP-Editor neu")
-    func importReloadsSeparateXMP() async throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let image = folder.appendingPathComponent("cover.jpg")
-        try FileManager.default.copyItem(at: AppTestFixtures.directory.appendingPathComponent("cover.jpg"), to: image)
-        let sidecar = MediaFormats.sidecarURL(for: image)
-        try Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8).write(to: sidecar)
-        var archive = try TagArchiveIO.build(files: [image], baseDirectory: folder, includeCovers: true)
-        archive.files[0].image?.title = "Imported XMP title"
-        let json = folder.appendingPathComponent("tags.json")
-        try JSONEncoder().encode(archive).write(to: json)
-        let entry = FileEntry(url: sidecar, loaded: .image(try ExifTool.readCoreReading(url: sidecar)))
-        let model = AppModel(); model.entries = [entry]
-        await model.importArchive(from: json)
-        #expect(try ExifTool.readCoreReading(url: sidecar).fields.title == "Imported XMP title")
-        #expect(entry.imageFields.title == "Imported XMP title")
-        #expect(!entry.isDirty)
-    }
-
-    @Test("Import mit XMP am ersten Bild lädt nachfolgende Audioeditoren neu")
-    func importWithSidecarReloadsFollowingAudio() async throws {
-        let audio = try MediaTestFixtures.workingCopy()
-        let folder = audio.deletingLastPathComponent()
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let image = folder.appendingPathComponent("cover.jpg")
-        try FileManager.default.copyItem(at: AppTestFixtures.directory.appendingPathComponent("cover.jpg"), to: image)
-        let sidecar = MediaFormats.sidecarURL(for: image)
-        let originalSidecar = Data("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>".utf8)
-        try originalSidecar.write(to: sidecar)
-        var archive = try TagArchiveIO.build(files: [image, audio], baseDirectory: folder, includeCovers: true)
-        archive.files[1].properties?["TITLE"] = ["Imported audio title"]
-        let json = folder.appendingPathComponent("tags.json")
-        try JSONEncoder().encode(archive).write(to: json)
-        let entry = FileEntry(url: audio, loaded: .audio(try TagFile.read(at: audio)))
-        let imageEntry = FileEntry(url: image, loaded: .image(try ExifTool.readCoreReading(url: image)))
-        let model = AppModel()
-        model.entries = [imageEntry, entry]
-        await model.importArchive(from: json)
-        #expect(try TagFile.read(at: audio).firstValue(for: "TITLE") == "Imported audio title")
-        #expect(entry.firstValue("TITLE") == "Imported audio title")
-        #expect(!entry.isDirty)
-        #expect(try Data(contentsOf: sidecar) == originalSidecar)
-        #expect(!imageEntry.isDirty)
-    }
-
     @Test("Batch-Speichern sichert überlappende Kapitel und leere SYLT und erhält beide")
     func batchSaveWithLegacyAudioDetails() async throws {
         let first = try MediaTestFixtures.workingCopy()
@@ -165,161 +115,6 @@ struct AppModelSaveTests {
         let saved = try ExifTool.readCoreFields(url: copy)
         #expect(saved.title == "Eigener Titel")
         #expect(saved.creator == "Fremder Autor")
-    }
-
-    @Test("Synchron geclaimte Entscheidung gewinnt gegen sofortiges Dialog-Dismiss")
-    func claimedDecisionCannotBeReplacedByDismiss() async {
-        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
-                               artworks: [], audio: nil)
-        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/claim-decision.mp3"),
-                              loaded: .audio(original))
-        entry.properties = [TagProperty(key: "TITLE", value: "Speichern")]
-        let model = AppModel()
-        let performed = CallCounter()
-        var cancelled = 0
-
-        await model.requestDestructiveAction(
-            title: "Test",
-            message: "Test",
-            entries: [entry],
-            perform: { await performed.increment() },
-            cancel: { cancelled += 1 }
-        )
-
-        // Der Button beansprucht Speichern synchron. SwiftUI kann direkt
-        // danach den Binding-Setter mit false auslösen, der hier nur noch
-        // erfolglos versuchen darf, Abbrechen zu beanspruchen.
-        #expect(model.claimPendingConflict(.save))
-        #expect(!model.claimPendingConflict(.cancel))
-        await model.resolveClaimedPendingConflict { candidate in
-            await model.save(entry: candidate) { _ in
-                (.audio(TagData(
-                    properties: [TagProperty(key: "TITLE", value: "Speichern")],
-                    artworks: [], audio: nil
-                )), nil)
-            }
-        }
-
-        #expect(await performed.value == 1)
-        #expect(cancelled == 0)
-        #expect(!entry.isDirty)
-        #expect(model.pendingConflict == nil)
-    }
-
-    @Test("Import fragt nur für geöffnete Archivziele und schreibt erst nach Entscheidung")
-    func importPreflightProtectsOnlyMatchingOpenEntries() async throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-import-conflict-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: root) }
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let importedURL = root.appendingPathComponent("im-archiv.mp3")
-        try Data().write(to: importedURL)
-
-        let imported = dirtyAudioEntry(url: importedURL, changedTitle: "Lokaler Puffer")
-        let untouched = dirtyAudioEntry(
-            url: root.appendingPathComponent("nicht-im-archiv.mp3"),
-            changedTitle: "Anderer lokaler Puffer"
-        )
-        let model = AppModel()
-        model.entries = [imported, untouched]
-        let applyCalls = CallCounter()
-        let archive = TagArchive(created: "2026-07-19T00:00:00Z", files: [
-            .init(path: "im-archiv.mp3", kind: .audio,
-                  properties: ["TITLE": ["Aus dem Archiv"]]),
-        ])
-
-        await model.importArchive(archive: archive, relativeTo: root) { _, _ in
-            await applyCalls.increment()
-            throw ConflictTestError.expectedApplyFailure
-        }
-
-        let conflict = try #require(model.pendingConflict)
-        #expect(conflict.affectedEntryCount == 1)
-        #expect(await applyCalls.value == 0)
-        #expect(imported.firstValue("TITLE") == "Lokaler Puffer")
-        #expect(untouched.firstValue("TITLE") == "Anderer lokaler Puffer")
-
-        await model.resolvePendingConflict(.discard)
-        #expect(await applyCalls.value == 1)
-        #expect(!imported.isDirty)
-        #expect(untouched.isDirty)
-    }
-
-    @Test("Externe Importziele werden vollständig angezeigt und erst nach Freigabe geschrieben")
-    func externalImportTargetsRequireExplicitApproval() async throws {
-        let parent = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-app-external-import-\(UUID().uuidString)")
-        let base = parent.appendingPathComponent("archive")
-        defer { try? FileManager.default.removeItem(at: parent) }
-        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        let inside = base.appendingPathComponent("inside.mp3")
-        let outside = parent.appendingPathComponent("outside.mp3")
-        try Data().write(to: inside)
-        try Data().write(to: outside)
-        let archive = TagArchive(created: "2026-07-22T00:00:00Z", files: [
-            .init(path: "inside.mp3", kind: .audio, properties: [:]),
-            .init(path: "../outside.mp3", kind: .audio, properties: [:]),
-        ])
-        let model = AppModel()
-        let applyCalls = CallCounter()
-
-        await model.importArchive(archive: archive, relativeTo: base) { _, _ in
-            await applyCalls.increment()
-            return try TagArchiveIO.apply(
-                TagArchive(created: "2026-07-22T00:00:00Z", files: []),
-                relativeTo: base, dryRun: true)
-        }
-
-        let approval = try #require(model.pendingExternalImport)
-        #expect(approval.externalTargetCount == 1)
-        #expect(approval.targetPaths == [inside.path, outside.path])
-        #expect(await applyCalls.value == 0)
-
-        #expect(model.claimPendingExternalImport(approve: true))
-        #expect(!model.claimPendingExternalImport(approve: false))
-        await model.resolveClaimedPendingExternalImport()
-        #expect(await applyCalls.value == 1)
-        #expect(model.pendingExternalImport == nil)
-    }
-
-    @Test("Ein während des Dialogs umgebogenes Archivziel wird nicht geschrieben",
-          .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixtures fehlen (ffmpeg)"))
-    func retargetedImportDuringConflictDialogIsRejected() async throws {
-        // Zwischen der geprüften Zielliste und dem eigentlichen Schreiben liegt
-        // der Save/Discard-Dialog. Wird das Ziel in diesem Fenster auf eine
-        // ANDERE geöffnete Datei umgebogen, darf der Import sie weder ändern
-        // noch ihren ungespeicherten Puffer per Neuladen verwerfen — auch wenn
-        // gar kein Ziel außerhalb des Archivordners im Spiel ist.
-        let source = try MediaTestFixtures.workingCopy()
-        let dir = source.deletingLastPathComponent()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let victim = dir.appendingPathComponent("opfer.mp3")
-        try FileManager.default.copyItem(at: source, to: victim)
-
-        let json = dir.appendingPathComponent("tags.json")
-        try TagArchiveIO.export(files: [source], to: json, includeCovers: false)
-        let victimBytes = try Data(contentsOf: victim)
-
-        let model = AppModel()
-        let target = dirtyAudioEntry(url: source, changedTitle: "Puffer des Archivziels")
-        let openVictim = dirtyAudioEntry(url: victim, changedTitle: "Puffer des Opfers")
-        model.entries = [target, openVictim]
-
-        await model.importArchive(from: json)
-        let conflict = try #require(model.pendingConflict)
-        #expect(conflict.affectedEntryCount == 1)
-
-        // Der Austausch passiert genau jetzt: Dialog offen, noch nichts geschrieben.
-        try FileManager.default.removeItem(at: source)
-        try FileManager.default.createSymbolicLink(at: source, withDestinationURL: victim)
-
-        await model.resolvePendingConflict(.discard)
-
-        #expect(model.alertMessage?.contains("Import fehlgeschlagen") == true)
-        #expect(try Data(contentsOf: victim) == victimBytes)
-        // Der nie im Dialog berücksichtigte Puffer lebt weiter.
-        #expect(openVictim.firstValue("TITLE") == "Puffer des Opfers")
-        #expect(openVictim.isDirty)
     }
 
     @Test("Dasselbe Cover erneut auszuwählen ist keine Änderung")
@@ -534,396 +329,6 @@ struct AppModelSaveTests {
         #expect(entry.isDirty)
     }
 
-    @Test("Entfernen respektiert Abbrechen, Verwerfen und doppelte Anfragen")
-    func removeCancelDiscardAndReentrancy() async {
-        let entry = dirtyAudioEntry(
-            url: URL(fileURLWithPath: "/tmp/remove-conflict.mp3"),
-            changedTitle: "Nicht gespeichert"
-        )
-        let model = AppModel()
-        model.entries = [entry]
-        model.selection = [entry.url]
-
-        await model.remove(urls: [entry.url])
-        let firstConflictID = try! #require(model.pendingConflict).id
-        // Der zweite Klick darf weder den ersten Auftrag ersetzen noch ohne
-        // Entscheidung aus der Liste löschen.
-        await model.remove(urls: [entry.url])
-        #expect(model.pendingConflict?.id == firstConflictID)
-        #expect(model.entries.count == 1)
-
-        await model.resolvePendingConflict(.cancel)
-        #expect(model.entries.count == 1)
-        #expect(entry.isDirty)
-
-        await model.remove(urls: [entry.url])
-        await model.resolvePendingConflict(.discard)
-        #expect(model.entries.isEmpty)
-        #expect(model.selection.isEmpty)
-    }
-
-    @Test("Geschützte Aktion wartet auf laufenden Save und führt danach aus")
-    func destructiveActionWaitsForRunningSave() async {
-        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
-                               artworks: [], audio: nil)
-        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/wait-for-save.mp3"),
-                              loaded: .audio(original))
-        entry.properties = [TagProperty(key: "TITLE", value: "Gespeichert")]
-        let model = AppModel()
-        model.entries = [entry]
-        let gate = SaveGate()
-        let runningSave = Task { @MainActor in
-            await model.save(entry: entry) { _ in
-                await gate.markStarted()
-                await gate.waitForRelease()
-                return (.audio(TagData(
-                    properties: [TagProperty(key: "TITLE", value: "Gespeichert")],
-                    artworks: [], audio: nil
-                )), nil)
-            }
-        }
-        await gate.waitUntilStarted()
-
-        let removal = Task { @MainActor in
-            await model.remove(urls: [entry.url])
-        }
-        // Der Save-Gate ist noch zu; eine geschützte Aktion darf weder den
-        // Editor entfernen noch schon eine Terminierung/Import-Closure ausführen.
-        await Task.yield()
-        #expect(model.entries.count == 1)
-        #expect(entry.isSaving)
-
-        await gate.release()
-        _ = await runningSave.value
-        await removal.value
-        #expect(model.entries.isEmpty)
-    }
-
-    @Test("Fehlgeschlagener Konflikt-Save bewahrt Puffer und blockiert Aktion")
-    func failedConflictSaveBlocksActionAndPreservesBuffer() async {
-        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
-                               artworks: [], audio: nil)
-        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/save-failure.mp3"),
-                              loaded: .audio(original))
-        entry.properties = [TagProperty(key: "TITLE", value: "Puffer")]
-        let model = AppModel()
-        let actions = CallCounter()
-
-        await model.requestDestructiveAction(
-            title: "Test",
-            message: "Test",
-            entries: [entry],
-            perform: { await actions.increment() }
-        )
-        await model.resolvePendingConflict(.save) { candidate in
-            await model.save(entry: candidate) { _ in
-                throw ConflictTestError.expectedSaveFailure
-            }
-        }
-
-        #expect(await actions.value == 0)
-        #expect(entry.original == original)
-        #expect(entry.firstValue("TITLE") == "Puffer")
-        #expect(entry.isDirty)
-        #expect(entry.lastError != nil)
-        #expect(model.pendingConflict?.failureMessage
-                == "Speichern fehlgeschlagen. Die Aktion wurde nicht ausgeführt.")
-    }
-
-    @Test("Terminierung antwortet erst nach einem laufenden Save")
-    func terminationWaitsForRunningSaveBeforeReply() async {
-        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
-                               artworks: [], audio: nil)
-        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/terminate-save.mp3"),
-                              loaded: .audio(original))
-        entry.properties = [TagProperty(key: "TITLE", value: "Gespeichert")]
-        let model = AppModel()
-        model.entries = [entry]
-        let gate = SaveGate()
-        var replies: [TerminationDecision] = []
-        let runningSave = Task { @MainActor in
-            await model.save(entry: entry) { _ in
-                await gate.markStarted()
-                await gate.waitForRelease()
-                return (.audio(TagData(
-                    properties: [TagProperty(key: "TITLE", value: "Gespeichert")],
-                    artworks: [], audio: nil
-                )), nil)
-            }
-        }
-        await gate.waitUntilStarted()
-
-        let termination = Task { @MainActor in
-            await model.requestTermination { decision in
-                replies.append(decision)
-            }
-        }
-        await Task.yield()
-        #expect(replies.isEmpty)
-
-        await gate.release()
-        _ = await runningSave.value
-        _ = await termination.value
-        #expect(replies.count == 1)
-        if case .terminateNow = replies.first {
-            #expect(Bool(true))
-        } else {
-            Issue.record("Terminierung wurde nicht freigegeben")
-        }
-    }
-
-    // MARK: - Review-Fund 2026-09-09
-
-    /// Ein Export schreibt an einem Ziel außerhalb der Editor-Puffer. Bleibt er
-    /// unangemeldet, meldet `hasUnfinishedWork` bei sauberen Puffern nichts und
-    /// ⌘Q beendet die App zwischen Sicherung und atomarem Austausch.
-    @Test("Terminierung antwortet erst nach einem laufenden Export")
-    func terminationWaitsForRunningExportBeforeReply() async throws {
-        let model = AppModel()
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-export-terminate-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let target = folder.appendingPathComponent("cover.png")
-        let payload = Data([0x89, 0x50, 0x4E, 0x47])
-
-        let gate = ExportGate()
-        let runningExport = Task { @MainActor in
-            await model.exportData(payload, to: target) { data, url in
-                gate.holdUntilReleased()
-                try data.write(to: url)
-            }
-        }
-        #expect(await Self.waitForRunningExport(in: model))
-        // Der laufende Export allein muss das Beenden schon aufhalten; die
-        // Fenster-Registry reicht genau dieses Prädikat weiter.
-        #expect(model.hasUnfinishedWork)
-
-        var replies: [TerminationDecision] = []
-        let termination = Task { @MainActor in
-            await model.requestTermination { decision in
-                replies.append(decision)
-            }
-        }
-        await Task.yield()
-        #expect(replies.isEmpty)
-        #expect(!FileManager.default.fileExists(atPath: target.path))
-
-        gate.release()
-        await runningExport.value
-        await termination.value
-        #expect(replies.count == 1)
-        if case .terminateNow = replies.first {
-            #expect(Bool(true))
-        } else {
-            Issue.record("Terminierung wurde nicht freigegeben")
-        }
-        #expect(!model.hasRunningExports)
-        #expect(try Data(contentsOf: target) == payload)
-        #expect(model.alertMessage == nil)
-    }
-
-    @Test("Während der Beenden-Vorbereitung startet kein zweiter Export")
-    func terminationRejectsExportAdmittedAfterWaitingStarted() async throws {
-        let model = AppModel()
-        let firstGate = ExportGate()
-        let firstExport = Task { @MainActor in
-            await model.exportData(Data([1]), to: URL(fileURLWithPath: "/tmp/erster-export")) {
-                _, _ in firstGate.holdUntilReleased()
-            }
-        }
-        #expect(await Self.waitForRunningExport(in: model))
-
-        let actions = CallCounter()
-        let termination = Task { @MainActor in
-            await model.requestDestructiveAction(title: "Test", message: "Test",
-                                                 entries: [],
-                                                 perform: { await actions.increment() })
-        }
-        var attempts = 0
-        while !model.isEditorInteractionLocked, attempts < 5000 {
-            await Task.yield()
-            attempts += 1
-        }
-        #expect(model.isEditorInteractionLocked)
-
-        await model.exportData(Data([2]), to: URL(fileURLWithPath: "/tmp/spaeter-export")) {
-            _, _ in throw ConflictTestError.expectedSaveFailure
-        }
-        #expect(model.alertMessage == nil)
-        #expect(model.runningExportCount == 1)
-
-        firstGate.release()
-        await firstExport.value
-        await termination.value
-        #expect(await actions.value == 1)
-        #expect(!model.hasRunningExports)
-    }
-
-    /// Jeder andere Schreibweg der App prüft `isDestructiveActionLocked`, bevor
-    /// er loslegt. Beim Verschieben der Cues fehlte die Prüfung: Ein während
-    /// der Vorbereitung von ⌘W gestarteter Zeitversatz taucht in der dortigen
-    /// Entscheidung nicht mehr auf, und das Fenster schlösse mitten im
-    /// Umschreiben der Untertiteldatei.
-    @Test("Zeitversatz startet nicht, während eine destruktive Aktion vorbereitet wird")
-    func subtitleShiftRefusesWhileDestructiveActionIsPending() async {
-        let info = SubtitleInfo(format: .srt, cueCount: 1, firstStartMilliseconds: 0,
-                                lastEndMilliseconds: 1000, spanMilliseconds: 1000,
-                                encoding: "UTF-8", lineEndings: "LF",
-                                languageFromName: nil, flagsFromName: [],
-                                header: SubtitleHeader())
-        let subtitle = FileEntry(
-            url: URL(fileURLWithPath: "/tmp/verschieben-gesperrt.srt"),
-            loaded: .sidecar(.subtitle(SubtitleContents(info: info,
-                                                        fields: SubtitleEditableFields()))),
-            stamp: nil)
-        let dirty = FileEntry(url: URL(fileURLWithPath: "/tmp/verschieben-gesperrt.mp3"),
-                              loaded: .audio(TagData(properties: [], artworks: [], audio: nil)))
-        dirty.properties = [TagProperty(key: "TITLE", value: "Neu")]
-
-        let model = AppModel()
-        model.entries = [subtitle, dirty]
-        // Offener Konfliktdialog = laufende destruktive Aktion.
-        await model.requestDestructiveAction(title: "Test", message: "Test",
-                                             entries: [dirty], perform: {})
-        #expect(model.isDestructiveActionLocked)
-
-        #expect(await model.shiftSubtitle(entry: subtitle, seconds: 1) == false)
-        #expect(!subtitle.isSaving)
-        #expect(subtitle.lastError == nil)
-    }
-
-    /// Der JSON-Archivexport ist derselbe Fall: kein Editor-Puffer, aber ein
-    /// laufender Schreibauftrag. Ohne Anmeldung sähe `hasUnfinishedWork` nichts.
-    @Test("Terminierung antwortet erst nach einem laufenden Archivexport")
-    func terminationWaitsForRunningArchiveExport() async throws {
-        let model = AppModel()
-        let entry = FileEntry(url: URL(fileURLWithPath: "/tmp/archiv-export.mp3"),
-                              loaded: .audio(TagData(properties: [], artworks: [], audio: nil)))
-        let target = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-archive-\(UUID().uuidString).json")
-
-        let gate = ExportGate()
-        let runningExport = Task { @MainActor in
-            await model.exportEntries([entry], to: target) { _, _ in
-                gate.holdUntilReleased()
-            }
-        }
-        #expect(await Self.waitForRunningExport(in: model))
-        #expect(model.hasUnfinishedWork)
-
-        var replies: [TerminationDecision] = []
-        let termination = Task { @MainActor in
-            await model.requestTermination { replies.append($0) }
-        }
-        await Task.yield()
-        #expect(replies.isEmpty)
-
-        gate.release()
-        await runningExport.value
-        await termination.value
-        #expect(replies.count == 1)
-        #expect(!model.hasRunningExports)
-        #expect(model.alertMessage == nil)
-    }
-
-    /// Der Playlist-Export ist der heikelste der drei: Eine vorhandene Datei
-    /// wird erst in den Papierkorb gesichert und dann atomar ersetzt. Genau
-    /// dazwischen darf Beenden nicht durchgehen.
-    @Test("Terminierung antwortet erst nach einem laufenden Playlist-Export")
-    func terminationWaitsForRunningPlaylistExport() async throws {
-        let model = AppModel()
-        let target = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-playlist-\(UUID().uuidString).m3u")
-
-        let gate = ExportGate()
-        let runningExport = Task { @MainActor in
-            await model.exportPlaylist(files: [URL(fileURLWithPath: "/tmp/lied.mp3")],
-                                       to: target, format: .m3u,
-                                       absolutePaths: false, title: "") { _, _ in
-                gate.holdUntilReleased()
-                return []
-            }
-        }
-        #expect(await Self.waitForRunningExport(in: model))
-        #expect(model.hasUnfinishedWork)
-
-        var replies: [TerminationDecision] = []
-        let termination = Task { @MainActor in
-            await model.requestTermination { replies.append($0) }
-        }
-        await Task.yield()
-        #expect(replies.isEmpty)
-
-        gate.release()
-        await runningExport.value
-        await termination.value
-        #expect(replies.count == 1)
-        #expect(!model.hasRunningExports)
-        #expect(model.alertMessage == nil)
-    }
-
-    /// Wartet begrenzt auf die Anmeldung des Exports. Begrenzt, damit ein
-    /// unangemeldeter Export den Test scheitern lässt statt ihn hängen zu lassen.
-    private static func waitForRunningExport(in model: AppModel) async -> Bool {
-        var attempts = 0
-        while !model.hasRunningExports, attempts < 5000 {
-            await Task.yield()
-            attempts += 1
-        }
-        return model.hasRunningExports
-    }
-
-    @Test("Überlappende Öffnen-Aufträge reservieren Dateien einmal und behalten Auswahl")
-    func openReservesInFlightFilesAndKeepsStableSelection() async throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-app-open-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: root) }
-        let folder = root.appendingPathComponent("Musik")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let first = folder.appendingPathComponent("A.mp3")
-        let second = folder.appendingPathComponent("B.flac")
-        try Data("a".utf8).write(to: first)
-        try Data("b".utf8).write(to: second)
-
-        let model = AppModel()
-        let gate = SaveGate()
-        let secondOpenCalls = CallCounter()
-        let firstOpen = Task { @MainActor in
-            await model.open(urls: [first, folder]) { url, _ in
-                await gate.markStarted()
-                await gate.waitForRelease()
-                return (.audio(TagData(
-                    properties: [TagProperty(key: "TITLE", value: url.lastPathComponent)],
-                    artworks: [], audio: nil
-                )), nil)
-            }
-        }
-        await gate.waitUntilStarted()
-        #expect(model.isLoading)
-
-        // Dieser Auftrag sieht beide URLs bereits in `openingURLs` und darf
-        // deshalb weder einen zweiten Leser starten noch den Fortschritt beenden.
-        let overlappingOpen = Task { @MainActor in
-            await model.open(urls: [folder, folder]) { _, _ in
-                await secondOpenCalls.increment()
-                return (.audio(TagData(properties: [], artworks: [], audio: nil)), nil)
-            }
-        }
-        await overlappingOpen.value
-        #expect(await secondOpenCalls.value == 0)
-        #expect(model.isLoading)
-
-        await gate.release()
-        await firstOpen.value
-        #expect(!model.isLoading)
-        #expect(model.entries.map(\.url) == [
-            MediaFormats.canonicalFileURL(first),
-            MediaFormats.canonicalFileURL(second),
-        ])
-        #expect(model.selection == [MediaFormats.canonicalFileURL(first)])
-    }
-
     @Test("Änderung während Save bleibt dirty, zweites Save startet nicht")
     func saveKeepsNewerBufferAndRejectsDuplicate() async {
         let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
@@ -1018,6 +423,8 @@ struct AppModelSaveTests {
         #expect(entry.videoNFOFields.title == (editDuringSave ? "Weiter" : alreadyChanged ? "Gespeichert" : "Original"))
         #expect(entry.isDirty == editDuringSave)
     }
+
+    // MARK: - Änderungen auf dem Datenträger
 
     @Test("Fremde Änderung auf der Platte wird nicht stillschweigend überschrieben",
           .enabled(if: MediaTestFixtures.isAvailable, "Audio-Fixture fehlt"))
@@ -1193,170 +600,55 @@ struct AppModelSaveTests {
         #expect(second.isDirty)
     }
 
-    @Test("Eine verschwundene Videodatei wird nicht als read-only Platzhalter geöffnet")
-    func readStampedRejectsAVanishedFile() {
-        // `readLoaded` fängt für Video-Container einen Lesefehler bewusst als
-        // read-only-Platzhalter ab. Ohne die Stempel-Pflicht landete eine gar
-        // nicht mehr vorhandene .avi als scheinbar erfolgreich geöffneter
-        // Eintrag in der Liste.
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("verschwunden-\(UUID().uuidString).avi")
-        #expect(throws: TagError.cannotOpen(path: url.path)) {
-            _ = try AppModel.readStamped(url: url, kind: .audio)
+    enum ConflictTestError: Error {
+        case expectedApplyFailure
+        case expectedSaveFailure
+    }
+
+    func dirtyAudioEntry(url: URL, changedTitle: String) -> FileEntry {
+        let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
+                               artworks: [], audio: nil)
+        let entry = FileEntry(url: url, loaded: .audio(original))
+        entry.properties = [TagProperty(key: "TITLE", value: changedTitle)]
+        return entry
+    }
+
+    /// Kontrollierter Start und Abschluss für Lese- und Speicheraufträge.
+    /// Derselbe Ablauf benötigt weder Sleeps noch getrennte Helferkopien.
+    actor SaveGate {
+        private var started = false
+        private var released = false
+        private var startWaiters: [CheckedContinuation<Void, Never>] = []
+        private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
+
+        func markStarted() {
+            started = true
+            startWaiters.forEach { $0.resume() }
+            startWaiters = []
+        }
+
+        func waitUntilStarted() async {
+            if started { return }
+            await withCheckedContinuation { startWaiters.append($0) }
+        }
+
+        func waitForRelease() async {
+            if released { return }
+            await withCheckedContinuation { releaseWaiters.append($0) }
+        }
+
+        func release() {
+            released = true
+            releaseWaiters.forEach { $0.resume() }
+            releaseWaiters = []
         }
     }
 
-    @Test("Lesen liefert Inhalt und Stempel als konsistenten Schnappschuss")
-    func readStampedRetriesUntilContentAndStampMatch() throws {
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-read-stamped-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent("wackelig.mp3")
-        try Data("erster Stand".utf8).write(to: url)
+    actor CallCounter {
+        private(set) var value = 0
 
-        // Der erste Leseversuch wird von einer "fremden" Änderung überlappt:
-        // Der Leser verändert die Datei nach dem Lesen selbst. Ein getrennt
-        // erhobener Stempel gehörte dann zur neuen Datei, der Inhalt zur alten.
-        var reads = 0
-        let (loaded, stamp) = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
-            reads += 1
-            let title = try String(contentsOf: url, encoding: .utf8)
-            let loaded = LoadedData.audio(TagData(
-                properties: [TagProperty(key: "TITLE", value: title)], artworks: [], audio: nil))
-            if reads == 1 {
-                try Data("fremde Änderung mit anderer Länge".utf8).write(to: url)
-            }
-            return loaded
-        }
-
-        // Genau ein Wiederholungsversuch, und der Stempel passt zum Endstand.
-        #expect(reads == 2)
-        guard case .audio(let data, _) = loaded else {
-            Issue.record("Audio-Schnappschuss fehlt")
-            return
-        }
-        #expect(data.firstValue(for: "TITLE") == "fremde Änderung mit anderer Länge")
-        #expect(stamp == FileStamp.current(of: url))
-
-        // Kommt die Datei nie zur Ruhe, bricht das Lesen ab, statt einen
-        // inkonsistenten Zustand zu liefern.
-        var restlessReads = 0
-        #expect(throws: TagError.fileChangedOnDisk(path: url.path)) {
-            _ = try AppModel.readStamped(url: url, kind: .audio) { _, _ in
-                restlessReads += 1
-                try Data(repeating: 65, count: restlessReads).write(to: url)
-                return LoadedData.audio(TagData(properties: [], artworks: [], audio: nil))
-            }
-        }
-    }
-}
-
-private enum ConflictTestError: Error {
-    case expectedApplyFailure
-    case expectedSaveFailure
-}
-
-@MainActor
-private func dirtyAudioEntry(url: URL, changedTitle: String) -> FileEntry {
-    let original = TagData(properties: [TagProperty(key: "TITLE", value: "Original")],
-                           artworks: [], audio: nil)
-    let entry = FileEntry(url: url, loaded: .audio(original))
-    entry.properties = [TagProperty(key: "TITLE", value: changedTitle)]
-    return entry
-}
-
-/// Kontrollierter Start und Abschluss für Lese- und Speicheraufträge.
-/// Derselbe Ablauf benötigt weder Sleeps noch getrennte Helferkopien.
-private actor SaveGate {
-    private var started = false
-    private var released = false
-    private var startWaiters: [CheckedContinuation<Void, Never>] = []
-    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
-
-    func markStarted() {
-        started = true
-        startWaiters.forEach { $0.resume() }
-        startWaiters = []
-    }
-
-    func waitUntilStarted() async {
-        if started { return }
-        await withCheckedContinuation { startWaiters.append($0) }
-    }
-
-    func waitForRelease() async {
-        if released { return }
-        await withCheckedContinuation { releaseWaiters.append($0) }
-    }
-
-    func release() {
-        released = true
-        releaseWaiters.forEach { $0.resume() }
-        releaseWaiters = []
-    }
-}
-
-/// Hält den synchronen Schreiber eines Exports an. Er läuft in einem
-/// Hintergrund-Task außerhalb des MainActors, deshalb wartet er blockierend auf
-/// die Freigabe aus dem Test.
-private final class ExportGate: @unchecked Sendable {
-    private let releaseSignal = DispatchSemaphore(value: 0)
-
-    /// Aus dem Schreiber heraus aufgerufen: wartet auf `release()`.
-    func holdUntilReleased() {
-        releaseSignal.wait()
-    }
-
-    func release() {
-        releaseSignal.signal()
-    }
-}
-
-private actor CallCounter {
-    private(set) var value = 0
-
-    func increment() {
-        value += 1
-    }
-}
-
-@Suite("Lesepfad")
-@MainActor
-struct AppModelReadTests {
-
-    /// Sun-AU und Ogg-Video haben in TagLib keinen Leser — derselbe
-    /// schreibgeschützte Anzeige-Weg wie bei AVI.
-    @Test("Anzeige-Formate ohne TagLib-Leser öffnen schreibgeschützt",
-          arguments: ["clip.avi", "ton.au", "clip.ogv"])
-    func displayOnlyFormatsOpenReadOnly(name: String) throws {
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-display-only-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent(name)
-        try Data("nicht lesbar".utf8).write(to: url)
-
-        let loaded = try AppModel.readLoaded(url: url, kind: .audio)
-        guard case .audio(let data, _) = loaded else {
-            Issue.record("Erwartet wurde ein Audio-Zustand")
-            return
-        }
-        #expect(data.isReadOnly)
-        #expect(data.properties.isEmpty)
-    }
-
-    @Test("Eine kaputte Audiodatei meldet weiterhin einen Fehler")
-    func brokenAudioStillFails() throws {
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tagx-broken-audio-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent("kaputt.flac")
-        try Data("kein FLAC".utf8).write(to: url)
-
-        #expect(throws: (any Error).self) {
-            _ = try AppModel.readLoaded(url: url, kind: .audio)
+        func increment() {
+            value += 1
         }
     }
 }

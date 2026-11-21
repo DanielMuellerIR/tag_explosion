@@ -207,16 +207,17 @@ struct WindowSessionsTests {
     }
 
     @Test("Ein abgebrochenes Fenster hält das Beenden auf")
-    func cancelInOneWindowStopsTermination() async {
+    func cancelInOneWindowStopsTermination() async throws {
         let harness = Harness()
         let dirty = harness.addWindow()
         dirty.entries = [Self.changedEntry()]
 
-        let termination = Task { await harness.sessions.confirmTermination() }
-        #expect(await Self.waitForConflict(in: dirty))
+        let termination = Termination(harness.sessions)
+        defer { termination.cancel() }
+        try await termination.waitForConflict(in: dirty)
 
         await dirty.resolvePendingConflict(.cancel)
-        #expect(await termination.value == false)
+        try await termination.expectAnswer(false)
     }
 
     // MARK: - Review-Fund 2026-08-18
@@ -245,11 +246,9 @@ struct WindowSessionsTests {
 
         // Nach der Frist genau EIN Nachfassen — danach entscheidet wieder der
         // Nutzer, statt dass die App im Hintergrund endlos Fenster anfordert.
-        for _ in 0..<200 where harness.windowRequests < 2 {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 2)
-        try await Task.sleep(for: .milliseconds(100))
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 2)
 
         // Der Merker ist frei: Das Fenster, das doch noch kommt, bekommt die
@@ -260,46 +259,48 @@ struct WindowSessionsTests {
     }
 
     @Test("Ein während der Fragerunde erneut geändertes Fenster hält das Beenden auf")
-    func windowChangedDuringRoundIsAskedAgain() async {
+    func windowChangedDuringRoundIsAskedAgain() async throws {
         let harness = Harness()
         let first = harness.addWindow()
         first.entries = [Self.changedEntry()]
         let second = harness.addWindow()
         second.entries = [Self.changedEntry()]
 
-        let termination = Task { await harness.sessions.confirmTermination() }
+        let termination = Termination(harness.sessions)
+        defer { termination.cancel() }
 
-        #expect(await Self.waitForConflict(in: first))
+        try await termination.waitForConflict(in: first)
         await first.resolvePendingConflict(.discard)
 
         // Während das zweite Fenster fragt, wird im ersten wieder etwas
         // geändert. Genau das sah die einmal gebildete Fensterliste nicht.
-        #expect(await Self.waitForConflict(in: second))
+        try await termination.waitForConflict(in: second)
         first.entries = [Self.changedEntry()]
         await second.resolvePendingConflict(.discard)
 
         // Zweite Runde: Das erste Fenster muss erneut gefragt werden.
-        #expect(await Self.waitForConflict(in: first))
+        try await termination.waitForConflict(in: first)
         await first.resolvePendingConflict(.cancel)
-        #expect(await termination.value == false)
+        try await termination.expectAnswer(false)
     }
 
     @Test("Ein während der Fragerunde neu angemeldetes Fenster wird noch gefragt")
-    func windowRegisteredDuringRoundIsAsked() async {
+    func windowRegisteredDuringRoundIsAsked() async throws {
         let harness = Harness()
         let first = harness.addWindow()
         first.entries = [Self.changedEntry()]
 
-        let termination = Task { await harness.sessions.confirmTermination() }
+        let termination = Termination(harness.sessions)
+        defer { termination.cancel() }
 
-        #expect(await Self.waitForConflict(in: first))
+        try await termination.waitForConflict(in: first)
         let late = harness.addWindow()
         late.entries = [Self.changedEntry()]
         await first.resolvePendingConflict(.discard)
 
-        #expect(await Self.waitForConflict(in: late))
+        try await termination.waitForConflict(in: late)
         await late.resolvePendingConflict(.cancel)
-        #expect(await termination.value == false)
+        try await termination.expectAnswer(false)
     }
 
     // MARK: - Review-Fund 2026-08-20
@@ -307,18 +308,14 @@ struct WindowSessionsTests {
     @Test("Ein angemeldetes Fenster bestellt den Watchdog der Anforderung ab")
     func registeringCancelsTheWatchdog() async throws {
         let harness = Harness()
-        harness.sessions.windowRequestTimeout = .milliseconds(30)
-
         // Anforderung 1 …
         harness.sessions.open(urls: [file])
         #expect(harness.windowRequests == 1)
+        let previousWatchdog = try #require(harness.sessions.windowRequestWatchdog)
         // … wird von einem Fenster erfüllt und danach wieder geschlossen.
         let model = harness.addWindow()
         harness.close(model)
-        // Anforderung 2 aus einem neuen Nutzerereignis — mit einer Frist, die
-        // im Test garantiert nicht abläuft. Was jetzt noch nachfasst, kann
-        // deshalb nur der Watchdog von Anforderung 1 sein.
-        harness.sessions.windowRequestTimeout = .seconds(60)
+        // Die nächste Anforderung darf der abbestellte Watchdog nicht übernehmen.
         harness.sessions.open(urls: [file])
         #expect(harness.windowRequests == 2)
 
@@ -326,8 +323,10 @@ struct WindowSessionsTests {
         // sein Token („Versuch 1") nach dem Zähler-Rücksetzen in `register`
         // nicht mehr eindeutig: Er hielt sich für den Watchdog von Anforderung 2
         // und forderte ein drittes Fenster an, während 2 noch unterwegs war.
-        try await Task.sleep(for: .milliseconds(120))
+        await previousWatchdog.value
+        #expect(previousWatchdog.isCancelled)
         #expect(harness.windowRequests == 2)
+        _ = harness.addWindow()
     }
 
     @Test("Der Nachfass-Etat gilt je Anforderungskette")
@@ -337,11 +336,9 @@ struct WindowSessionsTests {
 
         // Kette 1: Das Fenster bleibt aus, es wird einmal nachgefasst.
         harness.sessions.open(urls: [file])
-        for _ in 0..<200 where harness.windowRequests < 2 {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 2)
-        try await Task.sleep(for: .milliseconds(60))
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 2)
 
         // Kette 2 aus einem neuen Nutzerereignis: Der Etat beginnt von vorn.
@@ -349,9 +346,7 @@ struct WindowSessionsTests {
         // ersten ausgebliebenen Fenster gab es nie wieder ein Nachfassen.
         harness.sessions.open(urls: [file])
         #expect(harness.windowRequests == 3)
-        for _ in 0..<200 where harness.windowRequests < 4 {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 4)
     }
 
@@ -369,9 +364,7 @@ struct WindowSessionsTests {
         harness.windowLaunchSucceeds = true
         harness.sessions.open(urls: [file])
         #expect(harness.windowRequests == 2)
-        for _ in 0..<200 where harness.windowRequests < 3 {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        try await expireRequest(in: harness)
         #expect(harness.windowRequests == 3)
     }
 
@@ -396,7 +389,7 @@ struct WindowSessionsTests {
     /// Runde dran, sein Dialog erschien nirgends, und ⌘Q wartete für immer auf
     /// eine Antwort, die niemand mehr geben konnte.
     @Test("Beenden hängt nicht an einem Fenster, das sich nie abgemeldet hat")
-    func terminationDropsWindowThatNeverUnregistered() async {
+    func terminationDropsWindowThatNeverUnregistered() async throws {
         let harness = Harness()
         let model = harness.addWindow()
         model.entries = [Self.changedEntry()]
@@ -405,36 +398,50 @@ struct WindowSessionsTests {
         harness.visible.remove(ObjectIdentifier(model))
         harness.closed.insert(ObjectIdentifier(model))
 
-        // Bewusst NICHT `await termination.value`: Ohne den Fix wird die
-        // Continuation in `confirmTermination` nie fortgesetzt, und der Test
-        // hinge statt zu scheitern.
-        let answer = Answer()
-        let termination = Task { @MainActor in
-            answer.value = await harness.sessions.confirmTermination()
-        }
+        let termination = Termination(harness.sessions)
         defer { termination.cancel() }
-        var attempts = 0
-        while answer.value == nil, attempts < 5000 {
-            await Task.yield()
-            attempts += 1
-        }
-        #expect(answer.value == true)
+        try await termination.expectAnswer(true)
         #expect(model.pendingConflict == nil)
     }
 
-    /// Auffangbehälter für eine Antwort, auf die der Test nur begrenzt wartet.
-    @MainActor private final class Answer {
-        var value: Bool?
+    private func expireRequest(in harness: Harness) async throws {
+        let watchdog = try #require(harness.sessions.windowRequestWatchdog)
+        await watchdog.value
     }
 
-    /// Wartet auf die Rückfrage eines Fensters, ohne feste Wartezeit.
-    private static func waitForConflict(in model: AppModel) async -> Bool {
-        var attempts = 0
-        while model.pendingConflict == nil, attempts < 5000 {
-            await Task.yield()
-            attempts += 1
+    @MainActor
+    private final class Termination {
+        private let answered = TestSignal()
+        private var answer: Bool?
+        private var task: Task<Void, Never>?
+        private let sessions: WindowSessions
+
+        init(_ sessions: WindowSessions) {
+            self.sessions = sessions
+            task = Task { [weak self] in
+                let answer = await sessions.confirmTermination()
+                guard let self else { return }
+                self.answer = answer
+                self.answered.signal()
+            }
         }
-        return model.pendingConflict != nil
+
+        func waitForConflict(in model: AppModel) async throws {
+            try await waitForObservation("Rückfrage zum Beenden") { model.pendingConflict != nil }
+        }
+
+        func expectAnswer(_ expected: Bool) async throws {
+            try await answered.wait(for: "Antwort auf die Anfrage zum Beenden")
+            #expect(answer == expected)
+        }
+
+        func cancel() {
+            guard answer == nil else { return }
+            task?.cancel()
+            Task {
+                for model in sessions.models { await model.resolvePendingConflict(.cancel) }
+            }
+        }
     }
 
     private static func changedEntry() -> FileEntry {

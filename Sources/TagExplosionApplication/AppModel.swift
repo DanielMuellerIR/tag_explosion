@@ -257,7 +257,7 @@ public final class AppModel {
     /// Anzahl der Exporte, die gerade im Hintergrund schreiben. Ein Export
     /// gehört zu keinem Editor-Puffer, ist aber trotzdem ein laufender
     /// Schreibauftrag: Zwischen Sicherung, Prüfkopie und atomarem Austausch
-    /// darf die App nicht beendet werden (Review-Fund 2026-09-09).
+    /// darf die App nicht beendet werden.
     public private(set) var runningExportCount = 0
     private var exportWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -294,8 +294,7 @@ public final class AppModel {
     /// laufendes Speichern, ein laufender Export oder ein offener Dialog —
     /// jedes davon muss das Beenden aufhalten. Als benannte Eigenschaft, weil
     /// `WindowSessions` das Prädikat an zwei Stellen braucht (Rundenguard und
-    /// Schlussabgleich) und ein Auseinanderlaufen die App unbeendbar machte
-    /// (Review-Fund 2026-08-20).
+    /// Schlussabgleich) und ein Auseinanderlaufen die App unbeendbar machte.
     public var hasUnfinishedWork: Bool {
         hasDirtyEntries || hasSavingEntries || hasRunningExports || isDestructiveActionLocked
     }
@@ -576,7 +575,7 @@ public final class AppModel {
         // dazu: `requestDestructiveAction` wartet auf laufende Saves und
         // entscheidet danach anhand der Puffer. Ein erst in diesem Fenster
         // gestarteter Schreibvorgang taucht dort nicht mehr auf, und das
-        // Fenster schlösse mitten im Umschreiben (Review-Fund 2026-09-10).
+        // Fenster schlösse mitten im Umschreiben.
         guard entry.kind == .sidecar, !entry.isSaving, !entry.isDirty,
               !isDestructiveActionLocked else { return false }
         let url = entry.url
@@ -803,9 +802,9 @@ public final class AppModel {
             var summary = String(localized: "Import: \(report.applied.count) geändert, \(report.unchanged.count) unverändert")
             if !report.missing.isEmpty { summary += String(localized: ", \(report.missing.count) fehlend") }
             if !report.extra.isEmpty { summary += String(localized: ", \(report.extra.count) nicht im Archiv") }
-            if !report.failed.isEmpty {
-                summary += "\n" + String(localized: "Fehlgeschlagen:") + "\n" + report.failed
-                    .map { "\($0.path): \($0.message)" }.joined(separator: "\n")
+            if !report.failures.isEmpty {
+                let details = report.failures.map { "\($0.path): \($0.message)" }.joined(separator: "\n")
+                summary += "\n" + String(localized: "Fehlgeschlagen:") + "\n" + details
             }
             alertMessage = summary
         } catch {
@@ -998,8 +997,8 @@ public final class AppModel {
     /// keine beanspruchte Entscheidung noch läuft. Eine bestätigte Entscheidung
     /// kann auf das Ende des seriellen Batches warten; ein währenddessen
     /// gezeigter zweiter Dialog nähme über `claimStaleWrite` keinen Klick mehr
-    /// an und präsentierte sich nach jedem Klick erneut (Review-Fund
-    /// 2026-09-10). Nach dem Abschluss zeigt `resolveClaimedStaleWrite` ihn.
+    /// an und präsentierte sich nach jedem Klick erneut.
+    /// Nach dem Abschluss zeigt `resolveClaimedStaleWrite` ihn.
     private func showNextStaleWriteIfIdle() {
         guard pendingStaleWrite == nil, claimedStaleWrite == nil else { return }
         refreshPendingStaleWrite()

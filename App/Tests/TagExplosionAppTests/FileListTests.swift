@@ -70,17 +70,17 @@ struct FileListTests {
     @Test("Veraltete Prüfung überschreibt keine neue; ungültiges Muster entfernt Bericht")
     func staleCheck() async throws {
         let state = LibraryCheckState()
-        let gate = ReportGate()
+        let gate = TestGate()
         let request = LibraryCheckRequest(items: [], checkNames: false, pattern: "")
         let old = state.submit(request, delay: .zero) { _, _ in
-            await gate.wait()
+            await gate.pause()
             return LibraryCheck.run([])
         }
-        for _ in 0..<2000 {
-            if await gate.started { break }
-            try await Task.sleep(for: .milliseconds(1))
+        defer {
+            old.cancel()
+            Task { await gate.release() }
         }
-        #expect(await gate.started)
+        try await gate.started.wait(for: "Start der ersten Bibliotheksprüfung")
         let item = LibraryCheck.Item(url: URL(fileURLWithPath: "/a.flac"), kind: .audio, properties: [])
         let newer = state.submit(LibraryCheckRequest(items: [item], checkNames: false, pattern: ""), delay: .zero)
         await newer.value
@@ -92,14 +92,4 @@ struct FileListTests {
         #expect(state.report == nil)
         #expect(state.error != nil)
     }
-}
-
-private actor ReportGate {
-    var started = false
-    var continuation: CheckedContinuation<Void, Never>?
-    func wait() async {
-        started = true
-        await withCheckedContinuation { continuation = $0 }
-    }
-    func release() { continuation?.resume(); continuation = nil }
 }

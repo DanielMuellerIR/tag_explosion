@@ -9,6 +9,7 @@ class Element {
   replaceChildren(...items) { this.children = items; }
   addEventListener(name, fn) { this.events[name] = fn; }
   setAttribute(name, value) { this[name] = value; }
+  removeAttribute(name) { delete this[name]; }
   querySelector() { return new Element('strong'); }
 }
 const elements = new Map();
@@ -59,6 +60,42 @@ for (const [kind, fields, key, raw, expected] of [
     input.events.input({target: {value: raw}});
     assert.deepEqual(JSON.parse(JSON.stringify(changes[key])), expected);
   } catch (error) { failures++; console.error(kind, key, error.message); }
+}
+vm.runInContext('async ' + functionText('discardEdits'), context);
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((onResolve, onReject) => { resolve = onResolve; reject = onReject; });
+  return { promise, resolve, reject };
+}
+for (const reject of [false, true]) {
+  const next = {selection: ['a']};
+  const reply = deferred();
+  const received = deferred();
+  let rendered = false;
+  Object.assign(context, {
+    debounce: null, clearTimeout() {}, pending: true, batchChanges: {title: 'Entwurf'},
+    state: {selection: ['a']}, modal: async () => true, enqueue: callback => callback(),
+    request: method => { assert.equal(method, 'revert'); received.resolve(); return reply.promise; },
+    updateState: value => assert.equal(value, next),
+    renderSelection: () => { rendered = true; },
+  });
+  const started = context.discardEdits();
+  await received.promise;
+  const editor = context.$('editor');
+  assert.equal(editor.inert, true);
+  assert.equal(editor['aria-busy'], 'true');
+  if (reject) {
+    reply.reject(new Error('Worker offline'));
+    await assert.rejects(started, /Worker offline/);
+  } else {
+    reply.resolve(next);
+    await started;
+  }
+  assert.equal(editor.inert, false);
+  assert.equal(editor['aria-busy'], undefined);
+  assert.equal(context.pending, reject);
+  assert.equal(context.batchChanges.title, reject ? 'Entwurf' : undefined);
+  assert.equal(rendered, !reject);
 }
 assert.equal(failures, 0);
 console.log('Frontend-Regressionen bestanden');

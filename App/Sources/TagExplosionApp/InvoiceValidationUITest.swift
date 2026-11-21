@@ -1,6 +1,6 @@
-import TagExplosionApplication
 // Selbstbeendende Abnahme der echten SwiftUI-Ansichten im notarisierten Bundle.
 // Ausschließlich expliziter Testmodus; normale App-Starts bleiben unberührt.
+import TagExplosionApplication
 import AppKit
 import EInvoiceCore
 import SwiftUI
@@ -71,7 +71,9 @@ enum InvoiceValidationUITest {
                 try capture(host, at: directory.appendingPathComponent(name + "-before.png"))
                 try await press("invoice.validation.start", in: host)
                 try await wait { !model.isRunning && model.status != nil }
-                try expect(model.status == expected || (expected == .passed && model.status == .passedWithWarnings), "Falscher Zustand: " + name)
+                let status = try require(model.status, "Prüfzustand fehlt: " + name)
+                try expect(status == expected || (expected == .passed && status == .passedWithWarnings),
+                           "Falscher Zustand: " + name)
                 try expect(model.document?.summary.invoiceNumber == document.summary.invoiceNumber, "Anzeige/Quelle unterschiedlich")
                 try capture(host, at: directory.appendingPathComponent(name + ".png"))
                 if name == "ubl" {
@@ -86,7 +88,7 @@ enum InvoiceValidationUITest {
                 }
                 let text = try require(await model.currentReport(), "Bericht fehlt")
                 try expect(text.contains(InvoiceValidationPresentation.notice), "Vollständiger Gewährleistungshinweis fehlt")
-                try expect(text.contains(InvoiceValidationPresentation.title(model.status, includesPDF: model.result?.pdf != nil)), "Berichtszustand fehlt")
+                try expect(text.contains(InvoiceValidationPresentation.title(status, includesPDF: model.result?.pdf != nil)), "Berichtszustand fehlt")
                 if profiles.contains(name), let result = model.result {
                     try expect(result.ruleSet == .facturX, "Falscher Profilregelstand")
                     try expect(InvoiceValidationPresentation.steps(result).count == 3, "Falsche Prüfkette")
@@ -96,7 +98,7 @@ enum InvoiceValidationUITest {
                     try expect(text.contains(InvoiceValidationPresentation.standardNotice), "Standard-Nutzungshinweis fehlt")
                 }
                 try text.write(to: directory.appendingPathComponent(name + "-report.txt"), atomically: true, encoding: .utf8)
-                checks.append(["case": name, "status": model.status!.rawValue, "button": "AXPress"])
+                checks.append(["case": name, "status": status.rawValue, "button": "AXPress"])
                 if pdfOnly && name == "HYBRID-valid" { panel.setContentSize(NSSize(width: 620, height: 600)) }
                 if ["failed", "invoice", "MINIMUM", "EXTENDED", "HYBRID-valid", "HYBRID-failed", "HYBRID-warning"].contains(name) {
                     try await press("invoice.validation.report", in: host)
@@ -109,7 +111,9 @@ enum InvoiceValidationUITest {
                 if pdfOnly && name == "HYBRID-valid" { panel.setContentSize(NSSize(width: 900, height: 680)) }
                 if name == "ubl", let result = model.result {
                     // Reine Darstellung einer Warnung; kein behaupteter KoSIT-Nachweis.
-                    var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(result)) as! [String: Any]
+                    let encoded = try JSONEncoder().encode(result)
+                    var object = try require(JSONSerialization.jsonObject(with: encoded) as? [String: Any],
+                                             "Das Prüfergebnis ist kein JSON-Objekt")
                     object["status"] = "passedWithWarnings"
                     object["xmlStatus"] = "passedWithWarnings"
                     object["issues"] = [["severity": "warning", "code": "TEST_UI_WARNING", "message": "Warnungsdarstellung · presentation test"]]

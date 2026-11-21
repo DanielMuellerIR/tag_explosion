@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // Batch-Editor für E-Books: setzt Autor(en)/Serie/Verlag/Sprache/Schlagwörter/
 // Datum für alle ausgewählten Bücher (Titel und Beschreibung bleiben bewusst
 // Einzel-Editor-Sache — die sind pro Buch individuell).
 import SwiftUI
+import TagExplosionApplication
 import TagExplosionCore
 
 struct EbookBatchEditorView: View {
@@ -15,39 +15,20 @@ struct EbookBatchEditorView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                fieldsSection
-                ArchiveButtons(entries: entries)
-                fileListSection
-            }
-            .padding(20)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity)
+        BatchEditorLayout {
+            header
+            fieldsSection
+            ArchiveButtons(entries: entries)
+            fileListSection
         }
-        .background(.background)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(entries.count) E-Books ausgewählt")
-                .font(.title3.weight(.semibold))
-            Text("Änderungen wirken auf alle ausgewählten Bücher.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            let dirtyCount = entries.filter(\.isDirty).count
-            if dirtyCount > 0 {
-                Label("\(dirtyCount) mit ungespeicherten Änderungen", systemImage: "pencil.circle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-            HStack(spacing: 12) {
-                FilenamePatternMenu(entries: entries)
-                // Batch-Regeln (Schreibweise, Trimmen, Kopieren …) mit Vorschau.
-                TagRulesButton(entries: entries)
-            }
-            .padding(.top, 4)
+            BatchSelectionSummary(title: "\(entries.count) E-Books ausgewählt",
+                                  hint: "Änderungen wirken auf alle ausgewählten Bücher.",
+                                  entries: entries)
+            BatchRuleActions(entries: entries)
         }
     }
 
@@ -111,22 +92,12 @@ struct EbookBatchEditorView: View {
     }
 
     private var fileListSection: some View {
-        GroupBox("Ausgewählte E-Books") {
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                ForEach(entries) { entry in
-                    GridRow {
-                        Text(entry.url.lastPathComponent)
-                            .lineLimit(1)
-                        Text(entry.ebookFields.authors.joined(separator: ", "))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        if entry.isDirty {
-                            Circle().fill(.orange).frame(width: 6, height: 6)
-                        }
-                    }
-                }
-            }
-            .padding(8)
+        BatchFileGrid(title: "Ausgewählte E-Books", entries: entries) { entry in
+            Text(entry.url.lastPathComponent)
+                .lineLimit(1)
+            Text(entry.ebookFields.authors.joined(separator: ", "))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 

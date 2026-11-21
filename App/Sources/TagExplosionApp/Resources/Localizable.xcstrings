@@ -661,56 +661,6 @@
         }
       }
     },
-    "Audio, Bilder und E-Books bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please select audio, images, and e-books separately\nto edit them together."
-          }
-        }
-      }
-    },
-    "Audio, Bilder, E-Books und Dokumente bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please select audio, images, e-books, and documents separately\nto edit them together."
-          }
-        }
-      }
-    },
-    "Audio-, Bild-, Video- und E-Book-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drop audio, image, video, and e-book files or folders here\nto view and edit metadata."
-          }
-        }
-      }
-    },
-    "Audio-, Bild-, Video-, E-Book- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drop audio, image, video, e-book, and e-invoice files or folders here\nto view and edit metadata."
-          }
-        }
-      }
-    },
-    "Audio-, Bild-, Video-, E-Book-, Dokument- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drop audio, image, video, e-book, document, and e-invoice files or folders here\nto view and edit metadata."
-          }
-        }
-      }
-    },
     "Audio-, Bild-, Video-, E-Book-, Dokument-, Playlist- und E-Rechnungs-Dateien oder Ordner hierher ziehen,\num Metadaten anzuzeigen und zu bearbeiten.": {
       "localizations": {
         "en": {
@@ -831,12 +781,32 @@
         }
       }
     },
+    "Autor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Author"
+          }
+        }
+      }
+    },
     "Autor(en)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Author(s)"
+          }
+        }
+      }
+    },
+    "Autoren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authors"
           }
         }
       }
@@ -867,6 +837,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Start"
+          }
+        }
+      }
+    },
+    "Beginn (ms)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start (ms)"
           }
         }
       }
@@ -917,6 +897,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Confirm the selected backup before restoring."
+          }
+        }
+      }
+    },
+    "Betreff": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subject"
           }
         }
       }
@@ -1031,6 +1021,16 @@
         }
       }
     },
+    "Breitengrad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latitude"
+          }
+        }
+      }
+    },
     "Buch-Metadaten": {
       "localizations": {
         "en": {
@@ -1057,6 +1057,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "CMYK (many players cannot decode it)"
+          }
+        }
+      }
+    },
+    "Code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code"
+          }
+        }
+      }
+    },
+    "Copyright": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright"
           }
         }
       }
@@ -1217,6 +1237,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cues"
+          }
+        }
+      }
+    },
+    "Darsteller": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cast"
           }
         }
       }
@@ -2031,6 +2061,26 @@
         }
       }
     },
+    "Eigene Bewertung": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "User rating"
+          }
+        }
+      }
+    },
+    "Eigene Felder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom fields"
+          }
+        }
+      }
+    },
     "Ein anderes Fenster schreibt gerade Dateien.": {
       "localizations": {
         "en": {
@@ -2057,6 +2107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A file operation or decision is still pending."
+          }
+        }
+      }
+    },
+    "Ende (ms)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End (ms)"
           }
         }
       }
@@ -2451,6 +2511,16 @@
         }
       }
     },
+    "Feldname": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Field name"
+          }
+        }
+      }
+    },
     "Filtern (Wert, Element, BT-Nummer, Feldname) …": {
       "localizations": {
         "en": {
@@ -2481,22 +2551,22 @@
         }
       }
     },
+    "Folge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Episode"
+          }
+        }
+      }
+    },
     "Format": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Format"
-          }
-        }
-      }
-    },
-    "Für alte Player und Autoradios, die ID3v2.4 nicht lesen. Gilt beim Speichern von MP3, WAV, AIFF und DSF. Grenzen von v2.3: Text wird als UTF-16 statt UTF-8 abgelegt, das Datum verliert die Sekunden und das Originaldatum alles außer dem Jahr.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For old players and car radios that cannot read ID3v2.4. Applies when saving MP3, WAV, AIFF and DSF. Limits of v2.3: text is stored as UTF-16 instead of UTF-8, dates lose their seconds and the original date keeps only the year."
           }
         }
       }
@@ -2881,16 +2951,6 @@
         }
       }
     },
-    "In NFO speichern": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save to NFO"
-          }
-        }
-      }
-    },
     "In dieser Sitzung gesichert: %@": {
       "localizations": {
         "en": {
@@ -2957,6 +3017,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Artist is empty"
+          }
+        }
+      }
+    },
+    "ISBN": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISBN"
           }
         }
       }
@@ -3461,6 +3531,26 @@
         }
       }
     },
+    "Laufzeit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runtime"
+          }
+        }
+      }
+    },
+    "Liedtext": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyrics"
+          }
+        }
+      }
+    },
     "LRC exportieren …": {
       "localizations": {
         "en": {
@@ -3611,6 +3701,16 @@
         }
       }
     },
+    "Längengrad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Longitude"
+          }
+        }
+      }
+    },
     "Löscht das Feld in jeder passenden Datei.": {
       "localizations": {
         "en": {
@@ -3647,16 +3747,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "At least one of the selected formats cannot store artwork."
-          }
-        }
-      }
-    },
-    "MP4-Atome · Matroska-Tags (mov/avi nur Anzeige)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MP4 atoms · Matroska tags (mov/avi view only)"
           }
         }
       }
@@ -3701,42 +3791,12 @@
         }
       }
     },
-    "Mediendateien (Audio, Bild, Video, E-Book) oder Ordner auswählen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select media files (audio, image, video, e-book) or folders"
-          }
-        }
-      }
-    },
-    "Mediendateien (Audio, Bild, Video, E-Book, Dokument, E-Rechnung) oder Ordner auswählen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select media files (audio, image, video, e-book, document, e-invoice) or folders"
-          }
-        }
-      }
-    },
     "Mediendateien (Audio, Bild, Video, E-Book, Dokument, Playlist, E-Rechnung) oder Ordner auswählen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Select media files (audio, image, video, e-book, document, playlist, e-invoice) or folders"
-          }
-        }
-      }
-    },
-    "Mediendateien (Audio, Bild, Video, E-Book, E-Rechnung) oder Ordner auswählen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose media files (audio, image, video, e-book, e-invoice) or folders"
           }
         }
       }
@@ -3837,6 +3897,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pattern does not match:"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
           }
         }
       }
@@ -4077,16 +4147,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show only fields and groups with a BT/BG mapping"
-          }
-        }
-      }
-    },
-    "Nur für „Online nachschlagen …\" im Editor — nie automatisch. Vor der ersten Anfrage zeigt die App, welche Daten an welchen Dienst gehen. Ohne diese Einstellung sendet Tag Explosion nichts.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only for “Look up online …” in the editor — never automatically. Before the first request the app shows which data goes to which service. Without this setting Tag Explosion sends nothing."
           }
         }
       }
@@ -4661,6 +4721,26 @@
         }
       }
     },
+    "Serientitel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show title"
+          }
+        }
+      }
+    },
+    "Sprache der Lyrics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyrics language"
+          }
+        }
+      }
+    },
     "SRT": {
       "localizations": {
         "en": {
@@ -4767,16 +4847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keychain error: %@"
-          }
-        }
-      }
-    },
-    "Schreibt vor dem Speichern mehrerer Dateien je Ordner ein tags-backup-<Zeitstempel>.json mit dem bisherigen Zustand (inklusive Cover). Wiederherstellen: „Tags aus JSON importieren …\" im Batch-Editor oder `tagx import`.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Before saving multiple files, writes a tags-backup-<timestamp>.json with the previous state (including covers) into each affected folder. Restore: “Import Tags from JSON …” in the batch editor or `tagx import`."
           }
         }
       }
@@ -5241,6 +5311,16 @@
         }
       }
     },
+    "Text": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text"
+          }
+        }
+      }
+    },
     "Thema": {
       "localizations": {
         "en": {
@@ -5327,6 +5407,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Token and key are stored in this Mac's keychain, not in the preferences."
+          }
+        }
+      }
+    },
+    "Track": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track"
           }
         }
       }
@@ -5741,16 +5831,6 @@
         }
       }
     },
-    "Vor jeder Änderung landet eine unveränderte Kopie der Datei im Papierkorb — gesammelt in einem Ordner je Sitzung. Geht etwas schief, ziehen Sie die Kopie einfach zurück; zum Aufräumen genügt es, den Papierkorb zu leeren.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Before every change, an untouched copy of the file goes to the trash, collected in one folder per session. If something goes wrong, just drag the copy back; to clean up, empty the trash."
-          }
-        }
-      }
-    },
     "Vorgaben": {
       "localizations": {
         "en": {
@@ -5787,6 +5867,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Templates"
+          }
+        }
+      }
+    },
+    "Vorschau wird berechnet …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing preview …"
           }
         }
       }
@@ -5921,6 +6011,26 @@
         }
       }
     },
+    "Wählen Sie eine Datei aus. Audio, Bilder, E-Books und Dokumente lassen sich auch je Typ gemeinsam bearbeiten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a single file. Audio, images, e-books, and documents can also be edited in batches of the same type."
+          }
+        }
+      }
+    },
+    "Zeit (ms)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time (ms)"
+          }
+        }
+      }
+    },
     "ZUGFeRD · Factur-X · XRechnung · Peppol (CII + UBL, nur Anzeige)": {
       "localizations": {
         "en": {
@@ -6007,16 +6117,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Assignment"
-          }
-        }
-      }
-    },
-    "Zurücksetzen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reset"
           }
         }
       }
@@ -6357,16 +6457,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "too small (under %lld px)"
-          }
-        }
-      }
-    },
-    "Änderungen an Bildern landen in einer Datei <name>.xmp neben dem Bild; das Bild selbst bleibt unverändert. Für Kamera-RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef) und Formate ohne Schreibweg (bmp, svg) gilt das immer — und sobald eine Sidecar vorhanden ist, weil ihre Werte beim Lesen Vorrang haben.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Changes to images go into a file <name>.xmp next to the image; the image itself stays untouched. This is always the case for camera RAW (cr2, cr3, nef, arw, raf, orf, rw2, pef), for formats that cannot be written (bmp, svg), and whenever a sidecar already exists, because its values take precedence when reading."
           }
         }
       }

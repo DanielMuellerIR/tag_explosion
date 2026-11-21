@@ -251,6 +251,29 @@ struct TagRulesTests {
         #expect(try TagRuleEngine.apply(document, to: ["ARTIST": "Miles"])["ALBUMARTIST"] == "MILES")
     }
 
+    @Test("Regex-Bedingung sieht den ersten aktuellen Feldwert, Regex-Ersetzung behält ihre eigenen Optionen")
+    func preparedRegexesUseCurrentFirstValueAndIndependentOptions() throws {
+        let document = try parse(#"""
+            {"version": 1, "rules": [
+              {"action": "copy", "field": "albumartist", "from": "artist"},
+              {"action": "replace", "field": "title", "search": "^so (.+)$", "replacement": "$1",
+               "regex": true, "when": {"field": "albumartist", "is": "matches", "value": "^miles$", "ignoreCase": true}}
+            ]}
+            """#)
+        let values = [
+            ["ARTIST": ["MILES", "Coltrane"], "TITLE": ["so What", "So What"]],
+            ["ARTIST": ["Coltrane", "Miles"], "TITLE": ["so What"]],
+            ["TITLE": ["so What"]],
+        ]
+        let inputs = values.enumerated().map { index, fields in
+            TagRuleInput(url: URL(fileURLWithPath: "/\(index).mp3"), kind: .audio, values: fields)
+        }
+        let plans = try TagRuleEngine.plan(document, inputs: inputs)
+        #expect(plans[0].changes.first { $0.field == "TITLE" }?.allNewValues == ["What", "So What"])
+        #expect(plans[1].changes.map(\.field) == ["ALBUMARTIST"])
+        #expect(plans[2].changes.isEmpty)
+    }
+
     @Test("Medienart-Filter und No-op: unveränderte Felder tauchen im Plan nicht auf")
     func kindFilterAndNoop() throws {
         let audio = TagRuleInput(url: URL(fileURLWithPath: "/x/a.mp3"), kind: .audio, fields: ["TITLE": "Abc"])
@@ -332,6 +355,15 @@ struct TagRulesTests {
         #expect(throws: TagRulesError.invalidRule(
             index: 0, line: 1, reason: "\"search\" is not a valid regular expression: (")) {
             try parse(#"{"version": 1, "rules": [{"action": "replace", "field": "title", "search": "(", "replacement": "", "regex": true}]}"#)
+        }
+        #expect(throws: TagRulesError.invalidRule(
+            index: 1, line: 3, reason: "\"when.value\" is not a valid regular expression: (")) {
+            try parse(#"""
+                {"version": 1, "rules": [
+                    {"action": "trim", "field": "*"},
+                    {"action": "trim", "field": "*", "when": {"field": "title", "is": "matches", "value": "("}}
+                ]}
+                """#)
         }
         #expect(throws: TagRulesError.invalidRule(
             index: 0, line: 1, reason: "field \"*\" is only allowed for replace, case and trim")) {

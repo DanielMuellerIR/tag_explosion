@@ -17,30 +17,27 @@ struct LoadingTests {
             return MediaFormats.canonicalFileURL(url)
         }
         let model = AppModel()
-        let reader = ControlledReader()
+        let reader = ControlledReader(initialCount: 8)
         let load = Task { await model.open(urls: urls, read: reader.read) }
-        for _ in 0..<2000 {
-            if await reader.count == 8 { break }
-            try await Task.sleep(for: .milliseconds(1))
+        defer {
+            load.cancel()
+            Task { await reader.releaseAll() }
         }
+        try await reader.initialReadsStarted.wait(for: "8 gestartete Leser")
         #expect(await reader.count == 8)
         await reader.release(urls[3])
-        for _ in 0..<2000 {
-            if !model.entries.isEmpty { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        try await waitForObservation("erstes Ladeergebnis") { !model.entries.isEmpty }
         #expect(model.entries.map(\.url) == [urls[3]])
         #expect(model.isLoading)
         model.entries.first?.setSingleValue("TITLE", "Puffer")
         await reader.release(urls[1])
-        for _ in 0..<2000 {
-            if model.entries.count == 2 { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        try await waitForObservation("zweites Ladeergebnis") { model.entries.count == 2 }
         #expect(model.entries.map(\.url) == [urls[1], urls[3]])
         #expect(model.selection.isEmpty)
-        await model.open(urls: urls, read: reader.read)
-        #expect(await reader.count <= 10)
+        let probe = ControlledReader()
+        await probe.releaseAll()
+        await model.open(urls: urls, read: probe.read)
+        #expect(await probe.count == 0)
         model.cancelLoading()
         await reader.releaseAll()
         await load.value
@@ -66,28 +63,25 @@ struct LoadingTests {
             return MediaFormats.canonicalFileURL(url)
         }
         let model = AppModel()
-        let oldReader = ControlledReader(failures: [urls[0]])
-        let freshReader = ControlledReader()
+        let oldReader = ControlledReader(initialCount: 3, failures: [urls[0]])
+        let freshReader = ControlledReader(initialCount: 3)
         let old = Task { await model.open(urls: urls, read: oldReader.read) }
-        defer { old.cancel(); Task { await oldReader.releaseAll() } }
-        for _ in 0..<2000 {
-            if await oldReader.count == 3 { break }
-            try await Task.sleep(for: .milliseconds(1))
+        defer {
+            old.cancel()
+            Task { await oldReader.releaseAll() }
         }
+        try await oldReader.initialReadsStarted.wait(for: "3 gestartete Leser")
         #expect(await oldReader.count == 3)
         await oldReader.release(urls[0])
-        for _ in 0..<2000 {
-            if model.loadingCompleted == 1 { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        try await waitForObservation("verarbeiteter Lesefehler") { model.loadingCompleted == 1 }
         #expect(model.loadingCompleted == 1)
         model.cancelLoading()
         let fresh = Task { await model.open(urls: urls, read: freshReader.read) }
-        defer { fresh.cancel(); Task { await freshReader.releaseAll() } }
-        for _ in 0..<2000 {
-            if await freshReader.count == 3 { break }
-            try await Task.sleep(for: .milliseconds(1))
+        defer {
+            fresh.cancel()
+            Task { await freshReader.releaseAll() }
         }
+        try await freshReader.initialReadsStarted.wait(for: "3 gestartete Leser")
         #expect(await freshReader.count == 3)
         #expect(model.loadingCompleted == 0)
         #expect(model.loadingTotal == 3)
@@ -139,15 +133,23 @@ struct LoadingTests {
 }
 
 private actor ControlledReader {
+    let initialReadsStarted = TestSignal()
     var count = 0
     var peak = 0
     private var active = 0
     private var free = false
     private var waits: [URL: CheckedContinuation<Void, Never>] = [:]
+    private let initialCount: Int
     private let failures: Set<URL>
-    init(failures: Set<URL> = []) { self.failures = failures }
+
+    init(initialCount: Int = 0, failures: Set<URL> = []) {
+        self.initialCount = initialCount
+        self.failures = failures
+    }
+
     func read(_ url: URL, _ kind: MediaKind) async throws -> (LoadedData, FileStamp?) {
         count += 1
+        if count == initialCount { initialReadsStarted.signal() }
         active += 1
         peak = max(peak, active)
         if !free { await withCheckedContinuation { waits[url] = $0 } }

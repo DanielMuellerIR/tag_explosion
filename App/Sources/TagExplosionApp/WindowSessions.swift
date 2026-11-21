@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // Verzeichnis aller offenen Fenster. Jedes Fenster hat sein eigenes AppModel
 // mit eigener Dateiliste; Ereignisse aus macOS (Datei öffnen, Beenden) treffen
 // aber die App als Ganzes. Diese Registry ist die einzige Stelle, die alle
 // Fenster kennt — und die weiß, was zu tun ist, wenn gerade keines offen ist.
+import TagExplosionApplication
 import AppKit
 import SwiftUI
 import TagExplosionCore
@@ -36,7 +36,7 @@ final class WindowSessions {
     /// Watchdog gehören zusammen und liegen deshalb in EINEM Wert: Als drei
     /// unabhängige Variablen liefen sie auseinander — der Watchdog einer längst
     /// erledigten Anforderung hielt sich für den der laufenden und forderte ein
-    /// zweites Fenster an (Review-Fund 2026-08-20).
+    /// zweites Fenster an.
     private struct WindowRequest {
         /// Fortlaufende Nummer JEDER Anforderung. Sie wird nie zurückgesetzt —
         /// nur so erkennt ein Watchdog zuverlässig, dass er veraltet ist.
@@ -60,6 +60,7 @@ final class WindowSessions {
     /// Frist, nach der ein angefordertes, aber nie angemeldetes Fenster als
     /// ausgeblieben gilt. Für Tests verkürzbar.
     var windowRequestTimeout: Duration = .seconds(5)
+    var windowRequestWatchdog: Task<Void, Never>? { windowRequest.watchdog }
     /// Höchstzahl der Anforderungen INSGESAMT je Kette, Erstversuch
     /// eingeschlossen: 2 heißt also „einmal nachfassen". Danach entscheidet
     /// wieder der Nutzer (Öffnen-Dialog, Datei aus dem Finder) — endloses
@@ -161,13 +162,13 @@ final class WindowSessions {
     /// eine NEUE Kette: Der Nachfass-Etat gilt je Kette und beginnt hier von
     /// vorn. Vorher zählte ein einziger Zähler über die ganze Sitzung — nach
     /// dem ersten ausgebliebenen Fenster war das Nachfassen für immer
-    /// abgeschaltet (Review-Fund 2026-08-20).
+    /// abgeschaltet.
     ///
     /// Der Merker wird auf JEDEM Weg wieder frei: bei einem fehlgeschlagenen
     /// Start sofort, sonst spätestens nach `windowRequestTimeout`. Vorher löste
     /// ihn ausschließlich `register`; blieb das Fenster aus, wies die Registry
     /// bis zum App-Neustart jede weitere Anforderung ab, und die wartenden
-    /// Dateien blieben unsichtbar liegen (Review-Fund 2026-08-18).
+    /// Dateien blieben unsichtbar liegen.
     func requestWindow() {
         guard !windowRequest.isPending else { return }
         windowRequest.attempts = 0
@@ -245,8 +246,7 @@ final class WindowSessions {
     /// braucht es nur, wenn WÄHREND der Runde neue ungespeicherte Änderungen
     /// entstanden sind. Die Grenze verhindert eine Endlosschleife, wenn jemand
     /// unablässig weiterschreibt — dann bleibt die App eben offen. Als
-    /// Instanzfeld, damit Tests den Erschöpfungsfall überhaupt erreichen
-    /// (Review-Fund 2026-08-20).
+    /// Instanzfeld, damit Tests den Erschöpfungsfall überhaupt erreichen.
     var maxTerminationRounds = 8
 
     /// Fragt jedes Fenster mit ungespeicherten Änderungen der Reihe nach.
@@ -259,14 +259,14 @@ final class WindowSessions {
     /// Fenster bedienbar. Ein längst bestätigtes Fenster kann dort erneut
     /// bearbeitet werden, und ein neues Fenster kann dazukommen — die einmal
     /// gebildete Fensterliste sah beides nicht, und AppKit beendete die App
-    /// anschließend mitsamt diesen Änderungen (Review-Fund 2026-08-18).
+    /// anschließend mitsamt diesen Änderungen.
     func confirmTermination() async -> Bool {
         for _ in 0..<maxTerminationRounds {
             // Dasselbe Sicherheitsnetz wie beim An- und Abmelden, und hier am
             // nötigsten: Bleibt `windowWillClose` einmal aus, steht ein Modell
             // ohne Fenster weiter in der Registry. Mit ungespeicherten
             // Änderungen käme es unten dran, sein Dialog erschiene nirgends,
-            // und ⌘Q hinge ohne Antwort an AppKit (Review-Fund 2026-09-10).
+            // und ⌘Q hinge ohne Antwort an AppKit.
             pruneClosedWindows()
             for model in models {
                 // Saubere Fenster werden nicht behelligt — in einer
@@ -275,7 +275,7 @@ final class WindowSessions {
                 // Und Fenster, die sich WÄHREND der Runde abgemeldet haben
                 // oder deren Fenster dabei verschwunden ist, erst recht nicht:
                 // Ihr Dialog erschiene nirgends mehr, die Continuation unten
-                // würde nie fortgesetzt (Review-Fund 2026-08-20).
+                // würde nie fortgesetzt.
                 guard models.contains(where: { $0 === model }),
                       statusOf(model).exists else { continue }
                 // Nach vorn nur, wenn der Nutzer dort auch etwas zu sehen
@@ -283,7 +283,7 @@ final class WindowSessions {
                 // oder den bereits offenen Dialog, an dem ⌘Q gerade scheitert.
                 // Ein reines Speichern beantwortet `requestTermination` ohne
                 // jede Frage — das Fenster dafür nach vorn zu reißen wäre nur
-                // ein Zucken ohne Erklärung (Review-Fund 2026-08-20).
+                // ein Zucken ohne Erklärung.
                 if model.hasDirtyEntries || model.isDestructiveActionLocked {
                     model.hostWindow?.makeKeyAndOrderFront(nil)
                 }

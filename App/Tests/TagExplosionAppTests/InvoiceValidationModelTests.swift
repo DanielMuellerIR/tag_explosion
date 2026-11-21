@@ -12,14 +12,6 @@ struct InvoiceValidationModelTests {
         return url
     }
 
-    private func wait(_ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(10)
-        while !condition() {
-            guard Date() < deadline else { throw NSError(domain: "InvoiceModelTest", code: 1) }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-    }
-
     @Test("Factur-X zeigt nur die eigene Prüfkette und alle Nutzungshinweise")
     func facturXPresentation() throws {
         let dir = try directory()
@@ -53,19 +45,17 @@ struct InvoiceValidationModelTests {
         let model = InvoiceValidationModel(bundle: dir)
         defer { model.stopObserving() }
         model.observe(first)
-        model.start()
-        try await wait { !model.isRunning }
+        await (try #require(model.start())).value
         #expect(model.status == .unsupported)
         model.observe(second)
         #expect(model.status == nil)
-        model.start()
-        try await wait { !model.isRunning }
+        await (try #require(model.start())).value
         #expect(model.result?.source?.url == second)
         let report = try #require(await model.currentReport())
         #expect(report.contains("XML SHA-256"))
         #expect(report.contains(InvoiceValidationPresentation.notice))
         try Data(InvoiceValidationFixtures.ubl.utf8).write(to: second)
-        try await wait { model.status == .stale }
+        try await waitForObservation("Dateiwächter meldet veraltetes Ergebnis") { model.status == .stale }
         #expect(model.result == nil)
         #expect(model.isRunning == false)
     }
@@ -78,13 +68,13 @@ struct InvoiceValidationModelTests {
         try Data(InvoiceValidationFixtures.ubl.utf8).write(to: url)
         let model = InvoiceValidationModel(bundle: dir)
         model.observe(url)
-        model.start()
+        let cancelled = try #require(model.start())
         model.cancel()
-        try await wait { !model.isRunning }
+        await cancelled.value
         #expect(model.status == .cancelled)
-        model.start()
+        let closed = try #require(model.start())
         model.stopObserving()
-        try await Task.sleep(for: .milliseconds(30))
+        await closed.value
         #expect(model.status == nil)
         #expect(model.result == nil)
     }
@@ -98,8 +88,7 @@ struct InvoiceValidationModelTests {
         let model = InvoiceValidationModel(bundle: dir)
         defer { model.stopObserving() }
         model.observe(url)
-        model.start()
-        try await wait { !model.isRunning }
+        await (try #require(model.start())).value
         #expect(model.status == .technicalError)
         let report = try #require(await model.currentReport())
         #expect(report.contains(InvoiceValidationPresentation.title(.technicalError)))
@@ -120,8 +109,7 @@ struct InvoiceValidationModelTests {
         let model = InvoiceValidationModel(bundle: dir)
         defer { model.stopObserving() }
         model.observe(url)
-        model.start()
-        try await wait { !model.isRunning }
+        await (try #require(model.start())).value
         for target in [url, symbolic, hard] {
             await #expect(throws: InvoiceValidationModel.ExportFailure.sourceFile) { try await model.saveReport(to: target) }
         }
@@ -141,20 +129,20 @@ struct InvoiceValidationModelTests {
         let second = InvoiceValidationModel(bundle: dir)
         defer { first.stopObserving(); second.stopObserving() }
         first.observe(url); second.observe(url)
-        first.start(); second.start()
+        try #require(first.start() != nil)
+        try #require(second.start() != nil)
         first.reset()
         await InvoiceValidationModel.finishAllJobs(terminating: false)
         #expect(!InvoiceValidationModel.hasActiveJobs)
         #expect(first.status == nil)
         #expect(second.status == .cancelled)
-        first.start()
-        try await wait { !first.isRunning }
+        await (try #require(first.start())).value
         let destination = dir.appendingPathComponent("shutdown-report.txt")
-        let export = Task { try await first.saveReport(to: destination) }
-        try await wait { InvoiceValidationModel.hasActiveJobs || FileManager.default.fileExists(atPath: destination.path) }
+        let export = try first.beginReportExport(to: destination)
+        #expect(InvoiceValidationModel.hasActiveJobs)
         await InvoiceValidationModel.finishAllJobs(terminating: false)
         #expect(FileManager.default.fileExists(atPath: destination.path))
         #expect(!InvoiceValidationModel.hasActiveJobs)
-        try await export.value
+        try await export.value.get()
     }
 }

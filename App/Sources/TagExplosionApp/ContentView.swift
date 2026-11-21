@@ -1,6 +1,6 @@
-import TagExplosionApplication
 // Hauptfenster: Sidebar mit Dateiliste, rechts der Editor.
 import SwiftUI
+import TagExplosionApplication
 import TagExplosionCore
 import UniformTypeIdentifiers
 
@@ -13,11 +13,12 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var model = model
+        let selected = model.selectedEntries
         NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {
-            if let entry = model.selectedEntry {
+            if selected.count == 1, let entry = selected.first {
                 switch entry.kind {
                 case .audio:
                     EditorView(entry: entry)
@@ -41,8 +42,7 @@ struct ContentView: View {
                     PlaylistEditorView(entry: entry)
                         .id(entry.url)
                 }
-            } else if model.selectedEntries.count > 1 {
-                let selected = model.selectedEntries
+            } else if selected.count > 1 {
                 if selected.allSatisfy({ $0.kind == .audio }) {
                     BatchEditorView(entries: selected)
                         .id(model.selection)
@@ -82,7 +82,7 @@ struct ContentView: View {
                     ContentUnavailableView(
                         "Gemischte Auswahl",
                         systemImage: "rectangle.on.rectangle.slash",
-                        description: Text("Audio, Bilder, E-Books und Dokumente bitte getrennt auswählen,\num sie gemeinsam zu bearbeiten.")
+                        description: Text("Wählen Sie eine Datei aus. Audio, Bilder, E-Books und Dokumente lassen sich auch je Typ gemeinsam bearbeiten.")
                     )
                 }
             } else {
@@ -121,7 +121,7 @@ struct ContentView: View {
                           || model.isDestructiveActionLocked)
                 .help("Änderungen der Auswahl speichern (⌘S)")
 
-                if model.entries.filter(\.isDirty).count > 1 {
+                if model.entries.lazy.filter(\.isDirty).prefix(2).count == 2 {
                     Button {
                         Task { await model.saveAll() }
                     } label: {
@@ -150,7 +150,7 @@ struct ContentView: View {
         )) {
             LibraryCheckSheet(entries: model.libraryCheckTargets ?? [])
         }
-        .sheet(isPresented: .init(get: { model.showBatchResults }, set: { model.showBatchResults = $0 })) {
+        .sheet(isPresented: $model.showBatchResults) {
             BatchSaveResultsView()
         }
         .onChange(of: model.pendingStaleWrite) { _, pending in

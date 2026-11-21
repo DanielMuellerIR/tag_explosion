@@ -182,6 +182,32 @@ struct MediaInfoCacheTests {
         #expect(kill(pid, 0) == -1)
     }
 
+    @Test("Der letzte MediaInfo-Abonnent wartet auf das Ende des TERM-resistenten Werkzeugs")
+    func lastSubscriberAwaitsProcessExit() async throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("a.flac")
+        try Data("a".utf8).write(to: file)
+        let tool = dir.appendingPathComponent("mediainfo")
+        try Data("""
+        #!/bin/sh
+        trap '' TERM
+        printf '%s' "$$" > "$0.pid"
+        exec /bin/sleep 30
+        """.utf8).write(to: tool)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tool.path)
+        let cache = MediaInfoCache { url, output, cancellation in
+            try MediaInfoReader.read(url: url, output: output, executable: tool.path, cancellation: cancellation)
+        }
+        let subscriber = Task { try await cache.read(url: file, output: .json) }
+        defer { subscriber.cancel() }
+        let pid = try await waitForPID(at: tool.appendingPathExtension("pid"))
+        subscriber.cancel()
+        do { _ = try await subscriber.value; Issue.record("Abgebrochener Abonnent bekam Erfolg") }
+        catch is CancellationError {}
+        #expect(kill(pid, 0) == -1)
+    }
+
     @Test("Abbruch beendet auch ein Werkzeug, das SIGTERM ignoriert")
     func cancellationKillsIgnoringTool() async throws {
         let dir = try directory()

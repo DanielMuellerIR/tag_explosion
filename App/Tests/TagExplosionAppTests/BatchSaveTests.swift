@@ -63,7 +63,7 @@ struct BatchSaveTests {
         }
         #expect(calls == 1)
         #expect(model.batchResults.map(\.status) == [.success, .skipped, .skipped])
-        let gate = BatchGate()
+        let gate = TestGate()
         let batch = Task {
             await model.saveEntries(entries) { entry in
                 if entry === entries[0] {
@@ -71,39 +71,29 @@ struct BatchSaveTests {
                         throw TagError.fileChangedOnDisk(path: entry.url.path)
                     }
                 }
-                if entry === entries[1] { await gate.wait() }
+                if entry === entries[1] { await gate.pause() }
                 return true
             }
         }
-        for _ in 0..<2000 {
-            if await gate.started { break }
-            try await Task.sleep(for: .milliseconds(1))
+        defer {
+            batch.cancel()
+            Task { await gate.release() }
         }
-        #expect(await gate.started)
-        #expect(model.pendingStaleWrite != nil)
+        try await gate.started.wait(for: "zweiter Batch-Schreibvorgang")
+        try #require(model.pendingStaleWrite != nil)
+        let saved = TestSignal()
         let confirm = Task {
             await model.confirmStaleWrite { _ in
                 #expect(!model.isBatchSaving)
+                saved.signal()
                 return true
             }
         }
-        for _ in 0..<2000 {
-            if model.pendingStaleWrite == nil { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        defer { confirm.cancel() }
+        try await waitForObservation("Übernahme der Konfliktentscheidung") { model.pendingStaleWrite == nil }
         await gate.release()
+        try await saved.wait(for: "bestätigter Schreibvorgang nach dem Batch")
         _ = await batch.value
         await confirm.value
-
     }
-}
-
-private actor BatchGate {
-    var started = false
-    private var continuation: CheckedContinuation<Void, Never>?
-    func wait() async {
-        started = true
-        await withCheckedContinuation { continuation = $0 }
-    }
-    func release() { continuation?.resume(); continuation = nil }
 }

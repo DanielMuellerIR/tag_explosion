@@ -321,6 +321,9 @@ public enum ExternalToolRunner {
             for pointer in argv { free(pointer) }
             for pointer in environment { free(pointer) }
         }
+        guard argv.dropLast().allSatisfy({ $0 != nil }), environment.dropLast().allSatisfy({ $0 != nil }) else {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOMEM))
+        }
         var child: pid_t = 0
         let result = argv.withUnsafeBufferPointer { args in
             environment.withUnsafeBufferPointer { env in

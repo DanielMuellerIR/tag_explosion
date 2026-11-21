@@ -1,10 +1,10 @@
-import TagExplosionApplication
 // Dialog „Regeln anwenden …": Regelliste (hinzufügen, entfernen, umsortieren),
 // Formular je Regel, Laden/Speichern als JSON, Vorlagen und zuletzt benutzte
 // Dateien, Vorschautabelle (Datei, Feld, alt → neu) und der Anwenden-Knopf.
-// Die Regel-Logik liegt im Core (`TagRules.swift`); hier steht nur die Anzeige.
+// Die Regelauswertung liegt im Core (`TagRuleEngine`); hier steht die Anzeige.
 import AppKit
 import SwiftUI
+import TagExplosionApplication
 import TagExplosionCore
 import UniformTypeIdentifiers
 
@@ -37,11 +37,17 @@ struct EditableRule: Identifiable, Equatable {
     }
 }
 
-// MARK: - Anzeigenamen
+private struct RulePreviewRequest: Equatable, Sendable {
+    let document: TagRuleDocument
+    let inputs: [TagRuleInput]
+}
 
-/// Deutsche/englische Namen der Aktionen, Schreibweisen, Bedingungen und
-/// Medienarten (die JSON-Schreibweise bleibt englisch).
-// MARK: - Dialog
+private actor RulePreviewWorker {
+    func plan(_ request: RulePreviewRequest) throws -> [TagRulePlan] {
+        try Task.checkCancellation()
+        return try AppModel.rulePlan(for: request.inputs, document: request.document)
+    }
+}
 
 struct TagRulesSheet: View {
     let entries: [FileEntry]
@@ -52,6 +58,8 @@ struct TagRulesSheet: View {
     @State private var history = RuleFileHistory.load()
     @State private var fileError: String?
     @State private var isApplying = false
+    @State private var worker = RulePreviewWorker()
+    @State private var preview: (RulePreviewRequest, Result<[TagRulePlan], Error>)?
 
     /// Eine Zeile der Vorschau: ein Feld einer Datei.
     private struct PreviewRow: Identifiable {
@@ -66,13 +74,9 @@ struct TagRulesSheet: View {
         TagRuleDocument(rules: rules.map(\.rule).map(Self.normalized))
     }
 
-    private var planResult: Result<[TagRulePlan], Error> {
-        Result { try model.rulePlan(for: entries, document: document) }
-    }
-
     var body: some View {
-        // Tabelle, Zusammenfassung und Knopf verwenden denselben Plan.
-        let result = planResult
+        let request = RulePreviewRequest(document: document, inputs: model.ruleInputs(for: entries))
+        let result = preview.flatMap { $0.0 == request ? $0.1 : nil }
         VStack(alignment: .leading, spacing: 12) {
             Text("Regeln anwenden")
                 .font(.title3.weight(.semibold))
@@ -93,12 +97,24 @@ struct TagRulesSheet: View {
             }
             .frame(minHeight: 220)
             previewTable(result)
-            footer(result)
+            footer(result, request: request)
         }
         .padding(20)
         .frame(minWidth: 860, idealWidth: 940, minHeight: 640)
         .onAppear {
             if selectedRuleID == nil { selectedRuleID = rules.first?.id }
+        }
+        .task(id: request) {
+            do {
+                try await Task.sleep(for: .milliseconds(150))
+                let plan = try await worker.plan(request)
+                try Task.checkCancellation()
+                preview = (request, .success(plan))
+            } catch is CancellationError {
+                return
+            } catch {
+                if !Task.isCancelled { preview = (request, .failure(error)) }
+            }
         }
     }
 
@@ -222,7 +238,7 @@ struct TagRulesSheet: View {
 
     // MARK: Vorschau
 
-    private func previewTable(_ result: Result<[TagRulePlan], Error>) -> some View {
+    private func previewTable(_ result: Result<[TagRulePlan], Error>?) -> some View {
         let rows: [PreviewRow]
         var planError: String?
         switch result {
@@ -233,12 +249,14 @@ struct TagRulesSheet: View {
         case .failure(let error):
             rows = []
             planError = error.localizedDescription
+        case nil: rows = []
         }
         return VStack(alignment: .leading, spacing: 6) {
             if let planError {
                 Label(planError, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
             }
+            if result == nil { ProgressView("Vorschau wird berechnet …").controlSize(.small) }
             Table(rows) {
                 TableColumn("Datei") { row in
                     Text(row.file).lineLimit(1)
@@ -261,8 +279,8 @@ struct TagRulesSheet: View {
         }
     }
 
-    private func footer(_ result: Result<[TagRulePlan], Error>) -> some View {
-        let hasChanges = (try? result.get().isEmpty) == false
+    private func footer(_ result: Result<[TagRulePlan], Error>?, request: RulePreviewRequest) -> some View {
+        let plans = (try? result?.get()) ?? []
         return HStack {
             if case .success(let plans) = result {
                 let changes = plans.reduce(0) { $0 + $1.changes.count }
@@ -273,18 +291,22 @@ struct TagRulesSheet: View {
             Spacer()
             Button("Abbrechen") { dismiss() }
                 .keyboardShortcut(.cancelAction)
-            Button("Anwenden") { apply() }
+            Button("Anwenden") { apply(plans, request: request) }
                 .keyboardShortcut(.defaultAction)
-                .disabled(isApplying || !hasChanges)
+                .disabled(isApplying || plans.isEmpty)
         }
     }
 
-    private func apply() {
+    private func apply(_ plans: [TagRulePlan], request: RulePreviewRequest) {
         let targets = entries
-        let document = document
+        guard !plans.isEmpty, request.document == document, request.inputs == model.ruleInputs(for: targets) else { return }
         isApplying = true
         Task {
-            await model.applyRules(document, to: targets)
+            guard !model.isDestructiveActionLocked, request.inputs == model.ruleInputs(for: targets) else {
+                isApplying = false
+                return
+            }
+            _ = await model.applyPreparedRules(plans, matching: request.inputs, to: targets)
             isApplying = false
             dismiss()
         }

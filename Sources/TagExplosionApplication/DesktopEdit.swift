@@ -85,6 +85,9 @@ enum DesktopEdit {
         guard entry.kind != .invoice, !entry.isReadOnly || entry.videoNFO?.isEditable == true else {
             throw DesktopFailure("read_only", String(localized: "Die Datei ist schreibgeschützt."))
         }
+        if case .nfo(let contents) = entry.sidecarContents, contents.isURLOnly {
+            throw DesktopFailure("read_only", String(localized: "Die Datei ist schreibgeschützt."))
+        }
     }
 
     private static func audio(_ entry: FileEntry, properties: [TagProperty], chapters: [Chapter],

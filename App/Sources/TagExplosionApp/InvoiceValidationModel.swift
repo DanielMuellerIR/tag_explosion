@@ -97,8 +97,9 @@ final class InvoiceValidationModel {
         url = nil
     }
 
-    func start() {
-        guard let url, !InvoiceValidationJobs.shuttingDown else { return }
+    @discardableResult
+    func start() -> Task<Void, Never>? {
+        guard let url, !InvoiceValidationJobs.shuttingDown else { return nil }
         reset()
         isRunning = true
         let id = revision
@@ -106,7 +107,7 @@ final class InvoiceValidationModel {
         inputCancellation = control
         let session = session
         let bundle = bundle
-        task = Task { [weak self] in
+        let validation = Task { [weak self] in
             defer { InvoiceValidationJobs.pending.removeValue(forKey: id) }
             let captured = await Task.detached(priority: .userInitiated) {
                 Result { try InvoiceValidationInput.capture(at: url, cancellation: control) }
@@ -131,9 +132,15 @@ final class InvoiceValidationModel {
             self.inputCancellation = nil
             self.task = nil
         }
-        if let task {
-            InvoiceValidationJobs.pending[id] = .init(cancel: { control.cancel(); task.cancel() }, wait: { await task.value })
-        }
+        task = validation
+        InvoiceValidationJobs.pending[id] = .init(
+            cancel: {
+                control.cancel()
+                validation.cancel()
+            },
+            wait: { await validation.value }
+        )
+        return validation
     }
 
     func cancel() {
@@ -163,6 +170,10 @@ final class InvoiceValidationModel {
     }
 
     func saveReport(to destination: URL) async throws {
+        try await beginReportExport(to: destination).value.get()
+    }
+
+    func beginReportExport(to destination: URL) throws -> Task<Result<Void, Error>, Never> {
         let id = revision
         guard !InvoiceValidationJobs.shuttingDown, let source = url else { throw ExportFailure.outdated }
         let exportID = UUID()
@@ -185,7 +196,7 @@ final class InvoiceValidationModel {
         // Bereits die erneute Quellenprüfung gehört zum bestätigten Export.
         // App-Ende wartet darauf; Prüfvorgänge werden dagegen abgebrochen.
         InvoiceValidationJobs.pending[exportID] = .init(cancel: {}, wait: { _ = await writer.value })
-        try await writer.value.get()
+        return writer
     }
 }
 
