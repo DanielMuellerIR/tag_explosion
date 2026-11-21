@@ -884,6 +884,7 @@ const english = {
   "Textausgabe": "Text output",
   "Umbenennen: Vorschau": "Rename: preview",
   "Ungespeicherte Änderungen der Auswahl werden verworfen.": "Unsaved edits in the selection will be discarded.",
+  "Ungespeicherte Änderungen werden verworfen.": "Unsaved edits will be discarded.",
   "Untertitel verschieben": "Shift subtitles",
   "Untertitel verschieben …": "Shift subtitles…",
   "Update installiert": "Update installed",

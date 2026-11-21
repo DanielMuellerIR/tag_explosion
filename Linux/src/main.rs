@@ -33,6 +33,13 @@ async fn media(
     method: String,
     mut params: Value,
 ) -> Result<Value, String> {
+    if method == "close" {
+        return Err(text(
+            "Fenster bitte regulär schließen.",
+            "Use the window close action.",
+        )
+        .into());
+    }
     if method.starts_with("lookup") {
         let authorization = desktop
             .engine
@@ -177,10 +184,27 @@ fn new_window(
 }
 
 #[tauri::command]
-async fn close_window(window: WebviewWindow, desktop: State<'_, Desktop>) -> Result<Value, String> {
+async fn close_window(
+    window: WebviewWindow,
+    desktop: State<'_, Desktop>,
+    recovery_only: Option<bool>,
+    discard: Option<bool>,
+) -> Result<Value, String> {
+    let recovering = desktop.engine.recovery_required();
+    let discard = discard == Some(true) && recovering;
+    if recovering && !discard {
+        return Ok(json!({"closed": false, "recovery": true}));
+    }
+    if !recovering && recovery_only == Some(true) {
+        return Ok(json!({"closed": false, "recovery": false}));
+    }
     let result = desktop
         .engine
-        .call(window.label(), "close", json!({}))
+        .call(
+            window.label(),
+            "close",
+            json!({"discardForRecovery": discard}),
+        )
         .await?;
     if result["closed"] == true {
         desktop

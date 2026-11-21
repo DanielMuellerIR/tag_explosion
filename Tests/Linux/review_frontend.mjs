@@ -97,5 +97,46 @@ for (const reject of [false, true]) {
   assert.equal(context.batchChanges.title, reject ? 'Entwurf' : undefined);
   assert.equal(rendered, !reject);
 }
+{
+  const editor = fs.readFileSync(new URL('../../Linux/frontend/rules.js', import.meta.url), 'utf8');
+  vm.runInContext(editor.replace('export async function', 'async function'), context);
+  const ready = deferred();
+  const modalResult = deferred();
+  let controls;
+  let applied = false;
+  const edit = context.editRules({
+    node: context.node, button: context.button, t: value => value,
+    modal: (_title, content, actions) => {
+      controls = { content, apply: actions[1].control };
+      ready.resolve();
+      return modalResult.promise;
+    },
+    enqueue: action => action(), flush: async () => {}, editorContext: () => 'one',
+    dismiss: () => modalResult.resolve(), act: async () => { applied = true; },
+    request: async (method, params) => {
+      if (method === 'rulesSchema') return { templates: [
+        { id: 'a', title: 'a', document: { version: 1, rules: [], _comment: 'first' } },
+        { id: 'b', title: 'b', document: { version: 1, rules: [], _comment: 'second' } },
+      ] };
+      assert.equal(method, 'rulesPreview');
+      assert.equal(params.confirmable, true);
+      return { token: 'preview-first', plans: [{ path: 'a.mp3', changes: [{ field: 'TITLE', old: 'old', new: 'first' }] }] };
+    },
+  });
+  await ready.promise;
+  const inspect = descendants(controls.content).find(e => e.tag === 'button' && e.children.includes('Vorschau'));
+  const template = descendants(controls.content).find(e => e.tag === 'select' && e['aria-label'] === 'Vorlage');
+  assert.equal(controls.apply.disabled, true);
+  inspect.events.click({});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(controls.apply.disabled, false);
+  template.events.change({target: {value: 'b'}});
+  assert.equal(controls.apply.disabled, true);
+  assert.equal(descendants(controls.content).some(e => e.tag === 'table'), false);
+  controls.apply.events.click({});
+  modalResult.resolve();
+  await edit;
+  assert.equal(applied, false);
+}
 assert.equal(failures, 0);
 console.log('Frontend-Regressionen bestanden');

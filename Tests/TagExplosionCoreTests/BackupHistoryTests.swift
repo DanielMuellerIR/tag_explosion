@@ -183,6 +183,7 @@ struct BackupHistoryTests {
             let copy = root.appendingPathComponent("backup.bin")
             let bytes = Data("Version".utf8)
             try bytes.write(to: copy)
+            try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: copy.path)
             let record = try journal.record(original: destination, backup: copy,
                 size: Int64(bytes.count), reason: BackupReason.save)
             let version = BackupVersion(number: 1, entry: record)
@@ -201,6 +202,8 @@ struct BackupHistoryTests {
             // Das Ziel fehlt tatsächlich noch: Wiederherstellen bleibt erlaubt.
             try BackupHistory.restore(version, expecting: absent, backup: TrashBackup())
             #expect(try Data(contentsOf: destination) == bytes)
+            let mode = try FileManager.default.attributesOfItem(atPath: destination.path)[.posixPermissions] as? NSNumber
+            #expect(mode?.intValue == 0o444)
         }
     }
 
@@ -233,8 +236,8 @@ struct BackupHistoryTests {
         #expect(flatDocument["custom[1].value"] == "X")
     }
 
-    @Test("Restore: Tags ändern → sichern → zurückholen → Datei byte-gleich wie vorher")
-    func restoreRoundtrip() throws {
+    @Test("Restore: Tags ändern → sichern → zurückholen → Datei byte-gleich wie vorher", arguments: [false, true])
+    func restoreRoundtrip(readOnlyBackup: Bool) throws {
         try withJournal { journal, _ in
             try withBackup(journal: journal) { backup in
                 let url = try Fixtures.workingCopy("sample.mp3")
@@ -265,7 +268,14 @@ struct BackupHistoryTests {
                 // Zurückspielen: byte-gleich, Prüfsumme gleich — und der
                 // Stand von vorher (ARTIST=Neu) liegt seinerseits gesichert
                 // im Papierkorb, damit das Undo selbst umkehrbar bleibt.
+                if readOnlyBackup {
+                    try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: version.entry.backupPath)
+                }
                 try BackupHistory.restore(version, expecting: FileStamp.current(of: url), backup: backup)
+                if readOnlyBackup {
+                    let mode = try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber
+                    #expect(mode?.intValue == 0o444)
+                }
                 #expect(try Data(contentsOf: url) == before)
                 #expect(try BackupJournal.sha256(of: url) == version.entry.sha256)
                 let afterRestore = BackupHistory.versions(of: url, journal: journal)

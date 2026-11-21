@@ -6,10 +6,11 @@ enum MacLookupProxy {
     enum Failure: LocalizedError, Equatable {
         case unavailable
         case timedOut
+        case requiresSystemTransport
 
         var errorDescription: String? {
             switch self {
-            case .unavailable: "The system proxy route for the online lookup could not be determined."
+            case .unavailable, .requiresSystemTransport: "The system proxy route for the online lookup could not be determined."
             case .timedOut: "Determining the system proxy route for the online lookup timed out."
             }
         }
@@ -19,11 +20,11 @@ enum MacLookupProxy {
         guard let settings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] else {
             throw Failure.unavailable
         }
-        return try routes(for: url, settings: settings, isCancelled: isCancelled)
+        return try routes(for: url, settings: settings, useSystemTransport: true, isCancelled: isCancelled)
     }
 
     static func routes(for url: URL, settings: [String: Any], timeout: Duration = .seconds(10),
-                       isCancelled: () -> Bool) throws -> [CurlLookupProxy] {
+                       useSystemTransport: Bool = false, isCancelled: () -> Bool) throws -> [CurlLookupProxy] {
         guard !isCancelled() else { throw URLError(.cancelled) }
         let entries = CFNetworkCopyProxiesForURL(url as CFURL, settings as CFDictionary).takeRetainedValue()
         guard let candidates = entries as? [[String: Any]], !candidates.isEmpty else { throw Failure.unavailable }
@@ -37,7 +38,10 @@ enum MacLookupProxy {
         let autoConfigured = settings[kCFNetworkProxiesProxyAutoConfigEnable as String] as? NSNumber
         let autoDiscovered = settings[kCFNetworkProxiesProxyAutoDiscoveryEnable as String] as? NSNumber
         guard autoConfigured?.boolValue != true, autoDiscovered?.boolValue != true else {
-            throw Failure.unavailable
+            // Ohne PAC-Platzhalter lässt CFNetwork nicht erkennen, ob WPAD
+            // noch aussteht oder DIRECT eine konfigurierte Ausnahme ist.
+            // URLSession löst dieses Ziel mit der vollständigen Systemlogik.
+            throw useSystemTransport ? Failure.requiresSystemTransport : Failure.unavailable
         }
         return try candidates.map(route)
     }

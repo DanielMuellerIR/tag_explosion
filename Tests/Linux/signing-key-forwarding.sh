@@ -18,13 +18,16 @@ with tempfile.TemporaryDirectory(prefix='tagx-key-forwarding-') as temp:
         path = tools / name
         path.write_text(body)
         path.chmod(0o700)
-    key = root / 'meaningless key'
+    caller = root / 'outside invocation'
+    caller.mkdir()
+    key = (caller / 'meaningless key').resolve()
+    (root / key.name).write_text('wrong fixture with the same filename')
     key.write_text('meaningless generated fixture')
     env = {k:v for k,v in os.environ.items() if not k.startswith('TAURI_SIGNING_')}
     env.update(PATH=str(tools)+':'+os.environ['PATH'], ARGUMENT_LOG=str(log), TAGX_IN_BUILDER='0')
     def run(*options, succeeds=True, error=None):
         log.write_bytes(b'')
-        result = subprocess.run(['bash', str(root/'Linux/build.sh'), *options], env=env, capture_output=True)
+        result = subprocess.run(['bash', str(root/'Linux/build.sh'), *options], env=env, cwd=caller, capture_output=True)
         assert (result.returncode == 0) == succeeds, 'Unerwartetes Mock-Bauergebnis'
         args = log.read_bytes().decode().split('\0')
         if not succeeds:

@@ -19,6 +19,7 @@ typedef struct {
     const uint8_t *body;
     size_t body_count;
     bool has_body;
+    long connect_timeout_ms;
     void *context;
     tagx_lookup_receive receive_header;
     tagx_lookup_receive receive_body;

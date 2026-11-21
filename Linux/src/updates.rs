@@ -204,8 +204,13 @@ fn install_in_background(
             .into());
         }
         let result = tauri::async_runtime::spawn_blocking(install).await;
-        let _ = engine.set_updating(&session, false).await;
-        result.map_err(|_| installation_interrupted())?
+        let released = engine.set_updating(&session, false).await;
+        result.map_err(|_| installation_interrupted())??;
+        released.map_err(|_| text(
+            "Update installiert. Die Medienverarbeitung hat die Freigabe nicht bestätigt. Bitte die App neu starten.",
+            "Update installed. The media engine did not confirm release. Restart the app.",
+        ).to_owned())?;
+        Ok(())
     })
 }
 

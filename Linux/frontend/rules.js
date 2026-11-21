@@ -1,11 +1,11 @@
 // Der Editor erzeugt das gemeinsame TagRuleDocument; Auswertung und
 // Schreibentscheidungen liegen ausschließlich in der Swift-Anwendungsschicht.
 export async function editRules(api) {
-  const { node, button, t, modal, request, enqueue, flush, act, choose } = api;
+  const { node, button, t, modal, request, enqueue, flush, act, choose, editorContext, dismiss } = api;
   await enqueue(flush);
   const schema = await request("rulesSchema");
   let document = structuredClone(schema.templates[0].document),
-    selected = 0;
+    selected = 0, shownPreview, approvedPreview, previewGeneration = 0;
   const list = node("div", {
     class: "rule-list",
     role: "listbox",
@@ -14,10 +14,27 @@ export async function editRules(api) {
   const form = node("div", { class: "rule-form" });
   const error = node("p", { class: "error-message" });
   const preview = node("div", { class: "rule-preview" });
+  const apply = button("Anwenden und speichern", () => {
+    if (!shownPreview || shownPreview.context !== editorContext()) {
+      invalidatePreview();
+      return;
+    }
+    approvedPreview = shownPreview;
+    dismiss();
+  }, { class: "primary", disabled: true });
+
+  function invalidatePreview() {
+    previewGeneration++;
+    shownPreview = undefined;
+    preview.replaceChildren();
+    apply.disabled = true;
+  }
+
   const advanced = node("textarea", {
     class: "wide",
     rows: 12,
     "aria-label": t("Regeldatei"),
+    oninput: invalidatePreview,
   });
   function safe(action) {
     return async () => {
@@ -72,7 +89,9 @@ export async function editRules(api) {
     });
   }
   function syncJSON() {
-    advanced.value = JSON.stringify(document, null, 2);
+    const rendered = JSON.stringify(document, null, 2);
+    if (advanced.value !== rendered) invalidatePreview();
+    advanced.value = rendered;
   }
   function redraw() {
     selected = Math.max(0, Math.min(selected, document.rules.length - 1));
@@ -457,7 +476,12 @@ export async function editRules(api) {
     "Vorschau",
     safe(async () => {
       await enqueue(flush);
-      const plans = await request("rulesPreview", { document });
+      invalidatePreview();
+      const generation = previewGeneration;
+      const context = editorContext();
+      const requested = structuredClone(document);
+      const { token, plans } = await request("rulesPreview", { document: requested, confirmable: true });
+      if (generation !== previewGeneration || context !== editorContext()) return;
       const table = node(
         "table",
         {},
@@ -502,6 +526,8 @@ export async function editRules(api) {
       preview.replaceChildren(table);
       if (!plans.length)
         preview.append(node("p", { class: "notice" }, t("Keine Änderungen")));
+      shownPreview = { token, document: requested, context };
+      apply.disabled = !plans.some((plan) => plan.changes.length);
     }),
   );
   const advancedGroup = node(
@@ -521,7 +547,7 @@ export async function editRules(api) {
     ),
   );
   redraw();
-  const result = await modal(
+  await modal(
     "Regeln anwenden …",
     node(
       "div",
@@ -535,8 +561,10 @@ export async function editRules(api) {
     ),
     [
       { title: "Abbrechen", value: false },
-      { title: "Anwenden und speichern", value: true, primary: true },
+      { control: apply },
     ],
   );
-  if (result === true) await act("rulesApply", { document });
+  if (approvedPreview) {
+    await act("rulesApply", { token: approvedPreview.token, document: approvedPreview.document });
+  }
 }

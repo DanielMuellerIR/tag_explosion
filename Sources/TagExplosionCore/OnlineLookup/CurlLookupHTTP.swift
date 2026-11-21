@@ -17,7 +17,7 @@ enum CurlLookupHTTP {
     typealias ProxyResolver = @Sendable (URL, @Sendable () -> Bool) throws -> [CurlLookupProxy]
 
     private static let maximumRedirects = 20
-    private static let redirectStatuses: Set<Int> = [301, 302, 303, 307, 308]
+    static let redirectStatuses: Set<Int> = [301, 302, 303, 307, 308]
 
     static func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse {
         #if os(macOS)
@@ -28,12 +28,12 @@ enum CurlLookupHTTP {
     }
 
     static func send(_ request: LookupHTTPRequest,
+                     connectTimeoutMilliseconds: Int = 30_000,
                      resolvingProxies: @escaping ProxyResolver) async throws -> LookupHTTPResponse {
         let cancellation = Cancellation()
         return try await withTaskCancellationHandler {
-            try await BlockingWork.run {
-                try followRedirects(request, cancellation: cancellation, resolvingProxies: resolvingProxies)
-            }
+            try await followRedirects(request, cancellation: cancellation, connectTimeoutMilliseconds: connectTimeoutMilliseconds,
+                                      resolvingProxies: resolvingProxies)
         } onCancel: {
             cancellation.cancel()
         }
@@ -41,13 +41,30 @@ enum CurlLookupHTTP {
 
     private static func followRedirects(_ initialRequest: LookupHTTPRequest,
                                         cancellation: Cancellation,
-                                        resolvingProxies: ProxyResolver) throws -> LookupHTTPResponse {
+                                        connectTimeoutMilliseconds: Int,
+                                        resolvingProxies: @escaping ProxyResolver) async throws -> LookupHTTPResponse {
         var request = initialRequest
         for hop in 0...maximumRedirects {
             try cancellation.check()
             guard validURL(request.url) else { throw URLError(.unsupportedURL) }
-            let proxies = try resolvingProxies(request.url) { cancellation.isCancelled }
-            let (response, location) = try receive(request, proxies: proxies, cancellation: cancellation)
+            let current = request
+            let response: LookupHTTPResponse
+            let location: String?
+            do {
+                (response, location) = try await BlockingWork.run {
+                    let proxies = try resolvingProxies(current.url) { cancellation.isCancelled }
+                    return try receive(current, proxies: proxies, cancellation: cancellation,
+                                       connectTimeoutMilliseconds: connectTimeoutMilliseconds)
+                }
+            } catch {
+                #if os(macOS)
+                guard error as? MacLookupProxy.Failure == .requiresSystemTransport else { throw error }
+                response = try await URLSessionLookupClient.systemProxyResponse(current)
+                location = redirectStatuses.contains(response.statusCode) ? response.headers["location"] : nil
+                #else
+                throw error
+                #endif
+            }
             guard let location else { return response }
             guard hop < maximumRedirects else { break }
             request = try redirected(request, status: response.statusCode, location: location)
@@ -56,20 +73,24 @@ enum CurlLookupHTTP {
     }
 
     private static func receive(_ request: LookupHTTPRequest, proxies: [CurlLookupProxy],
-                                cancellation: Cancellation) throws -> (LookupHTTPResponse, String?) {
+                                cancellation: Cancellation,
+                                connectTimeoutMilliseconds: Int) throws -> (LookupHTTPResponse, String?) {
         var lastFailure: TransferError?
         for proxy in proxies {
             try cancellation.check()
             let transfer = Transfer(cancellation: cancellation)
             do {
-                let response = try transfer.perform(request, proxy: proxy)
+                let response = try transfer.perform(request, proxy: proxy, connectTimeoutMilliseconds: connectTimeoutMilliseconds)
                 return (response, transfer.redirectLocation)
             } catch let error as TransferError where error.canTryNextProxy {
                 // Nach Fehlern beim Empfang könnte der Dienst den Auftrag bereits verarbeitet haben.
                 lastFailure = error
             }
         }
-        if let lastFailure { throw lastFailure }
+        if let lastFailure {
+            if tagx_lookup_is_timeout(lastFailure.code) { throw URLError(.timedOut) }
+            throw lastFailure
+        }
         throw URLError(.cannotConnectToHost)
     }
 
@@ -145,7 +166,8 @@ enum CurlLookupHTTP {
             self.cancellation = cancellation
         }
 
-        func perform(_ request: LookupHTTPRequest, proxy: CurlLookupProxy) throws -> LookupHTTPResponse {
+        func perform(_ request: LookupHTTPRequest, proxy: CurlLookupProxy,
+                     connectTimeoutMilliseconds: Int) throws -> LookupHTTPResponse {
             guard Self.isToken(request.method),
                   request.headers.allSatisfy({ Self.isToken($0.key) && Self.isHeaderValue($0.value) }) else {
                 throw URLError(.badURL)
@@ -180,7 +202,8 @@ enum CurlLookupHTTP {
                                 proxy_password: UnsafePointer(proxyPassword), headers: headers.baseAddress,
                                 header_count: headers.count,
                                 body: bytes.bindMemory(to: UInt8.self).baseAddress, body_count: bytes.count,
-                                has_body: request.body != nil, context: Unmanaged.passUnretained(self).toOpaque(),
+                                has_body: request.body != nil, connect_timeout_ms: connectTimeoutMilliseconds,
+                                context: Unmanaged.passUnretained(self).toOpaque(),
                                 receive_header: { context, bytes, count in
                                     Unmanaged<Transfer>.fromOpaque(context!).takeUnretainedValue()
                                         .receiveHeader(bytes!, count: count)
@@ -201,7 +224,7 @@ enum CurlLookupHTTP {
             try cancellation.check()
             if let limitExceeded { throw LookupHTTPResponseTooLarge(maximumBytes: limitExceeded) }
             if redirectLocation == nil {
-                if tagx_lookup_is_timeout(code) { throw URLError(.timedOut) }
+                if tagx_lookup_is_timeout(code), !canTryNextProxy { throw URLError(.timedOut) }
                 guard code == 0 else { throw TransferError(code: code, canTryNextProxy: canTryNextProxy) }
             }
             return LookupHTTPResponse(statusCode: redirectLocation == nil ? responseStatus : status,

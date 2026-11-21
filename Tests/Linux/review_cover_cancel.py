@@ -194,7 +194,7 @@ sys.stdout.buffer.write(Path(os.environ['TAGX_REVIEW_OUTPUT']).read_bytes())
                 assert batch_id not in engine.responses, 'Batch wurde vor dem Abbruch beendet'
                 engine.call('cancel', timeout=2)
                 batch = engine.receive(batch_id, timeout=2)
-                assert batch.get('error', {}).get('code') == 'operation_failed', batch
+                assert batch.get('error') is None and batch.get('result', {}).get('busy') is False, batch
                 state = engine.call('state', timeout=2)
                 assert state['busy'] is False, state
                 for audio in media:

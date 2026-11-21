@@ -11,6 +11,17 @@ jeder Entscheidung steht im jeweiligen Commit.
 Die Versionsabschnitte dokumentieren Quellstände. Veröffentlichte Builds und
 ihre Plattformen stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 
+## 0.54.16 — 2026-11-21
+
+- Regeln speichern genau die zuvor bestätigte Vorschau. Alte Sicherungen
+  lassen sich auch bei schreibgeschützten Dateirechten wiederherstellen.
+- Der Online-Lookup verwendet unter macOS die Systemeinstellungen für
+  automatische Proxy-Erkennung. Bereits begonnene Übertragungen werden
+  bei einem Zeitlimit nicht über einen zweiten Weg wiederholt.
+- Linux meldet hängende Update-Vorbereitungen und hält die Schließoption
+  nach bestätigtem Verwerfen erreichbar. Abgebrochene Cover-Suchen zeigen
+  den endgültigen Zustand.
+
 ## 0.54.15 — 2026-11-21
 
 - Die HTTP-Loopback-Tests beenden ihre Testserver mit einer festen Frist.

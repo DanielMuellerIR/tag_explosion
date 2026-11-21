@@ -199,57 +199,63 @@ enum ZipContainer {
         guard let tail = try archive.read(upToCount: tailSize), tail.count >= endRecordSize else {
             throw TagError.cannotOpen(path: url.path)
         }
-        for end in stride(from: tail.count - endRecordSize, through: 0, by: -1) {
-            guard number(UInt32.self, in: tail, at: end) == 0x06054b50 else { continue }
-            // ZIPFoundation nimmt die erste Signatur von hinten. Ein
-            // Suchtreffer im Kommentar darf kein anderes Verzeichnis liefern.
-            guard Int(number(UInt16.self, in: tail, at: end + 20)) == tail.count - end - endRecordSize else {
+        var endRecord: Int?
+        for candidate in stride(from: tail.count - endRecordSize, through: 0, by: -1) {
+            guard number(UInt32.self, in: tail, at: candidate) == 0x06054b50 else { continue }
+            let reachesEndOfFile = Int(number(UInt16.self, in: tail, at: candidate + 20))
+                == tail.count - candidate - endRecordSize
+            // ZIPFoundation nimmt die erste Signatur von hinten. Auch zwei
+            // Enddatensätze mit gültiger Kommentarlänge sind mehrdeutig.
+            if endRecord == nil {
+                guard reachesEndOfFile else { throw TagError.cannotOpen(path: url.path) }
+                endRecord = candidate
+            } else if reachesEndOfFile {
                 throw TagError.cannotOpen(path: url.path)
             }
-            let endOffset = tailOffset + UInt64(end)
-            let entriesOnDisk = number(UInt16.self, in: tail, at: end + 8)
-            let entries = number(UInt16.self, in: tail, at: end + 10)
-            let disk = number(UInt16.self, in: tail, at: end + 4)
-            let firstDisk = number(UInt16.self, in: tail, at: end + 6)
-            let locator = end - locatorSize
-            if locator >= 0, number(UInt32.self, in: tail, at: locator) == 0x07064b50 {
-                let recordOffset = number(UInt64.self, in: tail, at: locator + 8)
-                let locatorOffset = tailOffset + UInt64(locator)
-                let zip64RecordSize = 56
-                // ZIPFoundation liest den festen ZIP64-Datensatz direkt vor
-                // dem Locator. Beide Leser müssen dieselbe Position verwenden.
-                guard recordOffset > 0, recordOffset < locatorOffset, locatorOffset - recordOffset == zip64RecordSize,
-                      (disk == 0 || disk == .max), (firstDisk == 0 || firstDisk == .max),
-                      number(UInt32.self, in: tail, at: locator + 4) == 0,
-                      number(UInt32.self, in: tail, at: locator + 16) == 1 else {
-                    throw TagError.cannotOpen(path: url.path)
-                }
-                try archive.seek(toOffset: recordOffset)
-                guard let record = try archive.read(upToCount: zip64RecordSize), record.count == zip64RecordSize,
-                      number(UInt32.self, in: record, at: 0) == 0x06064b50,
-                      number(UInt64.self, in: record, at: 4) == locatorOffset - recordOffset - 12,
-                      number(UInt16.self, in: record, at: 14) >= 45,
-                      number(UInt64.self, in: record, at: 16) == 0 else {
-                    throw TagError.cannotOpen(path: url.path)
-                }
-                let count = number(UInt64.self, in: record, at: 32)
-                guard number(UInt64.self, in: record, at: 24) == count,
-                      (entriesOnDisk == .max || UInt64(entriesOnDisk) == count),
-                      (entries == .max || UInt64(entries) == count) else {
-                    throw TagError.cannotOpen(path: url.path)
-                }
-                return try verifyDirectory(in: archive, url: url, count: count,
-                    offset: number(UInt64.self, in: record, at: 48),
-                    size: number(UInt64.self, in: record, at: 40), endsAt: recordOffset)
-            }
-            guard disk == 0, firstDisk == 0, entriesOnDisk == entries else {
-                throw TagError.cannotOpen(path: url.path)
-            }
-            return try verifyDirectory(in: archive, url: url, count: UInt64(entries),
-                offset: UInt64(number(UInt32.self, in: tail, at: end + 16)),
-                size: UInt64(number(UInt32.self, in: tail, at: end + 12)), endsAt: endOffset)
         }
-        throw TagError.cannotOpen(path: url.path)
+        guard let end = endRecord else { throw TagError.cannotOpen(path: url.path) }
+        let endOffset = tailOffset + UInt64(end)
+        let entriesOnDisk = number(UInt16.self, in: tail, at: end + 8)
+        let entries = number(UInt16.self, in: tail, at: end + 10)
+        let disk = number(UInt16.self, in: tail, at: end + 4)
+        let firstDisk = number(UInt16.self, in: tail, at: end + 6)
+        let locator = end - locatorSize
+        if locator >= 0, number(UInt32.self, in: tail, at: locator) == 0x07064b50 {
+            let recordOffset = number(UInt64.self, in: tail, at: locator + 8)
+            let locatorOffset = tailOffset + UInt64(locator)
+            let zip64RecordSize = 56
+            // ZIPFoundation liest den festen ZIP64-Datensatz direkt vor
+            // dem Locator. Beide Leser müssen dieselbe Position verwenden.
+            guard recordOffset > 0, recordOffset < locatorOffset, locatorOffset - recordOffset == zip64RecordSize,
+                  (disk == 0 || disk == .max), (firstDisk == 0 || firstDisk == .max),
+                  number(UInt32.self, in: tail, at: locator + 4) == 0,
+                  number(UInt32.self, in: tail, at: locator + 16) == 1 else {
+                throw TagError.cannotOpen(path: url.path)
+            }
+            try archive.seek(toOffset: recordOffset)
+            guard let record = try archive.read(upToCount: zip64RecordSize), record.count == zip64RecordSize,
+                  number(UInt32.self, in: record, at: 0) == 0x06064b50,
+                  number(UInt64.self, in: record, at: 4) == locatorOffset - recordOffset - 12,
+                  number(UInt16.self, in: record, at: 14) >= 45,
+                  number(UInt64.self, in: record, at: 16) == 0 else {
+                throw TagError.cannotOpen(path: url.path)
+            }
+            let count = number(UInt64.self, in: record, at: 32)
+            guard number(UInt64.self, in: record, at: 24) == count,
+                  (entriesOnDisk == .max || UInt64(entriesOnDisk) == count),
+                  (entries == .max || UInt64(entries) == count) else {
+                throw TagError.cannotOpen(path: url.path)
+            }
+            return try verifyDirectory(in: archive, url: url, count: count,
+                offset: number(UInt64.self, in: record, at: 48),
+                size: number(UInt64.self, in: record, at: 40), endsAt: recordOffset)
+        }
+        guard disk == 0, firstDisk == 0, entriesOnDisk == entries else {
+            throw TagError.cannotOpen(path: url.path)
+        }
+        return try verifyDirectory(in: archive, url: url, count: UInt64(entries),
+            offset: UInt64(number(UInt32.self, in: tail, at: end + 16)),
+            size: UInt64(number(UInt32.self, in: tail, at: end + 12)), endsAt: endOffset)
     }
 
     private static func verifyDirectory(in archive: FileHandle, url: URL, count: UInt64,

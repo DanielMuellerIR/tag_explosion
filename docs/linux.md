@@ -91,8 +91,9 @@ Quellen-ZIPs der Bibliotheken und beider Rechnungsprüfer. Der Lizenz-/Quellench
 Signatur, Updatefeed und Prüfsummen. Er veröffentlicht keine Dateien. Für einen
 signierenden Paketbau genau eine Schlüsselquelle setzen: Inline-Inhalt oder
 Dateipfad. Sind beide gesetzt, bricht der Bau vor dem Docker-Aufruf ab.
-Eine Schlüsseldatei wird separat und ausschließlich lesend in den Container
-gebunden. Debug-, unsignierte und reine Bauten ohne Paket erhalten keinen
+Ein relativer Schlüsselpfad bezieht sich auf das Arbeitsverzeichnis beim
+Aufruf. Die Schlüsseldatei wird separat und ausschließlich lesend in den
+Container eingebunden. Debug-, unsignierte und reine Bauten ohne Paket erhalten keinen
 Signierschlüssel.
 
 Die Browseroberfläche verwendet lokale JavaScript-Module ohne separaten

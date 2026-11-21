@@ -115,6 +115,22 @@ public final class URLSessionLookupClient: LookupHTTPClient {
         }
     }
 
+    #if os(macOS)
+    static func systemProxyResponse(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.urlCredentialStorage = nil
+        configuration.timeoutIntervalForRequest = 30
+        // CFNetwork kann den Zwischen-Body lesen, bevor es den Redirect meldet.
+        configuration.timeoutIntervalForResource = 60
+        let receiver = LookupHTTPReceiver(followsRedirects: false)
+        let session = URLSession(configuration: configuration, delegate: receiver, delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
+        let (data, response) = try await receiver.receive(Self.urlRequest(request), using: session)
+        return Self.lookupResponse(data, response)
+    }
+    #endif
+
     #if !os(Linux)
     private func receive(_ request: URLRequest, from session: URLSession) async throws -> (Data, URLResponse) {
         // Der Session-Delegate entscheidet weiterhin über Vertrauen, Anmeldung
@@ -186,7 +202,12 @@ private final class LookupHTTPReceiver: NSObject, URLSessionDataDelegate, @unche
     }
 
     private let lock = NSLock()
+    private let followsRedirects: Bool
     private var transfers: [Int: Transfer] = [:]
+
+    init(followsRedirects: Bool = true) {
+        self.followsRedirects = followsRedirects
+    }
 
     func receive(_ request: URLRequest, using session: URLSession) async throws -> (Data, URLResponse) {
         let task = session.dataTask(with: request)
@@ -205,6 +226,21 @@ private final class LookupHTTPReceiver: NSObject, URLSessionDataDelegate, @unche
             }
             return response
         } onCancel: {
+            task.cancel()
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+                    completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        if followsRedirects {
+            completionHandler(request)
+        } else {
+            if let transfer = lock.withLock({ transfers.removeValue(forKey: task.taskIdentifier) }) {
+                transfer.completion.yield((Data(), response))
+                transfer.completion.finish()
+            }
+            completionHandler(nil)
             task.cancel()
         }
     }

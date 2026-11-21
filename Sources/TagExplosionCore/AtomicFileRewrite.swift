@@ -200,7 +200,9 @@ enum AtomicFileRewrite {
         // Schreibfehler der Kopie melden, solange das Original noch existiert.
         // Der atomare Austausch selbst ist keine Stromausfallgarantie.
         try withWriteError(at: url) {
-            let file = try FileHandle(forWritingTo: temporary)
+            // Darwin und Linux synchronisieren auch einen lesenden Deskriptor.
+            // Wiederhergestellte Sicherungen behalten so ihre Originalrechte.
+            let file = try (try? FileHandle(forReadingFrom: temporary)) ?? FileHandle(forWritingTo: temporary)
             try file.synchronize()
             try file.close()
         }

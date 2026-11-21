@@ -20,6 +20,46 @@ struct DesktopServiceReviewTests {
         await service.handle(DesktopRequest(id: 1, method: method, params: .object(["revision": .number(0)].merging(params) { _, new in new })))
     }
 
+    @Test("Regelvorschau bindet Dokument, Auswahl und Revision", arguments: ["document", "selection", "revision"])
+    func staleRulePreview(_ change: String) async throws {
+        let entries = [audio("first", cover: false), audio("second", cover: false)]
+        let (service, model) = setup(entries)
+        let document = TagRuleDocument(rules: [TagRule(action: .set, field: "TITLE", value: "shown")])
+        let encoded = try DesktopValue.encoding(document)
+        let preview = await call(service, "rulesPreview", ["document": encoded, "confirmable": .bool(true)])
+        let token = try #require(preview.result?["token"].text)
+        #expect(preview.result?["plans"].values.count == 2)
+        var apply: [String: DesktopValue] = ["token": .string(token), "document": encoded]
+        switch change {
+        case "document":
+            apply["document"] = try .encoding(TagRuleDocument(rules: [TagRule(action: .set, field: "TITLE", value: "different")]))
+        case "selection":
+            model.selection = [entries[0].url]
+        default:
+            let changed = await call(service, "batchEdit", ["changes": .object(["TITLE": .array([.string("new")])])])
+            try #require(changed.error == nil)
+            apply["revision"] = .number(1)
+        }
+        let result = await call(service, "rulesApply", apply)
+        #expect(result.error?.code == "stale_preview")
+        #expect(entries.allSatisfy { $0.properties.first(where: { $0.key == "TITLE" })?.value == (change == "revision" ? "new" : nil) })
+    }
+
+    @Test("Bestätigtes Schließen für Neustart führt wartende Aktionen nicht aus")
+    func recoveryCloseDiscardsOnlyTheEditor() async {
+        let entry = audio("recovery", cover: false)
+        entry.setSingleValue("TITLE", "draft")
+        let (service, model) = setup([entry])
+        var pendingActionRan = false
+        await model.requestDestructiveAction(title: "Fixture", message: "", entries: [entry], perform: {
+            pendingActionRan = true
+        })
+        let response = await call(service, "close", ["discardForRecovery": .bool(true)])
+        #expect(response.result?["closed"].flag == true)
+        #expect(!pendingActionRan)
+        #expect(await call(service, "state").result?["entries"].values.isEmpty == true)
+    }
+
     @Test("Erstes Kapitel und erste Lyricszeile entsprechen dem echten Codable-Vertrag")
     func emptyLists() async throws {
         let entry = audio("lists", cover: false)
@@ -138,7 +178,12 @@ struct DesktopServiceReviewTests {
             #expect(entries[0].frontCover?.data == Data([2]))
             #expect(entries[1].frontCover?.data == Data([2]))
         } else {
-            #expect(response.error != nil)
+            if mode == "cancel" {
+                #expect(response.error == nil)
+                #expect(response.result?["busy"].flag == false)
+            } else {
+                #expect(response.error != nil)
+            }
             #expect(entries[0].frontCover?.data == (mode == "cover" ? nil : Data([1])))
             #expect(entries[1].frontCover?.data == Data([1]))
         }

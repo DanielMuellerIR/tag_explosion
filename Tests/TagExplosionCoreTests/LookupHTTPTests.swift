@@ -199,17 +199,23 @@ struct LookupHTTPTests {
     }
     #endif
 
-    @Test("Task-Abbruch beendet eine laufende HTTP-Anfrage")
+    @Test("Task-Abbruch beendet eine laufende HTTP-Anfrage im Standardtransport")
     func cancelsNativeTransfer() async throws {
-        let server = try LookupLoopbackServer()
-        defer { server.stop() }
-        #if os(Linux)
-        let client = URLSessionLookupClient()
-        #else
+        try await checkCancellation(client: URLSessionLookupClient())
+    }
+
+    #if os(macOS)
+    @Test("Task-Abbruch beendet eine laufende HTTP-Anfrage mit geliehener Session")
+    func cancelsBorrowedSessionTransfer() async throws {
         let session = URLSession(configuration: .ephemeral)
         defer { session.finishTasksAndInvalidate() }
-        let client = URLSessionLookupClient(session: session)
-        #endif
+        try await checkCancellation(client: URLSessionLookupClient(session: session))
+    }
+    #endif
+
+    private func checkCancellation(client: URLSessionLookupClient) async throws {
+        let server = try LookupLoopbackServer()
+        defer { server.stop() }
         let pending = Task { try await client.send(LookupHTTPRequest(url: server.url("pending"))) }
         defer { pending.cancel() }
         let deadline = Date().addingTimeInterval(3)
@@ -271,7 +277,7 @@ struct DefaultLookupHTTPTests {
         #expect(response.body == Data("metadata".utf8))
     }
 
-    @Test("Nur ein Proxy-Ausfall beim CONNECT erlaubt die nächste Route", arguments: [502, 503, 504, 403, 407])
+    @Test("Nur ein Proxy-Ausfall beim CONNECT erlaubt die nächste Route", arguments: [0, 502, 503, 504, 403, 407])
     func retriesFailedProxyTunnel(_ status: Int) async throws {
         let first = try LookupLoopbackServer(connectStatus: status)
         defer { first.stop() }
@@ -282,7 +288,7 @@ struct DefaultLookupHTTPTests {
                                         body: Data("lookup".utf8))
 
         await #expect(throws: (any Error).self) {
-            _ = try await CurlLookupHTTP.send(request, resolvingProxies: { _, _ in proxies })
+            _ = try await CurlLookupHTTP.send(request, connectTimeoutMilliseconds: 500, resolvingProxies: { _, _ in proxies })
         }
         let direct: CurlLookupHTTP.ProxyResolver = { _, _ in [CurlLookupProxy(address: "")] }
         let firstState = try await CurlLookupHTTP.send(LookupHTTPRequest(url: first.url("connect-seen")),
@@ -290,7 +296,7 @@ struct DefaultLookupHTTPTests {
         let secondState = try await CurlLookupHTTP.send(LookupHTTPRequest(url: second.url("connect-seen")),
                                                         resolvingProxies: direct)
         #expect(firstState.statusCode == 200)
-        #expect(secondState.statusCode == ([502, 503, 504].contains(status) ? 200 : 404))
+        #expect(secondState.statusCode == ([0, 502, 503, 504].contains(status) ? 200 : 404))
     }
 }
 
@@ -360,6 +366,27 @@ struct MacLookupProxyTests {
                 _ = try MacLookupProxy.routes(for: url, settings: settings, isCancelled: { false })
             }
         }
+    }
+
+    @Test("Gemischte automatische Einstellungen verwenden den Systemtransport für die Zielroute")
+    func mixedAutomaticRoutes() async throws {
+        let server = try LookupLoopbackServer()
+        defer { server.stop() }
+        let settings: [String: Any] = [
+            "ProxyAutoDiscoveryEnable": 1,
+            "HTTPEnable": 1, "HTTPProxy": "http-proxy.test", "HTTPPort": 8080,
+            "ExceptionsList": ["127.0.0.1"]
+        ]
+        for url in [URL(string: "http://lookup.test")!, server.url("same")] {
+            #expect(throws: MacLookupProxy.Failure.requiresSystemTransport) {
+                _ = try MacLookupProxy.routes(for: url, settings: settings, useSystemTransport: true, isCancelled: { false })
+            }
+        }
+        let response = try await CurlLookupHTTP.send(LookupHTTPRequest(url: server.url("finite-cross-origin"),
+            headers: ["Authorization": "test-token", "Accept": "application/json"])) { _, _ in
+            throw MacLookupProxy.Failure.requiresSystemTransport
+        }
+        #expect(String(decoding: response.body, as: UTF8.self) == "|application/json")
     }
 
     @Test("Die PAC-Auflösung hat ein Zeitlimit")
@@ -469,6 +496,8 @@ private struct LookupLoopbackServer {
                     self.redirect(302, f"http://127.0.0.1:{target.server_port}/headers")
                 elif self.path == "/finite-redirect":
                     self.reply(302, b"redirect", Location="/headers")
+                elif self.path == "/finite-cross-origin":
+                    self.reply(302, b"redirect", Location=f"http://127.0.0.1:{target.server_port}/headers")
                 elif self.path == "/redirect-loop":
                     self.reply(302, b"redirect", Location="/redirect-loop")
                 elif self.path == "/auth-required":
@@ -510,6 +539,9 @@ private struct LookupLoopbackServer {
 
             def do_CONNECT(self):
                 connect_seen.set()
+                if connect_status == 0:
+                    time.sleep(35)
+                    return
                 headers = {"Proxy-Authenticate": 'Basic realm="Lookup"'} if connect_status == 407 else {}
                 self.reply(connect_status, b"", **headers)
 

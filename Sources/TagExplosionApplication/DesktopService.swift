@@ -20,6 +20,15 @@ public final class DesktopService {
     private var closingSessions: Set<String> = []
     private var closeWaiters: [String: CheckedContinuation<Void, Never>] = [:]
 
+    private struct RulePreview {
+        let token: UUID
+        let revision: Int
+        let document: TagRuleDocument
+        let inputs: [TagRuleInput]
+        let plans: [TagRulePlan]
+    }
+    private var rulePreviews: [String: RulePreview] = [:]
+
     private final class CoverJob {
         let cancellation = ExternalToolRunner.Cancellation()
         var cancelled = false
@@ -84,7 +93,14 @@ public final class DesktopService {
         }
     }
 
-    private func changed(_ session: String) { revisions[session, default: 0] += 1 }
+    private func changed(_ session: String) {
+        revisions[session, default: 0] += 1
+        rulePreviews.removeValue(forKey: session)
+    }
+
+    private func staleRulePreview() -> DesktopFailure {
+        DesktopFailure("stale_preview", String(localized: "Der Editorstand hat sich geändert. Laden Sie den aktuellen Stand und versuchen Sie es erneut."))
+    }
 
     private func requireCurrentEditor(_ params: DesktopValue, model: AppModel, session: String) throws {
         guard models[session] === model else { throw DesktopFailure("entry_missing", String(localized: "Die Datei ist nicht mehr geöffnet.")) }
@@ -108,7 +124,7 @@ public final class DesktopService {
         closeWaiters.removeValue(forKey: session)?.resume()
     }
 
-    private func close(_ model: AppModel, session: String) async throws -> DesktopValue {
+    private func close(_ model: AppModel, session: String, discardForRecovery: Bool) async throws -> DesktopValue {
         guard closingSessions.insert(session).inserted else {
             throw DesktopFailure("busy", String(localized: "Das Fenster wird bereits geschlossen."))
         }
@@ -120,11 +136,22 @@ public final class DesktopService {
             await withCheckedContinuation { closeWaiters[session] = $0 }
         }
         var permitted = false
-        await model.requestWindowClose { permitted = true }
+        if discardForRecovery {
+            model.cancelLoading()
+            // Ein früherer Konflikt kann eine Schreibaktion enthalten.
+            // Die bestätigte Wiederherstellung schließt nur den Editor.
+            guard !writing, !model.hasSavingEntries, !model.hasRunningExports else {
+                throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade."))
+            }
+            permitted = true
+        } else {
+            await model.requestWindowClose { permitted = true }
+        }
         if permitted {
             models.removeValue(forKey: session)
             revisions.removeValue(forKey: session)
             validationResults.removeValue(forKey: session)
+            rulePreviews.removeValue(forKey: session)
         }
         return .object(["closed": .bool(permitted), "state": try state(model, session: session)])
     }
@@ -150,7 +177,8 @@ public final class DesktopService {
             let account: DesktopValue = source == .discogs ? .string("discogs-token") : source == .acoustid ? .string("acoustid-client-key") : .null
             return .object(["allowed": .bool(allowed), "account": account])
         }
-        if updating && !["state", "entry", "cover", "endUpdate", "cancel"].contains(request.method) {
+        let recoveryClose = request.method == "close" && p["discardForRecovery"].flag
+        if updating && !recoveryClose && !["state", "entry", "cover", "endUpdate", "cancel"].contains(request.method) {
             throw DesktopFailure("busy", String(localized: "Das Update wird gerade installiert."))
         }
         if closingSessions.contains(request.session) && !["state", "entry", "cover", "cancel"].contains(request.method) {
@@ -219,7 +247,9 @@ public final class DesktopService {
             }
         case "select":
             let paths = Set(p["paths"].values.compactMap(\.text))
-            model.selection = Set(model.entries.filter { paths.contains($0.url.path) }.map(\.url))
+            let selection = Set(model.entries.filter { paths.contains($0.url.path) }.map(\.url))
+            if selection != model.selection { rulePreviews.removeValue(forKey: request.session) }
+            model.selection = selection
         case "filter":
             model.listSearch = p["search"].text ?? ""
             model.listKind = p["kind"].text.flatMap(MediaKind.init(rawValue:))
@@ -279,7 +309,7 @@ public final class DesktopService {
             changed(request.session)
         case "remove":
             await model.remove(urls: targets(p, in: model).map(\.url)); changed(request.session)
-        case "close": return try await close(model, session: request.session)
+        case "close": return try await close(model, session: request.session, discardForRecovery: recoveryClose)
         case "resolve":
             guard !writing else { throw DesktopFailure("busy", String(localized: "Ein anderes Fenster schreibt gerade Dateien.")) }
             writing = true
@@ -369,7 +399,11 @@ public final class DesktopService {
                     model.alertMessage = CoverToolActions.report(outcome, action: String(localized: "Ordner-Cover übernehmen"))
                 case "convert":
                     let conversion = CoverTools.Conversion(maxPixelSize: p["maxPixelSize"].integer, format: p["format"].text.flatMap(CoverTools.OutputFormat.init(rawValue:)), stripMetadata: p["stripMetadata"].flag)
-                    try await convertBatchCovers(selected, conversion, params: p, model: model, session: request.session)
+                    do {
+                        try await convertBatchCovers(selected, conversion, params: p, model: model, session: request.session)
+                    } catch is CancellationError {
+                        return try state(model, session: request.session)
+                    }
                 default: throw DesktopFailure("invalid_parameter", String(localized: "Die Cover-Aktion ist unbekannt."))
                 }
             }
@@ -402,11 +436,19 @@ public final class DesktopService {
         case "rulesPreview":
             let document = try p["document"].decode(TagRuleDocument.self)
             let inputs = model.ruleInputs(for: targets(p, in: model))
+            if p["confirmable"].flag { try requireRevision(p, session: request.session) }
             let plans = try await BlockingWork.run { try AppModel.rulePlan(for: inputs, document: document) }
-            return .array(try plans.map { plan in
+            let rows = DesktopValue.array(try plans.map { plan in
                 .object(["path": .string(plan.url.path), "kind": .string(plan.kind.rawValue),
                          "changes": try .encoding(plan.changes)])
             })
+            guard p["confirmable"].flag else { return rows }
+            try requireCurrentEditor(p, model: model, session: request.session)
+            guard inputs == model.ruleInputs(for: targets(p, in: model)),
+                  let revision = revisions[request.session] else { throw staleRulePreview() }
+            let token = UUID()
+            rulePreviews[request.session] = RulePreview(token: token, revision: revision, document: document, inputs: inputs, plans: plans)
+            return .object(["token": .string(token.uuidString), "plans": rows])
         case "parseFilename":
             try requireRevision(p, session: request.session)
             let outcome = model.applyFileNamePattern(try FilenamePattern(required(p, "pattern")), to: targets(p, in: model))
@@ -542,8 +584,9 @@ public final class DesktopService {
         // Keine Teilübernahme: erst nach allen Wartezeiten den Puffer freigeben.
         try requireRevision(p, session: session)
         guard !job.cancelled else { throw CancellationError() }
+        let loaded = Set(model.entries.map(ObjectIdentifier.init))
         guard !model.isDestructiveActionLocked, entries.allSatisfy({ entry in
-            !entry.isSaving && model.entries.contains(where: { $0 === entry })
+            !entry.isSaving && loaded.contains(ObjectIdentifier(entry))
         }) else { throw DesktopFailure("busy", String(localized: "Eine Dateioperation läuft gerade.")) }
         for (entry, artwork) in prepared { entry.setFrontCover(artwork) }
         model.alertMessage = CoverToolActions.report(outcome, action: String(localized: "Cover-Werkzeuge"))
@@ -623,10 +666,13 @@ public final class DesktopService {
         case "rename": try await model.renameFiles(selected, pattern: FilenamePattern(required(p, "pattern")))
         case "rulesApply":
             let document = try p["document"].decode(TagRuleDocument.self)
-            let inputs = model.ruleInputs(for: selected)
-            let plans = await model.prepareRules(document, inputs: inputs)
             try requireCurrentEditor(p, model: model, session: session)
-            if let plans { _ = await model.applyPreparedRules(plans, matching: inputs, to: selected) }
+            guard let preview = rulePreviews[session],
+                  p["token"].text == preview.token.uuidString, preview.revision == revisions[session],
+                  preview.document == document, preview.inputs == model.ruleInputs(for: selected)
+            else { throw staleRulePreview() }
+            rulePreviews.removeValue(forKey: session)
+            _ = await model.applyPreparedRules(preview.plans, matching: preview.inputs, to: selected)
         case "shiftSubtitle": _ = try await model.shiftSubtitle(entry: entry(p, in: model), seconds: Double(p["milliseconds"].integer ?? 0) / 1000)
         case "saveRules":
             let document = try p["document"].decode(TagRuleDocument.self)

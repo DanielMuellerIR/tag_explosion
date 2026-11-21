@@ -153,6 +153,10 @@ async function act(method, params = {}, reload = true) {
       result = await request(method, params);
     } finally {
       operations--;
+      if (!result) {
+        try { await refresh(); }
+        catch { $("cancel").hidden = !state.busy && !state.loading && !operations; }
+      }
     }
     if (result && Array.isArray(result.entries)) updateState(result);
     await decisions();
@@ -211,7 +215,7 @@ function modal(title, content, actions = [{ title: "Schließen" }]) {
     );
     $("dialog-actions").replaceChildren(
       ...actions.map((action, index) =>
-        button(action.title, () => finish(action.value ?? index), {
+        action.control ?? button(action.title, () => finish(action.value ?? index), {
           class: action.primary ? "primary" : action.danger ? "danger" : "",
         }),
       ),
@@ -1807,6 +1811,8 @@ async function filename() {
 }
 async function rules() {
   return editRules({
+    editorContext: () => JSON.stringify([state.revision, [...state.selection].sort()]),
+    dismiss: dismissDialog,
     node,
     button,
     t,
@@ -2284,8 +2290,26 @@ async function close() {
   try {
     if (technicalLoading) await request("cancel", { operation: "info" });
     await enqueue(async () => {
-      await flush();
-      const result = await invoke("close_window");
+      let result;
+      try {
+        await flush();
+      } catch (error) {
+        result = await invoke("close_window", { recoveryOnly: true });
+        if (!result.recovery) throw error;
+      }
+      result ??= await invoke("close_window");
+      if (result.recovery) {
+        const confirmed = await modal(
+          "Änderungen verwerfen?",
+          t("Ungespeicherte Änderungen werden verworfen."),
+          [
+            { title: "Abbrechen", value: false },
+            { title: "Verwerfen", value: true, danger: true },
+          ],
+        );
+        if (confirmed) await invoke("close_window", { discard: true });
+        return;
+      }
       if (!result.closed) {
         updateState(result.state);
         await decisions();
@@ -2310,7 +2334,7 @@ $("sidebar-toggle").onclick = () =>
   document.body.classList.toggle("sidebar-hidden");
 $("remove").onclick = () => act("remove").catch(showError);
 $("cancel").onclick = () =>
-  request("cancel").then(updateState).catch(showError);
+  request("cancel").then((next) => operations ? updateState(next) : refresh()).catch(showError);
 for (const id of ["search", "kind", "sort", "dirty-only", "errors-only"])
   $(id).addEventListener(id === "search" ? "input" : "change", () =>
     act(

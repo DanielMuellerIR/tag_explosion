@@ -555,6 +555,7 @@ public final class FileEntry: Identifiable {
     }
 
     /// Nach erfolgreichem Speichern/Neuladen den Originalzustand ersetzen.
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewOriginal(_ data: TagData, sidecars: AudioSidecars = AudioSidecars()) {
         acceptNew(.audio(data, sidecars: sidecars), stamp: diskStamp)
     }
@@ -562,23 +563,28 @@ public final class FileEntry: Identifiable {
     /// NFO neben dem Video laut letztem Lesestand (nil = keine).
     public var videoNFO: NFOSidecarReading? { audioSidecars.nfo }
 
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewImageOriginal(_ reading: ImageCoreReading) {
         acceptNew(.image(reading), stamp: diskStamp)
     }
 
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewEbookOriginal(_ fields: EbookCoreFields, cover: Data?) {
         acceptNew(.ebook(fields, cover: cover), stamp: diskStamp)
     }
 
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewDocumentOriginal(_ fields: DocumentCoreFields, cover: Data?,
                                           info: [DocumentInfoItem]) {
         acceptNew(.document(fields, cover: cover, info: info), stamp: diskStamp)
     }
 
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewSidecarOriginal(_ contents: SidecarContents) {
         acceptNew(.sidecar(contents), stamp: diskStamp)
     }
 
+    @available(*, deprecated, message: "Use acceptNew(_:stamp:) with the matching file snapshot.")
     public func acceptNewPlaylistOriginal(_ contents: PlaylistContents) {
         acceptNew(.playlist(contents), stamp: diskStamp)
     }

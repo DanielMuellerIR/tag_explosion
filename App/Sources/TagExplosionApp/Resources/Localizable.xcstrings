@@ -8001,6 +8001,16 @@
         }
       }
     },
+    "Ungespeicherte Änderungen werden verworfen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved edits will be discarded."
+          }
+        }
+      }
+    },
     "Untertitel verschieben": {
       "localizations": {
         "en": {

@@ -21,6 +21,7 @@ use tokio::{
 const MAXIMUM_MESSAGE: usize = 24 * 1024 * 1024;
 const MAXIMUM_PENDING: usize = 64;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
+const UPDATE_CONTROL_TIMEOUT: Duration = Duration::from_secs(10);
 const DIAGNOSTIC_GRACE: Duration = Duration::from_millis(250);
 
 type Reply = oneshot::Sender<Result<Value, String>>;
@@ -35,7 +36,7 @@ enum Effect {
 impl Effect {
     fn of(method: &str, params: &Value) -> Self {
         match method {
-            "cancel" | "endUpdate" => Self::Cleanup,
+            "cancel" | "endUpdate" | "close" => Self::Cleanup,
             "preferences" if params.get("values").is_none() => Self::Read,
             "hello"
             | "tools"
@@ -267,8 +268,12 @@ impl Engine {
         method: &str,
         params: Value,
     ) -> Result<Value, String> {
-        self.call_inner(session, method, params, Some(REQUEST_TIMEOUT))
+        self.call_inner(session, method, params, REQUEST_TIMEOUT, false)
             .await
+    }
+
+    pub fn recovery_required(&self) -> bool {
+        self.calls.lock().unwrap().uncertain_mutation
     }
 
     pub async fn set_updating(
@@ -276,12 +281,29 @@ impl Engine {
         session: &str,
         updating: bool,
     ) -> Result<bool, String> {
-        let method = if updating { "beginUpdate" } else { "endUpdate" };
-        // Der abgekoppelte Installer muss die Worker-Antwort abwarten: ein
-        // verworfenes beginUpdate kann zu spät für ein vorschnelles endUpdate eintreffen.
-        self.call_inner(session, method, json!({}), None)
+        self.set_updating_with_timeout(session, updating, UPDATE_CONTROL_TIMEOUT)
             .await
-            .map(|result| result == true)
+    }
+
+    async fn set_updating_with_timeout(
+        self: &Arc<Self>,
+        session: &str,
+        updating: bool,
+        timeout: Duration,
+    ) -> Result<bool, String> {
+        let method = if updating { "beginUpdate" } else { "endUpdate" };
+        let result = self
+            .call_inner(session, method, json!({}), timeout, true)
+            .await;
+        match result {
+            Ok(Value::Bool(value)) if value || updating => Ok(value),
+            _ => {
+                // Eine verspätete Bestätigung kann den reservierten Worker
+                // hinterlassen. Bis zum Neustart keine Schreibaufträge annehmen.
+                self.calls.lock().unwrap().uncertain_mutation = true;
+                Err(result.err().unwrap_or_else(|| uncertain_result().into()))
+            }
+        }
     }
 
     async fn call_inner(
@@ -289,13 +311,14 @@ impl Engine {
         session: &str,
         method: &str,
         params: Value,
-        timeout: Option<Duration>,
+        timeout: Duration,
+        update_control: bool,
     ) -> Result<Value, String> {
         let input = self.connection().await?;
         let id = self.sequence.fetch_add(1, Ordering::Relaxed);
         let effect = Effect::of(method, &params);
         let (send, mut receive) = oneshot::channel();
-        let _registration = self.register(id, effect, send, timeout.is_none())?;
+        let _registration = self.register(id, effect, send, update_control)?;
         let mut bytes = serde_json::to_vec(
             &json!({"id": id, "session": session, "method": method, "params": params}),
         )
@@ -305,9 +328,20 @@ impl Engine {
         }
         bytes.push(b'\n');
         let request = Request { id, bytes };
-        if timeout.is_none() {
-            // Der Verbindungstask meldet einen geschlossenen Eingang mit Diagnose.
-            let _ = input.send(request).await;
+        let deadline = tokio::time::Instant::now() + timeout;
+        let timeout_error = || {
+            text(
+                "Die Medienverarbeitung hat nicht rechtzeitig geantwortet.",
+                "The media engine did not respond in time.",
+            )
+        };
+        if update_control {
+            // Auch der reservierte Platz in Calls garantiert keinen freien
+            // Platz in der Pipe-Warteschlange.
+            tokio::time::timeout_at(deadline, input.send(request))
+                .await
+                .map_err(|_| timeout_error())?
+                .ok();
         } else if matches!(
             input.try_send(request),
             Err(mpsc::error::TrySendError::Full(_))
@@ -315,27 +349,21 @@ impl Engine {
             return Err(too_many_requests().into());
         }
 
-        let response = match timeout {
-            Some(duration) => match tokio::time::timeout(duration, &mut receive).await {
-                Ok(result) => result,
-                Err(_) => {
-                    let uncertain = self.calls.lock().unwrap().withdraw(id);
-                    // Eine am Ablaufzeitpunkt bereits abgeholte Antwort bleibt verbindlich.
-                    if let Ok(reply) = receive.try_recv() {
-                        return reply;
-                    }
-                    return Err(if uncertain {
-                        uncertain_result()
-                    } else {
-                        text(
-                            "Die Medienverarbeitung hat nicht rechtzeitig geantwortet.",
-                            "The media engine did not respond in time.",
-                        )
-                    }
-                    .into());
+        let response = match tokio::time::timeout_at(deadline, &mut receive).await {
+            Ok(result) => result,
+            Err(_) => {
+                let uncertain = self.calls.lock().unwrap().withdraw(id);
+                // Eine am Ablaufzeitpunkt bereits abgeholte Antwort bleibt verbindlich.
+                if let Ok(reply) = receive.try_recv() {
+                    return reply;
                 }
-            },
-            None => receive.await,
+                return Err(if uncertain {
+                    uncertain_result()
+                } else {
+                    timeout_error()
+                }
+                .into());
+            }
         };
         response.map_err(|_| {
             text(
@@ -649,15 +677,15 @@ exit 127"#,
   printf '{"id":%s,"result":true}\n' "$id"
 done"#,
             );
-            let timeout = Some(Duration::from_millis(250));
+            let timeout = Duration::from_millis(250);
             let error = engine
-                .call_inner("main", "info", json!({}), timeout)
+                .call_inner("main", "info", json!({}), timeout, false)
                 .await
                 .unwrap_err();
             assert!(error.contains(text("nicht rechtzeitig", "did not respond in time")));
             assert_eq!(engine.call("main", "state", json!({})).await.unwrap(), true);
             let error = engine
-                .call_inner("main", "save", json!({}), timeout)
+                .call_inner("main", "save", json!({}), timeout, false)
                 .await
                 .unwrap_err();
             assert_eq!(error, uncertain_result());
@@ -666,11 +694,36 @@ done"#,
                 engine.call("main", "cancel", json!({})).await.unwrap(),
                 true
             );
+            assert_eq!(engine.call("main", "close", json!({})).await.unwrap(), true);
             assert_eq!(
                 engine.call("main", "saveAll", json!({})).await.unwrap_err(),
                 uncertain_result()
             );
             assert!(engine.calls.lock().unwrap().pending.is_empty());
+        });
+    }
+
+    #[test]
+    fn missing_update_acknowledgement_blocks_mutations_but_allows_closing() {
+        tauri::async_runtime::block_on(async {
+            for updating in [true, false] {
+                let (_directory, engine) = test_worker(
+                    r#"while IFS= read -r line; do
+  id=$(printf '%s\n' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"beginUpdate"'* | *'"method":"endUpdate"'*) continue ;;
+  esac
+  printf '{"id":%s,"result":true}\n' "$id"
+done"#,
+                );
+                let result = engine
+                    .set_updating_with_timeout("main", updating, Duration::from_millis(250))
+                    .await;
+                assert!(result.is_err());
+                assert!(engine.recovery_required());
+                assert!(engine.call("main", "save", json!({})).await.is_err());
+                assert_eq!(engine.call("main", "close", json!({})).await.unwrap(), true);
+            }
         });
     }
 

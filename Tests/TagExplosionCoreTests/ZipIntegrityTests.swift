@@ -100,8 +100,8 @@ struct ZipIntegrityTests {
         #expect(try ZipContainer.entries(url: url) == entries)
     }
 
-    @Test("ZIP-Kommentar mit abweichendem Verzeichnis verhindert den Neuaufbau")
-    func rejectsDifferentDirectoryInComment() throws {
+    @Test("ZIP-Kommentar mit abweichendem Verzeichnis verhindert den Neuaufbau", arguments: [false, true])
+    func rejectsDifferentDirectoryInComment(validInnerCommentLength: Bool) throws {
         let url = try Fixtures.workingCopy("doc.docx")
         let expected = try ZipContainer.entries(url: url)
         var bytes = try Data(contentsOf: url)
@@ -115,11 +115,11 @@ struct ZipIntegrityTests {
         directory[46] ^= 1
         var competingEnd = bytes.subdata(in: end..<bytes.count)
         withUnsafeBytes(of: UInt32(bytes.count).littleEndian) { competingEnd.replaceSubrange(16..<20, with: $0) }
-        let commentSize = UInt16(directory.count + competingEnd.count + 1)
+        let commentSize = UInt16(directory.count + competingEnd.count + (validInnerCommentLength ? 0 : 1))
         withUnsafeBytes(of: commentSize.littleEndian) { bytes.replaceSubrange((end + 20)..<(end + 22), with: $0) }
         bytes.append(directory)
         bytes.append(competingEnd)
-        bytes.append(0)
+        if !validInnerCommentLength { bytes.append(0) }
         try bytes.write(to: url)
 
         #expect(try ZipContainer.entries(url: url) != expected)

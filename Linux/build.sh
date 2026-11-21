@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Reproduzierbarer Linux-Bau ohne Swift-/Rust-Installation auf dem Zielsystem.
 set -euo pipefail
+invocation_directory="$PWD"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 if [[ "${1:-}" == --help ]]; then
@@ -32,8 +33,10 @@ if [[ "${TAGX_IN_BUILDER:-}" != 1 ]]; then
         fi
         key_args=(-e TAURI_SIGNING_PRIVATE_KEY -e TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
         if [[ -n "${TAURI_SIGNING_PRIVATE_KEY_PATH:-}" ]]; then
-            [[ -f "$TAURI_SIGNING_PRIVATE_KEY_PATH" && -r "$TAURI_SIGNING_PRIVATE_KEY_PATH" ]] || { echo 'Updateschlüsseldatei ist nicht lesbar.' >&2; exit 2; }
-            key_path="$(cd "$(dirname "$TAURI_SIGNING_PRIVATE_KEY_PATH")" && pwd)/$(basename "$TAURI_SIGNING_PRIVATE_KEY_PATH")"
+            key_path="$TAURI_SIGNING_PRIVATE_KEY_PATH"
+            [[ "$key_path" == /* ]] || key_path="$invocation_directory/$key_path"
+            [[ -f "$key_path" && -r "$key_path" ]] || { echo 'Updateschlüsseldatei ist nicht lesbar.' >&2; exit 2; }
+            key_path="$(cd "$(dirname "$key_path")" && pwd -P)/$(basename "$key_path")"
             key_args+=(-v "$key_path:/run/tagx-signing-key:ro" -e TAURI_SIGNING_PRIVATE_KEY_PATH=/run/tagx-signing-key)
         fi
     fi

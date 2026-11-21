@@ -82,7 +82,7 @@ int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status, bool
     SET(CURLOPT_DISALLOW_USERNAME_IN_URL, 1L);
     SET(CURLOPT_FOLLOWLOCATION, 0L);
     SET(CURLOPT_NOSIGNAL, 1L);
-    SET(CURLOPT_CONNECTTIMEOUT, 30L);
+    SET(CURLOPT_CONNECTTIMEOUT_MS, transfer->connect_timeout_ms);
     SET(CURLOPT_LOW_SPEED_LIMIT, 1L);
     SET(CURLOPT_LOW_SPEED_TIME, 30L);
     SET(CURLOPT_TIMEOUT, 7L * 24L * 60L * 60L);
@@ -110,8 +110,14 @@ int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status, bool
     if (result != CURLE_OK && *status == 0) {
         long connect_status = 0;
         if (curl_easy_getinfo(curl, CURLINFO_HTTP_CONNECTCODE, &connect_status) == CURLE_OK) {
-            /* Ein abgelehnter CONNECT bei Proxy-Ausfall hat den Zielserver nicht erreicht. */
+            /* PRETRANSFER bleibt vor Abschluss von DNS, Verbindung, CONNECT
+             * und TLS auf null. Danach könnte der Dienst den Auftrag haben. */
+            curl_off_t pretransfer = 0;
+            const bool timed_out_before_request = result == CURLE_OPERATION_TIMEDOUT
+                && curl_easy_getinfo(curl, CURLINFO_PRETRANSFER_TIME_T, &pretransfer) == CURLE_OK
+                && pretransfer == 0;
             *can_try_next_proxy = connect_status == 502 || connect_status == 503 || connect_status == 504
+                || timed_out_before_request
                 || (connect_status == 0 && (result == CURLE_COULDNT_RESOLVE_PROXY || result == CURLE_COULDNT_CONNECT));
         }
     }
