@@ -305,8 +305,8 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 
 ## Backlog / Notizen
 
-- Offene Erweiterungen und der Status der erledigten Arbeitspakete stehen
-  als Arbeitspakete mit Status in [ROADMAP.md](ROADMAP.md).
+- Offene Erweiterungen und abgeschlossene Arbeitspakete stehen in
+  [ROADMAP.md](ROADMAP.md).
 
 - **Linux: abgesicherter Modus** — bis 0.38.0 warf `TrashBackup.backUp`
   außerhalb von macOS immer („trash is only available on macOS"), also
@@ -314,10 +314,9 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
   (AP16) sichert `XDGTrash` nach der freedesktop-Spezifikation, und ein
   Linux-Job in `.github/workflows/tests.yml` baut und testet Core und CLI
   unter Ubuntu 24.04 (TagLib 2.3.1 aus dem Quelltext, `scripts/linux-deps.sh`).
-  Fallen und der lokale Docker-Weg: `knowledge/linux-xdg-papierkorb.md`.
-  Maintainer-Entscheidung 2026-08-03 bleibt der Rahmen: „Linux-Unterstützung
-  ist gewünscht, aber kein Muss und richtet sich auch nach der Praktikabilität."
-  Die App selbst bleibt macOS-only.
+  Fallen und Docker-Bau sind im [Linux-Papierkorb](../knowledge/linux-xdg-papierkorb.md)
+  beschrieben. Seit 0.54.0 nutzt auch die [Linux-App](linux.md) den gemeinsamen
+  Anwendungskern und diesen Sicherungsweg.
 
 - E-Book-Effizienz aus dem Review 2026-07-18: erledigt mit 0.46.98.
   EPUB-Schnappschüsse und Schreibprüfungen teilen Archiv und OPF; kombinierte
@@ -353,6 +352,10 @@ korrekt (Custom-Keys landen als TXXX). Was kid3 kann und wir (noch) nicht:
 - GUI-Tests headless soweit möglich; computer-use nur kurz und App danach ausblenden.
 
 ## Meilensteine / Versionen
+
+Die Tabelle dokumentiert die frühe Entwicklung bis 0.21.0. Neuere
+Quellstände stehen im [Changelog](../CHANGELOG.md), ausgelieferte Builds bei
+den [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 
 | Version | Inhalt |
 |---------|--------|

@@ -181,7 +181,7 @@ struct PlaylistExport: ParsableCommand {
     func run() throws {
         // Ohne diesen Aufruf bleibt die Sicherung im Exporter still wirkungslos:
         // der Core sichert per Vorgabe nicht, und nur `apply()` schaltet den
-        // abgesicherten Modus ein (Review-Fund 2026-09-10).
+        // abgesicherten Modus ein.
         safeMode.apply()
         let urls = try files.map(resolveFile)
         let output = URL(fileURLWithPath: out)

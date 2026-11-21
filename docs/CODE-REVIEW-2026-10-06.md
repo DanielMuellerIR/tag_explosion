@@ -10,8 +10,8 @@ Es bleiben keine bestätigten, unbearbeiteten Fehler aus diesem Review.
 
 Die Prüfung umfasst 253 Dateien: Swift-/C-/C++-Quellen, Tests, eigene
 Entwicklerwerkzeuge, Paketmanifeste und CI-Workflows. Die einzelnen Pfade und
-SHA-256-Werte des geprüften Endstands stehen im Eintrag
-`2026-10-06-intensive-review` in [coverage.json](../.codeqa/coverage.json).
+SHA-256-Werte des geprüften Endstands wurden für Version 0.47.4 im Eintrag
+`2026-10-06-intensive-review` festgehalten.
 Die gelöschte bisherige Entwurfshilfe wurde ebenfalls vor ihrer Ersetzung gelesen.
 
 | Bereich | Dateien | Prüfung |
@@ -78,12 +78,12 @@ Lücke der Prüfung. Die Tabelle fasst zusammenhängende Ursachen zusammen.
 
 | Priorität | Fehler und korrigiertes Verhalten | Code und Nachweis |
 | --- | --- | --- |
-| P1 | Normales Tag-Speichern schrieb unveränderte Kapitel neu und entfernte unbekannte CHAP-Unterframes. Nur geänderte Kapitel werden geschrieben. | [FileEntry](../App/Sources/TagExplosionApp/FileEntry.swift); Snapshot-Test und echter App-Schreibweg erhalten einen zusätzlichen TXXX-Unterframe im CHAP. |
+| P1 | Normales Tag-Speichern schrieb unveränderte Kapitel neu und entfernte unbekannte CHAP-Unterframes. Nur geänderte Kapitel werden geschrieben. | [FileEntry](../Sources/TagExplosionApplication/FileEntry.swift); Snapshot-Test und echter App-Schreibweg erhalten einen zusätzlichen TXXX-Unterframe im CHAP. |
 | P1 | Änderungen synchronisierter Lyrics übernahmen die USLT-Sprache. SYLT behält seine eigene Sprache; neu angelegte ID3-Tags akzeptieren die gewählte Sprache. | [TagFile](../Sources/TagExplosionCore/TagFile.swift), [Shim](../Sources/CTagShim/shim.cpp); getrennte Sprachen, unbekannte Sprache, neue ID3-Tags und Rücklesen geprüft. |
 | P1 | Archive enthielten weder Kapitel noch SYLT und Lyrics-Sprachen. Schema 5 restauriert diese getrennt; fehlende Felder alter Schemata bleiben unverändert. | [TagArchive](../Sources/TagExplosionCore/TagArchive.swift); Export-/Restore-Roundtrip, alte Schemata und ungültiger zweiter Eintrag vor jeder Mutation geprüft. |
 | P1 | Archivfreigabe und Dublettenprüfung betrachteten nur Bilder, obwohl ein XMP-Symlink auf ein anderes Schreibziel führen konnte. Tatsächliche Schreibziele und deren Zustand werden mit geprüft. | [TagArchive](../Sources/TagExplosionCore/TagArchive.swift); externe Sidecars, gemeinsame Ziele, Hardlinks, Retargeting vor/nach dem Lesen sowie No-op mit geänderter Sidecar geprüft. |
 | P1 | NUL in C-String-Metadaten konnte Werte still abschneiden. Schlüssel, Werte, Bildbeschreibungen, Kapitel und SYLT werden vor dem Schreiben geprüft. | [FixedFields](../Sources/TagExplosionCore/FixedFields.swift), [TagFile](../Sources/TagExplosionCore/TagFile.swift); bytegleiches Original nach abgewiesener Änderung und CLI-Regel mit NUL geprüft. |
-| P1 | Noch fokussierte Formulareingaben konnten beim Speichern fehlen; Fokusverlust konnte gemischte Stapelwerte leeren. Entwürfe gehören jetzt zur Datei und werden vor Save gemeinsam validiert. | [FileEntry](../App/Sources/TagExplosionApp/FileEntry.swift), [FixedFieldSections](../App/Sources/TagExplosionApp/FixedFieldSections.swift); echte Speicherung, ungültige Entwürfe, gemischte Werte, bewusstes Leeren, Revert und spätere Eingaben während Save geprüft. |
+| P1 | Noch fokussierte Formulareingaben konnten beim Speichern fehlen; Fokusverlust konnte gemischte Stapelwerte leeren. Entwürfe gehören jetzt zur Datei und werden vor Save gemeinsam validiert. | [FileEntry](../Sources/TagExplosionApplication/FileEntry.swift), [FixedFieldSections](../App/Sources/TagExplosionApp/FixedFieldSections.swift); echte Speicherung, ungültige Entwürfe, gemischte Werte, bewusstes Leeren, Revert und spätere Eingaben während Save geprüft. |
 | P1 | XML konnte beim Bearbeiten still repariert werden oder externe Entities als leere Werte speichern. Strenge Vorprüfung und Sperre externer Deklarationen verhindern das; interne gewöhnliche Entities bleiben erhalten. Linux-spezifische DTD-Zugriffe stürzen nicht mehr ab. | [XMLTools](../Sources/TagExplosionCore/XMLTools.swift), [KodiNFOFile](../Sources/TagExplosionCore/KodiNFOFile.swift); defektes XML, mehrere Wurzeln, interne/externe Entities, Parameter-Entities, Encoding-Erhalt und DTD-Literale auf macOS und Linux geprüft. |
 | P1 | Online-Cover in der CLI ersetzten sämtliche eingebetteten Bilder. Jetzt wird nur das Frontcover ersetzt oder ergänzt. | [LookupCommand](../Sources/tagx/LookupCommand.swift); bestehendes Booklet/Backcover mit und ohne vorhandenes Frontcover bleibt erhalten. |
 | P1 | DMG-Aufräumen konnte ein fremdes Volume gleichen Namens aushängen. Jeder Lauf verwendet einen eindeutigen Mountpfad und behält Arbeitsdaten bei fehlgeschlagenem Aushängen. | [build.sh](../build.sh); Produktionsabschnitt mit Werkzeugattrappen für Fehler vor Mount, Attach-/Kopierfehler, TERM, Erfolg und Detach-Fehler geprüft. Finder-AppleScript kompiliert. |

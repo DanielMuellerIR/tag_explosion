@@ -1,6 +1,6 @@
-import TagExplosionApplication
 // Gemeinsame Formular-Bausteine der Editoren (Bild + E-Book; Audio hat für
 // Tags seine key-basierte BatchTextField-Form in BatchEditorView).
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

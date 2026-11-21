@@ -1,4 +1,3 @@
-import TagExplosionApplication
 // Brücke zwischen SwiftUI und dem echten NSWindow. Sie erledigt drei Dinge,
 // für die SwiftUI allein keinen Weg bietet:
 //
@@ -11,6 +10,7 @@ import TagExplosionApplication
 //  3. Dokument-Identität: `representedURL` ist der native macOS-Vertrag für
 //     Dokumentfenster — AppKit zeigt darüber das Datei-Icon und baut bei
 //     Command-Klick auf Titel oder Icon das hierarchische Pfadmenü.
+import TagExplosionApplication
 import AppKit
 import SwiftUI
 

@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // Abschnitt „Tag-Schichten" des Audio-Editors: zeigt je Schicht (ID3v1,
 // ID3v2, APEv2, RIFF INFO, Vorbis), ob sie in der Datei steht, welche
 // Version sie hat und wie viele Felder sie trägt. „Entfernen …" fragt nach
 // und ruft dann `AppModel.stripLayer`, das die Datei sichert, die Schicht
 // entfernt und neu einliest. Nur sichtbar bei Formaten mit Schichtenmodell.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // Einstellungen des Online-Lookups: die Freigabe „Online-Dienste erlauben"
 // (Voreinstellung aus), die Bestätigung des Datenschutzhinweises und die
 // Zugangsdaten (Discogs-Token, AcoustID-Key) in der Keychain — nie in
 // UserDefaults, die liegen als Klartext-Plist auf der Platte.
+import TagExplosionApplication
 import Security
 import SwiftUI
 import TagExplosionCore

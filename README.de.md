@@ -6,6 +6,8 @@
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
+[Installation](#installation) · [Formate](#unterstützte-formate) · [Dateisicherheit](#wie-die-dateien-geschützt-werden) · [CLI](#cli)
+
 <p align="center">
   <strong>Desktop-App für macOS und Linux zum Anzeigen und Bearbeiten von Medien-Metadaten —
   Audio-Tags, Bild-Metadaten (EXIF/IPTC/XMP), Video-Tags und E-Book-Metadaten in
@@ -26,9 +28,9 @@ Unter Linux verwendet die App Rust/Tauri und dieselbe Swift-Dateiverarbeitung
 wie unter macOS. Installation als AppImage, Voraussetzungen und Updates:
 [Linux-Anleitung](docs/linux.md). Die gezeigten Bilder stammen von macOS.
 
-**Auslieferungsstand:** Das aktuelle macOS-DMG ist 0.47.7 und enthält die später
-integrierte vollständige Rechnungsprüfung noch nicht. Die Funktionen unten beschreiben
-den aktuellen Quellstand und die Linux-App; der [Linux-Release 0.54.2](https://github.com/DanielMuellerIR/tag_explosion/releases/tag/v0.54.2) enthält die Prüfpakete.
+Die Funktionsbeschreibung folgt dem Quellstand. Das veröffentlichte macOS-DMG
+stammt aus der Zeit vor der vollständigen Rechnungsprüfung. Das veröffentlichte
+Linux-AppImage enthält die Prüfpakete. Downloads stehen unter [Installation](#installation).
 
 ## Funktionen
 

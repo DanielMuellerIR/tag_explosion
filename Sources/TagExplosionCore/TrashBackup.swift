@@ -1,10 +1,8 @@
 // Abgesicherter Modus: Vor jeder Änderung wandert eine unveränderte Kopie der
 // Datei in den Papierkorb.
 //
-// Warum ausgerechnet der Papierkorb? Solange die App jung ist, soll ein Fehler
-// keine Datei endgültig kosten. Ein eigener Sicherungsordner irgendwo im
-// Benutzerordner würde unbemerkt volllaufen; der Papierkorb ist sichtbar, jeder
-// weiß, wie man ihn leert, und macOS räumt ihn auf Wunsch selbst auf.
+// Der Papierkorb hält die Sicherungen über die gewohnte Oberfläche zugänglich
+// und kann dort geleert werden.
 //
 // Aufbau: Pro Sitzung und Datenträger entsteht genau EIN Papierkorb-Eintrag
 // ("Tag Explosion Backup <Zeitstempel>"), in den alle Sicherungen dieser
@@ -191,8 +189,8 @@ public final class TrashBackup: @unchecked Sendable {
                 // fehlerhart: Die Kopie liegt sicher im Papierkorb, ein
                 // unschreibbares Journal darf das Speichern nicht verhindern —
                 // die Datei bleibt dann nur aus der Versionsliste draußen.
-                try? journal?.record(original: url, backup: target,
-                                     size: state.size, reason: reason)
+                _ = try? journal?.record(original: url, backup: target,
+                                         size: state.size, reason: reason)
             } catch let error as TagError {
                 throw error
             } catch {

@@ -1,6 +1,7 @@
 # Build-Artefakte
 .build/
 .validation-build/
+.codeqa/
 build/
 DerivedData/
 *.xcresult

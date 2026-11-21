@@ -1,5 +1,5 @@
-import TagExplosionApplication
 // Der Ladezustand einer Kandidatenauswahl, unabhängig vom SwiftUI-Sheet.
+import TagExplosionApplication
 import Foundation
 import Observation
 import TagExplosionCore

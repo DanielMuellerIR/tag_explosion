@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // Dokument-Editor: Office (docx/xlsx/pptx), OpenDocument (odt/ods/odp),
 // Comic-Archive (cbz) und Markdown-Frontmatter. Gezeigt werden nur die Felder,
 // die das Format speichern kann (`DocumentTool.supportedFields`); dazu die
 // formatspezifischen Zusatzfelder (feste Schlüssel, bei Markdown beliebige)
 // und eine reine Anzeige-Liste (Anwendung, Seiten, Wörter …).
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

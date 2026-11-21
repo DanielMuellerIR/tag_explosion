@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // Konsistenzprüfung in der App: Knopf „Prüfen …" (Batch-Editor: die Auswahl,
 // Werkzeugleiste: alle geladenen Dateien) und das Ergebnis-Sheet mit den
 // Befunden je Album/Ordner. Die Regeln liegen im Core (`LibraryCheck`);
 // hier stehen nur Anzeige, Übersetzung der Regelnamen und die Sprungfunktion
 // zur Datei. Es wird nichts automatisch korrigiert.
+import TagExplosionApplication
 import AppKit
 import SwiftUI
 import TagExplosionCore

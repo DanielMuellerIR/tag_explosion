@@ -1,11 +1,11 @@
-import TagExplosionApplication
-// Cover-Werkzeuge in der App (AP12): Info-Zeile unter dem Cover (Maße,
+// Cover-Werkzeuge in der App: Info-Zeile unter dem Cover (Maße,
 // Format, Größe, Prüfhinweise) und das Zahnrad-/Kontextmenü mit Verkleinern,
 // JPEG-Wandlung, Metadaten entfernen, Ordner-Cover übernehmen und Export als
 // folder.jpg. Die Umwandlungen ändern nur den Bearbeitungspuffer
 // (`entry.artworks`); gespeichert wird über den gewohnten Weg mit
 // Papierkorb-Sicherung und atomarem Austausch. Nur der Export schreibt sofort
 // eine Datei — über `FolderCover.export`, das dieselben Regeln einhält.
+import TagExplosionApplication
 import AppKit
 import SwiftUI
 import TagExplosionCore

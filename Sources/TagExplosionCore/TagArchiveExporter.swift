@@ -74,8 +74,7 @@ extension TagArchiveIO {
                                       includeCovers: includeCovers)
         // Über den gemeinsamen Exportweg: Eine vorhandene Datei am Zielpfad
         // wird vorher in den Papierkorb gesichert und dann atomar ersetzt. Ein
-        // direkter Data.write ist kein Schreibweg dieses Projekts
-        // (Review-Fund 2026-09-10).
+        // direkter Data.write ist kein Schreibweg dieses Projekts.
         try FileExport.write(data, to: jsonURL)
     }
 

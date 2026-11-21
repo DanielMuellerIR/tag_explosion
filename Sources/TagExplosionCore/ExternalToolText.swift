@@ -14,7 +14,7 @@ enum ExternalToolText {
     /// Entschieden wird je TEXTFELD, nicht je ungültigem Byte-Lauf: Ein Feld
     /// enthält seine fremden Bytes oft getrennt durch ASCII
     /// („Bäckereistraße" = 0x8A … 0xA7), und eine Entscheidung pro Lauf mischte
-    /// darin zwei Kodierungen (Review-Fund 2026-08-18).
+    /// darin zwei Kodierungen.
     ///
     /// Zur Wahl stehen MacRoman und Windows-1252. Windows-1252 statt reinem
     /// Latin-1, weil es in ID3v2.3 die real verbreitete Kodierung ist und
@@ -22,8 +22,7 @@ enum ExternalToolText {
     /// Apostroph, Auslassungspunkte) — für Bytes ab 0xA0 sind beide gleich.
     /// Gewählt wird nicht mehr allein am Vorkommen eines C1-Bytes, sondern über
     /// eine Plausibilitätswertung des ganzen Feldes: Ein C1-Byte neben einem
-    /// Umlaut zog sonst ALLE Nicht-ASCII-Zeichen des Feldes auf MacRoman
-    /// (Review-Fund 2026-08-20).
+    /// Umlaut zog sonst ALLE Nicht-ASCII-Zeichen des Feldes auf MacRoman.
     /// Dekodiert JSON-Ausgabe externer Werkzeuge. Nur dieser Weg repariert die
     /// von MediaInfo erzeugten Lone-Surrogate-Escapes.
     static func decodeLossyJSON(_ data: Data) -> String {
@@ -72,7 +71,7 @@ enum ExternalToolText {
         // mediainfo und Calibre); bei JSON zusätzlich das Anführungszeichen.
         // Nur bei JSON: In einer Klartextzeile steht das Anführungszeichen
         // mitten im Wert („Der \"Bär\" aus der Straße") und hätte das Feld
-        // fälschlich geteilt (Review-Fund 2026-08-20). Beide Grenzzeichen sind
+        // fälschlich geteilt. Beide Grenzzeichen sind
         // ASCII und können deshalb nie innerhalb eines ungültigen Laufs liegen:
         // Ein Byte unter 0x80 ist immer eine gültige UTF-8-Sequenz für sich.
         let quotesSeparateFields = repairingSurrogateEscapes
@@ -258,8 +257,7 @@ enum ExternalToolText {
             }
             // Backslash-Lauf am Stück betrachten: In JSON ist jedes PAAR ein
             // literaler Backslash und leitet nichts ein. `\\udcfc` meint den
-            // Text „udcfc" und wurde vorher fälschlich zum Rohbyte umgebaut
-            // (Review-Fund 2026-08-17).
+            // Text „udcfc" und wurde vorher fälschlich zum Rohbyte umgebaut.
             var run = 0
             while i + run < bytes.count, bytes[i + run] == UInt8(ascii: "\\") { run += 1 }
             let literals = run - (run % 2)

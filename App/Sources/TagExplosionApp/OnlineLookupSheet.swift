@@ -1,4 +1,3 @@
-import TagExplosionApplication
 // „Online nachschlagen …": Sheet mit Suchfeldern (aus den Tags vorbelegt),
 // Quelle, Kandidatenliste, Zuordnung Datei → Titel mit alt → neu je Feld
 // und Cover-Vorschau. „Übernehmen" schreibt nichts auf die Platte, sondern
@@ -8,6 +7,7 @@ import TagExplosionApplication
 //
 // Kein Netzzugriff ohne Klick auf „Suchen"; vorher prüft das Sheet die
 // Einstellung und zeigt beim ersten Mal den Datenschutzhinweis.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

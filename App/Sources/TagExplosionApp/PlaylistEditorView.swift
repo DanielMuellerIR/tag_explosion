@@ -1,10 +1,10 @@
-import TagExplosionApplication
 // Playlist-/Cue-Sheet-Editor: Kopffelder (Titel, Interpret, bei Cue-Sheets
 // Datum und Genre — nur die, die das Format speichern kann), darunter die
 // Tabelle der Einträge mit aufgelöstem Pfad, Existenzprüfung und Spielzeit.
 // Bearbeitbar sind Titel und Interpret je Eintrag; Reihenfolge und Pfade
 // nicht. Doppelklick auf einen Eintrag öffnet die Datei in einem neuen
 // Fenster über den gewohnten Öffnen-Weg.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

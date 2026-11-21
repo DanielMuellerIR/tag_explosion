@@ -1,6 +1,6 @@
-import TagExplosionApplication
 // Tab 2: vollständige technische Details via mediainfo — gruppiert,
 // durchsuchbar, kopierbar.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

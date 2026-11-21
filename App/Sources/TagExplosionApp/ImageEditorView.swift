@@ -1,6 +1,6 @@
-import TagExplosionApplication
 // Bild-Editor: Vorschau + Kernfelder (EXIF/IPTC/XMP via exiftool, MWG-harmonisiert)
 // + vollständige Metadaten-Ansicht.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

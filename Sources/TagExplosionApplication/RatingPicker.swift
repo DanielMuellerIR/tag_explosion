@@ -6,7 +6,7 @@
 // und 0…5, sowie tolerierte Fremdwerte (etwa 7 aus einer fremden Datei oder
 // einem Archiv-Restore). Ein Picker, der nur `nil` und 0…5 anbietet, findet
 // für −1 oder 7 keinen passenden Eintrag und zeigt dann nichts Ausgewähltes;
-// der Wert wurde stillschweigend unsichtbar (Review-Fund 2026-08-22). Darum
+// der Wert wurde stillschweigend unsichtbar. Darum
 // bekommt −1 einen festen Eintrag und jeder andere Bestandswert einen
 // sichtbaren Zusatzeintrag, der ihn benennt statt umzudeuten.
 import Foundation

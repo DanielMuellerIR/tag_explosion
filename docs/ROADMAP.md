@@ -1,12 +1,31 @@
 # Roadmap — Tag Explosion
 
-Stand: 2026-10-16 (AP1–17 abgeschlossen; AP17 mit 0.47.0 als Quick-Look-
-Erweiterung und Finder-Dienst ohne Xcode-Projekt umgesetzt). Ergänzt [PLAN.md](PLAN.md) (Architektur, erledigte
-Meilensteine) um die noch offenen Erweiterungen. Jeder Punkt ist ein
-Arbeitspaket (AP) mit Status; abgeschlossene Pakete wandern mit Version in den
-[CHANGELOG](../CHANGELOG.md) und werden hier nur noch als „✅ x.y.z" geführt.
+Offen sind die weitere Rechnungsvalidierung und die systemübergreifende
+Abnahme. [Architektur](PLAN.md) und [Changelog](../CHANGELOG.md)
+dokumentieren die derzeitigen Funktionen und ihre Entwicklung.
 
-Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zurückgestellt
+## Linux-Desktop
+
+Seit 0.54.0 gibt es einen Rust-/Tauri-Client mit gemeinsamer Swift-Anwendungslogik,
+AppImage und signiertem GitHub-Updatekanal. Architektur und technisch bedingte
+Unterschiede: [Linux-Betrieb und Bau](linux.md).
+
+## E-Rechnungsvalidierung
+
+Mit 0.48.0 gibt es einen separaten KoSIT-Prototyp für XRechnung-XML in der
+CLI und einen geprüften Verpackungsweg mit privater Java-Laufzeit.
+Die geprüfte Lizenz-/Quellenbasis einschließlich Auslieferungsprüfung ist
+ergänzt. 0.49.0 liefert den gemeinsamen Validierungskern mit unveränderten
+PDF-Anhängen, Ergebnisbindung und geregeltem Abbruch. 0.50.0 ergänzt die
+Prüf-/Berichtsansicht in der App und bündelt das geprüfte XRechnung-Paket.
+0.51.0 ergänzt alle fünf aktuellen Factur-X-/ZUGFeRD-Profile.
+0.52.0 ergänzt veraPDF und getrennte PDF/A-/Einbettungsergebnisse.
+Peppol (noch fehlender Rechtebeleg) und abschließende Distribution-/Updateabnahme
+folgen den [Validierungsmeilensteinen](e-invoice-validation-roadmap.md).
+Umfang und Nachweis: [E-Rechnungsvalidierung](e-invoice-validation.md),
+[Lizenzinventar](validation-licenses.md).
+Schnittstelle und Status-/Exit-Codes: [Validierungskern](e-invoice-validation-core.md).
+Bedienung und Grenzen: [Prüfung in der App](e-invoice-validation-app.md).
 
 ## Leitlinien für alle Pakete
 
@@ -20,6 +39,9 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 - Neue UI-Texte zweisprachig (en/de) in den App-Ressourcen.
 - Abhängigkeiten bleiben MIT-kompatibel: TagLib nur dynamisch, exiftool,
   mediainfo und Calibre nur als CLI-Aufruf.
+
+<details>
+<summary>Abgeschlossene Arbeitspakete (0.24.0 bis 0.47.0)</summary>
 
 ## Welle 1 — Abdeckung mit vorhandener Technik
 
@@ -53,36 +75,4 @@ Status-Kürzel: ⬜ offen · 🔧 in Arbeit · ✅ erledigt (Version) · ⏸ zur
 | AP16 | **Linux-Papierkorb** nach XDG-Spezifikation plus Linux-Job in der CI, damit der abgesicherte Modus dort funktioniert (`XDGTrash`, `scripts/linux-deps.sh`, [knowledge/linux-xdg-papierkorb.md](../knowledge/linux-xdg-papierkorb.md)). | mittel | ✅ 0.39.0 |
 | AP17 | **Finder-Integration:** Quick-Look-Metadatenprovider für Audio/MP4/Matroska und EPUB (installierte EPUB-Vorschau geprüft; MP3 behält hier die Systemvorschau); „In Tag Explosion öffnen" unter Dienste im Finder-Kontextmenü. Eigenes SwiftPM-Executable mit `NSExtensionMain`, bestehender headless Build bleibt erhalten. Grenzen und Prüfstand: [finder-integration.md](../knowledge/finder-integration.md). | groß | ✅ 0.47.0 |
 
-## Linux-Desktop
-
-Seit 0.54.0 gibt es einen Rust-/Tauri-Client mit gemeinsamer Swift-Anwendungslogik,
-AppImage und signiertem GitHub-Updatekanal. Architektur und technisch bedingte
-Unterschiede: [Linux-Betrieb und Bau](linux.md).
-
-## E-Rechnungsvalidierung
-
-Mit 0.48.0 gibt es einen separaten KoSIT-Prototyp für XRechnung-XML in der
-CLI und einen geprüften Verpackungsweg mit privater Java-Laufzeit.
-Die geprüfte Lizenz-/Quellenbasis einschließlich Auslieferungsprüfung ist
-ergänzt. 0.49.0 liefert den gemeinsamen Validierungskern mit unveränderten
-PDF-Anhängen, Ergebnisbindung und geregeltem Abbruch. 0.50.0 ergänzt die
-Prüf-/Berichtsansicht in der App und bündelt das geprüfte XRechnung-Paket.
-0.51.0 ergänzt alle fünf aktuellen Factur-X-/ZUGFeRD-Profile.
-0.52.0 ergänzt veraPDF und getrennte PDF/A-/Einbettungsergebnisse.
-Peppol (noch fehlender Rechtebeleg) und abschließende Distribution-/Updateabnahme
-folgen den [Validierungsmeilensteinen](e-invoice-validation-roadmap.md).
-Umfang und Nachweis: [E-Rechnungsvalidierung](e-invoice-validation.md),
-[Lizenzinventar](validation-licenses.md).
-Schnittstelle und Status-/Exit-Codes: [Validierungskern](e-invoice-validation-core.md).
-Bedienung und Grenzen: [Prüfung in der App](e-invoice-validation-app.md).
-
-## Vorgehen
-
-- Pakete einer Welle laufen parallel in getrennten Git-Worktrees auf
-  Zweigen `wp/apN-<kurzname>`; je Worktree ein Bearbeiter. Zusammenführung
-  nach `main` nacheinander, pro Paket ein Versionsschritt (Minor bei neuer
-  Funktion) und ein CHANGELOG-Eintrag.
-- Vor dem Merge: `swift test` (Root) und `swift test` in `App/` grün,
-  `build.sh` baut das Bundle.
-- Erkenntnisse (Format-Fallen, Tool-Quirks) nach `knowledge/` mit Zeile in
-  `knowledge/INDEX.md`.
+</details>

@@ -1,9 +1,24 @@
 #!/usr/bin/env python3
 """Linux-Texte aus dem gemeinsamen String-Catalog ableiten."""
+import argparse
 import json
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--check', action='store_true', help='Generierte Dateien vergleichen statt schreiben')
+check = parser.parse_args().check
+
+
+def write_or_check(path, content):
+    output = root / path
+    if check:
+        if not output.is_file() or output.read_text(encoding='utf-8') != content:
+            raise SystemExit(f'{path}: bitte scripts/linux-translations.py ausführen')
+    else:
+        output.write_text(content, encoding='utf-8')
+
+
 catalog = json.loads((root / 'App/Sources/TagExplosionApp/Resources/Localizable.xcstrings').read_text())
 translations = {}
 for key, item in catalog['strings'].items():
@@ -30,13 +45,16 @@ labels = {
     'originalTitle': 'Originaltitel', 'sortTitle': 'Sortiertitel', 'showTitle': 'Serientitel', 'premiered': 'Premiere', 'tagline': 'Tagline', 'genres': 'Genres', 'tags': 'Tags', 'credits': 'Drehbuch', 'userRating': 'Eigene Bewertung', 'runtime': 'Laufzeit', 'season': 'Staffel', 'episode': 'Folge', 'mpaa': 'Altersfreigabe',
     'plot': 'Handlung', 'outline': 'Kurzbeschreibung', 'directors': 'Regie', 'actors': 'Darsteller',
 }
+missing_labels = sorted(set(labels.values()) - translations.keys())
+if missing_labels:
+    raise SystemExit('Englische Übersetzungen für dynamische Feldnamen fehlen: ' + ', '.join(missing_labels))
 output = '// Generiert durch scripts/linux-translations.py aus dem gemeinsamen String-Catalog.\n'
 output += 'export const labels = ' + json.dumps(labels, ensure_ascii=False, indent=2) + ';\n'
 output += 'const english = ' + json.dumps(translations, ensure_ascii=False, indent=2) + ';\n'
 output += "let language = navigator.language;\nexport function setLanguage(value) { language = value; }\nexport function translate(text) { return language.toLowerCase().startsWith('de') ? text : (english[text] || text); }\n"
-(root / 'Linux/frontend/translations.js').write_text(output)
+write_or_check('Linux/frontend/translations.js', output)
 
 output = "// Generiert aus dem gemeinsamen String-Catalog; nicht von Hand bearbeiten.\n#if os(Linux)\nenum ApplicationTranslations {\n    static let english: [String: String] = [\n"
 output += ",\n".join("        " + json.dumps(key, ensure_ascii=False) + ": " + json.dumps(value, ensure_ascii=False) for key, value in translations.items())
 output += "\n    ]\n}\n#endif\n"
-(root / 'Sources/TagExplosionApplication/ApplicationTranslations.swift').write_text(output)
+write_or_check('Sources/TagExplosionApplication/ApplicationTranslations.swift', output)

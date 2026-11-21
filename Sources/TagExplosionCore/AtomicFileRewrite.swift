@@ -236,18 +236,18 @@ enum AtomicFileRewrite {
     }
 }
 
-/// Platzpruefung vor jeder Kopie. Ohne sie endet ein voller Datentraeger
+/// Platzprüfung vor jeder Kopie. Ohne sie endet ein voller Datenträger
 /// mitten im Schreibvorgang — genau der Fall, den der atomare Rahmen
 /// verhindern soll.
 enum VolumeSpace {
 
-    /// Reserve fuer Dateisystem-Metadaten, damit die Kopie nicht am
+    /// Reserve für Dateisystem-Metadaten, damit die Kopie nicht am
     /// allerletzten Block scheitert.
     static let margin: Int64 = 8 * 1024 * 1024
 
     /// Wirft `notEnoughSpace`, wenn eine Kopie der Datei nicht mehr sicher
-    /// auf ihren eigenen Datentraeger passt. Kann der Datentraeger klonen
-    /// (APFS), belegt die Kopie anfangs keine zusaetzlichen Bloecke.
+    /// auf ihren eigenen Datenträger passt. Kann der Datenträger klonen
+    /// (APFS), belegt die Kopie anfangs keine zusätzlichen Blöcke.
     static func requireRoom(for url: URL, extraFiles: [URL] = []) throws {
         try requireRoom(for: url, bytes: requiredBytes(for: [url] + extraFiles))
     }
@@ -260,7 +260,7 @@ enum VolumeSpace {
         }
     }
 
-    /// Wie viele Bytes eine Kopie der Dateien tatsaechlich kostet.
+    /// Wie viele Bytes eine Kopie der Dateien tatsächlich kostet.
     static func requiredBytes(for urls: [URL]) throws -> Int64 {
         guard let first = urls.first, !supportsCloning(at: first) else { return 0 }
         return urls.reduce(into: Int64(0)) { total, url in
@@ -277,7 +277,7 @@ enum VolumeSpace {
     static func availableBytes(at url: URL) -> Int64? {
         let directory = url.deletingLastPathComponent()
         #if !canImport(Darwin)
-        // Linux-Foundation kennt die Volume-Schluessel von `resourceValues`
+        // Linux-Foundation kennt die Volume-Schlüssel von `resourceValues`
         // nicht; `attributesOfFileSystem` (statvfs) liefert den freien Platz.
         guard let attributes = try? FileManager.default.attributesOfFileSystem(forPath: directory.path),
               let free = (attributes[.systemFreeSize] as? NSNumber)?.int64Value else { return nil }
@@ -288,8 +288,8 @@ enum VolumeSpace {
         else { return nil }
         // "Important usage" ist ein APFS-Konzept (kennt purgeable Space).
         // Nicht-APFS-Volumes (HFS+, FAT, DMGs) melden hier 0, obwohl Platz
-        // frei ist — 0 heisst deshalb "nicht unterstuetzt", nicht "voll",
-        // sonst schluege JEDER Schreibvorgang auf solchen Datentraegern fehl.
+        // frei ist — 0 heißt deshalb "nicht unterstützt", nicht "voll",
+        // sonst schlüge JEDER Schreibvorgang auf solchen Datenträgern fehl.
         if let important = values.volumeAvailableCapacityForImportantUsage, important > 0 {
             return Int64(important)
         }
@@ -298,7 +298,7 @@ enum VolumeSpace {
     }
 
     /// APFS klont Dateien blockweise (Copy-on-Write) — die Kopie kostet dann
-    /// erst Platz, wenn sich eine der beiden Seiten aendert.
+    /// erst Platz, wenn sich eine der beiden Seiten ändert.
     static func supportsCloning(at url: URL) -> Bool {
         #if canImport(Darwin)
         let directory = url.deletingLastPathComponent()

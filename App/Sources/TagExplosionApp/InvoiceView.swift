@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // E-Rechnungs-Ansicht: Profilkopf, Hinweise der Grundvalidierung und alle
 // Felder mit EN-16931-Bezeichnungen (BT-/BG-Nummern; Bestellungen mit
 // Order-X-Bezeichnungen). Lesende Ansicht mit technischer Prüfung und Bericht. Wird zweifach
 // genutzt: als Editor-Ersatz für XML-Rechnungen und als Tab im
 // E-Book-Editor, wenn ein PDF eine eingebettete Rechnung trägt.
+import TagExplosionApplication
 import EInvoiceCore
 import SwiftUI
 import TagExplosionCore

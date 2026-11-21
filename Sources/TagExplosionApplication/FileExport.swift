@@ -12,7 +12,7 @@ extension AppModel {
     /// Der Export wird vor dem Hintergrundstart als laufender Schreibauftrag
     /// angemeldet und erst nach seinem Ende wieder abgemeldet. Sonst meldet
     /// `hasUnfinishedWork` bei sauberen Puffern nichts, und ⌘Q beendet die App
-    /// mitten zwischen Sicherung und atomarem Austausch (Review-Fund 2026-09-09).
+    /// mitten zwischen Sicherung und atomarem Austausch.
     public func exportData(
         _ data: Data,
         to url: URL,

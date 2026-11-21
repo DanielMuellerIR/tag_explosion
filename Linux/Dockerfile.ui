@@ -3,6 +3,7 @@ FROM tag-explosion-linux-builder:local
 COPY --from=rust /usr/local/cargo /usr/local/cargo
 COPY --from=rust /usr/local/rustup /usr/local/rustup
 ENV RUSTUP_HOME=/usr/local/rustup PATH=/usr/local/cargo/bin:${PATH}
+RUN rustup component add rustfmt
 RUN apt-get update -qq && apt-get upgrade -y -qq && apt-get install -y -qq --no-install-recommends \
     libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
     patchelf desktop-file-utils xvfb dbus-x11 python3 python3-selenium xauth webkit2gtk-driver nodejs npm at-spi2-core locales \

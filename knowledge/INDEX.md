@@ -1,6 +1,6 @@
 # Wissens-Index tag_explosion
 
-Eine Datei pro Problem; konsultieren, wenn der Trigger zutrifft.
+Technische Hintergründe zu Dateiformaten, Schreibpfaden, Oberfläche und Auslieferung.
 
 - [dmg-finder-layout.md](dmg-finder-layout.md) — Beim DMG-Bau: Finder-Ordner
   statt rohem AppleScript-Alias, echte GUI-Sitzung und notwendiger Laufzeittest.

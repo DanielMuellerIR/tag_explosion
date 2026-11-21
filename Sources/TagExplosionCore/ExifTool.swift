@@ -34,7 +34,7 @@ public struct ImageCoreFields: Sendable, Codable, Equatable {
     /// „abgelehnt" und wird von Bridge und Lightroom wirklich geschrieben. Mit
     /// −1 als Leerwert löschte ein Archiv-Restore genau dieses Tag, statt es
     /// zurückzuschreiben — und der Read-back konnte den Fehler nicht sehen,
-    /// weil er dieselbe Mehrdeutigkeit las (Review-Fund 2026-08-20).
+    /// weil er dieselbe Mehrdeutigkeit las.
     public var rating: Int?
     /// GPS als Dezimalgrad-Strings; leer = nicht gesetzt
     public var gpsLatitude: String
@@ -461,11 +461,11 @@ public enum ExifTool {
     ) throws {
         try requireWritableCoreFields(fields, original: original)
 
-        // Ab hier die reinen WERTEBEREICHE der Oberflaeche. Sie gelten fuer
-        // eine vom Nutzer gewuenschte Aenderung, NICHT fuer das
+        // Ab hier die reinen WERTEBEREICHE der Oberfläche. Sie gelten für
+        // eine vom Nutzer gewünschte Änderung, NICHT für das
         // Wiederherstellen eines archivierten Bestandswerts: Ein Rating 6 oder
         // eine GPS-Koordinate 91/181 lag vor dem Backup wirklich in der Datei
-        // und muss dorthin zurueckkoennen (Review-Fund 2026-08-17, siehe
+        // und muss dorthin zurückkönnen (siehe
         // knowledge/archiv-restore-vertrag.md).
         let ratingChanged = original.map { $0.rating != fields.rating } ?? true
         if ratingChanged, let rating = fields.rating {
@@ -489,17 +489,17 @@ public enum ExifTool {
     }
 
     /// Nur die TECHNISCHE Schreibbarkeit — ohne die Wertebereiche der
-    /// Oberflaeche.
+    /// Oberfläche.
     ///
     /// Getrennt von `requireValidCoreFields`, weil beides verschiedene Fragen
     /// beantwortet: „Darf der Nutzer das eingeben?" gegen „Kann exiftool das
-    /// ueberhaupt schreiben?". Der Archiv-Import stellt einen Zustand wieder
+    /// überhaupt schreiben?". Der Archiv-Import stellt einen Zustand wieder
     /// her, den die Datei nachweislich schon einmal hatte — dort zaehlt nur die
     /// zweite Frage. Vorher lehnte der Import genau die Bestandswerte ab, die
     /// der Export ausdruecklich sichern soll, sobald sich das Ziel inzwischen
-    /// geaendert hatte (Review-Fund 2026-08-17).
+    /// geändert hatte.
     ///
-    /// Geprueft wird: GPS nur vollstaendig oder gar nicht, und beide Werte
+    /// Geprüft wird: GPS nur vollständig oder gar nicht, und beide Werte
     /// muessen endliche Zahlen sein.
     public static func requireWritableCoreFields(
         _ fields: ImageCoreFields,
@@ -534,7 +534,7 @@ public enum ExifTool {
     /// `allowingArchivedValues`: Nur der Archiv-Restore setzt das. Dann gelten
     /// ausschließlich die technischen Schranken — ein gesicherter
     /// Bestandswert (Rating 6, GPS 91/181) muss in die Datei zurückkönnen,
-    /// aus der er stammt (Review-Fund 2026-08-17). Für jeden anderen Aufrufer
+    /// aus der er stammt. Für jeden anderen Aufrufer
     /// bleibt die Wertebereichsprüfung als Sicherheitsnetz bestehen. Der
     /// Archivweg verlangt außerdem einen exakten Read-back auf der Temp-Datei;
     /// eine Normalisierung oder Ablehnung ersetzt dadurch nie das Original.
@@ -610,9 +610,9 @@ public enum ExifTool {
             // nil heißt „kein Rating-Tag" und wird zum Löschbefehl; JEDER Wert,
             // auch ein negativer, ist ein echter Bestandswert aus der Datei und
             // wird wörtlich geschrieben. Vorher löschte hier jeder negative Wert
-            // das Tag (Review-Fund 2026-08-18), und danach blieb −1 als
+            // das Tag, und danach blieb −1 als
             // Löschwert übrig — genau der Wert, den Adobe für „abgelehnt"
-            // vergibt (Review-Fund 2026-08-20).
+            // vergibt.
             args.append(fields.rating.map { "-MWG:Rating=\($0)" } ?? "-MWG:Rating=")
         }
         if fields.gpsLatitude != original.gpsLatitude || fields.gpsLongitude != original.gpsLongitude {

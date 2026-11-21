@@ -1,5 +1,5 @@
-import TagExplosionApplication
 // Einstiegspunkt der macOS-App.
+import TagExplosionApplication
 import Combine
 import Sparkle
 import SwiftUI

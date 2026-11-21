@@ -1,5 +1,5 @@
-import TagExplosionApplication
 // Einzeldatei-Editor: Cover + Kernfelder + weitere Felder + Technik-Panel.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

@@ -34,7 +34,7 @@ extension AppModel {
         // Nicht über Task.detached: Das Lesen wartet auf TagLib, exiftool und
         // mediainfo und belegt so lange einen Executor-Thread. Der Fächer unten
         // startet acht Leser gleichzeitig und liefe sonst nur so breit wie die
-        // Maschine Kerne hat (Review-Fund 2026-09-10).
+        // Maschine Kerne hat.
         await open(urls: urls) { url, kind in
             try await BlockingWork.run { try Self.readStamped(url: url, kind: kind) }
         }

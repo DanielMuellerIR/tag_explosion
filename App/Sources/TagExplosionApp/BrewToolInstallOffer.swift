@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // Startangebot: fehlende externe Brew-Werkzeuge (mediainfo, exiftool) erkennen
 // und auf Wunsch über Homebrew installieren. Muster wie in md-clip und
 // Poor Man's Text: Das Angebot erscheint bei jedem Start, solange etwas fehlt,
 // bis der Nutzer „Nicht mehr fragen" wählt.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 

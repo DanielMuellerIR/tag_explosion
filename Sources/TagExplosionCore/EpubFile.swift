@@ -308,7 +308,7 @@ enum EpubFile {
     /// Wird gebraucht, um versionsabhängige Coverformate zu entscheiden: WebP
     /// gehört seit EPUB 3.3 zu den Kern-Bildformaten. Das Versionsattribut
     /// bleibt für alle EPUB-3-Revisionen `3.0`; es trennt hier EPUB 2 von der
-    /// aktuellen EPUB-3-Fassung (Review-Fund 2026-08-17).
+    /// aktuellen EPUB-3-Fassung.
     public static func packageVersion(url: URL) -> String? {
         guard let (document, _, _) = try? loadOpf(url: url, accessMode: .read),
               let root = document.rootElement() else { return nil }

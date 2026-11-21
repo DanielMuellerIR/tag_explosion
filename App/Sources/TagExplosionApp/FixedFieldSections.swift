@@ -1,5 +1,4 @@
-import TagExplosionApplication
-// Editor-Abschnitte für die festen Felder mit Prüfung (AP7):
+// Editor-Abschnitte für die festen Felder mit Prüfung:
 //  - „Lyrics": mehrzeiliger Text, Sprache (nur ID3v2), synchronisierte
 //    Zeilen mit LRC-Import/-Export (SYLT in der Datei oder Sidecar `<name>.lrc`);
 //  - „Lautheit": ReplayGain (Track/Album, Gain/Peak) und bei Opus R128 (Q7.8,
@@ -10,6 +9,7 @@ import TagExplosionApplication
 // beim Bestätigen oder Speichern über `FixedFields.normalized`. Ungültige
 // Entwürfe bleiben sichtbar und verhindern das Speichern. Gespeichert
 // wird über den normalen Weg (Snapshot → TagFile.write / LRC-Sidecar).
+import TagExplosionApplication
 import AppKit
 import SwiftUI
 import TagExplosionCore

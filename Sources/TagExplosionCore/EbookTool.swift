@@ -272,8 +272,8 @@ public enum EbookTool {
     /// bei EPUB 3.3 weiterhin die Hauptversion `3.0`; für diese Entscheidung
     /// lässt sich daher nur EPUB 2 von der aktuellen EPUB-3-Fassung trennen.
     /// In einem EPUB-2-Paket bräuchte WebP ein Fallback-Item; ohne das
-    /// ignorieren Reader das Cover und EPUB-Prüfer lehnen das Paket ab
-    /// (Review-Fund 2026-08-17). Lässt sich die Version nicht lesen, gilt die
+    /// ignorieren Reader das Cover und EPUB-Prüfer lehnen das Paket ab.
+    /// Lässt sich die Version nicht lesen, gilt die
     /// engere EPUB-2-Regel.
     public static func supportedCoverMimeTypes(url: URL) -> Set<String> {
         guard backend(for: url) == .epub else { return ["image/jpeg", "image/png"] }
@@ -323,7 +323,7 @@ public enum EbookTool {
         // meldete Erfolg — der eingegebene Wert war weg. Die Prüfung gehört
         // hierher und nicht nur zu den einzelnen Aufrufern: Die App erreicht
         // die Serienfelder über „Tags aus Dateiname" und über Batch-Regeln
-        // auch dann, wenn der Editor sie ausblendet (Review-Fund 2026-09-10).
+        // auch dann, wenn der Editor sie ausblendet.
         if seriesChanged, !supportsSeries(url: url) {
             throw TagError.seriesUnsupported(path: url.path)
         }

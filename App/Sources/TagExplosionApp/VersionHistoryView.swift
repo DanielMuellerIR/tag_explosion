@@ -1,9 +1,9 @@
-import TagExplosionApplication
 // „Versionen …": Die Papierkorb-Sicherungen einer Datei als Liste, mit
 // Feld-Vergleich zur gewählten Version und „Diese Version wiederherstellen".
 // Eine gemeinsame kleine View für alle Einzel-Editoren (Audio, Bild, E-Book,
 // Dokument); die Logik liegt in BackupHistory (Core) und
 // AppModel.restoreVersion.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 
@@ -163,7 +163,7 @@ struct VersionHistorySheet: View {
             diffError = nil
             // Ein noch laufender Vergleich verwirft sein Ergebnis gleich beim
             // Auswahlabgleich und setzt den Merker dann nicht mehr zurück; ohne
-            // das hier bliebe „Analysiere …" stehen (Review-Fund 2026-09-10).
+            // das hier bliebe „Analysiere …" stehen.
             isLoadingDiff = false
             return
         }

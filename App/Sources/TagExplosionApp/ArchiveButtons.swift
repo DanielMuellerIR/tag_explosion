@@ -1,7 +1,7 @@
-import TagExplosionApplication
 // Export-/Import-Buttons für die Batch-Editoren: Tags der ausgewählten
 // Dateien als selbständige JSON-Datei sichern bzw. aus einer Export-/
 // Backup-JSON zurückschreiben (siehe TagArchiveIO im Core).
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 import UniformTypeIdentifiers

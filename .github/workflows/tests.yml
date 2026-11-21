@@ -18,6 +18,11 @@ jobs:
       - name: Quelltext auschecken
         uses: actions/checkout@v7
 
+      - name: Relative Dokumentationslinks und generierte Übersetzungen prüfen
+        run: |
+          python3 scripts/check-markdown-links.py
+          python3 scripts/linux-translations.py --check
+
       - name: Abhängigkeiten installieren
         shell: bash
         run: |
@@ -85,6 +90,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+      - name: Editoraktionen bei verzögerten Antworten prüfen
+        run: node Tests/Linux/review_frontend.mjs
       - name: Isolierte GUI-Bauumgebung
         run: |
           docker build -t tag-explosion-linux-builder:local -f Linux/Dockerfile .
@@ -93,6 +100,7 @@ jobs:
         run: |
           docker run --rm --init --user "$(id -u):$(id -g)" -v "$PWD:/src" -w /src -e HOME=/tmp/tagx-home -e CARGO_HOME=/src/.build/cargo-cache tag-explosion-linux-ui:local bash -eu -c '
             mkdir -p "$HOME"
+            cargo fmt --manifest-path Linux/Cargo.toml -- --check
             swift build -j 3 --product tagx-engine
             cargo test --manifest-path Linux/Cargo.toml --locked -j 3
             cargo build --manifest-path Linux/Cargo.toml --locked -j 3

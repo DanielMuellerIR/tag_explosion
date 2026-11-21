@@ -113,8 +113,7 @@ public enum CueApply {
 
     /// Ein Fehler, nachdem schon Dateien geändert wurden. Ohne diese Angabe
     /// sähe der Aufrufer nur den Fehler zur abbrechenden Datei und erführe
-    /// nicht, dass die vorherigen bereits geschrieben sind
-    /// (Review-Fund 2026-09-10).
+    /// nicht, dass die vorherigen bereits geschrieben sind.
     public struct PartialApplyError: LocalizedError, Equatable {
         public let written: [String]
         public let failed: String

@@ -274,7 +274,7 @@ struct Parse: ParsableCommand {
     /// `expecting` ist der Stempel, aus dem der Aufrufer geplant hat, und geht
     /// deshalb in JEDEN Zweig: Ein Schnappschuss, der ihn nicht kennt, liest
     /// eine inzwischen fremde Datei einfach neu ein und schreibt die aus dem
-    /// alten Stand geplanten Werte hinein (Review-Fund 2026-09-10).
+    /// alten Stand geplanten Werte hinein.
     static func write(fields parsed: [String: String], to url: URL, ruleValues: [String: [String]]? = nil, expecting: FileStamp? = nil, imageReading: ImageCoreReading? = nil) throws -> Int {
         switch MediaFormats.kind(of: url) {
         case .audio:

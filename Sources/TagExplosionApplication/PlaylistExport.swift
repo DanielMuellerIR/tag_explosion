@@ -20,7 +20,7 @@ extension AppModel {
     /// Eine vorhandene Playlist wird zuerst in den Papierkorb gesichert und
     /// dann atomar ersetzt. Ohne Anmeldung sieht `hasUnfinishedWork` bei
     /// sauberen Puffern nichts, und ⌘Q beendet die App genau zwischen
-    /// Sicherung und Austausch (Review-Fund 2026-09-10).
+    /// Sicherung und Austausch.
     public func exportPlaylist(
         files: [URL], to url: URL, format: PlaylistFormat,
         absolutePaths: Bool, title: String,

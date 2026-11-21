@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // E-Book-Editor: Cover + Kernfelder (Umfang wie Calibres Metadaten-Dialog).
 // EPUB nativ, PDF via exiftool (ohne Serie/Cover), mobi/azw3/fb2 via Calibre.
 // PDFs mit eingebetteter E-Rechnung (ZUGFeRD/Factur-X) bekommen zusätzlich
 // einen Rechnungs-Tab.
+import TagExplosionApplication
 import EInvoiceCore
 import SwiftUI
 import TagExplosionCore
@@ -67,7 +67,7 @@ struct EbookEditorView: View {
             // Der Hintergrundleser läuft auch nach einem Abbruch zu Ende. Ohne
             // diese Prüfung setzte er das Dokument der VORHERIGEN Datei in den
             // schon umgeschalteten Zustand, und die neue Datei bekäme einen
-            // E-Rechnungs-Tab mit fremden Daten (Review-Fund 2026-09-10).
+            // E-Rechnungs-Tab mit fremden Daten.
             guard !Task.isCancelled else { return }
             invoiceDocument = found
         }

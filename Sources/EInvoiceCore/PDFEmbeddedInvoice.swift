@@ -42,7 +42,7 @@ enum PDFEmbeddedInvoice {
     /// Getrennte Budgets, weil ein einziger Zähler beides nicht leisten kann:
     /// Zählte die Entpackarbeit gegen das Anzeigebudget, machte EIN übergroßer
     /// Anhang vor der Rechnung jeden weiteren Kandidaten unerreichbar, und die
-    /// Datei galt als „keine E-Rechnung" (Review-Fund 2026-08-20).
+    /// Datei galt als „keine E-Rechnung".
     static let materializedBudgetFactor = 4
     /// Grenze für die KOMPRIMIERTE Stream-Größe (deklariertes /Length).
     /// CGPDFStreamCopyData dekomprimiert immer vollständig im Speicher; die
@@ -52,12 +52,12 @@ enum PDFEmbeddedInvoice {
     /// 256 KiB heißt: eine EINZELNE Entpackung belegt kurzzeitig höchstens
     /// 256 KiB × 1032 ≈ 258 MiB. Das liegt bewusst über dem Gesamtbudget von
     /// 64 MiB, und der frühere Kommentar, der genau 64 MiB als Spitzenlast
-    /// zusagte, war deshalb falsch (Review-Fund 2026-08-18). Die strenge
+    /// zusagte, war deshalb falsch. Die strenge
     /// Ableitung 64 MiB / 1032 ≈ 64 KiB scheidet aus, weil sie echte Rechnungen
     /// unsichtbar machen würde: Eine Rechnung mit 5000 Positionen ist roh gut
     /// 5 MiB groß und komprimiert rund 100 KiB (gemessen mit deflate -9). Eine
     /// kurzzeitige Allokation von 258 MiB übersteht eine Mac-App dagegen; die
-    /// alten 8 MiB liessen rund 8 GiB zu (Review-Fund 2026-08-17).
+    /// alten 8 MiB ließen rund 8 GiB zu.
     ///
     /// Wiederholung begrenzt der Materialisierungs-Zähler unten: Er zählt ALLE
     /// entpackten ANHANGS-Bytes, auch die verworfenen — sonst könnte dieselbe
@@ -70,33 +70,33 @@ enum PDFEmbeddedInvoice {
     /// Besuche erzeugen (2 Verweise × 32 Ebenen = 2^32) — das Budget deckelt
     /// die Gesamtarbeit; echte Bäume mit wenigen Anhängen bleiben weit darunter.
     static let maxNameTreeNodes = 4096
-    /// Gemeinsames Arbeitsbudget fuer JEDEN untersuchten Eintrag: Array-Posten
+    /// Gemeinsames Arbeitsbudget für JEDEN untersuchten Eintrag: Array-Posten
     /// im /AF, Name-Filespec-Paar einer /Names-Liste, Eintrag eines /Kids-Arrays
     /// und jedes aufgeloeste Filespec. Das Knotenbudget zaehlte nur rekursive
     /// Dictionaries — eine einzige, beliebig lange /Names- oder /Kids-Liste lief
-    /// trotzdem vollstaendig durch (Review-Fund 2026-08-17).
+    /// trotzdem vollständig durch.
     static let maxInspectedEntries = 8192
-    /// Grenze fuer den KOMPRIMIERTEN XMP-Metadatenstrom. XMP ist ein kleines
+    /// Grenze für den KOMPRIMIERTEN XMP-Metadatenstrom. XMP ist ein kleines
     /// XML-Dokument; Rechnungs-PDFs liegen weit darunter. Vorher wurde dieser
-    /// Strom voellig ungeprueft materialisiert und geparst — ein grosser oder
+    /// Strom völlig ungeprüft materialisiert und geparst — ein großer oder
     /// stark komprimierter /Metadata-Strom konnte die App schon beim blossen
-    /// Oeffnen eines PDFs beenden (Review-Fund 2026-08-17).
+    /// Öffnen eines PDFs beenden.
     static let maxCompressedMetadataBytes = 64 * 1024
-    /// Grenze fuer das ENTPACKTE XMP. 64 KiB komprimiert koennen bis zu ~64 MiB
+    /// Grenze für das ENTPACKTE XMP. 64 KiB komprimiert können bis zu ~64 MiB
     /// werden; geparst wird davon nur, was hier hineinpasst.
     static let maxMetadataBytes = 4 * 1024 * 1024
 
-    /// Gemeinsamer Zaehler fuer das Arbeitsbudget.
+    /// Gemeinsamer Zähler für das Arbeitsbudget.
     ///
     /// Bewusst ein Referenztyp: Der Namensbaum-Durchlauf und der Closure, der
     /// die gefundenen Filespecs aufnimmt, greifen beide darauf zu. Als `inout`
-    /// waere das eine Exklusivitaetsverletzung — Swift bricht dabei mit
+    /// wäre das eine Exklusivitätsverletzung — Swift bricht dabei mit
     /// „Fatal access conflict" ab.
     private final class WorkBudget {
         private var remaining: Int
         init(_ remaining: Int) { self.remaining = remaining }
         var isExhausted: Bool { remaining <= 0 }
-        /// Einen Punkt verbrauchen. `false` heisst: nichts mehr uebrig.
+        /// Einen Punkt verbrauchen. `false` heißt: nichts mehr übrig.
         func consume() -> Bool {
             guard remaining > 0 else { return false }
             remaining -= 1
@@ -142,14 +142,13 @@ enum PDFEmbeddedInvoice {
         // Alle entpackten ANHANGS-Bytes, auch die verworfenen. Ein Anhang, der
         // das Anzeigebudget sprengt, wird nicht übernommen — materialisiert war
         // er trotzdem. Ohne diesen Zähler durfte dieselbe Dekompressionsbombe
-        // beliebig oft im Namensbaum stehen (Review-Fund 2026-08-18).
+        // beliebig oft im Namensbaum stehen.
         var materializedBytes = 0
         let workBudget = byteBudget.multipliedReportingOverflow(by: materializedBudgetFactor)
         let materializedBudget = workBudget.overflow ? Int.max : workBudget.partialValue
-        // Ein Budget fuer die GESAMTE Untersuchung: jeder Array-Posten, jedes
+        // Ein Budget für die GESAMTE Untersuchung: jeder Array-Posten, jedes
         // Name-Filespec-Paar und jedes aufgeloeste Filespec kostet einen Punkt.
-        // Das frueher allein zaehlende Knotenbudget deckte nur die Rekursion ab
-        // (Review-Fund 2026-08-17).
+        // Das früher allein zählende Knotenbudget deckte nur die Rekursion ab.
         let entryBudget = WorkBudget(maxInspectedEntries)
 
         // Vorauswahl über den Filespec-Namen, BEVOR der Stream dekomprimiert
@@ -242,9 +241,8 @@ enum PDFEmbeddedInvoice {
         if CGPDFDictionaryGetArray(node, "Names", &names), let names {
             // Flaches Array: [Name1, Filespec1, Name2, Filespec2, …]
             // Jedes Paar kostet Budget — auch ein ungueltiges. Eine einzige
-            // /Names-Liste mit Millionen Eintraegen lief sonst vollstaendig
-            // durch, obwohl das Knotenbudget laengst gereicht haette
-            // (Review-Fund 2026-08-17).
+            // /Names-Liste mit Millionen Einträgen lief sonst vollständig
+            // durch, obwohl das Knotenbudget längst gereicht hätte.
             let count = CGPDFArrayGetCount(names)
             var i = 0
             while i + 1 < count {
@@ -312,7 +310,7 @@ enum PDFEmbeddedInvoice {
     ///   eine Bombe ist damit ausgeschlossen. Hier gilt deshalb `byteBudget`.
     ///   Die enge Schranke hätte sonst eine gültige, unkomprimiert eingebettete
     ///   Rechnung abgewiesen — Factur-X schreibt keine Kompression vor
-    ///   (Review-Fund 2026-08-20).
+    ///  .
     /// - Keine Filterketten (/Filter-Array > 1): kaskadiertes Flate würde die
     ///   Entpackungsrate potenzieren; echte Rechnungs-PDFs nutzen das nie.
     /// - Ein deklariertes /Params/Size über dem Budget ist ein ehrlich
@@ -330,8 +328,8 @@ enum PDFEmbeddedInvoice {
         guard let dict = CGPDFStreamGetDictionary(stream) else { return nil }
         // Eine gueltige, positive /Length ist PFLICHT. Fehlte sie oder war sie
         // keine Ganzzahl, liess die Pruefung den Stream vorher einfach durch —
-        // und genau ein solcher Stream umging jede Groessenschranke
-        // (Review-Fund 2026-08-17). Ein Stream ohne ehrliche Laengenangabe ist
+        // und genau ein solcher Stream umging jede Größenschranke.
+        // Ein Stream ohne ehrliche Längenangabe ist
         // ohnehin nicht regelkonform.
         var length: CGPDFInteger = 0
         guard CGPDFDictionaryGetInteger(dict, "Length", &length), length > 0 else {
@@ -383,13 +381,13 @@ enum PDFEmbeddedInvoice {
         guard CGPDFDictionaryGetStream(catalog, "Metadata", &stream), let stream else {
             return nil
         }
-        // Dieselbe Vorpruefung wie fuer Anhaenge, nur enger: XMP ist ein
-        // kleines XML-Dokument. Ohne sie materialisierte schon das Oeffnen
+        // Dieselbe Vorprüfung wie für Anhänge, nur enger: XMP ist ein
+        // kleines XML-Dokument. Ohne sie materialisierte schon das Öffnen
         // eines PDFs einen beliebig grossen Strom und baute daraus einen
-        // vollstaendigen XML-Baum (Review-Fund 2026-08-17).
+        // vollständigen XML-Baum.
         // Der XMP-Strom hat sein EIGENES Paar Grenzen und zählt bewusst nicht
         // gegen das Anhangs-Budget: Er wird genau einmal je PDF gelesen, eine
-        // Wiederholung gibt es hier nicht (Review-Fund 2026-08-20).
+        // Wiederholung gibt es hier nicht.
         guard acceptableStreamLength(stream, maxCompressed: maxCompressedMetadataBytes,
                                      byteBudget: maxMetadataBytes) != nil else {
             return nil
@@ -397,7 +395,7 @@ enum PDFEmbeddedInvoice {
         var format = CGPDFDataFormat.raw
         guard let cfData = CGPDFStreamCopyData(stream, &format) else { return nil }
         let data = cfData as Data
-        // Auch entpackt gilt eine Grenze: 64 KiB Flate koennen sich vervielfachen.
+        // Auch entpackt gilt eine Grenze: 64 KiB Flate können sich vervielfachen.
         guard data.count <= maxMetadataBytes else { return nil }
         guard let xmp = try? XMLTree.parse(data) else { return nil }
 

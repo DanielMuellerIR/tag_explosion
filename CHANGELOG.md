@@ -11,6 +11,26 @@ jeder Entscheidung steht im jeweiligen Commit.
 Die Versionsabschnitte dokumentieren Quellstände. Veröffentlichte Builds und
 ihre Plattformen stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 
+## 0.54.12 — 2026-11-21
+
+- Dokumentation und Versionshinweise unterscheiden Quellstände und
+  veröffentlichte Builds. CI prüft relative Markdown-Links und Übersetzungen.
+- Tests für Rechnungen, E-Books und Editorabläufe sind nach Szenarien gegliedert.
+
+## 0.54.11 — 2026-11-21
+
+- macOS: Einheitliche Stapel-Ansichten. Die Regelvorschau wird im Hintergrund
+  erstellt und vor dem Anwenden mit den aktuellen Eingaben abgeglichen.
+- Linux: Der Editor wartet beim Verwerfen auf die Bestätigung des Workers.
+  Die letzte Medienanalyse wartet beim Schließen auf das Ende des Werkzeugs.
+- Die Desktop-Editoren verwenden einen nach Medienart typisierten Zustand.
+
+## 0.54.10 — 2026-11-21
+
+- Beim Neuaufbau werden unvollständige ZIP- und ZIP64-Verzeichnisse erkannt.
+- Archivberichte behalten die beschreibbare Swift-Tupelliste für Fehler und
+  bieten zusätzlich typisierte Fehlerdetails.
+
 ## 0.54.9 — 2026-11-21
 
 - App-Bundle, Signierung und DMG-Erstellung haben getrennte Build-Schritte.

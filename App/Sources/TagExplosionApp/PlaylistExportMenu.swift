@@ -1,8 +1,8 @@
-import TagExplosionApplication
 // „Playlist exportieren …" im Batch-Editor: schreibt die ausgewählten Dateien
 // in Listenreihenfolge als m3u8, m3u, pls oder xspf. Pfade sind relativ zur
 // Playlist-Datei (Schalter für absolute Pfade); Titel, Interpret, Album und
 // Spielzeit kommen aus den Dateien (PlaylistExporter im Core).
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 import UniformTypeIdentifiers

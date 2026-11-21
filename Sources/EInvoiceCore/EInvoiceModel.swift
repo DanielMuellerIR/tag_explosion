@@ -222,8 +222,8 @@ extension EInvoiceProfile {
         /// Original-`urn`, `kosit:extension` global, und Factur-X bekam den
         /// ganzen String. Eine grossgeschriebene Komponente `XRECHNUNG_3.0`
         /// ergab damit „XRechnung URN", und eine nachgestellte fremde
-        /// Komponente konnte Extension-Kennzeichen oder Profil liefern
-        /// (Review-Fund 2026-08-17). Ausgewertet wird jetzt ausschliesslich
+        /// Komponente konnte Extension-Kennzeichen oder Profil liefern.
+        /// Ausgewertet wird jetzt ausschliesslich
         /// die normalisierte Komponente, die wirklich gepasst hat.
         func matchedComponent(withPrefix marker: String) -> String? {
             components.first { $0.hasPrefix(marker) }

@@ -1,5 +1,5 @@
-import TagExplosionApplication
 // Cover-Anzeige mit Drag&Drop, Austausch, Export und Entfernen.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 import UniformTypeIdentifiers
@@ -57,7 +57,7 @@ struct CoverWell: View {
                 }
                 if supportsArtwork {
                     Divider()
-                    // Cover-Werkzeuge (AP12): verkleinern, wandeln, Ordner-Cover.
+                    // Cover-Werkzeuge: verkleinern, wandeln, Ordner-Cover.
                     CoverToolsMenuItems(entries: [entry])
                 }
             }

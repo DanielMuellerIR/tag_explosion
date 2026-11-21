@@ -481,7 +481,7 @@ public final class TagFile {
         // Bildweg: Ein gesicherter Bestandswert muss in die Datei zurück, aus
         // der er stammt. Sonst lehnt der Import genau die Werte ab, die der
         // eigene Export sichert — ein Backup, das sich nicht wiederherstellen
-        // lässt (Review-Fund 2026-09-10).
+        // lässt.
         if let properties, !allowingArchivedValues {
             try FixedFields.validate(properties, changedFrom: before.properties)
         }

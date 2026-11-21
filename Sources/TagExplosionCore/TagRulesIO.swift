@@ -50,8 +50,7 @@ public enum TagRulesIO {
 
     public static func save(_ document: TagRuleDocument, to url: URL) throws {
         // Wie jeder andere Export über den gemeinsamen Weg: Eine vorhandene
-        // Regeldatei am Zielpfad wird gesichert und dann atomar ersetzt
-        // (Review-Fund 2026-09-10).
+        // Regeldatei am Zielpfad wird gesichert und dann atomar ersetzt.
         try FileExport.write(try encode(document), to: url)
     }
 

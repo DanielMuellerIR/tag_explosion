@@ -122,7 +122,7 @@ public enum EInvoiceReader {
     ///
     /// Nur noch als Übergang für externe Aufrufer: 0.22.2 hatte die Methode
     /// entfernt, obwohl `EInvoiceCore` ein veröffentlichtes Library-Produkt
-    /// ist (Review-Fund 2026-08-22). Neuer Code nutzt `sniffXML(url:)` für
+    /// ist. Neuer Code nutzt `sniffXML(url:)` für
     /// XML und `read(url:)` für PDF — letzteres liefert gleich das Dokument,
     /// statt es zu verwerfen.
     @available(*, deprecated,

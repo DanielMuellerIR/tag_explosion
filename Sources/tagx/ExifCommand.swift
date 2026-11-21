@@ -82,7 +82,7 @@ struct ExifShow: ParsableCommand {
         line("DATE", core.dateTimeOriginal)
         // Ausgegeben wird jeder vorhandene Wert — auch ein negativer
         // Bestandswert. Die Textausgabe verschwieg ihn, während --json ihn
-        // zeigte (Review-Fund 2026-08-20).
+        // zeigte.
         if let rating = core.rating { print("RATING=\(rating)") }
         if !core.gpsLatitude.isEmpty { print("GPS=\(core.gpsLatitude),\(core.gpsLongitude)") }
         if let groups {

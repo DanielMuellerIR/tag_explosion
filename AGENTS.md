@@ -42,9 +42,8 @@ Details in [docs/PLAN.md](docs/PLAN.md). Kurzfassung:
 - Kommentare/Doku Deutsch, Identifier Englisch, Daten ISO 8601.
 - Pfade relativ, nie absolute Home-Pfade.
 - `VERSION`-Datei ist Single Source of Truth (semver); bei jedem abgeschlossenen
-  Schritt Bump + Commit. Standard-Remote ist das interne Backup (siehe private
-  Infra-Doku); der öffentliche GitHub-Remote wird nur auf ausdrücklichen
-  Auftrag bedient.
+  Schritt Bump + Commit. Die öffentlich ausgelieferten Versionen je Plattform
+  stehen unter [Releases](https://github.com/DanielMuellerIR/tag_explosion/releases).
 - **Keine echten Mediendateien committen** (Urheberrecht) — Test-Fixtures werden
   per `Tests/TagExplosionCoreTests/Fixtures/generate_fixtures.sh` (ffmpeg) erzeugt.
 - Lizenz-Regel: Abhängigkeiten müssen MIT-kompatibel bleiben (TagLib nur dynamisch

@@ -1,4 +1,3 @@
-import TagExplosionApplication
 // Abschnitt „NFO-Sidecar" im Video-Editor: Liegt `<name>.nfo` neben der
 // Videodatei, erscheinen hier die wichtigsten Felder (Titel, Jahr, Handlung,
 // Genres) mit Herkunft. Der Puffer liegt im `FileEntry` (`videoNFOFields`),
@@ -7,6 +6,7 @@ import TagExplosionApplication
 // Gespeichert wird mit dem Eintrag (⌘S): Nur die NFO wird geschrieben, wenn
 // sich am Video nichts geändert hat; Stempelprüfung, Papierkorb-Sicherung
 // und atomarer Austausch liegen in `AppModel.write`.
+import TagExplosionApplication
 import SwiftUI
 import TagExplosionCore
 
