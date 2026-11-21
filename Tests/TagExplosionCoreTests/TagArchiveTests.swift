@@ -14,6 +14,20 @@ import Testing
 
 @Suite("TagArchive", .serialized)
 struct TagArchiveTests {
+    @Test("Archivberichte vergleichen auch den Wortlaut fehlgeschlagener Einträge")
+    func failureMessageParticipatesInReportEquality() throws {
+        let original = TagArchiveReport.Failure(path: "sample.mp3", message: "Ziel geändert")
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(TagArchiveReport.Failure.self, from: encoded)
+        var report = TagArchiveReport()
+        report.failed = [original]
+        var sameReport = report
+        sameReport.failed = [decoded]
+        #expect(report == sameReport)
+        sameReport.failed = [.init(path: original.path, message: "Sicherung fehlgeschlagen")]
+        #expect(report != sameReport)
+    }
+
     @Test("Backup mit gemeinsamem XMP-Ziel scheitert vor dem Anlegen einer Sicherung")
     func sharedSidecarBackupFailsBeforePublication() throws {
         let folder = try makeFolder(["cover.jpg", "cover.png"])
@@ -115,16 +129,31 @@ struct TagArchiveTests {
 
     @Test("Alte Archive lassen nicht gesicherte Kapitel und Lyrics unverändert", arguments: [1, 2, 3, 4])
     func oldSchemaDoesNotClearAudioDetails(_ version: Int) throws {
-        let archive = TagArchive(version: version, created: "2026-10-06T00:00:00Z", files: [
-            .init(path: "sample.mp3", kind: .audio, properties: [:]),
-        ])
-        let decoded = try JSONDecoder().decode(TagArchive.self, from: JSONEncoder().encode(archive))
-        try TagArchiveIO.validate(decoded)
+        let dir = try makeFolder(["sample.mp3"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let mp3 = dir.appendingPathComponent("sample.mp3")
+        let chapters = [Chapter(title: "Intro", startMilliseconds: 0, endMilliseconds: 1000)]
+        let lines = [SyncedLyricLine(milliseconds: 0, text: "Original")]
+        try TagFile.write(chapters: chapters, syncedLyrics: lines, syncedLyricsLanguage: "deu", to: mp3)
+        let json = dir.appendingPathComponent("old-tags.json")
+        try Data("""
+            {"version": \(version), "created": "2026-10-06T00:00:00Z", "files": [
+                {"path": "sample.mp3", "kind": "audio", "properties": {"TITLE": ["Archiv"]}}
+            ]}
+            """.utf8).write(to: json)
+        let decoded = try TagArchiveIO.load(json)
         #expect(decoded.files[0].chapters == nil)
         #expect(decoded.files[0].syncedLyrics == nil)
         var invalid = decoded
         invalid.files[0].chapters = []
         #expect(throws: TagArchiveError.self) { try TagArchiveIO.validate(invalid) }
+        let report = try TagArchiveIO.apply(decoded, relativeTo: dir, dryRun: false)
+        #expect(report.applied == ["sample.mp3"])
+        let restored = try TagFile.read(at: mp3)
+        #expect(restored.firstValue(for: "TITLE") == "Archiv")
+        #expect(restored.chapters == chapters)
+        #expect(restored.syncedLyrics == lines)
+        #expect(restored.syncedLyricsLanguage == "deu")
     }
 
     @Test("Externe XMP-Verknüpfungen gehören zur Zielfreigabe und werden erneut geprüft")
@@ -216,7 +245,7 @@ struct TagArchiveTests {
                 } else { try foreign.write(to: sidecar) }
             }, backUp: { _ in Issue.record("Geändertes No-op-Ziel erreicht Backup") })
         #expect(report.unchanged.isEmpty)
-        #expect(report.failed.map(\.0) == ["cover.jpg"])
+        #expect(report.failed.map(\.path) == ["cover.jpg"])
         #expect(try Data(contentsOf: sidecar) == foreign)
     }
 
@@ -313,7 +342,7 @@ struct TagArchiveTests {
         let report = try TagArchiveIO.apply(try TagArchiveIO.load(json),
                                             relativeTo: dir, dryRun: false)
         #expect(report.applied == ["sample.mp3"])
-        #expect(report.failed.map(\.0) == ["sample.flac"])
+        #expect(report.failed.map(\.path) == ["sample.flac"])
         // Die gute Datei ist vollständig wiederhergestellt, die andere unberührt.
         #expect(try TagFile.read(at: mp3).firstValue(for: "TITLE") == "Soll")
         #expect(try TagFile.read(at: flac).firstValue(for: "TITLE") == "Weg")
@@ -358,8 +387,8 @@ struct TagArchiveTests {
         var hostile = archive
         hostile.files[0].document?.publisher = "Kein Ort in OOXML"
         let rejected = try TagArchiveIO.apply(hostile, relativeTo: dir, dryRun: true)
-        #expect(rejected.failed.map(\.0) == [archive.files[0].path])
-        #expect(rejected.failed.first?.1.contains("publisher") == true)
+        #expect(rejected.failed.map(\.path) == [archive.files[0].path])
+        #expect(rejected.failed.first?.message.contains("publisher") == true)
     }
 
     @Test("Audio: Export → Ändern → Import stellt Tags und Cover wieder her")
@@ -598,7 +627,7 @@ struct TagArchiveTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let mp3 = dir.appendingPathComponent("sample.mp3")
         try TagFile.write(properties: [TagProperty(key: "TITLE", value: "Original")], to: mp3)
-        let before = try TagFile.read(at: mp3)
+        let before = try Data(contentsOf: mp3)
         let archive = TagArchive(created: "2026-07-19T00:00:00Z", files: [
             .init(path: "sample.mp3", kind: .audio,
                   properties: ["TITLE": ["Wäre geändert worden"]]),
@@ -608,7 +637,7 @@ struct TagArchiveTests {
         #expect(throws: TagArchiveError.self) {
             try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
         }
-        #expect(try TagFile.read(at: mp3) == before)
+        #expect(try Data(contentsOf: mp3) == before)
     }
 
     @Test("Leere Audio-Wertlisten werden vor jeder Mutation abgelehnt")
@@ -717,8 +746,8 @@ struct TagArchiveTests {
             })
 
         #expect(report.applied.isEmpty)
-        #expect(report.failed.map(\.0) == ["sample.mp3"])
-        #expect(report.failed.first?.1.contains("targetChangedAfterValidation") == true)
+        #expect(report.failed.map(\.path) == ["sample.mp3"])
+        #expect(report.failed.first?.message.contains("targetChangedAfterValidation") == true)
         #expect(try Data(contentsOf: target) == replacementBytes)
         #expect(try TagFile.read(at: target).firstValue(for: "TITLE") == "Fremder Ersatz")
     }
@@ -741,7 +770,7 @@ struct TagArchiveTests {
             })
 
         #expect(report.unchanged.isEmpty)
-        #expect(report.failed.map(\.0) == ["sample.mp3"])
+        #expect(report.failed.map(\.path) == ["sample.mp3"])
         #expect(try TagFile.read(at: target).firstValue(for: "TITLE")
                 == "Fremd nach Vergleich")
     }
@@ -1102,10 +1131,10 @@ struct TagArchiveTests {
         ])
 
         let dry = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: true)
-        #expect(dry.failed.map(\.0) == ["cover.jpg"])
+        #expect(dry.failed.map(\.path) == ["cover.jpg"])
         let bytesBefore = try Data(contentsOf: image)
         let real = try TagArchiveIO.apply(archive, relativeTo: dir, dryRun: false)
-        #expect(real.failed.map(\.0) == ["cover.jpg"])
+        #expect(real.failed.map(\.path) == ["cover.jpg"])
         #expect(try Data(contentsOf: image) == bytesBefore)
     }
 
@@ -1129,13 +1158,13 @@ struct TagArchiveTests {
         let dry = try TagArchiveIO.apply(
             archive, relativeTo: dir, dryRun: true,
             afterValidation: {}, backUp: backUp)
-        #expect(dry.failed.map(\.0) == ["cover.jpg"])
+        #expect(dry.failed.map(\.path) == ["cover.jpg"])
         #expect(backupCalls == 0)
 
         let real = try TagArchiveIO.apply(
             archive, relativeTo: dir, dryRun: false,
             afterValidation: {}, backUp: backUp)
-        #expect(real.failed.map(\.0) == ["cover.jpg"])
+        #expect(real == dry)
         #expect(backupCalls == 0)
         #expect(try Data(contentsOf: image) == bytesBefore)
     }

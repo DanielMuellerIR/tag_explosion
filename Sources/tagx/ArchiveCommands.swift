@@ -79,8 +79,8 @@ struct Import: ParsableCommand {
         for path in report.unchanged { print("UNCHANGED \(path)") }
         for path in report.missing { print("MISSING \(path)") }
         for path in report.extra { print("NOT IN ARCHIVE \(path)") }
-        for (path, error) in report.failed {
-            FileHandle.standardError.write(Data("ERROR \(path): \(error)\n".utf8))
+        for failure in report.failed {
+            FileHandle.standardError.write(Data("ERROR \(failure.path): \(failure.message)\n".utf8))
         }
         print("\(report.applied.count) changed\(dryRun ? " (dry-run)" : ""), "
             + "\(report.unchanged.count) unchanged, \(report.missing.count) missing, "

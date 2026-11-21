@@ -806,7 +806,7 @@ public final class AppModel {
             if !report.extra.isEmpty { summary += String(localized: ", \(report.extra.count) nicht im Archiv") }
             if !report.failed.isEmpty {
                 summary += "\n" + String(localized: "Fehlgeschlagen:") + "\n" + report.failed
-                    .map { "\($0.0): \($0.1)" }.joined(separator: "\n")
+                    .map { "\($0.path): \($0.message)" }.joined(separator: "\n")
             }
             alertMessage = summary
         } catch {

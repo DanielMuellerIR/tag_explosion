@@ -8,6 +8,13 @@ Diese Datei beginnt mit 0.16.0. Die Entwicklungsschritte davor stehen in den
 Meilensteinen in [docs/PLAN.md](docs/PLAN.md); die ausführliche Begründung
 jeder Entscheidung steht im jeweiligen Commit.
 
+## 0.54.7 — 2026-11-21
+
+- Regelplanung, Regeldateien und Textoperationen sind getrennt. Reguläre
+  Ausdrücke werden pro Plan vorbereitet. Bestehende Regeldateien bleiben lesbar.
+- Archivexport, Import und Zielprüfung sind getrennt. Fehlermeldungen gehören
+  zum Ergebnisvergleich. Bestehende Archive und die CLI-Ausgabe bleiben gültig.
+
 ## 0.54.6 — 2026-11-21
 
 - Beide Rechnungsbefehle teilen die Ausführungslogik. `validate-invoice`

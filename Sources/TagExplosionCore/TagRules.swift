@@ -1,24 +1,4 @@
-// Batch-Regeln als Skript: eine JSON-Datei mit einer Liste von Regeln, die
-// nacheinander auf die Felder mehrerer Dateien angewendet werden — etwa
-// „Titel in Titel-Schreibweise", „Leerzeichen trimmen", „Albumkünstler aus
-// Künstler übernehmen, wenn leer".
-//
-// Aufbau dieser Datei:
-//   1. Datenmodell (`TagRuleDocument`, `TagRule`, `TagRuleCondition`) — flach
-//      gehalten, damit JSON und der Regel-Editor der App dieselben Felder
-//      benutzen können.
-//   2. Laden/Speichern (`TagRulesIO`) mit Fehlern, die die Regelnummer und
-//      die JSON-Zeile nennen.
-//   3. Die Engine (`TagRuleEngine`) — eine reine Funktion: Felder rein,
-//      Änderungsplan raus. Geschrieben wird hier nie; das erledigen CLI und
-//      App über die bestehenden Schreibwege (Sicherung + atomarer Austausch).
-//   4. Textwerkzeuge (Groß-/Kleinschreibung, Trimmen, Platzhalter).
-//
-// Audio-Regeln erhalten alle Werte. Dateinamen, Bedingungen und Platzhalter
-// verwenden weiterhin den ersten Wert je Schlüssel.
 import Foundation
-
-// MARK: - Datenmodell
 
 /// Eine Regeldatei: Versionsnummer plus Regeln in Ausführungsreihenfolge.
 public struct TagRuleDocument: Codable, Sendable, Equatable {
@@ -50,12 +30,16 @@ public struct TagRuleDocument: Codable, Sendable, Equatable {
     /// Der Fehler nennt die Regelnummer (ab 1); die JSON-Zeile ergänzt
     /// `TagRulesIO.load`, das den Text kennt.
     public func validate() throws {
+        _ = try validatedExpressions()
+    }
+
+    func validatedExpressions() throws -> [TagRuleExpressions] {
         guard version == Self.currentVersion else {
             throw TagRulesError.unsupportedVersion(version)
         }
-        for (index, rule) in rules.enumerated() {
+        return try rules.enumerated().map { index, rule in
             do {
-                try rule.validate()
+                return try rule.validatedExpressions()
             } catch let error as TagRulesError {
                 // Die Regel kennt ihre Nummer nicht; hier wird sie ergänzt.
                 if case .invalidRule(_, let line, let reason) = error {
@@ -128,8 +112,7 @@ public struct TagRule: Codable, Sendable, Equatable {
     public var replacement: String?
     /// `replace`: `search` als regulärer Ausdruck lesen (Voreinstellung: nein).
     public var regex: Bool?
-    /// `replace` und Bedingung `contains`: Groß-/Kleinschreibung ignorieren
-    /// (Voreinstellung: nein).
+    /// `replace`: Groß-/Kleinschreibung ignorieren (Voreinstellung: nein).
     public var ignoreCase: Bool?
     /// `case`: die Schreibweise.
     public var mode: CaseMode?
@@ -280,6 +263,10 @@ public struct TagRule: Codable, Sendable, Equatable {
     /// Prüft Pflichtparameter und reguläre Ausdrücke. Fehler ohne
     /// Regelnummer (0); `TagRuleDocument.validate` trägt die Nummer nach.
     public func validate() throws {
+        _ = try validatedExpressions()
+    }
+
+    func validatedExpressions() throws -> TagRuleExpressions {
         func fail(_ reason: String) -> TagRulesError {
             .invalidRule(index: 0, line: nil, reason: reason)
         }
@@ -288,6 +275,7 @@ public struct TagRule: Codable, Sendable, Equatable {
         if field == "*", !wildcardAllowed.contains(action) {
             throw fail("field \"*\" is only allowed for replace, case and trim")
         }
+        var replacementExpression: NSRegularExpression?
         switch action {
         case .set:
             guard value != nil else { throw fail("\"value\" is required for action \"set\"") }
@@ -299,7 +287,9 @@ public struct TagRule: Codable, Sendable, Equatable {
             guard let search, !search.isEmpty else {
                 throw fail("\"search\" is required for action \"replace\"")
             }
-            if regex == true { try Self.requireRegex(search, label: "search") }
+            if regex == true {
+                replacementExpression = try Self.compileRegex(search, label: "search", ignoreCase: ignoreCase == true)
+            }
         case .case:
             guard mode != nil else {
                 throw fail("\"mode\" (upper, lower, title, sentence) is required for action \"case\"")
@@ -310,12 +300,13 @@ public struct TagRule: Codable, Sendable, Equatable {
             if let start, start < 0 { throw fail("\"start\" must not be negative") }
             if let width, !(1...9).contains(width) { throw fail("\"width\" must be between 1 and 9") }
         }
+        var conditionExpression: NSRegularExpression?
         if let when {
             if when.field.isEmpty { throw fail("\"when.field\" is required") }
             switch when.test {
             case .matches:
                 guard let pattern = when.value else { throw fail("\"when.value\" is required for \"matches\"") }
-                try Self.requireRegex(pattern, label: "when.value")
+                conditionExpression = try Self.compileRegex(pattern, label: "when.value", ignoreCase: when.ignoreCase == true)
             case .equals, .contains:
                 guard when.value != nil else {
                     throw fail("\"when.value\" is required for \"\(when.test.rawValue)\"")
@@ -324,16 +315,22 @@ public struct TagRule: Codable, Sendable, Equatable {
                 break
             }
         }
+        return TagRuleExpressions(replacement: replacementExpression, condition: conditionExpression)
     }
 
-    private static func requireRegex(_ pattern: String, label: String) throws {
+    static func compileRegex(_ pattern: String, label: String, ignoreCase: Bool) throws -> NSRegularExpression {
         do {
-            _ = try NSRegularExpression(pattern: pattern)
+            return try NSRegularExpression(pattern: pattern, options: ignoreCase ? [.caseInsensitive] : [])
         } catch {
             throw TagRulesError.invalidRule(
                 index: 0, line: nil, reason: "\"\(label)\" is not a valid regular expression: \(pattern)")
         }
     }
+}
+
+struct TagRuleExpressions {
+    let replacement: NSRegularExpression?
+    let condition: NSRegularExpression?
 }
 
 /// Feld-Bedingung einer Regel: `{"field": "albumartist", "is": "empty"}`.
@@ -384,7 +381,16 @@ public struct TagRuleCondition: Codable, Sendable, Equatable {
 
     /// Trifft die Bedingung auf diese Felder zu?
     public func matches(_ fields: [String: String]) -> Bool {
-        let current = fields[field] ?? ""
+        let expression: NSRegularExpression?
+        if test == .matches, let value {
+            expression = try? TagRule.compileRegex(value, label: "when.value", ignoreCase: ignoreCase == true)
+        } else {
+            expression = nil
+        }
+        return matches(firstValue: fields[field] ?? "", expression: expression)
+    }
+
+    func matches(firstValue current: String, expression: NSRegularExpression?) -> Bool {
         let caseInsensitive = ignoreCase == true
         switch test {
         case .empty:
@@ -401,12 +407,9 @@ public struct TagRuleCondition: Codable, Sendable, Equatable {
             guard !needle.isEmpty else { return true }
             return current.range(of: needle, options: caseInsensitive ? [.caseInsensitive] : []) != nil
         case .matches:
-            guard let pattern = value,
-                  let regex = try? NSRegularExpression(
-                      pattern: pattern, options: caseInsensitive ? [.caseInsensitive] : [])
-            else { return false }
+            guard let expression else { return false }
             let range = NSRange(current.startIndex..., in: current)
-            return regex.firstMatch(in: current, range: range) != nil
+            return expression.firstMatch(in: current, range: range) != nil
         }
     }
 }
@@ -438,660 +441,6 @@ public enum TagRulesError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
-// MARK: - Laden und Speichern
-
-/// Regeldateien lesen und schreiben; ergänzt Fehler um die JSON-Zeile.
-public enum TagRulesIO {
-
-    public static func load(_ url: URL) throws -> TagRuleDocument {
-        let data: Data
-        do {
-            data = try Data(contentsOf: url)
-        } catch {
-            throw TagRulesError.invalidJSON(line: nil, reason: error.localizedDescription)
-        }
-        return try parse(data)
-    }
-
-    /// Liest eine Regeldatei aus JSON-Daten. Reihenfolge der Prüfungen:
-    /// JSON-Syntax → Struktur (unbekannte Aktion usw.) → Version → Inhalt
-    /// jeder Regel. Jede Stufe nennt, wo es hakt.
-    public static func parse(_ data: Data) throws -> TagRuleDocument {
-        let text = String(decoding: data, as: UTF8.self)
-        // Syntaxfehler zuerst getrennt prüfen: Foundations Meldung nennt
-        // die Zeile, JSONDecoder verpackt sie nur noch als Text.
-        do {
-            _ = try JSONSerialization.jsonObject(with: data)
-        } catch {
-            let reason = (error as NSError).userInfo[NSDebugDescriptionErrorKey] as? String
-                ?? error.localizedDescription
-            throw TagRulesError.invalidJSON(line: lineNumber(in: reason), reason: reason)
-        }
-        let document: TagRuleDocument
-        do {
-            document = try JSONDecoder().decode(TagRuleDocument.self, from: data)
-        } catch let error as DecodingError {
-            throw translate(error, text: text)
-        }
-        do {
-            try document.validate()
-        } catch TagRulesError.invalidRule(let index, _, let reason) {
-            throw TagRulesError.invalidRule(index: index, line: lineOfRule(index, in: text), reason: reason)
-        }
-        return document
-    }
-
-    /// Serialisiert eine Regeldatei (lesbar eingerückt, Schlüssel sortiert).
-    public static func encode(_ document: TagRuleDocument) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(document)
-    }
-
-    public static func save(_ document: TagRuleDocument, to url: URL) throws {
-        // Wie jeder andere Export über den gemeinsamen Weg: Eine vorhandene
-        // Regeldatei am Zielpfad wird gesichert und dann atomar ersetzt
-        // (Review-Fund 2026-09-10).
-        try FileExport.write(try encode(document), to: url)
-    }
-
-    /// Kommentierte Beispiel-Regeldatei (`tagx apply --example`). JSON kennt
-    /// keine Kommentare, deshalb `_comment`-Felder.
-    public static let exampleJSON = """
-    {
-      "_comment": "Tag Explosion rules file — tagx apply rules.json [--apply] <files>. Rules run in order; field names are the same as in file name patterns (title, artist, album, albumartist, track, disc, year, genre, composer, comment or any tag key).",
-      "version": 1,
-      "rules": [
-        {
-          "_comment": "Remove spaces and control characters at both ends and collapse double spaces — in every field.",
-          "action": "trim",
-          "field": "*"
-        },
-        {
-          "_comment": "Title case for titles: every word capitalized, small words (a, the, und, der …) lowercase; set smallWords to use your own list.",
-          "action": "case",
-          "field": "title",
-          "mode": "title"
-        },
-        {
-          "_comment": "Album artist from artist, only where it is still empty. Placeholders work like in file name patterns.",
-          "action": "copy",
-          "field": "albumartist",
-          "from": "artist",
-          "onlyIfEmpty": true
-        },
-        {
-          "_comment": "Same thing written with set and a condition (when: empty, notEmpty, equals, contains, matches).",
-          "action": "set",
-          "field": "albumartist",
-          "value": "%{artist}",
-          "when": { "field": "albumartist", "is": "empty" }
-        },
-        {
-          "_comment": "Literal search/replace; with \\"regex\\": true, groups are available as $1, $2 …",
-          "action": "replace",
-          "field": "title",
-          "search": "^(.*) \\\\(Remastered\\\\)$",
-          "replacement": "$1",
-          "regex": true
-        },
-        {
-          "_comment": "Remove a field, here only for audio files (kinds: audio, image, ebook, document, sidecar).",
-          "action": "remove",
-          "field": "comment",
-          "kinds": ["audio"]
-        },
-        {
-          "_comment": "Track numbers 1…n in file name order (sortBy: filename or a field), written as n/total.",
-          "action": "number",
-          "field": "track",
-          "sortBy": "filename",
-          "start": 1,
-          "total": true
-        }
-      ]
-    }
-    """
-
-    // MARK: Zeilen finden
-
-    /// Übersetzt einen Decoder-Fehler in einen Regelfehler mit Zeile. Der
-    /// Coding-Pfad verrät, in welcher Regel es hakt (`rules[3].action`).
-    private static func translate(_ error: DecodingError, text: String) -> TagRulesError {
-        let context: DecodingError.Context
-        switch error {
-        case .dataCorrupted(let c), .keyNotFound(_, let c),
-             .typeMismatch(_, let c), .valueNotFound(_, let c):
-            context = c
-        @unknown default:
-            return .invalidJSON(line: nil, reason: String(describing: error))
-        }
-        var reason = context.debugDescription
-        if case .keyNotFound(let key, _) = error {
-            reason = "missing key \"\(key.stringValue)\""
-        }
-        // Pfad: [rules, Index 3, action] → Regel 3, Schlüssel "action".
-        var ruleIndex: Int?
-        var keyName: String?
-        var sawRules = false
-        for component in context.codingPath {
-            if let index = component.intValue, sawRules, ruleIndex == nil {
-                ruleIndex = index
-            } else if component.stringValue == "rules" {
-                sawRules = true
-            } else if ruleIndex != nil {
-                keyName = component.stringValue
-            }
-        }
-        if let keyName, !reason.lowercased().contains("\"\(keyName)\"") {
-            reason = "key \"\(keyName)\": \(reason)"
-        }
-        guard let ruleIndex else { return .invalidJSON(line: nil, reason: reason) }
-        return .invalidRule(index: ruleIndex, line: lineOfRule(ruleIndex, in: text), reason: reason)
-    }
-
-    /// „… around line 12, column 3." → 12
-    static func lineNumber(in message: String) -> Int? {
-        guard let range = message.range(of: #"line (\d+)"#, options: .regularExpression) else {
-            return nil
-        }
-        return Int(message[range].dropFirst(5))
-    }
-
-    /// Zeile (ab 1), in der die n-te Regel des `rules`-Arrays beginnt. Ein
-    /// kleiner Scanner, der Strings überspringt und Klammern zählt — genau
-    /// genug für Fehlermeldungen; nil, wenn die Struktur nicht passt.
-    static func lineOfRule(_ index: Int, in text: String) -> Int? {
-        var line = 1
-        var depth = 0
-        var inString = false
-        var escaped = false
-        var lastString = ""
-        var currentString = ""
-        // Tiefe, auf der die Elemente des rules-Arrays liegen (nil = noch
-        // nicht gefunden).
-        var rulesDepth: Int?
-        var elementIndex = -1
-        var expectingRulesArray = false
-
-        for scalar in text.unicodeScalars {
-            if scalar == "\n" { line += 1 }
-            if inString {
-                if escaped {
-                    escaped = false
-                    currentString.unicodeScalars.append(scalar)
-                } else if scalar == "\\" {
-                    escaped = true
-                } else if scalar == "\"" {
-                    inString = false
-                    lastString = currentString
-                } else {
-                    currentString.unicodeScalars.append(scalar)
-                }
-                continue
-            }
-            switch scalar {
-            case "\"":
-                inString = true
-                currentString = ""
-            case ":":
-                // "rules": auf der obersten Ebene → das nächste [ ist das Array.
-                if depth == 1, lastString == "rules" { expectingRulesArray = true }
-            case "[":
-                depth += 1
-                if expectingRulesArray {
-                    rulesDepth = depth
-                    expectingRulesArray = false
-                }
-            case "{":
-                depth += 1
-                if let rulesDepth, depth == rulesDepth + 1 {
-                    elementIndex += 1
-                    if elementIndex == index { return line }
-                }
-            case "]", "}":
-                depth -= 1
-                if let d = rulesDepth, depth < d { return nil }
-            case " ", "\t", "\r", "\n", ",":
-                break
-            default:
-                // Ein Wert außer String/Objekt/Array (Zahl, true …): egal.
-                expectingRulesArray = false
-            }
-        }
-        return nil
-    }
-}
-
-// MARK: - Engine
-
-/// Eingabe für die Engine: eine Datei mit ihren Feldern.
-public struct TagRuleInput: Sendable, Equatable {
-    public var url: URL
-    public var kind: MediaFormats.Kind
-    /// Flaches Feld-Wörterbuch (siehe `PatternFields.fields(from:)`).
-    public var values: [String: [String]]
-    public var fields: [String: String] { values.mapValues { $0.first ?? "" } }
-
-    public init(url: URL, kind: MediaFormats.Kind, fields: [String: String]) {
-        self.url = url
-        self.kind = kind
-        self.values = fields.mapValues { [$0] }
-    }
-    public init(url: URL, kind: MediaFormats.Kind, values: [String: [String]]) {
-        self.url = url
-        self.kind = kind
-        self.values = values
-    }
-
-}
-
-/// Eine geplante Feldänderung: alt → neu. `new` leer heißt „Feld löschen".
-public struct TagFieldChange: Codable, Sendable, Equatable, Hashable {
-    public var field: String
-    public var old: String
-    public var new: String
-    // Optionale Ergänzung zum bisherigen JSON-Vertrag; Skalare bleiben erhalten.
-    public var oldValues: [String]?
-    public var newValues: [String]?
-    public var allOldValues: [String] { oldValues ?? (old.isEmpty ? [] : [old]) }
-    public var allNewValues: [String] { newValues ?? (new.isEmpty ? [] : [new]) }
-    public var oldDisplay: String { Self.display(allOldValues) }
-    public var newDisplay: String { Self.display(allNewValues) }
-    private static func display(_ values: [String]) -> String {
-        guard values.count > 1 || values == [""] else { return values.first ?? "" }
-        return String(data: try! JSONEncoder().encode(values), encoding: .utf8)!
-    }
-
-    public init(field: String, old: String, new: String) {
-        self.field = field
-        self.old = old
-        self.new = new
-    }
-    public init(field: String, oldValues: [String], newValues: [String]) {
-        self.init(field: field, old: oldValues.first ?? "", new: newValues.first ?? "")
-        self.oldValues = oldValues.count > 1 || oldValues == [""] ? oldValues : nil
-        self.newValues = newValues.count > 1 || newValues == [""] ? newValues : nil
-    }
-
-}
-
-/// Änderungsplan einer Datei. Ohne `changes` ist die Datei unverändert.
-public struct TagRulePlan: Sendable, Equatable {
-    public var url: URL
-    public var kind: MediaFormats.Kind
-    public var changes: [TagFieldChange]
-
-    public init(url: URL, kind: MediaFormats.Kind, changes: [TagFieldChange]) {
-        self.url = url
-        self.kind = kind
-        self.changes = changes
-    }
-
-    /// Die neuen Werte als Wörterbuch — die Form, die `PatternFields.apply`
-    /// und die Schreibwege erwarten.
-    public var newValues: [String: String] {
-        Dictionary(uniqueKeysWithValues: changes.map { ($0.field, $0.new) })
-    }
-}
-
-/// Wendet Regeln auf Feld-Wörterbücher an. Reine Funktion: kein Dateizugriff.
-public enum TagRuleEngine {
-
-    /// Führt alle Regeln in Reihenfolge aus und liefert je Datei die
-    /// Änderungen gegenüber dem Ausgangszustand (unveränderte Felder fehlen —
-    /// damit erkennen CLI und App No-ops, ohne die Datei anzufassen).
-    ///
-    /// Die Datei-Reihenfolge der Eingabe ist auch die des Ergebnisses. Die
-    /// Aktion `number` betrachtet alle Dateien gemeinsam (Sortierung).
-    public static func plan(_ document: TagRuleDocument, inputs: [TagRuleInput]) throws -> [TagRulePlan] {
-        try document.validate()
-        var working = inputs.map(\.values)
-        for (ruleIndex, rule) in document.rules.enumerated() {
-            // Betroffene Dateien: Medienart und Bedingung auf dem AKTUELLEN
-            // Stand — eine frühere Regel kann die Bedingung erst erfüllen.
-            let affected = inputs.indices.filter { index in
-                if let kinds = rule.kinds, !kinds.contains(inputs[index].kind) { return false }
-                guard let condition = rule.when else { return true }
-                return condition.matches(working[index].mapValues { $0.first ?? "" })
-            }
-            if rule.action == .number {
-                // Der gesamte Bereich muss darstellbar sein, bevor die erste
-                // Nummer entsteht. Ein einzelnes Int.max bleibt zulässig.
-                let (_, overflow) = (rule.start ?? 1).addingReportingOverflow(max(0, affected.count - 1))
-                guard !overflow else {
-                    throw TagRulesError.invalidRule(index: ruleIndex, line: nil,
-                        reason: "numbering exceeds the supported integer range")
-                }
-                var flat = working.map { $0.mapValues { $0.first ?? "" } }
-                number(rule, inputs: inputs, indices: affected, fields: &flat)
-                for index in affected { working[index][rule.field] = [flat[index][rule.field] ?? ""] }
-                continue
-            }
-            let transform = try textTransform(for: rule)
-            for index in affected {
-                applyValues(rule, to: &working[index], transform: transform)
-            }
-        }
-        return inputs.indices.map { index in
-            let before = inputs[index].values
-            let after = working[index]
-            let keys = Set(before.keys).union(after.keys).sorted()
-            let changes = keys.compactMap { key -> TagFieldChange? in
-                let old = before[key] ?? []
-                let new = after[key] ?? []
-                return old == new ? nil : TagFieldChange(field: key, oldValues: old, newValues: new)
-            }
-            return TagRulePlan(url: inputs[index].url, kind: inputs[index].kind, changes: changes)
-        }
-    }
-
-    /// Bereinigung arbeitet pro Wert; explizites Setzen ersetzt die Liste.
-    private static func applyValues(_ rule: TagRule, to values: inout [String: [String]],
-                                    transform: (String) -> String) {
-        switch rule.action {
-        case .trim, .case, .replace:
-            let keys = rule.field == "*" ? values.keys.sorted() : [rule.field]
-            for key in keys {
-                guard let current = values[key] else { continue }
-                values[key] = current.map { $0.isEmpty ? $0 : transform($0) }
-            }
-        case .copy:
-            let source = values[rule.from ?? ""] ?? []
-            let target = values[rule.field] ?? []
-            if rule.onlyIfEmpty == true,
-               target.contains(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) { return }
-            guard source.contains(where: { !$0.isEmpty }) else { return }
-            values[rule.field] = source
-        case .set:
-            let value = TagRuleText.expandPlaceholders(rule.value ?? "", fields: values.mapValues { $0.first ?? "" })
-            values[rule.field] = value.isEmpty ? nil : [value]
-        case .remove: values[rule.field] = nil
-        case .number: break
-        }
-    }
-
-    /// Bequeme Variante für eine einzelne Feldmenge (Tests, Vorschau).
-    public static func apply(_ document: TagRuleDocument, to fields: [String: String],
-                             kind: MediaFormats.Kind = .audio) throws -> [String: String] {
-        let input = TagRuleInput(url: URL(fileURLWithPath: "/dev/null"), kind: kind, fields: fields)
-        var result = fields
-        for change in try plan(document, inputs: [input])[0].changes {
-            if change.new.isEmpty { result[change.field] = nil } else { result[change.field] = change.new }
-        }
-        return result
-    }
-
-    /// Regex und Wortmenge einmal je Regel vorbereiten. Jeder Feldwert
-    /// durchläuft danach dieselbe Textfunktion, ohne ein Hilfswörterbuch.
-    private static func textTransform(for rule: TagRule) throws -> (String) -> String {
-        switch rule.action {
-        case .trim: return TagRuleText.trim
-        case .replace:
-            return try TagRuleText.replacement(search: rule.search ?? "", replacement: rule.replacement ?? "",
-                                               regex: rule.regex == true, ignoreCase: rule.ignoreCase == true)
-        case .case:
-            let mode = rule.mode ?? .title
-            if mode == .title {
-                let words = Set((rule.smallWords ?? TagRule.defaultSmallWords).map { $0.lowercased() })
-                return { TagRuleText.titleCase($0, smallWords: words) }
-            }
-            return { TagRuleText.changeCase($0, mode: mode, smallWords: []) }
-        default: return { $0 }
-        }
-    }
-
-    /// Tracknummern fortlaufend vergeben: die betroffenen Dateien in
-    /// Sortierreihenfolge, ab `start`, optional als "n/gesamt".
-    private static func number(_ rule: TagRule, inputs: [TagRuleInput], indices: [Int],
-                               fields: inout [[String: String]]) {
-        let sortKey = rule.sortBy ?? "filename"
-        let ordered = indices.sorted { lhs, rhs in
-            compareForNumbering(inputs[lhs], fields[lhs], inputs[rhs], fields[rhs], sortKey: sortKey)
-        }
-        let start = rule.start ?? 1
-        let total = ordered.count
-        for (offset, index) in ordered.enumerated() {
-            var text = String(start + offset)
-            if let width = rule.width, text.count < width {
-                text = String(repeating: "0", count: width - text.count) + text
-            }
-            if rule.total == true { text += "/\(total)" }
-            fields[index][rule.field] = text
-        }
-    }
-
-    /// Sortierung für `number`: Dateiname natürlich ("2" vor "10"), ein
-    /// Feld zahlenbewusst ("3/12" → 3), Gleichstand nach Dateiname.
-    private static func compareForNumbering(_ a: TagRuleInput, _ aFields: [String: String],
-                                            _ b: TagRuleInput, _ bFields: [String: String],
-                                            sortKey: String) -> Bool {
-        let byName = a.url.lastPathComponent.localizedStandardCompare(b.url.lastPathComponent)
-        guard sortKey != "filename" else { return byName == .orderedAscending }
-        let left = aFields[sortKey] ?? ""
-        let right = bFields[sortKey] ?? ""
-        if let l = leadingInt(left), let r = leadingInt(right), l != r { return l < r }
-        let byField = left.localizedStandardCompare(right)
-        if byField != .orderedSame { return byField == .orderedAscending }
-        return byName == .orderedAscending
-    }
-
-    /// "3/12" → 3, " 07" → 7, "abc" → nil.
-    private static func leadingInt(_ value: String) -> Int? {
-        let head = value.trimmingCharacters(in: .whitespaces).prefix { $0.isNumber }
-        return head.isEmpty ? nil : Int(head)
-    }
-}
-
-// MARK: - Textwerkzeuge
-
-/// Die Textoperationen der Regeln, als reine Funktionen einzeln testbar.
-public enum TagRuleText {
-
-    /// Ersetzt `%{feld}` (und `%{feld:breite}`, `%%`) durch Feldwerte —
-    /// gleiche Kurznamen wie bei Dateinamen-Mustern, aber ohne deren
-    /// Dateinamen-Entschärfung: In einem Tag darf "AC/DC" stehen bleiben.
-    public static func expandPlaceholders(_ template: String, fields: [String: String]) -> String {
-        var result = ""
-        var rest = Substring(template)
-        while let percent = rest.firstIndex(of: "%") {
-            result += rest[..<percent]
-            let afterPercent = rest.index(after: percent)
-            guard afterPercent < rest.endIndex else {
-                result += "%"
-                rest = rest[rest.endIndex...]
-                break
-            }
-            if rest[afterPercent] == "%" {
-                result += "%"
-                rest = rest[rest.index(after: afterPercent)...]
-                continue
-            }
-            guard rest[afterPercent] == "{",
-                  let close = rest[afterPercent...].firstIndex(of: "}") else {
-                // "%x" oder unvollständig: wörtlich lassen.
-                result += "%"
-                rest = rest[afterPercent...]
-                continue
-            }
-            let inner = rest[rest.index(after: afterPercent)..<close]
-            let parts = inner.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-            let alias = String(parts[0]).trimmingCharacters(in: .whitespaces)
-            let width = parts.count == 2 ? Int(parts[1].trimmingCharacters(in: .whitespaces)) : nil
-            let placeholder = FilenamePattern.Placeholder(
-                key: FilenamePattern.canonicalKey(for: alias), alias: alias.lowercased(), width: width)
-            result += FilenamePattern.formatValue(fields[placeholder.key] ?? "", for: placeholder)
-            rest = rest[rest.index(after: close)...]
-        }
-        result += rest
-        return result
-    }
-
-    /// Suchen/Ersetzen — wörtlich oder als regulärer Ausdruck mit Gruppen
-    /// (`$1`). Ein ungültiger Ausdruck wirft `invalidRule` (ohne Nummer).
-    public static func replace(in text: String, search: String, replacement: String,
-                               regex: Bool, ignoreCase: Bool) throws -> String {
-        try Self.replacement(search: search, replacement: replacement, regex: regex, ignoreCase: ignoreCase)(text)
-    }
-
-    /// Eine vorbereitete Ersetzung kann alle Werte eines Stapels bearbeiten.
-    static func replacement(search: String, replacement: String,
-                            regex: Bool, ignoreCase: Bool) throws -> (String) -> String {
-        guard !search.isEmpty else { return { $0 } }
-        if regex {
-            let expression: NSRegularExpression
-            do {
-                expression = try NSRegularExpression(
-                    pattern: search, options: ignoreCase ? [.caseInsensitive] : [])
-            } catch {
-                throw TagRulesError.invalidRule(
-                    index: 0, line: nil, reason: "\"search\" is not a valid regular expression: \(search)")
-            }
-            return { text in
-                let range = NSRange(text.startIndex..., in: text)
-                return expression.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
-            }
-        }
-        var options: String.CompareOptions = [.literal]
-        if ignoreCase { options.insert(.caseInsensitive) }
-        return { $0.replacingOccurrences(of: search, with: replacement, options: options) }
-    }
-
-    /// Leerzeichen, Zeilenumbrüche und Steuerzeichen am Rand entfernen;
-    /// mehrere Leerzeichen/Tabs hintereinander zu einem Leerzeichen. Zeilen-
-    /// umbrüche IM Text bleiben (Lyrics, Beschreibungen).
-    public static func trim(_ text: String) -> String {
-        let edges = CharacterSet.whitespacesAndNewlines.union(.controlCharacters)
-        var result = text.trimmingCharacters(in: edges)
-        result = result.replacingOccurrences(of: #"[ \t]{2,}"#, with: " ", options: .regularExpression)
-        return result
-    }
-
-    public static func changeCase(_ text: String, mode: TagRule.CaseMode, smallWords: [String]) -> String {
-        switch mode {
-        case .upper: return text.uppercased()
-        case .lower: return text.lowercased()
-        case .title: return titleCase(text, smallWords: Set(smallWords.map { $0.lowercased() }))
-        case .sentence: return sentenceCase(text)
-        }
-    }
-
-    /// Zeichen, nach denen innerhalb eines Wortes wieder groß geschrieben
-    /// wird: "Rock-'n'-Roll", "AC/DC", "(Live)", "„Zitat".
-    private static let subwordStarters: Set<Character> = [
-        "-", "/", "(", "[", "{", "\"", "„", "“", "‘", "«", "»",
-    ]
-
-    /// Satzzeichen, nach denen ein kleines Wort trotzdem groß beginnt
-    /// ("Titel: Der Film", "Was? Die Antwort").
-    private static let phraseEnders: Set<Character> = [":", ";", "?", "!", ".", "–", "—", "-", "("]
-
-    /// Titel-Schreibweise: jedes Wort groß, der Rest klein; kleine Wörter
-    /// klein — außer am Anfang, am Ende oder nach einem Satzzeichen.
-    /// Getrennt wird an Leerraum; Bindestrich-Teile zählen als eigene Wörter
-    /// ("Rock-and-Roll"). Umlaute und andere Unicode-Buchstaben werden wie
-    /// alle Buchstaben behandelt ("ärger" → "Ärger"). Bekannte Grenze:
-    /// Abkürzungen in Großbuchstaben ("DJ", "USA") werden zu "Dj"/"Usa".
-    static func titleCase(_ text: String, smallWords: Set<String>) -> String {
-        // Wörter und Leerraum abwechselnd, damit der Leerraum unverändert
-        // zurückkommt.
-        var tokens: [(text: String, isWord: Bool)] = []
-        var current = ""
-        var currentIsWord = false
-        for character in text {
-            let isWord = !character.isWhitespace
-            if !current.isEmpty, isWord != currentIsWord {
-                tokens.append((current, currentIsWord))
-                current = ""
-            }
-            current.append(character)
-            currentIsWord = isWord
-        }
-        if !current.isEmpty { tokens.append((current, currentIsWord)) }
-
-        let lastWordIndex = tokens.lastIndex(where: \.isWord)
-        var result = ""
-        var previousWord: String?
-        for (index, token) in tokens.enumerated() {
-            guard token.isWord else {
-                result += token.text
-                continue
-            }
-            // Am Anfang, am Ende und nach einem Satzzeichen ("Titel: Der
-            // Film") beginnt auch ein kleines Wort groß.
-            let afterPhraseEnd = previousWord?.last.map(phraseEnders.contains) ?? false
-            let forceCapital = previousWord == nil || index == lastWordIndex || afterPhraseEnd
-            result += titleCaseWord(token.text, smallWords: smallWords, forceCapital: forceCapital)
-            previousWord = token.text
-        }
-        return result
-    }
-
-    /// Ein Leerraum-freies Wort in Titel-Schreibweise, inklusive Teilwörtern
-    /// nach Bindestrich/Schrägstrich/Klammer.
-    private static func titleCaseWord(_ word: String, smallWords: Set<String>, forceCapital: Bool) -> String {
-        // In Teilwörter zerlegen: Grenze ist jedes Zeichen aus subwordStarters.
-        var parts: [String] = []
-        var current = ""
-        for character in word {
-            if subwordStarters.contains(character) {
-                parts.append(current)
-                parts.append(String(character))
-                current = ""
-            } else {
-                current.append(character)
-            }
-        }
-        parts.append(current)
-
-        var result = ""
-        var isFirstPart = true
-        for part in parts {
-            if part.count == 1, let only = part.first, subwordStarters.contains(only) {
-                result += part
-                continue
-            }
-            guard !part.isEmpty else { continue }
-            let lowered = part.lowercased()
-            let core = lowered.trimmingCharacters(in: .punctuationCharacters.union(.symbols))
-            let keepSmall = smallWords.contains(core) && !(forceCapital && isFirstPart)
-            result += keepSmall ? lowered : capitalizeFirstLetter(lowered)
-            isFirstPart = false
-        }
-        return result
-    }
-
-    /// Ersten Buchstaben groß (Zeichen davor wie Klammern oder Anführungs-
-    /// zeichen bleiben), Rest unverändert.
-    private static func capitalizeFirstLetter(_ word: String) -> String {
-        guard let index = word.firstIndex(where: \.isLetter) else { return word }
-        return String(word[..<index]) + word[index].uppercased() + word[word.index(after: index)...]
-    }
-
-    /// Satz-Schreibweise: alles klein, dann der erste Buchstabe des Textes
-    /// und jeder Buchstabe nach ". ", "! " oder "? " groß.
-    static func sentenceCase(_ text: String) -> String {
-        var result = ""
-        var capitalizeNext = true
-        var previous: Character?
-        for character in text.lowercased() {
-            if capitalizeNext, character.isLetter {
-                result += character.uppercased()
-                capitalizeNext = false
-            } else {
-                result.append(character)
-            }
-            if character.isWhitespace, let previous, ".!?".contains(previous) {
-                capitalizeNext = true
-            }
-            previous = character
-        }
-        return result
-    }
-}
-
-// MARK: - Vorlagen
-
 /// Mitgelieferte Regelsätze, die App und Doku als Startpunkt anbieten. Die
 /// Anzeigenamen liegen in der App (lokalisiert); hier nur Kennung und Inhalt.
 public enum TagRuleTemplate: String, CaseIterable, Sendable {
@@ -1117,21 +466,6 @@ public enum TagRuleTemplate: String, CaseIterable, Sendable {
             return TagRuleDocument(rules: [
                 TagRule(action: .number, field: "TRACKNUMBER", sortBy: "filename", start: 1, total: true),
             ])
-        }
-    }
-}
-
-/// Audio-Regelfelder sind unabhängig von den einwertigen Dateinamenmustern.
-public enum TagRuleFields {
-    /// Bestehender Regel-Adapter; die allgemeine Gruppierung liegt im Modell.
-    public static func values(from properties: [TagProperty]) -> [String: [String]] {
-        TagProperty.valuesByKey(properties)
-    }
-
-    public static func apply(_ values: [String: [String]], to properties: inout [TagProperty]) {
-        for key in values.keys.sorted() {
-            properties.removeAll { $0.key == key }
-            properties += (values[key] ?? []).map { TagProperty(key: key, value: $0) }
         }
     }
 }

@@ -595,8 +595,8 @@ struct SidecarTests {
         var hostile = archive
         hostile.files[0].nfo?.year = "irgendwann"
         let rejected = try TagArchiveIO.apply(hostile, relativeTo: dir, dryRun: true)
-        #expect(rejected.failed.map(\.0) == ["film.nfo"])
-        #expect(rejected.failed.first?.1.contains("year") == true)
+        #expect(rejected.failed.map(\.path) == ["film.nfo"])
+        #expect(rejected.failed.first?.message.contains("year") == true)
     }
 
 
