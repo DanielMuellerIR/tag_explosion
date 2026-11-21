@@ -1,6 +1,6 @@
 // Netzwerkschicht des Online-Lookups: ein kleines Protokoll über HTTP, damit
 // Tests einen Stub mit aufgezeichneten JSON-Antworten einsetzen können, und
-// die echte Umsetzung über URLSession. Dazu der Ratenbegrenzer (höchstens
+// der Standardtransport libcurl verwendet. Dazu der Ratenbegrenzer (höchstens
 // eine Anfrage pro Sekunde je Dienst) und die Wiederholung bei 503/429.
 import Foundation
 #if canImport(FoundationNetworking)
@@ -47,70 +47,108 @@ public protocol LookupHTTPClient: Sendable {
     func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse
 }
 
-/// Echter Transport über URLSession beziehungsweise libcurl unter Linux.
+/// Standardtransport über libcurl. Explizite Session-Konfigurationen nutzen URLSession.
 public final class URLSessionLookupClient: LookupHTTPClient {
     static let maximumResponseBytes = 16 * 1024 * 1024
     private enum Transport: Sendable {
-        case session(URLSession, LookupHTTPReceiver)
-        #if os(Linux)
+        case ownedSession(URLSession, LookupHTTPReceiver)
         case curl
+        #if os(Linux)
+        case unsupportedSessionDelegate
+        #else
+        case borrowedSession(URLSession)
         #endif
     }
     private let transport: Transport
 
-    /// Übernimmt die Konfiguration einer übergebenen Session für eine eigene Session.
+    /// Verwendet unter macOS die übergebene Session samt Delegate.
+    /// Das Empfangslimit gilt für die ausgelieferte Antwort. Zwischenschritte
+    /// einer Weiterleitung verarbeitet URLSession.
+    /// Linux übernimmt die Konfiguration einer Session ohne Delegate.
+    /// Bei einer Linux-Session mit Delegate schlägt der Lookup vor dem Senden
+    /// fehl. FoundationNetworking braucht für den begrenzten Empfang einen
+    /// beim Anlegen der Session eingebauten Daten-Delegate.
     public init(session: URLSession? = nil) {
         #if os(Linux)
-        if session == nil {
+        if let session {
+            transport = session.delegate == nil
+                ? Self.makeTransport(configuration: session.configuration)
+                : .unsupportedSessionDelegate
+        } else {
             transport = .curl
-            return
         }
+        #else
+        transport = session.map(Transport.borrowedSession) ?? .curl
         #endif
-        transport = Self.makeTransport(configuration: session?.configuration ?? Self.defaultConfiguration())
     }
 
     /// Verwendet URLSession mit eigener Konfiguration, etwa für URLProtocol-Tests.
+    /// Das Limit gilt für den von URLSession übergebenen Antwortinhalt.
     public init(configuration: URLSessionConfiguration) {
         transport = Self.makeTransport(configuration: configuration)
     }
 
     private static func makeTransport(configuration: URLSessionConfiguration) -> Transport {
         let receiver = LookupHTTPReceiver()
-        return .session(URLSession(configuration: configuration, delegate: receiver, delegateQueue: nil), receiver)
+        return .ownedSession(URLSession(configuration: configuration, delegate: receiver, delegateQueue: nil), receiver)
     }
 
     deinit {
-        if case let .session(session, _) = transport { session.finishTasksAndInvalidate() }
-    }
-
-    private static func defaultConfiguration() -> URLSessionConfiguration {
-        // Die Lookup-Sitzung soll keine Cookies oder Cache-Daten auf die Platte schreiben.
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 30
-        configuration.httpCookieAcceptPolicy = .never
-        return configuration
+        if case let .ownedSession(session, _) = transport { session.finishTasksAndInvalidate() }
     }
 
     public func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse {
         switch transport {
-        case let .session(session, receiver):
-            return try await send(request, using: session, receiver: receiver)
-        #if os(Linux)
+        case let .ownedSession(session, receiver):
+            let (data, response) = try await receiver.receive(Self.urlRequest(request), using: session)
+            return Self.lookupResponse(data, response)
         case .curl:
-            return try await LinuxLookupHTTP.send(request)
+            return try await CurlLookupHTTP.send(request)
+        #if os(Linux)
+        case .unsupportedSessionDelegate:
+            throw LookupHTTPSessionError.unsupportedDelegate
+        #else
+        case .borrowedSession(let session):
+            let (data, response) = try await receive(Self.urlRequest(request), from: session)
+            return Self.lookupResponse(data, response)
         #endif
         }
     }
 
-    private func send(_ request: LookupHTTPRequest, using session: URLSession,
-                      receiver: LookupHTTPReceiver) async throws -> LookupHTTPResponse {
+    #if !os(Linux)
+    private func receive(_ request: URLRequest, from session: URLSession) async throws -> (Data, URLResponse) {
+        // Der Session-Delegate entscheidet weiterhin über Vertrauen, Anmeldung
+        // und Redirects. URLSession begrenzt die Redirect-Kette.
+        let (bytes, response) = try await session.bytes(for: request)
+        let task = bytes.task
+        return try await withTaskCancellationHandler {
+            var body = Data()
+            for try await byte in bytes {
+                guard body.count < Self.maximumResponseBytes else {
+                    task.cancel()
+                    throw LookupHTTPResponseTooLarge(maximumBytes: Self.maximumResponseBytes)
+                }
+                body.append(byte)
+            }
+            guard !Task.isCancelled else { throw URLError(.cancelled) }
+            return (body, response)
+        } onCancel: {
+            task.cancel()
+        }
+    }
+    #endif
+
+    private static func urlRequest(_ request: LookupHTTPRequest) -> URLRequest {
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method
         urlRequest.httpBody = request.body
         for (name, value) in request.headers {
             urlRequest.setValue(value, forHTTPHeaderField: name)
         }
-        let (data, response) = try await receiver.receive(urlRequest, using: session)
+        return urlRequest
+    }
+
+    private static func lookupResponse(_ data: Data, _ response: URLResponse) -> LookupHTTPResponse {
         guard let http = response as? HTTPURLResponse else {
             return LookupHTTPResponse(statusCode: 0, body: data)
         }
@@ -123,6 +161,14 @@ public final class URLSessionLookupClient: LookupHTTPClient {
         return LookupHTTPResponse(statusCode: http.statusCode, headers: headers, body: data)
     }
 }
+
+#if os(Linux)
+enum LookupHTTPSessionError: LocalizedError, Equatable {
+    case unsupportedDelegate
+
+    var errorDescription: String? { "Bounded online lookup cannot use a URLSession delegate on Linux." }
+}
+#endif
 
 struct LookupHTTPResponseTooLarge: LocalizedError, Equatable {
     let maximumBytes: Int

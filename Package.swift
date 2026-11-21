@@ -11,15 +11,9 @@ let pdfTargets: [Target] = [
     .systemLibrary(name: "CQPDF", pkgConfig: "libqpdf", providers: [.apt(["libqpdf-dev"])]),
     .target(name: "CPDFShim", dependencies: ["CQPDF"]),
 ]
-let lookupDependencies: [Target.Dependency] = ["CLookupHTTP"]
-let lookupTargets: [Target] = [
-    .target(name: "CLookupHTTP", linkerSettings: [.linkedLibrary("curl")]),
-]
 #else
 let pdfDependencies: [Target.Dependency] = []
 let pdfTargets: [Target] = []
-let lookupDependencies: [Target.Dependency] = []
-let lookupTargets: [Target] = []
 #endif
 
 let package = Package(
@@ -62,14 +56,16 @@ let package = Package(
             name: "EInvoiceCore",
             dependencies: pdfDependencies
         ),
+        .target(name: "CLookupHTTP", linkerSettings: [.linkedLibrary("curl")]),
         // Portabler Kern: Datenmodell, Tag-IO, MediaInfo-Wrapper. Kein AppKit/SwiftUI.
         .target(
             name: "TagExplosionCore",
             dependencies: [
                 "CTagShim",
+                "CLookupHTTP",
                 "EInvoiceCore",
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
-            ] + lookupDependencies
+            ]
         ),
         .target(name: "TagExplosionApplication", dependencies: ["TagExplosionCore", "EInvoiceCore"]),
         .executableTarget(name: "TagExplosionDesktopEngine", dependencies: ["TagExplosionApplication"]),
@@ -94,6 +90,6 @@ let package = Package(
             name: "TagxTests",
             dependencies: ["TagExplosionCore", "TagExplosionTestSupport", "tagx"]
         ),
-    ] + pdfTargets + lookupTargets,
+    ] + pdfTargets,
     cxxLanguageStandard: .cxx17
 )

@@ -31,9 +31,10 @@ static int check_cancellation(void *context, curl_off_t download_total, curl_off
     return transfer->is_cancelled(transfer->context) ? 1 : 0;
 }
 
-int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status) {
-    if (!status) return CURLE_BAD_FUNCTION_ARGUMENT;
+int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status, bool *can_try_next_proxy) {
+    if (!status || !can_try_next_proxy) return CURLE_BAD_FUNCTION_ARGUMENT;
     *status = 0;
+    *can_try_next_proxy = false;
     if (!transfer || !transfer->url || !transfer->method || !transfer->receive_header
         || !transfer->receive_body || !transfer->is_cancelled
         || (transfer->header_count && !transfer->headers) || (transfer->body_count && !transfer->body)) {
@@ -66,6 +67,17 @@ int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status) {
     } while (0)
 
     SET(CURLOPT_URL, transfer->url);
+    if (transfer->proxy) {
+        SET(CURLOPT_PROXY, transfer->proxy);
+        SET(CURLOPT_NOPROXY, "");
+    }
+    if (transfer->proxy_username) {
+        SET(CURLOPT_PROXYUSERNAME, transfer->proxy_username);
+        SET(CURLOPT_PROXYAUTH, (long)CURLAUTH_ANY);
+    }
+    if (transfer->proxy_password) {
+        SET(CURLOPT_PROXYPASSWORD, transfer->proxy_password);
+    }
     SET(CURLOPT_PROTOCOLS_STR, "https,http");
     SET(CURLOPT_DISALLOW_USERNAME_IN_URL, 1L);
     SET(CURLOPT_FOLLOWLOCATION, 0L);
@@ -95,6 +107,14 @@ int tagx_lookup_perform(const tagx_lookup_transfer *transfer, long *status) {
 
     result = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, status);
+    if (result != CURLE_OK && *status == 0) {
+        long connect_status = 0;
+        if (curl_easy_getinfo(curl, CURLINFO_HTTP_CONNECTCODE, &connect_status) == CURLE_OK) {
+            /* Ein abgelehnter CONNECT bei Proxy-Ausfall hat den Zielserver nicht erreicht. */
+            *can_try_next_proxy = connect_status == 502 || connect_status == 503 || connect_status == 504
+                || (connect_status == 0 && (result == CURLE_COULDNT_RESOLVE_PROXY || result == CURLE_COULDNT_CONNECT));
+        }
+    }
 
 cleanup:
     curl_slist_free_all(headers);

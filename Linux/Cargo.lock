@@ -3866,7 +3866,7 @@ dependencies = [
 
 [[package]]
 name = "tag-explosion-linux"
-version = "0.54.13"
+version = "0.54.14"
 dependencies = [
  "keyring",
  "libc",

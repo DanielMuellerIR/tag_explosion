@@ -200,9 +200,12 @@ enum ZipContainer {
             throw TagError.cannotOpen(path: url.path)
         }
         for end in stride(from: tail.count - endRecordSize, through: 0, by: -1) {
-            guard number(UInt32.self, in: tail, at: end) == 0x06054b50,
-                  Int(number(UInt16.self, in: tail, at: end + 20)) == tail.count - end - endRecordSize
-            else { continue }
+            guard number(UInt32.self, in: tail, at: end) == 0x06054b50 else { continue }
+            // ZIPFoundation nimmt die erste Signatur von hinten. Ein
+            // Suchtreffer im Kommentar darf kein anderes Verzeichnis liefern.
+            guard Int(number(UInt16.self, in: tail, at: end + 20)) == tail.count - end - endRecordSize else {
+                throw TagError.cannotOpen(path: url.path)
+            }
             let endOffset = tailOffset + UInt64(end)
             let entriesOnDisk = number(UInt16.self, in: tail, at: end + 8)
             let entries = number(UInt16.self, in: tail, at: end + 10)
@@ -213,7 +216,9 @@ enum ZipContainer {
                 let recordOffset = number(UInt64.self, in: tail, at: locator + 8)
                 let locatorOffset = tailOffset + UInt64(locator)
                 let zip64RecordSize = 56
-                guard recordOffset <= locatorOffset, locatorOffset - recordOffset >= zip64RecordSize,
+                // ZIPFoundation liest den festen ZIP64-Datensatz direkt vor
+                // dem Locator. Beide Leser müssen dieselbe Position verwenden.
+                guard recordOffset > 0, recordOffset < locatorOffset, locatorOffset - recordOffset == zip64RecordSize,
                       (disk == 0 || disk == .max), (firstDisk == 0 || firstDisk == .max),
                       number(UInt32.self, in: tail, at: locator + 4) == 0,
                       number(UInt32.self, in: tail, at: locator + 16) == 1 else {
@@ -223,6 +228,7 @@ enum ZipContainer {
                 guard let record = try archive.read(upToCount: zip64RecordSize), record.count == zip64RecordSize,
                       number(UInt32.self, in: record, at: 0) == 0x06064b50,
                       number(UInt64.self, in: record, at: 4) == locatorOffset - recordOffset - 12,
+                      number(UInt16.self, in: record, at: 14) >= 45,
                       number(UInt64.self, in: record, at: 16) == 0 else {
                     throw TagError.cannotOpen(path: url.path)
                 }

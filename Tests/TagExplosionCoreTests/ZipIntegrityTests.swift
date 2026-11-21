@@ -100,6 +100,35 @@ struct ZipIntegrityTests {
         #expect(try ZipContainer.entries(url: url) == entries)
     }
 
+    @Test("ZIP-Kommentar mit abweichendem Verzeichnis verhindert den Neuaufbau")
+    func rejectsDifferentDirectoryInComment() throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        let expected = try ZipContainer.entries(url: url)
+        var bytes = try Data(contentsOf: url)
+        let signature = try #require(bytes.range(of: Data([0x50, 0x4b, 0x05, 0x06]), options: .backwards))
+        let end = signature.lowerBound
+        try #require(end + 22 == bytes.count)
+        let offset = bytes.withUnsafeBytes {
+            Int(UInt32(littleEndian: $0.loadUnaligned(fromByteOffset: end + 16, as: UInt32.self)))
+        }
+        var directory = bytes.subdata(in: offset..<end)
+        directory[46] ^= 1
+        var competingEnd = bytes.subdata(in: end..<bytes.count)
+        withUnsafeBytes(of: UInt32(bytes.count).littleEndian) { competingEnd.replaceSubrange(16..<20, with: $0) }
+        let commentSize = UInt16(directory.count + competingEnd.count + 1)
+        withUnsafeBytes(of: commentSize.littleEndian) { bytes.replaceSubrange((end + 20)..<(end + 22), with: $0) }
+        bytes.append(directory)
+        bytes.append(competingEnd)
+        bytes.append(0)
+        try bytes.write(to: url)
+
+        #expect(try ZipContainer.entries(url: url) != expected)
+        #expect(throws: TagError.cannotOpen(path: url.path)) {
+            try ZipContainer.rewrite(url: url, replacing: [:])
+        }
+        #expect(try Data(contentsOf: url) == bytes)
+    }
+
     private func addZIP64End(to bytes: inout Data, at end: Int, difference: Int) {
         var extensionBytes = Data()
         func append<T: FixedWidthInteger>(_ value: T) {

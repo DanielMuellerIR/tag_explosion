@@ -1,17 +1,38 @@
-#if os(Linux)
 import CLookupHTTP
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#else
 import Glibc
+#endif
 
-enum LinuxLookupHTTP {
+struct CurlLookupProxy: Sendable, Equatable {
+    // nil verwendet libcurl-Umgebungsvariablen, "" erzwingt DIRECT.
+    var address: String?
+    var username: String? = nil
+    var password: String? = nil
+}
+
+enum CurlLookupHTTP {
+    typealias ProxyResolver = @Sendable (URL, @Sendable () -> Bool) throws -> [CurlLookupProxy]
+
     private static let maximumRedirects = 20
     private static let redirectStatuses: Set<Int> = [301, 302, 303, 307, 308]
 
     static func send(_ request: LookupHTTPRequest) async throws -> LookupHTTPResponse {
+        #if os(macOS)
+        try await send(request, resolvingProxies: MacLookupProxy.systemRoutes)
+        #else
+        try await send(request, resolvingProxies: { _, _ in [CurlLookupProxy(address: nil)] })
+        #endif
+    }
+
+    static func send(_ request: LookupHTTPRequest,
+                     resolvingProxies: @escaping ProxyResolver) async throws -> LookupHTTPResponse {
         let cancellation = Cancellation()
         return try await withTaskCancellationHandler {
             try await BlockingWork.run {
-                try followRedirects(request, cancellation: cancellation)
+                try followRedirects(request, cancellation: cancellation, resolvingProxies: resolvingProxies)
             }
         } onCancel: {
             cancellation.cancel()
@@ -19,18 +40,37 @@ enum LinuxLookupHTTP {
     }
 
     private static func followRedirects(_ initialRequest: LookupHTTPRequest,
-                                        cancellation: Cancellation) throws -> LookupHTTPResponse {
+                                        cancellation: Cancellation,
+                                        resolvingProxies: ProxyResolver) throws -> LookupHTTPResponse {
         var request = initialRequest
         for hop in 0...maximumRedirects {
             try cancellation.check()
             guard validURL(request.url) else { throw URLError(.unsupportedURL) }
-            let transfer = Transfer(cancellation: cancellation)
-            let response = try transfer.perform(request)
-            guard let location = transfer.redirectLocation else { return response }
+            let proxies = try resolvingProxies(request.url) { cancellation.isCancelled }
+            let (response, location) = try receive(request, proxies: proxies, cancellation: cancellation)
+            guard let location else { return response }
             guard hop < maximumRedirects else { break }
             request = try redirected(request, status: response.statusCode, location: location)
         }
         throw URLError(.httpTooManyRedirects)
+    }
+
+    private static func receive(_ request: LookupHTTPRequest, proxies: [CurlLookupProxy],
+                                cancellation: Cancellation) throws -> (LookupHTTPResponse, String?) {
+        var lastFailure: TransferError?
+        for proxy in proxies {
+            try cancellation.check()
+            let transfer = Transfer(cancellation: cancellation)
+            do {
+                let response = try transfer.perform(request, proxy: proxy)
+                return (response, transfer.redirectLocation)
+            } catch let error as TransferError where error.canTryNextProxy {
+                // Nach Fehlern beim Empfang könnte der Dienst den Auftrag bereits verarbeitet haben.
+                lastFailure = error
+            }
+        }
+        if let lastFailure { throw lastFailure }
+        throw URLError(.cannotConnectToHost)
     }
 
     static func redirected(_ initialRequest: LookupHTTPRequest, status: Int,
@@ -105,7 +145,7 @@ enum LinuxLookupHTTP {
             self.cancellation = cancellation
         }
 
-        func perform(_ request: LookupHTTPRequest) throws -> LookupHTTPResponse {
+        func perform(_ request: LookupHTTPRequest, proxy: CurlLookupProxy) throws -> LookupHTTPResponse {
             guard Self.isToken(request.method),
                   request.headers.allSatisfy({ Self.isToken($0.key) && Self.isHeaderValue($0.value) }) else {
                 throw URLError(.badURL)
@@ -116,14 +156,29 @@ enum LinuxLookupHTTP {
             defer { lines.forEach { free($0) } }
             guard lines.allSatisfy({ $0 != nil }) else { throw URLError(.resourceUnavailable) }
             let headerPointers = lines.map { UnsafePointer($0) }
+            let proxyAddress = proxy.address.flatMap { strdup($0) }
+            let proxyUsername = proxy.username.flatMap { strdup($0) }
+            let proxyPassword = proxy.password.flatMap { strdup($0) }
+            defer {
+                free(proxyAddress)
+                free(proxyUsername)
+                free(proxyPassword)
+            }
+            guard proxy.address == nil || proxyAddress != nil,
+                  proxy.username == nil || proxyUsername != nil,
+                  proxy.password == nil || proxyPassword != nil else { throw URLError(.resourceUnavailable) }
             let requestBody = request.body ?? Data()
             var responseStatus = 0
+            var canTryNextProxy = false
             let code = request.url.absoluteString.withCString { url in
                 request.method.withCString { method in
                     headerPointers.withUnsafeBufferPointer { headers in
                         requestBody.withUnsafeBytes { bytes in
                             var transfer = tagx_lookup_transfer(
-                                url: url, method: method, headers: headers.baseAddress, header_count: headers.count,
+                                url: url, method: method,
+                                proxy: UnsafePointer(proxyAddress), proxy_username: UnsafePointer(proxyUsername),
+                                proxy_password: UnsafePointer(proxyPassword), headers: headers.baseAddress,
+                                header_count: headers.count,
                                 body: bytes.bindMemory(to: UInt8.self).baseAddress, body_count: bytes.count,
                                 has_body: request.body != nil, context: Unmanaged.passUnretained(self).toOpaque(),
                                 receive_header: { context, bytes, count in
@@ -138,7 +193,7 @@ enum LinuxLookupHTTP {
                                     Unmanaged<Transfer>.fromOpaque(context!).takeUnretainedValue()
                                         .cancellation.isCancelled
                                 })
-                            return tagx_lookup_perform(&transfer, &responseStatus)
+                            return tagx_lookup_perform(&transfer, &responseStatus, &canTryNextProxy)
                         }
                     }
                 }
@@ -147,7 +202,7 @@ enum LinuxLookupHTTP {
             if let limitExceeded { throw LookupHTTPResponseTooLarge(maximumBytes: limitExceeded) }
             if redirectLocation == nil {
                 if tagx_lookup_is_timeout(code) { throw URLError(.timedOut) }
-                guard code == 0 else { throw TransferError(code: code) }
+                guard code == 0 else { throw TransferError(code: code, canTryNextProxy: canTryNextProxy) }
             }
             return LookupHTTPResponse(statusCode: redirectLocation == nil ? responseStatus : status,
                                       headers: headers, body: body)
@@ -202,7 +257,7 @@ enum LinuxLookupHTTP {
 
     private struct TransferError: LocalizedError {
         let code: Int32
+        let canTryNextProxy: Bool
         var errorDescription: String? { String(cString: tagx_lookup_error_description(code)) }
     }
 }
-#endif
