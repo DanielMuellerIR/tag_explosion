@@ -130,7 +130,13 @@ public struct TagArchiveReport: Sendable, Equatable {
     /// Mediendateien unter dem JSON-Ordner, die nicht im Archiv stehen.
     public var extra: [String] = []
     /// Dateien, die nach der Vorprüfung nicht verarbeitet werden konnten.
-    public var failed: [Failure] = []
+    public var failures: [Failure] = []
+
+    /// Bestehende Swift-Aufrufer können Fehler weiterhin als Tupel lesen und setzen.
+    public var failed: [(String, String)] {
+        get { failures.map { ($0.path, $0.message) } }
+        set { failures = newValue.map { Failure(path: $0.0, message: $0.1) } }
+    }
 }
 
 public enum TagArchiveIO {
@@ -148,7 +154,7 @@ public enum TagArchiveIO {
     /// konnte gar nicht im Archiv landen, weil schon die Leseseite beides auf
     /// −1 abbildete. Genau so wird es deshalb wiederhergestellt; ohne diese
     /// Umrechnung schriebe ein alter Bestand plötzlich ein −1-Tag in Dateien,
-    /// die vorher keines hatten (Review-Fund 2026-08-20).
+    /// die vorher keines hatten.
     static func normalizingLegacyValues(_ archive: TagArchive) -> TagArchive {
         guard archive.version == 1 else { return archive }
         var archive = archive

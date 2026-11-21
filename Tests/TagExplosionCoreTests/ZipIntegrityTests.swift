@@ -67,22 +67,64 @@ struct ZipIntegrityTests {
         #expect(try Data(contentsOf: url) == before)
     }
 
-    @Test("Ein vorzeitig endendes ZIP-Verzeichnis verhindert das Speichern")
-    func incompleteDirectoryPreventsRewrite() throws {
+    @Test("Falsche ZIP- und ZIP64-Verzeichnisangaben verhindern das Speichern",
+          arguments: [-1, 1], [false, true])
+    func incompleteDirectoryPreventsRewrite(difference: Int, zip64: Bool) throws {
         let url = try Fixtures.workingCopy("doc.docx")
-        let original = try DocumentTool.readCoreFields(url: url)
-        var edited = original
-        edited.title = "Darf nicht gespeichert werden"
         var before = try Data(contentsOf: url)
         let end = try #require(before.range(of: Data([0x50, 0x4b, 0x05, 0x06]), options: .backwards))
         try #require(end.lowerBound + 22 == before.count)
-        before[end.lowerBound + 8] += 1
-        before[end.lowerBound + 10] += 1
+        if zip64 { addZIP64End(to: &before, at: end.lowerBound, difference: difference) }
+        else {
+            before[end.lowerBound + 8] = UInt8(Int(before[end.lowerBound + 8]) + difference)
+            before[end.lowerBound + 10] = UInt8(Int(before[end.lowerBound + 10]) + difference)
+        }
         try before.write(to: url)
 
         #expect(throws: TagError.cannotOpen(path: url.path)) {
-            try DocumentTool.write(url: url, fields: edited, original: original)
+            try ZipContainer.rewrite(url: url, replacing: ["word/document.xml": Data("Geändert".utf8)])
         }
         #expect(try Data(contentsOf: url) == before)
+    }
+
+    @Test("Ein gültiges ZIP64-Verzeichnis lässt sich verlustfrei neu aufbauen")
+    func rewritesZIP64Directory() throws {
+        let url = try Fixtures.workingCopy("doc.docx")
+        var bytes = try Data(contentsOf: url)
+        let end = try #require(bytes.range(of: Data([0x50, 0x4b, 0x05, 0x06]), options: .backwards))
+        let entries = try ZipContainer.entries(url: url)
+        addZIP64End(to: &bytes, at: end.lowerBound, difference: 0)
+        try bytes.write(to: url)
+        #expect(try ZipContainer.entries(url: url) == entries)
+        try ZipContainer.rewrite(url: url, replacing: [:])
+        #expect(try ZipContainer.entries(url: url) == entries)
+    }
+
+    private func addZIP64End(to bytes: inout Data, at end: Int, difference: Int) {
+        var extensionBytes = Data()
+        func append<T: FixedWidthInteger>(_ value: T) {
+            withUnsafeBytes(of: value.littleEndian) { extensionBytes.append(contentsOf: $0) }
+        }
+        func read32(at offset: Int) -> UInt64 {
+            bytes.withUnsafeBytes {
+                UInt64(UInt32(littleEndian: $0.loadUnaligned(fromByteOffset: offset, as: UInt32.self)))
+            }
+        }
+        let entryCount = UInt64(Int(bytes[end + 10]) + difference)
+        append(UInt32(0x06064b50))
+        append(UInt64(44))
+        append(UInt16(45))
+        append(UInt16(45))
+        append(UInt64(0))
+        append(entryCount)
+        append(entryCount)
+        append(read32(at: end + 12))
+        append(read32(at: end + 16))
+        append(UInt32(0x07064b50))
+        append(UInt32(0))
+        append(UInt64(end))
+        append(UInt32(1))
+        bytes.replaceSubrange((end + 8)..<(end + 20), with: repeatElement(UInt8.max, count: 12))
+        bytes.insert(contentsOf: extensionBytes, at: end)
     }
 }

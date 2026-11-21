@@ -92,7 +92,7 @@ extension TagArchiveIO {
                     report.unchanged.append(entry.path)
                 }
             } catch {
-                report.failed.append(.init(path: entry.path, message: String(describing: error)))
+                report.failures.append(.init(path: entry.path, message: String(describing: error)))
             }
         }
 

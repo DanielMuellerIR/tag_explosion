@@ -79,15 +79,15 @@ struct Import: ParsableCommand {
         for path in report.unchanged { print("UNCHANGED \(path)") }
         for path in report.missing { print("MISSING \(path)") }
         for path in report.extra { print("NOT IN ARCHIVE \(path)") }
-        for failure in report.failed {
+        for failure in report.failures {
             FileHandle.standardError.write(Data("ERROR \(failure.path): \(failure.message)\n".utf8))
         }
         print("\(report.applied.count) changed\(dryRun ? " (dry-run)" : ""), "
             + "\(report.unchanged.count) unchanged, \(report.missing.count) missing, "
-            + "\(report.extra.count) not in archive, \(report.failed.count) failed")
+            + "\(report.extra.count) not in archive, \(report.failures.count) failed")
 
         // Skript-tauglich: unvollständige Wiederherstellung => Exit-Code 1.
-        if !report.missing.isEmpty || !report.failed.isEmpty {
+        if !report.missing.isEmpty || !report.failures.isEmpty {
             throw ExitCode(1)
         }
     }

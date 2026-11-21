@@ -184,9 +184,9 @@ enum ZipContainer {
         }
     }
 
-    // ZIPFoundation beendet die Iteration auch bei einem nicht lesbaren
-    // Eintrag ohne Fehler. Die Anzahl aus dem Verzeichnisende (ZIP APPNOTE,
-    // §§ 4.3.14–16) verhindert dann, dass ein verkürztes Archiv gespeichert wird.
+    // ZIPFoundation beendet die Iteration bei der deklarierten Anzahl oder
+    // beim ersten nicht lesbaren Eintrag. Daher auch das tatsächliche Ende
+    // der Verzeichnisliste prüfen (ZIP APPNOTE §§ 4.3.12–16).
     private static func declaredEntryCount(at url: URL) throws -> UInt64 {
         let archive = try FileHandle(forReadingFrom: url)
         defer { try? archive.close() }
@@ -199,32 +199,90 @@ enum ZipContainer {
         guard let tail = try archive.read(upToCount: tailSize), tail.count >= endRecordSize else {
             throw TagError.cannotOpen(path: url.path)
         }
-        func number<T: FixedWidthInteger>(_ type: T.Type, in bytes: Data, at position: Int) -> T {
-            bytes.withUnsafeBytes { T(littleEndian: $0.loadUnaligned(fromByteOffset: position, as: type)) }
-        }
         for end in stride(from: tail.count - endRecordSize, through: 0, by: -1) {
             guard number(UInt32.self, in: tail, at: end) == 0x06054b50,
                   Int(number(UInt16.self, in: tail, at: end + 20)) == tail.count - end - endRecordSize
             else { continue }
-
+            let endOffset = tailOffset + UInt64(end)
+            let entriesOnDisk = number(UInt16.self, in: tail, at: end + 8)
+            let entries = number(UInt16.self, in: tail, at: end + 10)
+            let disk = number(UInt16.self, in: tail, at: end + 4)
+            let firstDisk = number(UInt16.self, in: tail, at: end + 6)
             let locator = end - locatorSize
             if locator >= 0, number(UInt32.self, in: tail, at: locator) == 0x07064b50 {
                 let recordOffset = number(UInt64.self, in: tail, at: locator + 8)
                 let locatorOffset = tailOffset + UInt64(locator)
                 let zip64RecordSize = 56
-                guard recordOffset <= locatorOffset, locatorOffset - recordOffset >= zip64RecordSize else {
+                guard recordOffset <= locatorOffset, locatorOffset - recordOffset >= zip64RecordSize,
+                      (disk == 0 || disk == .max), (firstDisk == 0 || firstDisk == .max),
+                      number(UInt32.self, in: tail, at: locator + 4) == 0,
+                      number(UInt32.self, in: tail, at: locator + 16) == 1 else {
                     throw TagError.cannotOpen(path: url.path)
                 }
                 try archive.seek(toOffset: recordOffset)
                 guard let record = try archive.read(upToCount: zip64RecordSize), record.count == zip64RecordSize,
-                      number(UInt32.self, in: record, at: 0) == 0x06064b50 else {
+                      number(UInt32.self, in: record, at: 0) == 0x06064b50,
+                      number(UInt64.self, in: record, at: 4) == locatorOffset - recordOffset - 12,
+                      number(UInt64.self, in: record, at: 16) == 0 else {
                     throw TagError.cannotOpen(path: url.path)
                 }
-                return number(UInt64.self, in: record, at: 32)
+                let count = number(UInt64.self, in: record, at: 32)
+                guard number(UInt64.self, in: record, at: 24) == count,
+                      (entriesOnDisk == .max || UInt64(entriesOnDisk) == count),
+                      (entries == .max || UInt64(entries) == count) else {
+                    throw TagError.cannotOpen(path: url.path)
+                }
+                return try verifyDirectory(in: archive, url: url, count: count,
+                    offset: number(UInt64.self, in: record, at: 48),
+                    size: number(UInt64.self, in: record, at: 40), endsAt: recordOffset)
             }
-            return UInt64(number(UInt16.self, in: tail, at: end + 10))
+            guard disk == 0, firstDisk == 0, entriesOnDisk == entries else {
+                throw TagError.cannotOpen(path: url.path)
+            }
+            return try verifyDirectory(in: archive, url: url, count: UInt64(entries),
+                offset: UInt64(number(UInt32.self, in: tail, at: end + 16)),
+                size: UInt64(number(UInt32.self, in: tail, at: end + 12)), endsAt: endOffset)
         }
         throw TagError.cannotOpen(path: url.path)
+    }
+
+    private static func verifyDirectory(in archive: FileHandle, url: URL, count: UInt64,
+                                        offset: UInt64, size: UInt64, endsAt end: UInt64) throws -> UInt64 {
+        let headerSize = 46
+        let invalid = TagError.cannotOpen(path: url.path)
+        guard offset <= end, size <= end - offset, count <= size / UInt64(headerSize) else { throw invalid }
+        let directoryEnd = offset + size
+        var cursor = offset
+        for _ in 0..<count {
+            guard directoryEnd - cursor >= headerSize else { throw invalid }
+            try archive.seek(toOffset: cursor)
+            guard let header = try readChunk(from: archive, size: headerSize), header.count == headerSize,
+                  number(UInt32.self, in: header, at: 0) == 0x02014b50,
+                  number(UInt16.self, in: header, at: 34) == 0 else { throw invalid }
+            let recordSize = UInt64(headerSize)
+                + UInt64(number(UInt16.self, in: header, at: 28))
+                + UInt64(number(UInt16.self, in: header, at: 30))
+                + UInt64(number(UInt16.self, in: header, at: 32))
+            guard recordSize <= directoryEnd - cursor else { throw invalid }
+            cursor += recordSize
+        }
+        if cursor != end {
+            // Die zentrale Signatur darf in der Verzeichnisgröße enthalten sein.
+            let signatureSize = 6
+            guard directoryEnd == cursor || directoryEnd == end, end - cursor >= signatureSize else {
+                throw invalid
+            }
+            try archive.seek(toOffset: cursor)
+            guard let signature = try readChunk(from: archive, size: signatureSize),
+                  signature.count == signatureSize, number(UInt32.self, in: signature, at: 0) == 0x05054b50,
+                  UInt64(number(UInt16.self, in: signature, at: 4)) == end - cursor - UInt64(signatureSize)
+            else { throw invalid }
+        }
+        return count
+    }
+
+    private static func number<T: FixedWidthInteger>(_ type: T.Type, in bytes: Data, at position: Int) -> T {
+        bytes.withUnsafeBytes { T(littleEndian: $0.loadUnaligned(fromByteOffset: position, as: type)) }
     }
 
     /// ZIPFoundation stellt entpackte Daten als Push-Strom bereit, addEntry
